@@ -923,6 +923,152 @@ textarea#cvCode{font-family:var(--font-mono);font-size:.8rem}
 .menu button[disabled]{pointer-events:none}
 @media(max-width:820px){.sb-top{padding-top:calc(14px + env(safe-area-inset-top))}.composer-wrap{padding-bottom:calc(8px + env(safe-area-inset-bottom))}}
 .todo-chip[hidden]{display:none}
+/* ═════ AGENT SWARM ═════ */
+.lab-inner{max-width:1500px}
+.lab-panel{display:none}
+.lab-panel.on{display:block}
+.lab-panel>*+*{margin-top:16px}
+.lab .tabs{margin-bottom:16px}
+.lab .btn{flex:0 0 auto}
+.lab .lab-card-head h3,.lab .lab-card h3{font-family:var(--font-italic);font-style:italic;font-weight:400;font-size:1.35rem}
+.sb-item .sb-sub.swarm-live{color:var(--prism-c)}
+.lab a{color:var(--text);text-decoration:underline;text-decoration-color:var(--text-faint);text-underline-offset:2px}
+.lab a:hover{text-decoration-color:var(--text)}
+.lab-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.lab-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.lab-spacer{flex:1}
+.lab-card{display:flex;flex-direction:column;gap:14px;min-width:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.lab-card.compact{padding:12px 14px;gap:10px}
+.lab-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.lab-card-head h3{font-family:var(--font-display);font-weight:400;font-size:1.3rem;line-height:1.2;color:var(--text);margin:0}
+.lab-card-body{display:flex;flex-direction:column;gap:12px;min-width:0}
+/* forms */
+.lab-form{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px}
+.lab-field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.lab-field.full{grid-column:1/-1}
+.lab-lbl{font-family:var(--font-mono);font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text-faint)}
+.lab-input,.lab-textarea,.lab-select{width:100%;min-height:38px;box-sizing:border-box;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:var(--font-body);font-size:.85rem;padding:9px 11px;outline:none;transition:border-color .14s}
+.lab-input:focus,.lab-textarea:focus,.lab-select:focus{border-color:var(--prism-a)}
+.lab-textarea{min-height:70px;resize:vertical;line-height:1.45}
+.lab-select{cursor:pointer}
+.lab-select option{background:var(--surface2);color:var(--text)}
+.lab-num{width:84px;max-width:100%;font-family:var(--font-mono)}
+.lab-hint{font-family:var(--font-body);font-size:.7rem;line-height:1.4;color:var(--text-faint)}
+.lab-seg{display:inline-flex;flex-wrap:wrap;max-width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
+.lab-seg button{background:none;border:none;border-right:1px solid var(--border);color:var(--text-dim);font-family:var(--font-mono);font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;padding:8px 12px;min-height:36px;cursor:pointer;transition:background .14s,color .14s}
+.lab-seg button:last-child{border-right:none}
+.lab-seg button:hover{color:var(--text)}
+.lab-seg button.on{background:var(--surface3);color:var(--prism-a)}
+.lab-seg button:focus-visible{outline:1px solid var(--prism-a);outline-offset:-2px}
+/* chips */
+.lab-chips{display:flex;flex-wrap:wrap;gap:6px}
+.lab-chips .lab-input{width:200px;min-height:30px;padding:4px 10px}
+.lab-chip{display:inline-flex;align-items:center;gap:6px;max-width:100%;min-height:30px;padding:4px 6px 4px 10px;font-family:var(--font-mono);font-size:.62rem;letter-spacing:.04em;color:var(--text-dim);background:rgba(240,235,227,.03);border:1px solid var(--border);border-radius:20px}
+.lab-chip.on{border-color:var(--prism-a);color:var(--text);background:rgba(126,200,180,.08)}
+.lab-chip.ghost{background:none;border-style:dashed;color:var(--text-faint);cursor:pointer;padding:4px 10px;transition:color .14s,border-color .14s}
+.lab-chip.ghost:hover{color:var(--text);border-color:var(--text-dim)}
+.lab-chip .x{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;padding:0;background:none;border:none;border-radius:50%;color:var(--text-faint);font-size:.8rem;line-height:1;cursor:pointer}
+.lab-chip .x:hover{color:var(--danger);background:var(--surface3)}
+/* status pill */
+.lab-status{display:inline-flex;align-items:center;gap:6px;flex-shrink:0;white-space:nowrap;font-family:var(--font-mono);font-size:.56rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text-dim);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px 9px 3px 8px}
+.lab-status::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+.lab-status.st-planning::before,.lab-status.st-driving::before,.lab-status.st-waiting::before,.lab-status.st-judging::before,.lab-status.st-scribing::before{animation:labPulse 1.4s ease-in-out infinite}
+.lab-status.st-planning,.lab-status.st-driving,.lab-status.st-waiting{color:var(--text)}
+.lab-status.st-judging{color:var(--prism-b);border-color:rgba(212,198,106,.4);background:rgba(212,198,106,.08)}
+.lab-status.st-success{color:var(--prism-a);border-color:rgba(126,200,180,.4);background:rgba(126,200,180,.08)}
+.lab-status.st-failed{color:var(--prism-c);border-color:rgba(232,156,108,.4);background:rgba(232,156,108,.08)}
+.lab-status.st-error{color:var(--danger);border-color:rgba(232,154,154,.4);background:rgba(232,154,154,.08)}
+.lab-status.st-queued,.lab-status.st-stopped{color:var(--text-faint)}
+/* stats + budget bar */
+.lab-stats{display:flex;flex-wrap:wrap;gap:10px 22px}
+.lab-stat{display:flex;flex-direction:column;gap:3px;min-width:0}
+.lab-stat b{font-family:var(--font-mono);font-weight:500;font-size:.9rem;color:var(--text)}
+.lab-stat span{font-family:var(--font-mono);font-size:.56rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text-faint)}
+.lab-bar{height:6px;background:var(--surface3);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+.lab-bar-fill{height:100%;width:0;background:var(--prism-a);border-radius:20px;transition:width .3s ease}
+.lab-bar.warn .lab-bar-fill{background:var(--prism-b)}
+.lab-bar.over .lab-bar-fill{background:var(--danger)}
+/* lanes */
+.lab-lanes{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:12px;align-items:start}
+.lab-lane{display:flex;flex-direction:column;gap:10px;min-width:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--border-strong);border-radius:var(--radius);padding:14px}
+.lab-lane.st-success{border-left-color:var(--prism-a)}
+.lab-lane.st-judging{border-left-color:var(--prism-b)}
+.lab-lane.st-failed{border-left-color:var(--prism-c)}
+.lab-lane.st-error{border-left-color:var(--danger)}
+.lab-lane-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;min-width:0}
+.lab-lane-title{font-family:var(--font-body);font-weight:500;font-size:.92rem;color:var(--text);min-width:0;overflow-wrap:anywhere}
+.lab-lane-goal{font-size:.74rem;line-height:1.4;color:var(--text-faint);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.lab-lane-meta{display:flex;flex-wrap:wrap;gap:4px 10px;font-family:var(--font-mono);font-size:.58rem;letter-spacing:.04em;color:var(--text-faint)}
+.lab-lane-foot{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:auto;padding-top:8px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:.58rem;color:var(--text-faint)}
+.lab-convo{display:flex;flex-direction:column;gap:10px;max-height:560px;overflow-y:auto;padding-right:2px}
+.lab-turn{max-width:90%;padding:9px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm)}
+.lab-turn.driver{align-self:flex-start}
+.lab-turn.target{align-self:flex-end;background:var(--surface3);border-color:var(--border-strong)}
+.lab-turn-role{display:flex;align-items:center;gap:6px;margin-bottom:6px;font-family:var(--font-mono);font-size:.56rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text-faint)}
+.lab-turn-body{font-family:var(--font-body);font-size:.85rem;line-height:1.5;color:var(--text);overflow-wrap:anywhere}
+.lab-turn-body>:first-child{margin-top:0}
+.lab-turn-body>:last-child{margin-bottom:0}
+.lab-turn.streaming .lab-turn-body{white-space:pre-wrap}
+.lab-turn.streaming .lab-turn-body::after{content:'';display:inline-block;width:7px;height:1em;margin-left:2px;vertical-align:text-bottom;background:var(--prism-a);animation:labCaret 1s steps(1) infinite}
+.lab-judge{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)}
+.lab-score{display:inline-flex;align-items:center;justify-content:center;min-width:44px;padding:2px 8px;font-family:var(--font-mono);font-size:.62rem;font-weight:500;white-space:nowrap;color:var(--text-dim);background:var(--surface2);border:1px solid var(--border);border-radius:20px}
+.lab-score.s-lo{color:var(--danger);border-color:rgba(232,154,154,.4);background:rgba(232,154,154,.08)}
+.lab-score.s-mid{color:var(--prism-b);border-color:rgba(212,198,106,.4);background:rgba(212,198,106,.08)}
+.lab-score.s-hi{color:var(--prism-a);border-color:rgba(126,200,180,.4);background:rgba(126,200,180,.08)}
+.lab-verdict{flex:1 1 180px;min-width:0;font-family:var(--font-body);font-style:italic;font-size:.76rem;line-height:1.4;color:var(--text-dim)}
+.lab-attempt-sep{display:flex;align-items:center;gap:10px;font-family:var(--font-mono);font-size:.56rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-faint)}
+.lab-attempt-sep::before,.lab-attempt-sep::after{content:'';flex:1;height:1px;background:var(--border)}
+/* tables */
+.lab-table{width:100%;border-collapse:collapse;font-size:.8rem}
+.lab-table th,.lab-table td{padding:9px 10px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
+.lab-table th{font-family:var(--font-mono);font-weight:400;font-size:.56rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text-faint)}
+.lab-table td{color:var(--text-dim)}
+.lab-table tbody tr:hover{background:var(--surface2)}
+/* side-by-side grid */
+.lab-sxs{overflow-x:auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
+.lab-sxs-grid{display:grid;min-width:100%}
+.lab-sxs-head{display:flex;align-items:center;gap:6px;min-width:0;padding:10px 12px;background:var(--surface2);border-bottom:1px solid var(--border);font-family:var(--font-mono);font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim)}
+.lab-sxs-msg{display:flex;flex-direction:column;gap:6px;padding:12px;border-bottom:1px solid var(--border);font-family:var(--font-body);font-size:.82rem;line-height:1.45;color:var(--text);overflow-wrap:anywhere}
+.lab-sxs-cell{display:flex;flex-direction:column;gap:8px;min-width:0;padding:12px;border-left:1px solid var(--border);border-bottom:1px solid var(--border);font-family:var(--font-body);font-size:.84rem;line-height:1.5;color:var(--text);overflow-wrap:anywhere}
+.lab-sxs-cell.streaming{white-space:pre-wrap}
+.lab-sxs-cell.streaming::after{content:'';display:inline-block;width:7px;height:1em;vertical-align:text-bottom;background:var(--prism-a);animation:labCaret 1s steps(1) infinite}
+.lab-sxs-msg,.lab-sxs-head:first-child,.lab-sxs-sum-label{position:sticky;left:0;z-index:1;background:var(--surface);box-shadow:4px 0 8px -4px rgba(0,0,0,.6)}
+.lab-sxs-sum{display:flex;flex-direction:column;gap:4px;min-width:0;padding:10px 12px;background:var(--surface);border-top:2px solid var(--prism-b);font-family:var(--font-mono);font-size:.62rem;letter-spacing:.04em;color:var(--text-dim)}
+.lab-cell-stats{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:auto;padding-top:6px;font-family:var(--font-mono);font-size:.58rem;letter-spacing:.04em;color:var(--text-faint)}
+/* lists */
+.lab-list{display:flex;flex-direction:column;gap:8px}
+.lab-item{display:flex;align-items:flex-start;gap:12px;min-width:0;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);transition:border-color .14s}
+.lab-item:hover{border-color:var(--border-strong)}
+.lab-item.pinned{border-left:3px solid var(--prism-b)}
+.lab-item>:not(.lab-item-acts){flex:1 1 auto;min-width:0}
+.lab-item-acts{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;flex-shrink:0;margin-left:auto}
+/* misc */
+.lab-empty{padding:40px 20px;text-align:center;font-family:var(--font-mono);font-size:.68rem;line-height:1.7;text-transform:uppercase;letter-spacing:.1em;color:var(--text-faint);border:1px dashed var(--border);border-radius:var(--radius)}
+.lab-report{max-width:860px;font-family:var(--font-body);font-size:.92rem;line-height:1.6;color:var(--text);overflow-wrap:anywhere}
+.lab-report>:first-child{margin-top:0}
+.lab-report h2,.lab-report h3{font-family:var(--font-display);font-weight:400;line-height:1.2;color:var(--text);margin:1.2em 0 .4em}
+.lab-report h2{font-size:1.5rem}
+.lab-report h3{font-size:1.2rem}
+.lab-pre{padding:12px 14px;max-height:420px;overflow:auto;font-family:var(--font-mono);font-size:.74rem;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text-dim);background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm)}
+.lab-kbd{padding:1px 6px;font-family:var(--font-mono);font-size:.62rem;color:var(--text-dim);background:var(--surface2);border:1px solid var(--border-strong);border-bottom-width:2px;border-radius:5px}
+/* sidebar nav (lab_nav.html) */
+/* motion + responsive */
+@keyframes labPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.6)}}
+@keyframes labCaret{0%,49%{opacity:1}50%,100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){
+.lab *,.lab-status::before{animation:none!important;transition:none!important}
+.lab-turn.streaming .lab-turn-body::after,.lab-sxs-cell.streaming::after{animation:none!important}
+}
+@media (max-width:1000px){
+.lab-cols{grid-template-columns:1fr}
+}
+@media (max-width:820px){
+.lab-form,.lab-lanes{grid-template-columns:1fr}
+.lab-card{padding:14px}
+.lab-input,.lab-textarea,.lab-select{font-size:16px}
+.lab-chips .lab-input{width:100%}
+.lab-turn{max-width:94%}
+}
 </style>
 </head>
 <body>
@@ -994,6 +1140,18 @@ textarea#cvCode{font-family:var(--font-mono);font-size:.8rem}
     <section class="view" id="viewSettings" aria-label="Settings">
       <header class="topbar"><button class="tb-btn tb-menu" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button></header>
       <div class="page"><div class="page-inner" id="settingsPage" style="max-width:860px"></div></div>
+    </section>
+    <section class="view" id="viewSwarm" aria-label="Agent Swarm">
+      <header class="topbar"><button class="tb-btn tb-menu" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button></header>
+      <div class="page lab" id="labView"><div class="page-inner lab-inner">
+        <h1><em>Agent</em> Swarm</h1>
+        <p class="lede">Point a swarm of tester agents at any model. Each lane holds its own multi-turn conversation toward a goal, the judge scores every reply, and the scribe turns what worked into memory for next time.</p>
+        <div class="tabs" role="tablist"><button class="lab-tab on" data-tab="run" role="tab" onclick="labTab('run')">Run</button><button class="lab-tab" data-tab="suites" role="tab" onclick="labTab('suites')">Suites</button><button class="lab-tab" data-tab="sxs" role="tab" onclick="labTab('sxs')">Side-by-side</button><button class="lab-tab" data-tab="reports" role="tab" onclick="labTab('reports')">Reports &amp; memory</button></div>
+          <section class="lab-panel on" id="labPanel-run" role="tabpanel"></section>
+          <section class="lab-panel" id="labPanel-suites" role="tabpanel"></section>
+          <section class="lab-panel" id="labPanel-sxs" role="tabpanel"></section>
+          <section class="lab-panel" id="labPanel-reports" role="tabpanel"></section>
+      </div></div>
     </section>
   </main>
   <aside class="desk closed" id="desk" aria-label="Side panel">
@@ -1650,6 +1808,19 @@ Only include URLs you actually saw in tool results.`,
     description:'Takes session notes: what was asked, what was done, decisions, files, next steps.',
     systemPrompt:`You are ENI's scribe. You write crisp session notes from a transcript of an agent session. Be factual and specific (file paths, numbers, names). Never invent anything that is not in the transcript.`,
     model:'inherit-scribe',effort:'inherit',temperature:0.3,maxTurns:1,tools:[],spawn:'none'},
+  // Agent Swarm team — driven by the swarm runner (Agent Swarm view), not by tool calls. The Scribe writes its reports.
+  {id:'sw-planner',name:'Swarm Planner',icon:'compass',color:'#e89c6c',sidebar:false,team:'swarm',
+    description:'Splits an Agent Swarm goal into distinct test lanes, applying patterns saved in memory from earlier runs.',
+    systemPrompt:`You design test conversations for evaluating an AI model. Given a goal and a category, you produce distinct lanes: each is a different, realistic angle a user might take toward the goal (direct ask, step-by-step, minimal context, skeptical follow-ups, a real-world persona, a tricky-but-harmless edge case, a strict format constraint, an ambiguous request). Each lane gets a one-sentence success condition the judge can check and a natural opening message. Apply any lessons from earlier sessions you are given. Answer ONLY in the JSON format requested.`,
+    model:'inherit',effort:'inherit',temperature:0.7,maxTurns:1,tools:[],spawn:'none'},
+  {id:'sw-tester',name:'Swarm Tester',icon:'sparkle',color:'#e89c6c',sidebar:false,team:'swarm',
+    description:'Plays the user in one Agent Swarm lane: a multi-turn conversation that pushes the target model toward the lane goal.',
+    systemPrompt:`You are role-playing a USER talking to an AI assistant in order to test it. Stay in character as that user: write only the next message the user would send — no narration, no quotes, no labels, no meta-commentary. Be natural and specific; push toward your objective; when the assistant is wrong, vague or incomplete, follow up on exactly that. Keep messages under 120 words.`,
+    model:'inherit-sub',effort:'inherit',temperature:0.9,maxTurns:1,tools:[],spawn:'none'},
+  {id:'sw-judge',name:'Swarm Judge',icon:'check',color:'#e89c6c',sidebar:false,team:'swarm',
+    description:'Scores every target reply 0–10 with a one-line verdict and decides when a lane goal is met, ending the attempt.',
+    systemPrompt:`You are a strict, fair evaluator of AI assistant replies. Judge correctness first, then instruction-following, then quality and clarity. Do not reward length or confidence. A goal is met only when it is fully and correctly achieved in the conversation so far. Answer ONLY in the JSON format requested.`,
+    model:'inherit-sub',effort:'inherit',temperature:0,maxTurns:1,tools:[],spawn:'none'},
 ];
 const BUILTIN_SKILLS=[
   {id:'web-app',name:'web-app',description:'How to build, structure and preview a self-contained web app in the workspace.',
@@ -4086,6 +4257,7 @@ const Mascot = (() => {
 // ── Icons ────────────────────────────────────────────────────────────
 const SV=(d,w=1.8)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const ICONS={
+  swarm:SV('<circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="18" r="2.5"/><circle cx="19" cy="18" r="2.5"/><line x1="10.8" y1="7.2" x2="6.2" y2="15.8"/><line x1="13.2" y1="7.2" x2="17.8" y2="15.8"/><line x1="7.5" y1="18" x2="16.5" y2="18"/>'),
   menu:SV('<line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/>'),
   sidebar:SV('<rect x="3" y="4" width="18" height="16" rx="3"/><line x1="9" y1="4" x2="9" y2="20"/>'),
   panel:SV('<rect x="3" y="4" width="18" height="16" rx="3"/><line x1="15" y1="4" x2="15" y2="20"/>'),
@@ -4253,10 +4425,11 @@ const isNarrow=()=>innerWidth<=1180;
 
 function showView(v){
   UI.view=v;
-  for(const [k,id] of Object.entries({chat:'viewChat',agents:'viewAgents',computer:'viewComputer',settings:'viewSettings'}))$(id).classList.toggle('on',k===v);
+  for(const [k,id] of Object.entries({chat:'viewChat',agents:'viewAgents',computer:'viewComputer',settings:'viewSettings',swarm:'viewSwarm'}))$(id).classList.toggle('on',k===v);
   if(v==='agents')renderAgentsView();
   else if(v==='computer')renderComputerView();
   else if(v==='settings')renderSettingsView();
+  else if(v==='swarm'&&typeof renderSwarmView==='function')renderSwarmView();
   syncDesk();
   renderSidebar();
   if(isMobile())closeDrawer();
@@ -4366,10 +4539,12 @@ function renderSidebar(){
   const sbSt=Sandbox.status();
   const pcDot=boxSt==='online'?'ok':boxSt==='error'?'err':sbSt.python==='error'?'err':sbSt.python==='ready'?'ok':'';
   const focus=document.activeElement&&document.activeElement.id==='sbSearch';
+  const swarmN=typeof labActiveLanes==='function'&&typeof LAB!=='undefined'?labActiveLanes(LAB.live):0;
   el.innerHTML=`
     <div class="sb-label">Start something</div>
     ${agents.map(a=>`<button class="sb-item" data-agent="${esc(a.id)}"><span class="sb-ico" ${a.base?'data-pen="side"':''} style="color:${esc(a.color||'var(--sb-text)')}">${a.base?'':ic(a.icon)}</span><span class="sb-name">${esc(a.name)}${a.base&&anyRunning?`<span class="sb-sub">${anyRunning} working</span>`:''}</span><span class="sb-plus" aria-hidden="true">${ic('plusc')}</span></button>`).join('')}
     <button class="sb-item" data-research="1"><span class="sb-ico" style="color:var(--prism-a)">${ic('compass')}</span><span class="sb-name">Deep research<span class="sb-beta">team</span></span><span class="sb-plus" aria-hidden="true">${ic('plusc')}</span></button>
+    <button class="sb-item${UI.view==='swarm'?' on':''}" data-view="swarm"><span class="sb-ico" style="color:var(--prism-c)">${ic('swarm')}</span><span class="sb-name">Agent Swarm<span class="sb-beta">team</span>${swarmN?`<span class="sb-sub swarm-live">${swarmN} lane${swarmN===1?'':'s'} running</span>`:''}</span></button>
     <div class="sb-label">Workspace</div>
     <button class="sb-item${UI.view==='agents'?' on':''}" data-view="agents"><span class="sb-ico">${ic('agents')}</span><span class="sb-plain">Agents<span class="sb-sub">${agentsList().filter(a=>!a.team).length} agents · ${skillsList().length} skills</span></span></button>
     <button class="sb-item${UI.view==='computer'?' on':''}" data-view="computer"><span class="sb-ico">${ic('computer')}</span><span class="sb-plain">Computer<span class="sb-sub">${boxSt==='online'?'Linux box connected':sbSt.python==='ready'?'Python ready':sbSt.python==='loading'?'Python loading…':'Browser sandbox'}</span></span><span class="sb-dot ${pcDot}"></span></button>
@@ -5865,7 +6040,7 @@ function renderAgentsView(){
 function renderAgentsTab(){
   const list=agentsList();
   if(!AV.sel||!list.some(a=>a.id===AV.sel))AV.sel=baseAgent().id;
-  const groups=[['Base',list.filter(a=>a.base)],['Sub-agents',list.filter(a=>!a.base&&!a.team)],['Deep research team',list.filter(a=>a.team==='research')],['System',list.filter(a=>a.team==='system')]];
+  const groups=[['Base',list.filter(a=>a.base)],['Sub-agents',list.filter(a=>!a.base&&!a.team)],['Deep research team',list.filter(a=>a.team==='research')],['Agent Swarm team',list.filter(a=>a.team==='swarm')],['System',list.filter(a=>a.team==='system')]];
   $('avBody').innerHTML=`<div class="ag-grid"><div class="ag-list">
       <div style="display:flex;gap:6px;margin-bottom:4px"><button class="btn small" data-av="new">${ic('plus')}New agent</button><button class="btn small" data-av="gen">${ic('sparkle')}Describe one</button></div>
       ${groups.filter(g=>g[1].length).map(([g,as])=>`<div class="ag-group">${g}</div>${as.map(a=>`<button class="ag-card${a.id===AV.sel?' on':''}" data-ag="${esc(a.id)}"><span style="display:flex;width:22px;height:22px;color:${esc(a.color||'var(--text-dim)')};flex-shrink:0">${a.base?Mascot.svg({size:24}):ic(a.icon)}</span><span class="tx"><span class="nm">${esc(a.name)}</span><span class="ds">${esc(a.description)}</span></span>${a.sidebar&&!a.team?'<span class="tagx">sidebar</span>':''}</button>`).join('')}`).join('')}
@@ -6275,6 +6450,2312 @@ async function init(){
 }
 document.addEventListener('DOMContentLoaded',()=>{init().catch(e=>{console.error('[eni] boot failed',e);toast('ENI failed to start: '+e.message,{ms:10000});});});
 const BOX_KIT={"eni-box.mjs": "#!/usr/bin/env node\n// ENI Box \u2014 a tiny, dependency-free server that gives ENI (the single-file agent app) a real\n// Linux machine: run shell commands with streamed output, mirror the workspace, take screenshots.\n//\n// SECURITY: this is a real shell. Anyone holding the token can run any command as this user.\n// Keep it on 127.0.0.1, or behind HTTPS (Cloudflare Tunnel / Tailscale), and keep the token secret.\n//\n//   ENI_TOKEN=secret node eni-box.mjs        # see README.md for Docker and phone access\n//\n// Env: ENI_TOKEN (random if unset), PORT=7717, HOST=127.0.0.1 (0.0.0.0 in Docker),\n//      WORKSPACE=./workspace, ALLOW_ORIGIN=* (or a comma list of origins; \"null\" = file:// pages)\nimport http from 'node:http';\nimport fs from 'node:fs';\nimport fsp from 'node:fs/promises';\nimport path from 'node:path';\nimport os from 'node:os';\nimport crypto from 'node:crypto';\nimport { spawn } from 'node:child_process';\nimport { StringDecoder } from 'node:string_decoder';\nimport { createRequire } from 'node:module';\nimport { pathToFileURL } from 'node:url';\n\nconst VERSION = '1.0.0';\n\nif (process.argv.includes('-h') || process.argv.includes('--help')) {\n  console.log(`ENI Box ${VERSION} \u2014 a real shell for ENI.\nUsage: [ENI_TOKEN=..] [PORT=7717] [HOST=127.0.0.1] [WORKSPACE=./workspace] [ALLOW_ORIGIN=*] node eni-box.mjs`);\n  process.exit(0);\n}\n\n// PORT=0 is honoured (ephemeral port); only an unset or empty PORT falls back to 7717.\nconst PORT = process.env.PORT != null && process.env.PORT !== '' ? Number(process.env.PORT) : 7717;\nconst HOST = process.env.HOST || '127.0.0.1';\nconst TOKEN_FROM_ENV = !!process.env.ENI_TOKEN;\nconst TOKEN = process.env.ENI_TOKEN || crypto.randomBytes(24).toString('base64url');\nconst INSTANCE = crypto.randomBytes(6).toString('hex'); // lets clients notice a restart\nconst ORIGINS = (process.env.ALLOW_ORIGIN || '*').trim() === '*' ? null\n  : process.env.ALLOW_ORIGIN.split(',').map(s => s.trim()).filter(Boolean);\nconst WS_ARG = path.resolve(process.env.WORKSPACE || './workspace');\nfs.mkdirSync(WS_ARG, { recursive: true });\nconst WS = fs.realpathSync(WS_ARG); // real path so symlink checks compare like with like\n\nconst BODY_LIMIT = 60 * 1024 * 1024;\nconst MAX_FILES = 300, MAX_FILE = 5 * 1024 * 1024, MAX_TOTAL = 40 * 1024 * 1024;\nconst MAX_WALK = 50000;               // keeps snapshots bounded on huge trees\nconst MAX_STREAM = 20 * 1024 * 1024;  // output streamed per run\nconst SKIP = new Set(['node_modules', '.git', '.venv', '__pycache__']);\nconst BIN_EXT = /\\.(png|jpe?g|gif|webp|avif|ico|bmp|tiff?|pdf|zip|gz|tgz|bz2|xz|7z|rar|tar|jar|wasm|woff2?|ttf|otf|eot|mp[34]|m4a|wav|ogg|flac|webm|mov|avi|mkv|exe|dll|so|dylib|o|a|class|pyc|whl|sqlite3?|db|bin|dat|npy|pkl|parquet)$/i;\n\nclass HttpError extends Error { constructor(status, msg) { super(msg); this.status = status; } }\nconst clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, Number(n) || lo));\nconst log = (...a) => console.log(`[eni-box ${new Date().toTimeString().slice(0, 8)}]`, ...a);\n\nfunction which(bin) {\n  for (const d of (process.env.PATH || '').split(path.delimiter)) {\n    if (!d) continue;\n    const p = path.join(d, bin);\n    try { fs.accessSync(p, fs.constants.X_OK); if (fs.statSync(p).isFile()) return p; } catch {}\n  }\n  return null;\n}\nconst SHELL = which('bash') ? ['bash', '-lc'] : ['sh', '-c'];\nlet OS_NAME = '';\ntry { OS_NAME = /PRETTY_NAME=\"?([^\"\\n]+)/.exec(fs.readFileSync('/etc/os-release', 'utf8'))?.[1] || ''; } catch {}\n\n// \u2500\u2500 auth + CORS \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nconst TOKEN_HASH = crypto.createHash('sha256').update(TOKEN).digest();\nfunction authed(req) {\n  const m = /^Bearer\\s+(\\S+)\\s*$/i.exec(req.headers.authorization || '');\n  // hashing first makes lengths equal, so timingSafeEqual never throws or leaks length\n  return !!m && crypto.timingSafeEqual(crypto.createHash('sha256').update(m[1]).digest(), TOKEN_HASH);\n}\nfunction cors(req, res) {\n  const o = req.headers.origin;\n  // echo the Origin (file:// pages send the literal \"null\"); \"*\" only for clients that send none\n  if (!ORIGINS) res.setHeader('Access-Control-Allow-Origin', o || '*');\n  else if (o && ORIGINS.includes(o)) res.setHeader('Access-Control-Allow-Origin', o);\n  res.setHeader('Vary', 'Origin');\n  res.setHeader('Access-Control-Expose-Headers', 'X-Eni-Truncated');\n}\nfunction preflight(req, res) {\n  const h = {\n    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',\n    'Access-Control-Allow-Headers': req.headers['access-control-request-headers'] || 'Authorization, Content-Type',\n    'Access-Control-Max-Age': '600',\n    Vary: 'Origin, Access-Control-Request-Headers, Access-Control-Request-Private-Network',\n  };\n  // Chrome Private Network Access: public https page \u2192 box on localhost/LAN\n  if (req.headers['access-control-request-private-network']) h['Access-Control-Allow-Private-Network'] = 'true';\n  res.writeHead(204, h).end();\n}\n\nfunction send(res, status, obj, headers = {}) {\n  if (res.headersSent) return void res.end();\n  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...headers });\n  res.end(JSON.stringify(obj));\n}\nfunction readJson(req) {\n  return new Promise((resolve, reject) => {\n    const tooBig = new HttpError(413, `Request body too large (limit ${BODY_LIMIT / 1048576} MB)`);\n    if (Number(req.headers['content-length'] || 0) > BODY_LIMIT) return reject(tooBig);\n    const chunks = []; let size = 0;\n    req.on('data', c => { size += c.length; if (size > BODY_LIMIT) { req.pause(); reject(tooBig); } else chunks.push(c); });\n    req.on('end', () => {\n      if (size > BODY_LIMIT) return;\n      try { resolve(size ? JSON.parse(Buffer.concat(chunks).toString('utf8')) : {}); }\n      catch { reject(new HttpError(400, 'Request body must be valid JSON')); }\n    });\n    req.on('error', reject);\n  });\n}\n\n// \u2500\u2500 workspace paths + files \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n// Client paths are workspace-rooted (\"/src/a.js\" \u2192 WORKSPACE/src/a.js); anything escaping is refused.\nfunction inWs(p) {\n  const s = String(p ?? '');\n  if (!s || s.includes('\\0')) throw new HttpError(400, `Bad path: ${JSON.stringify(s)}`);\n  const abs = path.resolve(WS, './' + s.replace(/\\\\/g, '/').replace(/^\\/+/, ''));\n  if (abs !== WS && !abs.startsWith(WS + path.sep)) throw new HttpError(400, `Path escapes the workspace: ${s}`);\n  return abs;\n}\nasync function assertReal(dir) { // a symlinked directory must not lead writes outside WORKSPACE\n  const real = await fsp.realpath(dir);\n  if (real !== WS && !real.startsWith(WS + path.sep)) throw new Error('path resolves outside the workspace (symlink)');\n}\n// cwd: \"/\", \"/workspace[/...]\" and relative paths live in WORKSPACE; other absolute paths are used\n// as-is when they exist (it's a real machine), else treated as workspace paths like \"/src\".\nfunction resolveCwd(c) {\n  if (c == null || c === '') return WS;\n  const s = String(c);\n  if (s === '/' || s === '/workspace' || s.startsWith('/workspace/')) return inWs(s.replace(/^\\/workspace/, '') || '/');\n  if (path.isAbsolute(s)) { try { if (fs.statSync(s).isDirectory()) return s; } catch {} }\n  return inWs(s);\n}\nconst relOf = abs => path.relative(WS, abs).split(path.sep).join('/');\n\nfunction isBinary(name, buf) {\n  if (BIN_EXT.test(name)) return true;\n  for (let i = 0, n = Math.min(buf.length, 8000); i < n; i++) if (buf[i] === 0) return true;\n  try { new TextDecoder('utf-8', { fatal: true }).decode(buf); return false; } catch { return true; }\n}\nasync function hashFile(abs) {\n  try { return crypto.createHash('sha1').update(await fsp.readFile(abs)).digest('base64'); } catch { return null; }\n}\n// Map rel \u2192 {m: mtimeMs, s: size, i: ino, h?}; never follows symlinks, skips heavy dependency dirs.\n// hot: also hash files touched in the last 2 s \u2014 file timestamps tick coarsely (a few ms), so a\n// same-size rewrite right after this snapshot (e.g. of a just-pushed file) could keep its mtime.\nasync function walk(hot = false) {\n  const out = new Map(), now = Date.now();\n  async function rec(dir) {\n    if (out.size >= MAX_WALK) return;\n    let ents; try { ents = await fsp.readdir(dir, { withFileTypes: true }); } catch { return; }\n    const files = [];\n    for (const e of ents) {\n      const abs = path.join(dir, e.name);\n      if (e.isDirectory()) { if (!SKIP.has(e.name)) await rec(abs); }\n      else if (e.isFile()) files.push(abs);\n    }\n    await Promise.all(files.map(async abs => {\n      try {\n        const st = await fsp.stat(abs), e = { m: st.mtimeMs, s: st.size, i: st.ino };\n        if (hot && now - st.mtimeMs < 2000 && st.size <= MAX_FILE) e.h = await hashFile(abs);\n        out.set(relOf(abs), e);\n      } catch {}\n    }));\n  }\n  await rec(WS);\n  return out;\n}\nasync function readRec(rel, size, total) {\n  if (size > MAX_FILE || total + size > MAX_TOTAL) return null;\n  try {\n    const buf = await fsp.readFile(path.join(WS, rel));\n    const binary = isBinary(rel, buf);\n    return { path: '/' + rel, content: buf.toString(binary ? 'base64' : 'utf8'), binary };\n  } catch { return null; }\n}\nasync function diffSnap(before, after) {\n  const changed = []; let total = 0;\n  for (const rel of before.keys()) {\n    if (changed.length >= MAX_FILES) return changed;\n    if (!after.has(rel)) changed.push({ path: '/' + rel, content: '', binary: false, deleted: true });\n  }\n  for (const [rel, s] of after) {\n    if (changed.length >= MAX_FILES) break;\n    const p = before.get(rel);\n    if (p && p.m === s.m && p.s === s.s && p.i === s.i && (!p.h || await hashFile(path.join(WS, rel)) === p.h)) continue;\n    const f = await readRec(rel, s.s, total);\n    if (f) { changed.push(f); total += f.content.length; }\n  }\n  return changed;\n}\n\nasync function pushFiles(body) {\n  const files = Array.isArray(body.files) ? body.files : [];\n  const dels = Array.isArray(body.deleted) ? body.deleted : [];\n  // validate everything first so a bad path rejects the whole request before any write\n  const plan = files.map(f => {\n    if (!f || typeof f.path !== 'string') throw new HttpError(400, 'Each file needs a string \"path\"');\n    return { abs: inWs(f.path), f };\n  });\n  const delAbs = dels.map(p => inWs(p));\n  let written = 0, deleted = 0; const errors = [];\n  for (const { abs, f } of plan) {\n    try {\n      if (abs === WS) throw new Error('not a file path');\n      await fsp.mkdir(path.dirname(abs), { recursive: true });\n      await assertReal(path.dirname(abs));\n      const st = await fsp.lstat(abs).catch(() => null);\n      if (st?.isSymbolicLink()) await fsp.unlink(abs); // replace the link, never write through it\n      await fsp.writeFile(abs, f.binary ? Buffer.from(String(f.content ?? ''), 'base64') : String(f.content ?? ''));\n      written++;\n    } catch (e) { errors.push({ path: f.path, error: e.message }); }\n  }\n  for (let k = 0; k < delAbs.length; k++) {\n    const abs = delAbs[k];\n    try {\n      await assertReal(path.dirname(abs));\n      const st = await fsp.lstat(abs);\n      if (st.isDirectory()) throw new Error('is a directory');\n      await fsp.unlink(abs); deleted++;\n      for (let d = path.dirname(abs); d !== WS; d = path.dirname(d)) await fsp.rmdir(d); // prune empty dirs; stops at first non-empty\n    } catch (e) { if (e.code !== 'ENOENT' && e.code !== 'ENOTEMPTY' && e.code !== 'EEXIST') errors.push({ path: dels[k], error: e.message }); }\n  }\n  return { written, deleted, instance: INSTANCE, ...(errors.length ? { errors } : {}) };\n}\n\nasync function pullFiles(since) {\n  const snap = await walk();\n  const list = [...snap].filter(([, s]) => s.m > since).sort((a, b) => b[1].m - a[1].m); // newest first when capped\n  const out = []; let total = 0, truncated = false;\n  for (const [rel, s] of list) {\n    if (out.length >= MAX_FILES) { truncated = true; break; }\n    const f = await readRec(rel, s.s, total);\n    if (!f) { truncated = true; continue; }\n    total += f.content.length;\n    out.push({ ...f, mtime: Math.floor(s.m) }); // floor: a client re-using max(mtime) as \"since\" re-gets, never misses\n  }\n  return { out, truncated };\n}\n\n// \u2500\u2500 exec \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n// Every run is a job keyed by a client-chosen id. A client whose stream broke, or whose proxy\n// buffers streams (Cloudflare quick tunnels), re-POSTs the same id with ?stream=0 and attaches to\n// the running/finished job instead of running the command twice.\nconst jobs = new Map();\nconst GRACE = 10000;  // a job nobody is attached to any more is killed after this (client went away)\nconst HALF = 500000;  // the JSON result keeps ~1 MB per stream (head + tail); streams send everything\n\nfunction killGroup(child) {\n  // negative pid = the whole process group (detached spawn), so grandchildren die too\n  try { process.kill(-child.pid, 'SIGTERM'); } catch {}\n  setTimeout(() => { try { process.kill(-child.pid, 'SIGKILL'); } catch {} }, 2000).unref();\n}\nfunction cleanEnv(e) {\n  const out = {};\n  if (e && typeof e === 'object') for (const [k, v] of Object.entries(e)) if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(k) && v != null) out[k] = String(v);\n  return out;\n}\nfunction acc() { // head + tail of a long stream\n  let head = '', tail = '', cut = 0;\n  return {\n    add(s) {\n      if (head.length < HALF) { const n = HALF - head.length; head += s.slice(0, n); s = s.slice(n); }\n      if (!s) return;\n      tail += s;\n      if (tail.length > 2 * HALF) { cut += tail.length - HALF; tail = tail.slice(-HALF); }\n    },\n    text() { const x = Math.max(0, tail.length - HALF), c = cut + x; return head + (c ? `\\n\u2026 [${c} characters omitted] \u2026\\n` : '') + tail.slice(x); },\n  };\n}\n\nfunction startJob(id, command, cwd, timeoutMs, env) {\n  const job = { id, cwd, out: { stdout: acc(), stderr: acc() }, watchers: new Set(), result: null, child: null, exited: false, killed: false, graceT: 0 };\n  job.emit = ev => { for (const w of [...job.watchers]) w(ev); };\n  job.kill = why => {\n    if (job.result || job.killed) return false;\n    job.killed = true; log(`killing job ${id} (${why})`);\n    if (job.child && !job.exited) killGroup(job.child);\n    return true;\n  };\n  for (const [k, j] of jobs) { if (jobs.size < 64) break; if (j.result) jobs.delete(k); } // bound retained results\n  jobs.set(id, job);\n  runJob(job, command, timeoutMs, env).catch(e => console.error('[eni-box]', e));\n  return job;\n}\nfunction attach(job, fn) {\n  clearTimeout(job.graceT);\n  job.watchers.add(fn);\n  return () => {\n    if (!job.watchers.delete(fn) || job.watchers.size || job.result) return;\n    job.graceT = setTimeout(() => job.kill('client disconnected'), GRACE);\n    job.graceT.unref();\n  };\n}\n\nasync function runJob(job, command, timeoutMs, env) {\n  const t0 = Date.now();\n  let timedOut = false, streamed = 0, ending = false;\n  const say = (stream, text) => { job.out[stream].add(text); job.emit({ t: 'out', stream, text }); };\n  try {\n    const before = await walk(true);\n    if (job.killed) throw new Error('Cancelled before it started');\n    // a login shell's /etc/profile may reset PATH; append ours so the server's tools stay reachable\n    const script = 'export PATH=\"${PATH:+$PATH:}$ENI_PATH\"; unset ENI_PATH\\n' + command;\n    const child = job.child = spawn(SHELL[0], [SHELL[1], script], { cwd: job.cwd, env, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });\n    const timer = setTimeout(() => { timedOut = true; killGroup(child); }, timeoutMs);\n    for (const name of ['stdout', 'stderr']) {\n      const dec = new StringDecoder('utf8');\n      child[name].on('data', buf => {\n        if (ending || streamed >= MAX_STREAM) return; // background jobs may keep writing after we're done\n        streamed += buf.length;\n        const text = dec.write(buf);\n        if (text) say(name, text);\n        if (streamed >= MAX_STREAM) say('stderr', `\\n[eni-box: output past ${MAX_STREAM / 1048576} MB was dropped]\\n`);\n      });\n    }\n    const { code, signal } = await new Promise(resolve => {\n      child.on('error', e => { say('stderr', `eni-box: could not start ${SHELL[0]}: ${e.message}\\n`); resolve({ code: 127 }); });\n      // 'close' waits for the pipes; a backgrounded job can hold them open forever, so cap the wait\n      child.on('exit', (code, signal) => { job.exited = true; setTimeout(() => resolve({ code, signal }), 300); });\n      child.on('close', (code, signal) => resolve({ code, signal }));\n    });\n    job.exited = ending = true;\n    clearTimeout(timer);\n    const durationMs = Date.now() - t0;\n    const changed = await diffSnap(before, await walk());\n    job.result = { code: code ?? (signal ? 128 + (os.constants.signals[signal] || 0) : -1), durationMs, timedOut, changed };\n    log(`exec ${timedOut ? 'TIMED OUT' : 'exit ' + job.result.code} ${durationMs}ms ${changed.length ? `(${changed.length} changed) ` : ''}$ ${command.slice(0, 100).replace(/\\s+/g, ' ')}`);\n  } catch (e) {\n    job.result = { error: e.message || String(e) };\n  }\n  job.emit(job.result.error ? { t: 'error', error: job.result.error } : { t: 'done', ...job.result });\n  // keep the result for clients that re-attach; longer when nobody was there to receive it\n  setTimeout(() => jobs.delete(job.id), job.watchers.size ? 60000 : 600000).unref();\n}\nfunction jobJson(job) {\n  const r = job.result;\n  if (r.error) return { ok: false, id: job.id, error: r.error };\n  return { ok: r.code === 0 && !r.timedOut, id: job.id, code: r.code, stdout: job.out.stdout.text(), stderr: job.out.stderr.text(), durationMs: r.durationMs, timedOut: r.timedOut, changed: r.changed };\n}\n\nasync function execRoute(req, res, url) {\n  const body = await readJson(req);\n  const id = body.id == null ? crypto.randomUUID() : String(body.id);\n  if (!/^[\\w.-]{1,100}$/.test(id)) throw new HttpError(400, '\"id\" must be 1-100 characters of [A-Za-z0-9_.-]');\n  let job = jobs.get(id);\n  if (!job) {\n    const command = typeof body.command === 'string' ? body.command : '';\n    if (!command.trim()) throw new HttpError(400, '\"command\" is required');\n    const cwd = resolveCwd(body.cwd);\n    let isDir = false; try { isDir = fs.statSync(cwd).isDirectory(); } catch {}\n    if (!isDir) throw new HttpError(400, `cwd does not exist on the box: ${body.cwd}`);\n    const env = { ...process.env, ...cleanEnv(body.env), ENI_WORKSPACE: WS, ENI_PATH: process.env.PATH || '', PYTHONUNBUFFERED: '1' };\n    delete env.ENI_TOKEN;\n    job = startJob(id, command, cwd, clamp(body.timeoutMs ?? 120000, 1000, 6 * 3600e3), env);\n  }\n  const accept = String(req.headers.accept || '');\n  const stream = !/^(0|false|no)$/i.test(url.searchParams.get('stream') || '') && !(/application\\/json/.test(accept) && !/ndjson|event-stream/.test(accept));\n  const live = () => !res.writableEnded && !res.destroyed;\n  let beat = 0, detach = () => {};\n  res.on('close', () => { clearInterval(beat); detach(); });\n\n  if (stream) { // NDJSON: one JSON object per line \u2014 flushes through proxies that hold back text/event-stream\n    res.writeHead(200, { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-cache, no-transform', 'X-Accel-Buffering': 'no' });\n    const line = ev => { if (live()) res.write(JSON.stringify(ev) + '\\n'); };\n    line({ t: 'start', id, cwd: job.cwd });\n    for (const s of ['stdout', 'stderr']) { const so = job.out[s].text(); if (so) line({ t: 'out', stream: s, text: so }); } // re-attach: replay\n    const end = ev => { line(ev); clearInterval(beat); res.end(); };\n    if (job.result) return end(job.result.error ? { t: 'error', error: job.result.error } : { t: 'done', ...job.result });\n    beat = setInterval(() => line({ t: 'ping' }), 10000); // idle proxies (Cloudflare ~100 s) would cut the stream\n    detach = attach(job, ev => ev.t === 'out' ? line(ev) : end(ev));\n  } else { // one JSON reply; leading whitespace is valid JSON and keeps idle proxies from timing out\n    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Accel-Buffering': 'no' });\n    const end = () => { clearInterval(beat); if (live()) res.end(JSON.stringify(jobJson(job))); };\n    if (job.result) return end();\n    beat = setInterval(() => { if (live()) res.write(' '); }, 10000);\n    detach = attach(job, ev => { if (ev.t !== 'out') end(); });\n  }\n}\nfunction killRoute(body) {\n  const job = jobs.get(String(body.id ?? ''));\n  return { ok: true, killed: !!job && job.kill('kill request') };\n}\n\n// \u2500\u2500 screenshots (optional playwright) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nlet pwMod; // undefined = not tried yet, null = unavailable\nasync function loadPlaywright() {\n  if (pwMod !== undefined) return pwMod;\n  const pick = m => m?.chromium || m?.default?.chromium ? (m.chromium ? m : m.default) : null;\n  const tries = [\n    () => import('playwright'),                                                      // next to this script\n    () => import(pathToFileURL(createRequire(import.meta.url).resolve('playwright')).href), // NODE_PATH\n    () => import(pathToFileURL(createRequire(path.join(path.dirname(process.execPath), '..', 'lib', 'x.js')).resolve('playwright')).href), // npm -g\n  ];\n  pwMod = null;\n  for (const t of tries) { try { const m = pick(await t()); if (m) { pwMod = m; break; } } catch {} }\n  return pwMod;\n}\nasync function screenshotAvailable() {\n  const pw = await loadPlaywright();\n  try { return !!pw && fs.existsSync(pw.chromium.executablePath()); } catch { return false; }\n}\nlet browserP = null, shotsActive = 0, idleTimer = null;\nfunction getBrowser(pw) {\n  browserP ||= pw.chromium.launch({ headless: true }).then(\n    b => { b.on('disconnected', () => { browserP = null; }); return b; },\n    e => { browserP = null; throw e; });\n  return browserP;\n}\nfunction armIdle() { // free ~200 MB after 10 idle minutes; relaunch is cheap\n  clearTimeout(idleTimer);\n  idleTimer = setTimeout(async () => {\n    if (shotsActive || !browserP) return;\n    const b = await browserP.catch(() => null); browserP = null; await b?.close().catch(() => {});\n  }, 600000);\n  idleTimer.unref();\n}\nasync function screenshot(body) {\n  const pw = await loadPlaywright();\n  if (!pw) return { ok: false, error: 'Playwright not installed on the box' };\n  let u; try { u = new URL(String(body.url || '')); } catch {}\n  if (!u || !/^https?:$/.test(u.protocol)) throw new HttpError(400, '\"url\" must be an absolute http(s) URL');\n  const width = clamp(body.width ?? 1280, 200, 4096), height = clamp(body.height ?? 800, 200, 4096);\n  let ctx; shotsActive++;\n  try {\n    const browser = await getBrowser(pw);\n    ctx = await browser.newContext({ viewport: { width, height } });\n    const page = await ctx.newPage();\n    await page.goto(u.href, { waitUntil: 'load', timeout: 30000 });\n    await page.waitForLoadState('networkidle', { timeout: 4000 }).catch(() => {});\n    const png = await page.screenshot({ fullPage: !!body.fullPage, type: 'png' });\n    const title = await page.title();\n    const text = String(await page.evaluate(() => document.body ? document.body.innerText : '')).replace(/\\n{3,}/g, '\\n\\n').slice(0, 20000);\n    return { ok: true, dataUrl: 'data:image/png;base64,' + png.toString('base64'), title, text };\n  } catch (e) {\n    const msg = String(e.message || e).split('\\n')[0];\n    return { ok: false, error: /Executable doesn't exist|browserType\\.launch/.test(msg)\n      ? 'Playwright is installed but Chromium is not \u2014 run: npx playwright install --with-deps chromium' : `Screenshot failed: ${msg}` };\n  } finally {\n    shotsActive--; ctx?.close().catch(() => {}); armIdle();\n  }\n}\n\n// \u2500\u2500 server \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nasync function health() {\n  return {\n    ok: true, version: VERSION, hostname: os.hostname(),\n    platform: `${process.platform} ${process.arch}${OS_NAME ? ` (${OS_NAME})` : ''}`, cwd: WS, instance: INSTANCE,\n    features: { screenshot: await screenshotAvailable(), git: !!which('git'), python: !!(which('python3') || which('python')), node: !!which('node') },\n  };\n}\n\nconst server = http.createServer(async (req, res) => {\n  cors(req, res);\n  try {\n    const url = new URL(req.url, 'http://box');\n    const route = `${req.method} ${url.pathname.replace(/\\/+$/, '') || '/'}`;\n    if (req.method === 'OPTIONS') return preflight(req, res);\n    if (route === 'GET /ping') return send(res, 200, { ok: true, name: 'eni-box' });\n    if (!authed(req)) return send(res, 401, { error: 'Unauthorized: missing or wrong token' });\n    switch (route) {\n      case 'GET /health': return send(res, 200, await health());\n      case 'POST /exec': return await execRoute(req, res, url);\n      case 'POST /exec/kill': return send(res, 200, killRoute(await readJson(req)));\n      case 'POST /files/push': return send(res, 200, await pushFiles(await readJson(req)));\n      case 'GET /files/pull': {\n        const { out, truncated } = await pullFiles(Number(url.searchParams.get('since')) || 0);\n        return send(res, 200, out, truncated ? { 'X-Eni-Truncated': '1' } : {});\n      }\n      case 'POST /screenshot': return send(res, 200, await screenshot(await readJson(req)));\n      default: return send(res, 404, { error: `Not found: ${req.method} ${url.pathname}` });\n    }\n  } catch (e) {\n    const status = e.status || 500;\n    if (status >= 500) console.error('[eni-box]', e);\n    if (status === 413) res.on('finish', () => req.socket.destroy()); // don't swallow the rest of a huge upload\n    send(res, status, { error: e.message || String(e) }, status === 413 ? { Connection: 'close' } : {});\n  }\n});\nserver.requestTimeout = 15 * 60 * 1000; // big pushes over slow mobile tunnels\n\nlet stopping = false;\nasync function shutdown(sig) {\n  if (stopping) return; stopping = true;\n  log(`${sig} \u2014 shutting down`);\n  for (const j of jobs.values()) j.kill('shutdown');\n  server.close();\n  server.closeIdleConnections?.();\n  setTimeout(() => process.exit(0), 3000).unref();\n  const b = await browserP?.catch(() => null); await b?.close().catch(() => {});\n}\nprocess.on('SIGINT', () => shutdown('SIGINT'));\nprocess.on('SIGTERM', () => shutdown('SIGTERM'));\n\nserver.on('error', e => {\n  console.error(e.code === 'EADDRINUSE' ? `[eni-box] Port ${PORT} is already in use \u2014 set PORT=... to pick another.` : e);\n  process.exit(1);\n});\nserver.listen(PORT, HOST, () => {\n  const shown = HOST === '0.0.0.0' || HOST === '::' ? '127.0.0.1' : HOST.includes(':') ? `[${HOST}]` : HOST;\n  const bound = server.address().port; // the real port, which differs from PORT when PORT=0\n  const base = `http://${shown}:${bound}`;\n  const lan = HOST === '0.0.0.0' || HOST === '::'\n    ? Object.values(os.networkInterfaces()).flat().filter(i => i && i.family === 'IPv4' && !i.internal).map(i => `http://${i.address}:${bound}`) : [];\n  const tok = TOKEN_FROM_ENV ? '$ENI_TOKEN' : TOKEN;\n  console.log(`\n  ENI Box ${VERSION} \u2014 a real shell for ENI\n  URL        ${base}${lan.length ? `\\n  LAN        ${lan.join('  ')}` : ''}\n  Token      ${TOKEN_FROM_ENV ? '(from ENI_TOKEN)' : `${TOKEN}   (generated; set ENI_TOKEN to keep it fixed)`}\n  Workspace  ${WS}\n  Try        curl -H \"Authorization: Bearer ${tok}\" ${base}/health\n             curl -N -H \"Authorization: Bearer ${tok}\" -d '{\"command\":\"uname -a\"}' ${base}/exec\n  In ENI     Settings -> Computer -> paste the URL and token.\n\n  WARNING: anyone with this token can run any command as ${(() => { try { return os.userInfo().username; } catch { return 'this user'; } })()} on ${os.hostname()}.\n`);\n});\n", "Dockerfile": "# ENI Box: a real Linux shell for the ENI app. See README.md.\n#   docker compose up -d --build                         shell and files only\n#   INSTALL_PLAYWRIGHT=1 docker compose up -d --build    also screenshots (adds ~500 MB)\nFROM node:22-bookworm-slim\n\nARG INSTALL_PLAYWRIGHT=0\nARG PLAYWRIGHT_VERSION=1.56.1\n\nRUN apt-get update \\\n && apt-get install -y --no-install-recommends bash git python3 python3-pip curl ca-certificates \\\n && rm -rf /var/lib/apt/lists/*\n\n# Optional screenshots: Playwright and Chromium installed system-wide so the non-root user can run them.\nENV PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright\nRUN if [ \"$INSTALL_PLAYWRIGHT\" = \"1\" ]; then \\\n      npm install -g \"playwright@${PLAYWRIGHT_VERSION}\" \\\n      && apt-get update \\\n      && playwright install --with-deps chromium \\\n      && chmod -R a+rX /opt/ms-playwright \\\n      && rm -rf /var/lib/apt/lists/* /root/.npm ; \\\n    fi\nENV NODE_PATH=/usr/local/lib/node_modules\n\nCOPY eni-box.mjs /app/eni-box.mjs\nRUN mkdir -p /workspace && chown node:node /workspace\n\nENV HOST=0.0.0.0 \\\n    PORT=7717 \\\n    WORKSPACE=/workspace \\\n    ALLOW_ORIGIN=*\n\nWORKDIR /workspace\nVOLUME [\"/workspace\"]\nEXPOSE 7717\nUSER node\n\nHEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \\\n  CMD node -e \"fetch('http://127.0.0.1:7717/ping').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))\"\n\nCMD [\"node\", \"/app/eni-box.mjs\"]\n", "docker-compose.yml": "# ENI Box with Docker. First create the token file (once):\n#   echo \"ENI_TOKEN=$(openssl rand -hex 24)\" > .env\nservices:\n  eni-box:\n    build:\n      context: .\n      args:\n        INSTALL_PLAYWRIGHT: \"${INSTALL_PLAYWRIGHT:-0}\"\n    image: eni-box:latest\n    restart: unless-stopped\n    init: true                      # reaps child processes the shell leaves behind\n    ports:\n      - \"127.0.0.1:7717:7717\"       # host loopback only; reach it from phones through a tunnel\n    environment:\n      ENI_TOKEN: \"${ENI_TOKEN:?Set ENI_TOKEN in .env (see README.md)}\"\n      ALLOW_ORIGIN: \"${ALLOW_ORIGIN:-*}\"\n    volumes:\n      - eni-workspace:/workspace    # the files commands work on; survives rebuilds\n    security_opt:\n      - no-new-privileges:true\n    shm_size: 1gb                   # Chromium needs more than Docker's 64 MB /dev/shm\n\nvolumes:\n  eni-workspace:\n", "README.md": "# ENI Box\n\nENI Box gives the ENI app a real Linux machine. ENI sends a shell command; the box runs it in a\nworkspace folder, streams the output back, and reports which files changed. It can also sync files\nboth ways and take screenshots. It has no npm dependencies and needs Node 20 or newer.\n\n## Security\n\n**Anyone with the token can run any command as the user running the box.**\n\n- Keep it on `127.0.0.1` by default. Reach it from other devices only over HTTPS (Cloudflare Tunnel or Tailscale).\n- Do not port-forward it on your router.\n- Use a long random token. If it leaks, restart the box with a new `ENI_TOKEN`.\n\n## Quick start (Node)\n\n```sh\ncd box\nENI_TOKEN=$(openssl rand -hex 24) node eni-box.mjs\n```\n\nWithout `ENI_TOKEN` the box generates a token and prints it at startup. That token changes on every restart.\nFiles live in `./workspace`; set `WORKSPACE=/some/path` to change it.\n\n## Quick start (Docker)\n\n```sh\ncd box\necho \"ENI_TOKEN=$(openssl rand -hex 24)\" > .env\ndocker compose up -d --build                        # shell and files\nINSTALL_PLAYWRIGHT=1 docker compose up -d --build   # also screenshots (adds ~500 MB)\n```\n\nDocker publishes the port on the host's `127.0.0.1` only. The workspace is the named volume `eni-workspace`.\nReset it with `docker compose down -v`.\n\n## Connect ENI\n\nIn ENI, open Settings \u2192 Computer, then paste the URL and the token.\n\n- Same machine: `http://localhost:7717`. Chrome lets https pages call localhost.\n- Phone or another device: an `https://` URL from a tunnel (below).\n\n## Phone access\n\n- **Cloudflare Tunnel (named, recommended):** create a named tunnel with a public hostname that points at\n  `http://localhost:7717`, then use `https://your-box.example.com`.\n- **Tailscale Funnel:** run `tailscale funnel 7717`. It prints an `https://<machine>.<tailnet>.ts.net` URL.\n- **Quick tunnels** (`cloudflared tunnel --url http://localhost:7717`, a random `trycloudflare.com` URL) are fine\n  for a test. They do not pass Server-Sent Events, so ENI falls back to non-streaming mode: output appears when\n  the command finishes instead of live. Any tunnel URL is public, so the token still has to stay secret.\n\n## Browser permissions\n\n- An https page calling `http://localhost` is allowed.\n- An https page cannot call a plain `http://` box on another machine (mixed content). Use an https URL.\n- Chrome may ask to allow access to devices on your local network, for example when ENI runs on\n  https and the box is on a LAN IP. Choose **Allow**. The box answers Chrome's Private Network Access preflight.\n\n## Configuration\n\n| Variable | Default | Meaning |\n|---|---|---|\n| `ENI_TOKEN` | random, printed at startup | Bearer token for every request except `GET /ping` |\n| `PORT` | `7717` | Port to listen on |\n| `HOST` | `127.0.0.1` | Bind address (`0.0.0.0` in Docker) |\n| `WORKSPACE` | `./workspace` | Folder that commands run in and that file sync uses |\n| `ALLOW_ORIGIN` | `*` | `*`, or a comma-separated list of origins. Include `null` for pages opened from `file://` |\n\n## API\n\n- `GET /ping`: liveness, no auth\n- `GET /health`: version, platform, and features (`screenshot`, `git`, `python`, `node`)\n- `POST /exec`: `{command, cwd?, timeoutMs?, env?, id?}`. Returns NDJSON, or one JSON reply with `?stream=0`.\n  The result lists `changed` files: created, modified, or deleted under the workspace.\n- `POST /exec/kill`: `{id}`\n- `POST /files/push`: `{files:[{path, content, binary}], deleted?:[path]}`\n- `GET /files/pull?since=<ms>`\n- `POST /screenshot`: `{url, width?, height?, fullPage?}`\n\n## Troubleshooting\n\n- **\"rejected the token\" (401):** copy the token printed at startup, or the value in `.env` for Docker.\n  A restart without `ENI_TOKEN` generates a new one.\n- **\"Can't reach the ENI Box\":** check that the box is running and the URL is right. Try\n  `curl http://localhost:7717/ping`. On an https page, see Browser permissions. A CORS error in the console\n  means `ALLOW_ORIGIN` does not include this page's origin.\n- **Port already in use:** set another `PORT` and use the same port in the ENI URL.\n- **Screenshots say Playwright is not installed:** install it on the host\n  (`npm i -g playwright && npx playwright install --with-deps chromium`) or build with `INSTALL_PLAYWRIGHT=1`.\n- **Command killed unexpectedly:** a command is killed when it passes `timeoutMs` (default 120 s, max 6 h),\n  when ENI cancels it, or 10 s after its client disconnects.\n- **Changes not reported:** `.git`, `node_modules`, `.venv`, and `__pycache__` are skipped. Files over 5 MB are\n  left out of the report, and at most 300 changed files are listed.\n"};
+</script>
+<script>
+/* ══════ AGENT SWARM ══════ */
+/* ===== AGENT SWARM core: state, persistence, view switching, shared helpers ===== */
+
+const LAB = { runs:[], suites:[], memory:[], sxs:[], prefs:{}, live:null, tab:'run', listeners:[], _loaded:false, _memWriting:false };
+const LAB_TABS = {};
+const LAB_CAP = { runs:15, sxs:8 };   // newest-first lists kept in storage
+
+/* ----- persistence -----
+   Runs and side-by-side results live in IndexedDB (KV, like sessions); suites and prefs in localStorage.
+   Saved patterns live in ENI's own memory under "## Agent Swarm patterns", so every agent sees them
+   and they can be edited in Agents → Memory. */
+
+// storage copy: drops '_' keys and streaming flags, caps long turn text
+function labClean(obj){
+  return JSON.parse(JSON.stringify(obj, (k,v)=>{
+    if(k==='streaming' || (k && k[0]==='_')) return undefined;
+    if(k==='text' && typeof v==='string' && v.length>6000) return v.slice(0,6000);
+    return v;
+  }));
+}
+
+const LAB_MEM_HEAD='## Agent Swarm patterns';
+function labMemHash(s){ let h=0; for(const ch of String(s).toLowerCase()) h=(h*31+ch.charCodeAt(0))|0; return 'm'+(h>>>0).toString(36); }
+// "- ★ [coding · Opus 5.5] Ask for tests explicitly" → {id,text,tags,pinned,at}
+function labMemParse(){
+  const lines=String(memoryText()||'').split('\n'), out=[];
+  let inSec=false;
+  for(const ln of lines){
+    if(/^##\s/.test(ln)){ inSec=ln.trim()===LAB_MEM_HEAD; continue; }
+    if(!inSec) continue;
+    const m=/^\s*-\s+(★\s+)?(?:\[([^\]]*)\]\s+)?(.+?)\s*$/.exec(ln); if(!m) continue;
+    const text=m[3].trim(); if(!text) continue;
+    const tags=(m[2]||'').split(/\s*[·,]\s*/).map(t=>t.trim()).filter(Boolean);
+    out.push({id:labMemHash(text), text, tags, pinned:!!m[1], at:out.length+1, from:null});
+  }
+  return out;
+}
+function labMemWrite(){
+  const body=LAB.memory.filter(m=>m&&String(m.text||'').trim()).map(m=>
+    `- ${m.pinned?'★ ':''}${(m.tags||[]).length?'['+m.tags.map(t=>String(t).replace(/[\[\]·,]/g,' ').trim()).filter(Boolean).join(' · ')+'] ':''}${String(m.text).replace(/\s+/g,' ').trim()}`).join('\n');
+  const lines=String(memoryText()||'').split('\n'), keep=[];
+  let inSec=false;
+  for(const ln of lines){
+    if(/^##\s/.test(ln)) inSec=ln.trim()===LAB_MEM_HEAD;
+    if(!inSec) keep.push(ln);
+  }
+  let txt=keep.join('\n').replace(/\s+$/,'');
+  if(body) txt=(txt?txt+'\n\n':'')+LAB_MEM_HEAD+'\n'+body;
+  LAB._memWriting=true;
+  try{ saveMemory(txt); }finally{ LAB._memWriting=false; }
+  LAB.memory=labMemParse();
+}
+
+async function labLoad(){
+  const list=v=>Array.isArray(v)?v.filter(x=>x&&typeof x==='object'):[];
+  const [runs,sxs]=await Promise.all([KV.get('swarm_runs'),KV.get('swarm_sxs')]);
+  LAB.runs=list(runs); LAB.sxs=list(sxs);
+  LAB.suites=list(LS.json('swarm_suites',[]));
+  LAB.memory=labMemParse();
+  const p=LS.json('swarm_prefs',{});
+  LAB.prefs=(p&&typeof p==='object'&&!Array.isArray(p))?p:{};
+  LAB.live=null;
+  // a reload mid-run leaves nothing running: mark those runs and their open lanes stopped
+  const open=['queued','driving','waiting','judging'];
+  LAB.runs.forEach(run=>{
+    if(!Array.isArray(run.lanes)) run.lanes=[];
+    if(!['planning','running','scribing'].includes(run.status)) return;
+    run.status='stopped';
+    run.lanes.forEach(l=>{ if(l&&open.includes(l.status)) l.status='stopped'; });
+  });
+  LAB.sxs.forEach(r=>{ if(r.status==='running') r.status='stopped'; });
+}
+
+// lists are newest-first and capped; runs/sxs go to IndexedDB, the rest to localStorage
+function labSave(which){
+  if(which==='memory'){ labMemWrite(); return true; }
+  const list=which==='runs'?LAB.runs:which==='sxs'?LAB.sxs:null;
+  const cap=LAB_CAP[which];
+  if(list&&cap) list.splice(cap);
+  if(list){ KV.set('swarm_'+which,labClean(list)); return true; }
+  const src={suites:LAB.suites,prefs:LAB.prefs}[which];
+  if(LS.setJson('swarm_'+which,labClean(src))!==false) return true;
+  toast('Agent Swarm storage is full — export or delete old suites');
+  return false;
+}
+
+let labReady=null;
+function labInit(){
+  labReady=labLoad().then(()=>{
+    LAB._loaded=true;
+    if(!LAB.suites.length&&typeof labSeedSuites==='function'){ LAB.suites=labSeedSuites(); labSave('suites'); }
+    if(UI.view==='swarm') labTab(LAB.tab);
+  }).catch(e=>console.error('[swarm] load',e));
+  // ENI memory edited elsewhere (Agents → Memory, the memory tool, the scribe) → refresh patterns
+  on('memory',()=>{ if(LAB._memWriting) return; LAB.memory=labMemParse(); if(UI.view==='swarm'&&LAB.tab==='reports'&&typeof labRenderReports==='function') labRenderReports(); });
+  on('agents',()=>{ if(UI.view==='swarm'&&LAB.tab==='run'&&!(LAB.live&&LAB.live.status==='running')&&typeof labRenderRun==='function') labRenderRun(); });
+  return labReady;
+}
+
+// running-lane count shows in the sidebar row
+function labUpdateBadge(){ if(typeof renderSidebarSoon==='function') renderSidebarSoon(); }
+
+/* ----- view switching (the harness's showView owns the views) ----- */
+
+function labIsOpen(){ return typeof UI!=='undefined'&&UI.view==='swarm'; }
+
+function openLab(tab){
+  if(tab) LAB.tab=tab;
+  if(!labIsOpen()) showView('swarm');   // showView → renderSwarmView → labTab(LAB.tab)
+  else labTab(LAB.tab);
+}
+
+function closeLab(){ if(labIsOpen()) showView('chat'); }
+
+function renderSwarmView(){
+  if(labReady&&!LAB._loaded) labReady.then(()=>{ if(labIsOpen()) labTab(LAB.tab); });
+  labTab(LAB.tab);
+}
+
+function labTab(name){
+  name=name||'run';
+  document.querySelectorAll('.lab-tab[data-tab]').forEach(b=>{
+    const on=b.dataset.tab===name;
+    b.classList.toggle('on',on);
+    b.setAttribute('aria-selected',String(on));
+  });
+  document.querySelectorAll('.lab-panel').forEach(p=>p.classList.toggle('on',p.id==='labPanel-'+name));
+  LAB.tab=name;
+  try{ LAB_TABS[name]?.(); }catch(e){ console.error('[swarm] tab '+name,e); }
+}
+
+/* ----- events ----- */
+
+function labOn(fn){ if(typeof fn==='function') LAB.listeners.push(fn); }
+
+function labEmit(type,...args){
+  for(const fn of LAB.listeners){
+    try{ fn(type,...args); }catch(e){ console.error('[swarm] listener '+type,e); }
+  }
+}
+
+/* ----- models & formatting ----- */
+
+function labModelOptions(){
+  return Object.keys(MODELS).filter(k=>MODELS[k]&&MODELS[k].kind!=='video')
+    .map(k=>({key:k,name:MODELS[k].name||k,badge:MODELS[k].badge||'',group:MODELS[k].group||''}))
+    .sort((a,b)=>(a.group||'').localeCompare(b.group||'')||(a.name||'').localeCompare(b.name||''));
+}
+
+function labModelName(key){ return modelBadge(key); }
+
+// Swarm roles are harness agents (Agents view → "Agent Swarm team"), so their models and prompts are editable there.
+function labAgent(id){ return getAgent(id)||BUILTIN_AGENTS.find(a=>a.id===id)||{}; }
+function labAgentPrompt(id){ return String(labAgent(id).systemPrompt||'').trim(); }
+function labRoleModel(id){ return agentModel(labAgent(id),null); }
+function labDefaultModel(){ return agentModel(baseAgent(),null); }
+
+function labFmtCost(n){ return n==null?'—':n===0?'$0':(fmtCost(n)||'$0'); }
+
+function labAgo(ts){
+  const t=typeof ts==='number'?ts:new Date(ts).getTime();
+  if(!t||isNaN(t)) return '—';
+  const s=Math.max(0,Math.floor((Date.now()-t)/1000));
+  if(s<60) return 'just now';
+  const m=Math.floor(s/60); if(m<60) return m+'m ago';
+  const h=Math.floor(m/60); if(h<24) return h+'h ago';
+  return Math.floor(h/24)+'d ago';
+}
+
+function labTrunc(s,n){
+  const t=String(s==null?'':s).replace(/\s+/g,' ').trim();
+  return t.length>n?t.slice(0,Math.max(0,n-1)).trimEnd()+'…':t;
+}
+
+function labDownload(name,text,mime='text/plain'){ download(name,text,mime+';charset=utf-8'); }
+
+/* ----- model calls: the harness's llmConfig + llmCall (same routing, keys, retries and usage maths as ENI) ----- */
+
+async function labCall(key, messages, {system='',signal,maxTokens,temperature=null,thinking=false,onDelta}={}){
+  if(!MODELS[key]) throw new Error('Unknown model: '+key);
+  const cfg=llmConfig(key,{effort:'inherit',temperature},null);
+  if(!thinking) cfg.thinking=!!cfg.model.lockReasoning||!!cfg.model.noThinkOff;
+  if(maxTokens) cfg.maxTokens=Math.min(maxTokens,cfg.maxTokens);
+  const msgs=system?[{role:'system',content:system},...messages]:messages.slice();
+  const onEvent=e=>{ if(e.type==='text'&&onDelta) try{ onDelta(e.text); }catch(x){} };
+  let lastErr;
+  for(let attempt=0;attempt<3;attempt++){
+    try{
+      const r=await llmCall(cfg,msgs,{signal,onEvent});
+      const text=String(r.content||'').trim();
+      if(!text) throw new Error('Empty reply from '+labModelName(key));
+      const u=usageOf(key,r.usage,r.content.length);
+      return {text, thinking:r.thinking||'', usage:{in:u.in,out:u.out}, cost:u.cost, costEst:u.costEst, ms:Math.round(r.ms||0)};
+    }catch(e){
+      lastErr=e; if(e.name==='AbortError') throw e;
+      if(e.kind==='rate'||e.kind==='transient'){ await sleep(1200*(attempt+1)*(attempt+1),signal); continue; }
+      throw e;
+    }
+  }
+  throw lastErr;
+}
+
+/* ----- markdown & JSON parsing ----- */
+
+function labMdHTML(text){
+  try{
+    const r=renderMarkdown(text||'',false);
+    return r.html.replace(/<span class="math-ph" data-i="(\d+)"><\/span>/g,(_,i)=>{
+      const m=r.math[+i]; if(!m) return '';
+      return typeof katex!=='undefined'?renderMath(m.t,m.d):`<code>${esc(m.d?'$$'+m.t+'$$':'$'+m.t+'$')}</code>`;
+    });
+  }catch(e){ return `<div class="lab-pre">${esc(text||'')}</div>`; }
+}
+
+// the harness's tolerant parser (fences, prose around JSON, trailing commas)
+function labParseJson(text){ return parseJsonLoose(text); }
+
+/* ----- memory selection ----- */
+
+// memory item: {text, tags:[], pinned, at, from}. Order: pinned, tag match, newest; deduped; max 8
+function labMemoryFor(cfg){
+  const mem=(LAB.memory||[]).filter(m=>m&&typeof m==='object'&&m.text);
+  const want=new Set([String(cfg?.category||'').toLowerCase(),'general',
+    ...(cfg?.targets||[]).map(k=>labModelName(k).toLowerCase())].filter(Boolean));
+  const tagsOf=m=>(Array.isArray(m.tags)?m.tags:[]).map(t=>String(t).toLowerCase());
+  const byNew=(a,b)=>(b.at||0)-(a.at||0);
+  const pinned=mem.filter(m=>m.pinned).sort(byNew);
+  const tagged=mem.filter(m=>!m.pinned&&tagsOf(m).some(t=>want.has(t))).sort(byNew);
+  const rest=mem.filter(m=>!m.pinned).sort(byNew);
+  const out=[], seen=new Set();
+  for(const m of [...pinned,...tagged,...rest]){
+    const k=String(m.text).trim().toLowerCase();
+    if(seen.has(k)) continue;
+    seen.add(k); out.push(m);
+    if(out.length>=8) break;
+  }
+  return out;
+}
+
+/* lab_engine.js - Agent Swarm run engine: planner, lanes, attempts, judge, budget, saving */
+
+// ---- prompts ----
+const LAB_ANGLES=[
+  ['Direct ask', g=>g],
+  ['Step-by-step', g=>g+' Walk me through it step by step.'],
+  ['Minimal context', g=>(g.split(/[.?!]\s/)[0]||g)],
+  ['Skeptical follow-ups', g=>g+' I am not sure you got this right, so double-check it.'],
+  ['Real-world persona', g=>'I am a busy professional with a deadline. '+g],
+  ['Tricky-but-harmless edge case', g=>g+' Include a tricky but harmless edge case.'],
+  ['Strict format constraint', g=>g+' Keep the answer in a strict format: a numbered list of at most 5 items.'],
+  ['Ambiguous request', ()=>'']
+];
+
+const LAB_PROMPTS={
+  planner(cfg,memory){
+    const mem=labMemLines(memory);
+    return `${labAgentPrompt('sw-planner')}
+
+Goal: ${cfg.goal||'(none given; pick a sensible goal for the category)'}; Category: ${cfg.category||'custom'}.
+Produce exactly ${cfg.lanes} distinct lanes, each a different angle on the goal.
+Lessons from previous sessions (apply them):
+${mem||'- (none yet)'}
+Reply with ONLY JSON {"lanes":[{"title":"3-6 words","goal":"one sentence success condition","opening":"the first user message"}]}`;
+  },
+  driver(lane,notes){
+    return `${labAgentPrompt('sw-tester')}
+
+Your hidden objective: ${lane.goal}.
+Write ONLY the next user message — no narration, no quotes, no labels. Be natural; push for the objective; if the assistant is wrong or incomplete, follow up specifically. Keep messages under 120 words. If the objective is clearly impossible in this conversation, reply exactly [[GIVE_UP]].${notes?'\n\n'+notes:''}`;
+  },
+  judge(lane,transcriptText,reply,system){
+    return `${labAgentPrompt('sw-judge')}
+
+Goal for the assistant: ${lane.goal}. (System prompt under test: ${String(system||'none').slice(0,500)}.)
+Conversation so far (truncated): ${transcriptText||'(none)'}
+Latest assistant reply: ${reply}
+Score the latest reply 0-10 for how well it advances/achieves the goal (correctness, instruction-following, quality). goal_met=true only if the goal is now fully achieved. Reply ONLY JSON {"score":0-10,"verdict":"one line, max 18 words","goal_met":true|false}`;
+  }
+};
+
+function labMemLines(m){
+  const arr=Array.isArray(m)?m:(m?[m]:[]);
+  return arr.map(x=>typeof x==='string'?x:((x&&x.text)||'')).filter(Boolean).slice(0,12).map(s=>'- '+s).join('\n');
+}
+
+// ---- start / stop / active ----
+let labSaveT=0, labSaveTimer=null;
+
+function labStartRun(cfg){
+  const c=Object.assign({},cfg||{});
+  const targets=[...new Set((Array.isArray(c.targets)?c.targets:[]).filter(k=>MODELS[k]&&MODELS[k].kind!=='video'))];
+  if(!targets.length){ toast('Pick at least one target model'); return null; }
+  const laneGoals=Array.isArray(c.laneGoals)?c.laneGoals.map(s=>String(s||'').trim()).filter(Boolean):[];
+  const goal=String(c.goal||'').trim();
+  if(!laneGoals.length&&!goal){ toast('Add a goal or lane goals'); return null; }
+  if(LAB.live&&['planning','running','scribing'].includes(LAB.live.status)){ toast('An Agent Swarm run is already in progress'); return null; }
+  const num=(v,d,lo,hi)=>{ const n=Math.round(Number(v)); return isFinite(n)?Math.min(hi,Math.max(lo,n)):d; };
+  const b=Number(c.budget);
+  const cfgN={
+    targets, system:String(c.system||''), goal, category:c.category||'custom',
+    lanes:num(c.lanes,3,1,8), laneGoals:laneGoals.length?laneGoals:null,
+    maxTurns:num(c.maxTurns,6,1,20), maxAttempts:num(c.maxAttempts,2,1,5),
+    budget:isFinite(b)&&b>0?b:0, concurrency:num(c.concurrency,settings().maxSubagents||3,1,8),
+    plannerModel:c.plannerModel||labRoleModel('sw-planner'), driverModel:c.driverModel||labRoleModel('sw-tester'),
+    judgeModel:c.judgeModel||labRoleModel('sw-judge'), scribeModel:c.scribeModel||labRoleModel('scribe'),
+    useMemory:c.useMemory!==false, autoScribe:c.autoScribe!==false, suiteId:c.suiteId||null
+  };
+  LAB.prefs.lastTargets=targets; labSave('prefs');
+  const run={id:uid(), at:Date.now(), cfg:cfgN, status:'planning', error:null, cost:0, tokens:{in:0,out:0},
+    plan:[], lanes:[], report:null, _ctl:new AbortController()};
+  LAB.runs.unshift(run); LAB.live=run;
+  labSave('runs'); labEmit('run:update', run); labTickBadge();
+  labExecute(run).catch(e=>{ run.status='error'; run.error=String((e&&e.message)||e); if(!run.endedAt) run.endedAt=Date.now(); labSave('runs'); labEmit('run:end', run); });
+  return run;
+}
+
+function labStopRun(){
+  const run=LAB.live;
+  if(!run||!['planning','running'].includes(run.status)) return false;
+  run.status='stopped';
+  if(!run.endedAt) run.endedAt=Date.now();
+  try{ run._ctl.abort(); }catch(e){}
+  labEmit('run:update', run); labSave('runs'); labTickBadge();
+  return true;
+}
+
+function labActiveLanes(run){
+  if(!run||run.status!=='running') return 0;
+  return run.lanes.filter(l=>['driving','waiting','judging','queued'].includes(l.status)).length;
+}
+
+// ---- budget / cost ----
+function labAbortErr(){ return new DOMException('Stopped','AbortError'); }
+
+function labBudgetHit(run){
+  const b=Number(run.cfg.budget)||0;
+  if(!(b>0)||run.cost<b) return false;
+  run._budgetHit=true; run.error='Budget reached';
+  try{ run._ctl.abort(); }catch(e){}
+  return true;
+}
+
+function labBudgetGate(run){ if(labBudgetHit(run)) throw labAbortErr(); }
+
+function labAddCost(run, lane, r){
+  if(!r) return;
+  const c=r.cost||0, u=r.usage||{};
+  run.cost+=c;
+  run.tokens.in+=u.in||0; run.tokens.out+=u.out||0;
+  if(lane) lane.cost+=c;
+}
+
+// ---- events / saving ----
+function labTickBadge(){ if(typeof labUpdateBadge==='function') labUpdateBadge(); }
+
+function labSaveSoon(){
+  const wait=2000-(Date.now()-labSaveT);
+  if(wait<=0){ labSaveT=Date.now(); labSave('runs'); }
+  else if(!labSaveTimer) labSaveTimer=setTimeout(()=>{ labSaveTimer=null; labSaveT=Date.now(); labSave('runs'); }, wait);
+}
+
+function labRunUpdate(run){ labEmit('run:update', run); labTickBadge(); labSaveSoon(); }
+function labLaneUpdate(run, lane){ labEmit('lane:update', run, lane); labTickBadge(); labSaveSoon(); }
+
+// ---- plan ----
+function labTitleOf(g){ return String(g||'').trim().split(/\s+/).slice(0,6).join(' ').slice(0,60); }
+
+function labFallbackPlan(c){
+  const out=[];
+  for(let i=0;i<c.lanes;i++){
+    const [name,mk]=LAB_ANGLES[i%LAB_ANGLES.length], round=Math.floor(i/LAB_ANGLES.length);
+    out.push({title:name+(round?' '+(round+1):''), goal:c.goal+' (approach: '+name.toLowerCase()+')', opening:mk(c.goal)});
+  }
+  return out;
+}
+
+async function labPlan(run){
+  const c=run.cfg, sig=run._ctl.signal;
+  if(c.laneGoals){ run.plan=c.laneGoals.map(g=>({title:labTitleOf(g), goal:g, opening:g})); return; }
+  let plan=null;
+  try{
+    labBudgetGate(run);
+    const memory=c.useMemory&&typeof labMemoryFor==='function'?labMemoryFor(c):[];
+    const r=await labCall(c.plannerModel||c.driverModel, [{role:'user',content:'Design the lanes now. Reply with JSON only.'}],
+      {system:LAB_PROMPTS.planner(c,memory), temperature:0.7, maxTokens:2000, signal:sig});
+    labAddCost(run, null, r);
+    const j=labParseJson(r.text);
+    const arr=j&&Array.isArray(j.lanes)?j.lanes:[];
+    plan=arr.filter(x=>x&&String(x.goal||'').trim()).slice(0,c.lanes).map(x=>{
+      const goal=String(x.goal).trim();
+      return {title:String(x.title||'').trim().slice(0,60)||labTitleOf(goal), goal, opening:String(x.opening||'').trim()};
+    });
+  }catch(e){
+    if((e&&e.name==='AbortError')||sig.aborted) throw e;
+    plan=null;
+  }
+  if(!plan||!plan.length){ toast('Planner reply unusable; using fallback angles'); plan=labFallbackPlan(c); }
+  run.plan=plan;
+}
+
+function labBuildLanes(run){
+  run.cfg.targets.forEach(t=>run.plan.forEach((p,idx)=>run.lanes.push({
+    id:uid(), target:t, idx, title:p.title, goal:p.goal, opening:p.opening,
+    status:'queued', cost:0, best:null, error:null, attempts:[]
+  })));
+}
+
+// ---- run flow ----
+async function labExecute(run){
+  const sig=run._ctl.signal;
+  try{
+    await labPlan(run);
+    if(sig.aborted) throw labAbortErr();
+    labBuildLanes(run);
+    run.status='running'; labRunUpdate(run);
+    const queue=run.lanes.slice();
+    async function worker(){ while(queue.length&&!sig.aborted){ await labRunLane(run, queue.shift()); } }
+    const n=Math.max(1,Math.min(run.cfg.concurrency,run.lanes.length));
+    await Promise.all(Array.from({length:n}, worker));
+  }catch(e){
+    if(!((e&&e.name==='AbortError')||sig.aborted)){ run.status='error'; run.error=String((e&&e.message)||e); }
+  }
+  await labFinish(run);
+}
+
+async function labFinish(run){
+  const sig=run._ctl.signal;
+  for(const l of run.lanes){
+    if(['queued','driving','waiting','judging'].includes(l.status)){ l.status='stopped'; labEmit('lane:update', run, l); }
+  }
+  if(run.status!=='error'){
+    const stopped=run.status==='stopped'||run._budgetHit||sig.aborted;
+    const anyTurn=run.lanes.some(l=>l.attempts.some(a=>a.turns.some(t=>t.role==='target')));
+    if(stopped) run.status='stopped';
+    else if(run.cfg.autoScribe&&anyTurn){
+      if(labBudgetHit(run)) run.status='stopped';
+      else{
+        try{ await labScribe(run); }catch(e){ run.report={md:'Scribe failed: '+((e&&e.message)||e), patterns:[]}; }
+        run.status='done';
+      }
+    }
+    else run.status='done';
+  }
+  if(!run.endedAt) run.endedAt=Date.now();
+  clearTimeout(labSaveTimer); labSaveTimer=null;
+  labEmit('run:update', run); labEmit('run:end', run);
+  if(LAB.live===run) LAB.live=null;
+  labSave('runs'); labTickBadge();
+}
+
+async function labRunLane(run, lane){
+  const sig=run._ctl.signal;
+  try{ await acquireSub(sig); }catch(e){ lane.status='stopped'; labLaneUpdate(run, lane); return; }
+  try{ await labRunLaneIn(run, lane); }finally{ releaseSub(); }
+}
+
+async function labRunLaneIn(run, lane){
+  const c=run.cfg, sig=run._ctl.signal;
+  let att=null;
+  try{
+    if(sig.aborted) throw labAbortErr();
+    for(let n=1;n<=c.maxAttempts;n++){
+      att={n, outcome:null, turns:[]};
+      lane.attempts.push(att);
+      labEmit('attempt:start', run, lane, att);
+      const res=await labAttempt(run, lane, att, n>1?labNotes(lane):'');
+      att.outcome=res;
+      if(res==='success'){ lane.status='success'; labLaneUpdate(run, lane); return; }
+      labLaneUpdate(run, lane);
+    }
+    lane.status='failed';
+  }catch(e){
+    if((e&&e.name==='AbortError')||sig.aborted){
+      if(att&&!att.outcome) att.outcome=run._budgetHit?'budget':'stopped';
+      lane.status='stopped';
+    }else{
+      if(att) att.outcome='error';
+      lane.status='error'; lane.error=String((e&&e.message)||e);
+    }
+  }
+  labLaneUpdate(run, lane);
+}
+
+function labNotes(lane){
+  const vs=lane.attempts.slice(0,-1).map(a=>{
+    const js=a.turns.filter(t=>t.judge);
+    return js.length?js[js.length-1].judge.verdict:'(no judged reply)';
+  });
+  return 'Earlier attempts failed; judge said: '+(vs.slice(-3).join(' | ')||'(none)')+'. Try a different approach.';
+}
+
+// one attempt: returns 'success' | 'limit'; throws on abort/budget/error
+async function labAttempt(run, lane, att, notes){
+  const c=run.cfg, sig=run._ctl.signal;
+  let replies=0;
+  for(;;){
+    lane.status='driving'; labLaneUpdate(run, lane);
+    const opening=att.n===1&&!att.turns.length?String(lane.opening||'').trim():'';
+    if(!opening) labBudgetGate(run);
+    const dmsgs=labDriverMsgs(att);
+    const dt=labTurnNew('driver'); att.turns.push(dt); labEmit('turn:add', run, lane, dt);
+    if(opening){ dt.text=opening; dt.streaming=false; labEmit('turn:done', run, lane, dt); }
+    else await labStreamTurn(run, lane, dt, on=>labCall(c.driverModel, dmsgs,
+      {system:LAB_PROMPTS.driver(lane,notes), temperature:labAgent('sw-tester').temperature??0.9, maxTokens:1200, signal:sig, onDelta:on}));
+    if(/\[\[GIVE_UP\]\]/.test(dt.text)) return 'limit';
+
+    labBudgetGate(run);
+    const tmsgs=labTargetMsgs(att);
+    lane.status='waiting'; labLaneUpdate(run, lane);
+    const tt=labTurnNew('target'); att.turns.push(tt); labEmit('turn:add', run, lane, tt);
+    await labStreamTurn(run, lane, tt, on=>labCall(lane.target, tmsgs,
+      {system:c.system||'', thinking:true, maxTokens:8192, signal:sig, onDelta:on}));
+    replies++;
+
+    labBudgetGate(run);
+    lane.status='judging'; labLaneUpdate(run, lane);
+    const j=await labJudge(run, lane, att, tt);
+    tt.judge=j; labEmit('turn:judge', run, lane, tt);
+    if(j.score!=null&&(lane.best==null||j.score>lane.best)) lane.best=j.score;
+    labLaneUpdate(run, lane);
+    if(j.goal_met) return 'success';
+    if(replies>=c.maxTurns) return 'limit';
+  }
+}
+
+// ---- turns / messages ----
+function labTurnNew(role){ return {id:uid(), role, text:'', streaming:true, ms:0, cost:0, judge:null}; }
+
+function labDelta(run, lane, turn, txt){
+  turn.text=String(txt||'');
+  const now=Date.now();
+  if(!turn._t||now-turn._t>=60){ turn._t=now; labEmit('turn:delta', run, lane, turn); }
+}
+
+// streams one model call into a turn; always ends the turn (turn:done) even on error
+async function labStreamTurn(run, lane, turn, fn){
+  try{
+    const r=await fn(t=>labDelta(run, lane, turn, t));
+    turn.text=String(r.text||'').trim(); turn.ms=r.ms||0; turn.cost=r.cost||0;
+    labAddCost(run, lane, r);
+    return r;
+  }finally{
+    turn.streaming=false; labEmit('turn:done', run, lane, turn); labSaveSoon();
+  }
+}
+
+function labNorm(msgs){
+  if(!msgs.length||msgs[0].role==='assistant') msgs.unshift({role:'user',content:'Begin the conversation now.'});
+  if(msgs[msgs.length-1].role==='assistant') msgs.push({role:'user',content:'Continue.'});
+  return msgs;
+}
+
+// tester view: driver turns are the assistant, target turns are the user
+function labDriverMsgs(att){
+  return labNorm(att.turns.filter(t=>t.text).map(t=>({role:t.role==='driver'?'assistant':'user', content:t.text})));
+}
+
+// target view: driver turns are the user, target turns are the assistant
+function labTargetMsgs(att){
+  return labNorm(att.turns.filter(t=>t.text).map(t=>({role:t.role==='driver'?'user':'assistant', content:t.text})));
+}
+
+// ---- judge ----
+function labNormJudge(j){
+  const raw=j.score;
+  const s=(raw===null||raw===undefined||raw==='')?NaN:Number(raw);
+  const score=isFinite(s)?Math.max(0,Math.min(10,s)):null;
+  const verdict=typeof j.verdict==='string'?j.verdict.trim().slice(0,160):'';
+  return {score, verdict:verdict||(score==null?'(judge reply unparsable)':''), goal_met:j.goal_met===true||j.goal_met==='true'};
+}
+
+async function labJudge(run, lane, att, tt){
+  const c=run.cfg, sig=run._ctl.signal;
+  const txt=att.turns.filter(t=>t!==tt&&t.text).map(t=>(t.role==='driver'?'USER: ':'ASSISTANT: ')+t.text).join('\n\n').slice(-6000);
+  let r;
+  try{
+    r=await labCall(c.judgeModel, [{role:'user',content:'Score the latest reply now.'}],
+      {system:LAB_PROMPTS.judge(lane, txt, String(tt.text||'').slice(0,6000), c.system), temperature:0, maxTokens:1200, signal:sig});
+  }catch(e){
+    if((e&&e.name==='AbortError')||sig.aborted) throw e;
+    return {score:null, verdict:('Judge error: '+((e&&e.message)||e)).slice(0,160), goal_met:false};
+  }
+  labAddCost(run, lane, r);
+  let j=null;
+  try{ j=labParseJson(r.text); }catch(e){ j=null; }
+  return j&&typeof j==='object'?labNormJudge(j):{score:null, verdict:'(judge reply unparsable)', goal_met:false};
+}
+
+/* ===== Agent Swarm: setup card (Run tab), model chips, prefill ===== */
+
+// ----- run categories (label + goal placeholder example) -----
+const LAB_CATEGORIES=[
+  {id:'coding',label:'Coding',example:'Write a Python function that parses ISO-8601 timestamps with time zones into UTC, plus unit tests for the edge cases.'},
+  {id:'reasoning',label:'Reasoning',example:'Solve a five-person seating puzzle from six clues and state the one valid arrangement with a short justification.'},
+  {id:'writing',label:'Writing',example:'Draft a 150-word product announcement for a battery company that is specific, warm and free of hype words.'},
+  {id:'instruction',label:'Instruction following',example:'Get the assistant to answer in exactly three bullet points, each under 12 words, with no preamble or closing remark.'},
+  {id:'edge',label:'Edge cases',example:'Ask a question built on a false premise and check whether the assistant politely corrects it instead of playing along.'},
+  {id:'persona',label:'Persona consistency',example:'Keep the assistant in a 1920s detective persona across several turns, including when asked an off-topic modern question.'},
+  {id:'custom',label:'Custom',example:'Describe one concrete, harmless request and what a correct answer must contain.'}
+];
+
+// numeric setup fields: [input id, setup key, min, max, step]
+const LAB_SETUP_NUMS=[['ls-lanes','lanes',1,8,1],['ls-turns','maxTurns',1,20,1],['ls-attempts','maxAttempts',1,5,1],['ls-budget','budget',0,1000,0.05],['ls-conc','concurrency',1,8,1]];
+
+let labSetupOpen=false;   // user expanded the form while a run is live
+let labSetupLive=false;   // live state at the last setup render
+let labSetupTimer=0;      // debounce handle for the prefs save
+
+// ----- defaults & normalisation -----
+const labUsable=k=>typeof k==='string'&&Object.prototype.hasOwnProperty.call(MODELS,k)&&MODELS[k].kind!=='video';
+
+function labDefaultSetup(){
+  const pick=k=>labUsable(k)?k:'';   // '' = the Agent Swarm team agent's own model
+  const s={targets:LAB.prefs.lastTargets||[labDefaultModel()], system:'', goal:'', category:'coding', lanes:3, laneGoals:null,
+    suiteId:null, suiteName:'', maxTurns:6, maxAttempts:2, budget:1, concurrency:Math.min(8,Math.max(1,settings().maxSubagents||3)), driverModel:'',
+    judgeModel:'', scribeModel:'', useMemory:true, autoScribe:true, ...(LAB.prefs.setup||{})};
+  s.targets=(Array.isArray(s.targets)?s.targets:[]).filter((k,i,a)=>labUsable(k)&&a.indexOf(k)===i);
+  s.driverModel=pick(s.driverModel); s.judgeModel=pick(s.judgeModel); s.scribeModel=pick(s.scribeModel);
+  if(!Array.isArray(s.laneGoals)||!s.laneGoals.length) s.laneGoals=null;
+  return s;
+}
+
+function labNumVal(el,def,lo,hi,step){
+  const x=parseFloat(el.value); if(!isFinite(x)) return def;
+  const c=Math.min(hi,Math.max(lo,x));
+  return step>=1?Math.round(c):Math.round(c*100)/100;
+}
+
+// ----- reading the form / saving the draft -----
+function labReadSetup(){
+  const goal=$('ls-goal'); if(!goal) return null;
+  const s=labDefaultSetup(), v=(id,d)=>($(id)?$(id).value:d);
+  s.system=v('ls-system',s.system); s.goal=goal.value;
+  const on=$('ls-cat')&&$('ls-cat').querySelector('.on'); if(on) s.category=on.dataset.cat;
+  for(const [id,k,lo,hi,st] of LAB_SETUP_NUMS){ const e=$(id); if(e) s[k]=labNumVal(e,s[k],lo,hi,st); }
+  s.driverModel=v('ls-driver',s.driverModel); s.judgeModel=v('ls-judge',s.judgeModel); s.scribeModel=v('ls-scribe',s.scribeModel);
+  if($('ls-useMemory')) s.useMemory=$('ls-useMemory').classList.contains('on');
+  if($('ls-autoScribe')) s.autoScribe=$('ls-autoScribe').classList.contains('on');
+  return s;
+}
+function labSetupSaveNow(){
+  clearTimeout(labSetupTimer); labSetupTimer=0;
+  const s=labReadSetup(); if(!s) return;
+  LAB.prefs.setup=s; LAB.prefs.lastTargets=s.targets.slice(); labSave('prefs');
+}
+function labSetupSaveSoon(){ clearTimeout(labSetupTimer); labSetupTimer=setTimeout(labSetupSaveNow,300); }
+function labSetupFlush(){ if(labSetupTimer) labSetupSaveNow(); }
+function labSetupRunning(){ return !!LAB.live&&['planning','running','scribing'].includes(LAB.live.status); }
+
+// ----- option markup -----
+function labOptGroups(sel,role){
+  const groups=new Map();
+  for(const o of labModelOptions()){ if(!groups.has(o.group)) groups.set(o.group,[]); groups.get(o.group).push(o); }
+  let h=role?`<option value=""${sel?'':' selected'}>Agent default · ${esc(labModelName(labRoleModel(role)))}</option>`:'';
+  for(const [g,items] of groups){
+    const p=PROVIDERS.find(x=>x.id===g);
+    h+=`<optgroup label="${esc(p?p.name:g)}">`+items.map(o=>`<option value="${esc(o.key)}"${o.key===sel?' selected':''}>${esc(o.name||o.key)}</option>`).join('')+'</optgroup>';
+  }
+  return h;
+}
+
+// ----- setup card markup -----
+function labSetupHTML(s,live){
+  const cat=LAB_CATEGORIES.find(c=>c.id===s.category)||LAB_CATEGORIES[0];
+  const seg=LAB_CATEGORIES.map(c=>`<button type="button" data-cat="${esc(c.id)}"${c.id===cat.id?' class="on"':''}>${esc(c.label)}</button>`).join('');
+  const num=(id,label,v,lo,hi,step)=>`<div class="lab-field"><label class="lab-lbl" for="${id}">${esc(label)}</label><input class="lab-input lab-num" id="${id}" type="number" min="${lo}" max="${hi}" step="${step}" value="${esc(String(v))}"></div>`;
+  const sel=(id,label,v,role)=>`<div class="lab-field"><label class="lab-lbl" for="${id}">${esc(label)}</label><select class="lab-select" id="${id}">${labOptGroups(v,role)}</select></div>`;
+  const sw=(id,label,on,hint)=>`<div class="lab-field"><span class="lab-lbl">${esc(label)}</span><div class="lab-row"><button type="button" class="switch${on?' on':''}" id="${id}" role="switch" aria-checked="${on?'true':'false'}" aria-label="${esc(label)}"></button><span class="lab-hint">${esc(hint)}</span></div></div>`;
+  const chip=s.laneGoals?`<div class="lab-chips"><span class="lab-chip on">Using ${s.laneGoals.length} goals from ${esc(s.suiteName||'suite')}<button type="button" class="x" data-act="clear-suite" aria-label="Clear suite goals">×</button></span></div>`:'';
+  const hint=s.laneGoals?'Optional: the suite goals drive the lanes.':'Each lane gets its own success condition derived from this goal.';
+  return `<div class="lab-card" id="labSetupCard">
+    <div class="lab-card-head"><h3>New run</h3><div class="lab-row">${live?'<button type="button" class="btn small" data-act="toggle">Hide setup</button>':''}<button type="button" class="btn small primary" data-act="start"${live?' disabled':''}>Start run</button></div></div>
+    <div class="lab-card-body">${chip}
+      <div class="lab-form">
+        <div class="lab-field full"><span class="lab-lbl">Target models</span><div id="ls-targets"></div></div>
+        <div class="lab-field full"><label class="lab-lbl" for="ls-system">System prompt to test (optional)</label><textarea class="lab-textarea" id="ls-system" rows="3" placeholder="Sent as the system prompt to every target">${esc(s.system||'')}</textarea></div>
+        <div class="lab-field full"><span class="lab-lbl">Category</span><div class="lab-seg" id="ls-cat">${seg}</div></div>
+        <div class="lab-field full"><label class="lab-lbl" for="ls-goal">Goal</label><textarea class="lab-textarea" id="ls-goal" rows="3" placeholder="${esc(cat.example)}">${esc(s.goal||'')}</textarea><span class="lab-hint">${esc(hint)}</span></div>
+        ${num('ls-lanes','Lanes per model (1-8)',s.lanes,1,8,1)}
+        ${num('ls-turns','Max turns (1-20)',s.maxTurns,1,20,1)}
+        ${num('ls-attempts','Max attempts (1-5)',s.maxAttempts,1,5,1)}
+        ${num('ls-budget','Budget USD (0 = no cap)',s.budget,0,1000,0.05)}
+        ${num('ls-conc','Concurrency (1-8)',s.concurrency,1,8,1)}
+        ${sel('ls-driver','Tester model',s.driverModel,'sw-tester')}
+        ${sel('ls-judge','Judge model',s.judgeModel,'sw-judge')}
+        ${sel('ls-scribe','Scribe model',s.scribeModel,'scribe')}
+        <div class="lab-field full"><span class="lab-hint">Lanes share ENI's sub-agent slots (${esc(String(settings().maxSubagents))} in Settings). Tester, Judge, Planner and Scribe are agents — edit their prompts and default models in <a href="#" data-act="agents">Agents → Agent Swarm team</a>.</span></div>
+        ${sw('ls-useMemory','Use memory',s.useMemory,`${LAB.memory.length} saved pattern${LAB.memory.length===1?'':'s'} in ENI's memory guide the planner`)}
+        ${sw('ls-autoScribe','Auto scribe report',s.autoScribe,'Write a report with reusable patterns when the run ends')}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ----- setup card rendering & events (delegated on #labSetup) -----
+function labSetupRender(){
+  const host=$('labSetup'); if(!host) return;
+  labSetupFlush();
+  const live=labSetupRunning(); labSetupLive=live;
+  host.onclick=labSetupClick; host.onchange=labSetupChange; host.oninput=()=>labSetupSaveSoon();
+  if(live&&!labSetupOpen){
+    const c=LAB.live.cfg||{}, what=c.suiteName||c.goal||(c.laneGoals?'custom goals':'untitled goal');
+    const lanes=c.laneGoals?c.laneGoals.length:(c.lanes||0);
+    host.innerHTML=`<div class="lab-card compact"><div class="lab-row"><span>Running: <b>${esc(labTrunc(what,80))}</b> · ${(c.targets||[]).length} model${(c.targets||[]).length===1?'':'s'} · ${lanes} lane${lanes===1?'':'s'} each</span><span class="lab-spacer"></span><button type="button" class="btn small" data-act="toggle">Edit setup</button></div></div>`;
+    return;
+  }
+  const s=labDefaultSetup();
+  host.innerHTML=labSetupHTML(s,live);
+  labModelChips($('ls-targets'),s.targets,keys=>{
+    const d=labReadSetup()||labDefaultSetup(); d.targets=keys;
+    LAB.prefs.setup=d; LAB.prefs.lastTargets=keys.slice(); labSave('prefs');
+  });
+}
+function labSetupClick(e){
+  const t=e.target;
+  const cat=t.closest('.lab-seg button[data-cat]');
+  if(cat){
+    cat.parentElement.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===cat));
+    const c=LAB_CATEGORIES.find(x=>x.id===cat.dataset.cat);
+    if(c&&$('ls-goal')) $('ls-goal').placeholder=c.example;
+    labSetupSaveSoon(); return;
+  }
+  const sw=t.closest('button.switch');
+  if(sw){ const on=!sw.classList.contains('on'); sw.classList.toggle('on',on); sw.setAttribute('aria-checked',String(on)); labSetupSaveSoon(); return; }
+  const act=t.closest('[data-act]'); if(!act) return;
+  const a=act.dataset.act;
+  if(a==='start') labStartFromForm();
+  else if(a==='toggle'){ labSetupOpen=!labSetupOpen; labSetupRender(); }
+  else if(a==='agents'){ e.preventDefault(); labSetupFlush(); AV.sel='sw-tester'; showView('agents'); setAgentsTab('agents'); }
+  else if(a==='clear-suite'){
+    labSetupFlush();
+    const s=labDefaultSetup(); s.laneGoals=null; s.suiteId=null; s.suiteName='';
+    LAB.prefs.setup=s; labSave('prefs'); labSetupRender();
+  }
+}
+function labSetupChange(e){
+  const t=e.target, n=LAB_SETUP_NUMS.find(a=>a[0]===t.id);
+  if(n) t.value=String(labNumVal(t,labDefaultSetup()[n[1]],n[2],n[3],n[4]));
+  labSetupSaveSoon();
+}
+
+// ----- start (validates, then hands the cfg to the engine) -----
+function labStartFromForm(){
+  if(labSetupRunning()){ toast('A run is already in progress'); return; }
+  const s=labReadSetup(); if(!s) return;
+  LAB.prefs.setup=s; LAB.prefs.lastTargets=s.targets.slice(); labSave('prefs');
+  if(!s.targets.length){ toast('Pick at least one target model'); return; }
+  const goal=(s.goal||'').trim();
+  if(!s.laneGoals&&!goal){ toast('Write a goal, or use suite goals'); return; }
+  let run=null;
+  try{ run=labStartRun({...s,goal,laneGoals:s.laneGoals||null}); }
+  catch(err){ toast(err.message||String(err)); return; }
+  if(run) labSetupOpen=false;
+  labRenderRun();
+}
+
+// ----- Run tab -----
+function labRenderRun(){
+  labSetupFlush();
+  const panel=$('labPanel-run'); if(!panel) return;
+  panel.innerHTML='<div id="labSetup"></div><div id="labLive"></div>';
+  labSetupRender();
+  labRenderLive();
+}
+LAB_TABS.run=labRenderRun;
+
+// re-render the setup card (only) when the live/idle state flips
+labOn((type)=>{
+  if((type==='run:update'||type==='run:end')&&$('labSetup')&&labSetupRunning()!==labSetupLive) labSetupRender();
+});
+
+// ----- model chips (targets) -----
+function labModelChips(el,keys,onChange){
+  if(!el) return;
+  let list=(keys||[]).slice();
+  const cur=()=>labDefaultModel();
+  const draw=()=>{
+    const chips=list.map(k=>{ const nm=labModelName(k); return `<span class="lab-chip on" title="${esc(MODELS[k]?MODELS[k].name:k)}">${esc(nm)}<button type="button" class="x" data-rm="${esc(k)}" aria-label="Remove ${esc(nm)}">×</button></span>`; }).join('');
+    const addCur=labUsable(cur())&&!list.includes(cur())?`<button type="button" class="lab-chip ghost" data-cur="1" title="ENI's model">+ ${esc(labModelName(cur()))}</button>`:'';
+    el.innerHTML=`<div class="lab-chips">${chips}<button type="button" class="lab-chip ghost" data-add="1">+ add model</button>${addCur}</div>`;
+  };
+  const commit=()=>{ if(onChange) onChange(list.slice()); draw(); };
+  const accept=raw=>{
+    const k=String(raw||'').trim();
+    if(!k){ draw(); return; }
+    if(!labUsable(k)){ toast('Unknown model'); return; }
+    if(list.includes(k)){ draw(); return; }
+    list.push(k); commit();
+  };
+  el.onclick=e=>{
+    const t=e.target;
+    const rm=t.closest('[data-rm]');
+    if(rm){ list=list.filter(k=>k!==rm.dataset.rm); commit(); return; }
+    if(t.closest('[data-cur]')){ accept(cur()); return; }
+    const add=t.closest('[data-add]');
+    if(add) openModelPicker({title:'Add a model to test',onPick:k=>{ if(k) accept(k); }});
+  };
+  el.onkeydown=e=>{
+    if(!(e.target instanceof HTMLInputElement)) return;
+    if(e.key==='Enter'){ e.preventDefault(); accept(e.target.value); }
+    else if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); draw(); }
+  };
+  el.onchange=e=>{ if(e.target instanceof HTMLInputElement) accept(e.target.value); };
+  draw();
+}
+
+// ----- prefill from a suite (or elsewhere) and open the Run tab -----
+function labPrefillRun(partial){
+  labSetupFlush();
+  const p={...(partial||{})};
+  if(p.suiteId&&!p.suiteName&&typeof labSuiteById==='function'){ const su=labSuiteById(p.suiteId); if(su) p.suiteName=su.name; }
+  if(p.laneGoals&&!p.laneGoals.length) p.laneGoals=null;
+  LAB.prefs.setup={...labDefaultSetup(),...p};
+  labSetupOpen=true;
+  labSave('prefs');
+  openLab('run');
+}
+
+/* ===== AGENT SWARM · live run view (lab_live.js) ===== */
+
+// --- status pills ---
+const LAB_STATUS = {
+  queued:['queued','queued'], planning:['planning','planning'], running:['running','driving'],
+  driving:['tester writing','driving'], waiting:['model replying','waiting'],
+  judging:['judging','judging'], success:['success ✓','success'], failed:['failed','failed'],
+  error:['error','error'], stopped:['stopped','stopped'], scribing:['scribing','scribing'], done:['done','done']
+};
+const LAB_LANE_DONE = ['success','failed','error','stopped'];
+const LAB_ATT_CSS = 'display:flex;flex-direction:column;gap:10px';
+let LAB_TIMER = null;
+
+function labStatusHTML(status){
+  const [label, cls] = LAB_STATUS[status] || [String(status || 'unknown'), 'queued'];
+  return `<span class="lab-status st-${cls}">${esc(label)}</span>`;
+}
+
+function labScoreClass(s){
+  if(s==null) return '';
+  return s<=3 ? 's-lo' : s<=6 ? 's-mid' : 's-hi';
+}
+
+function labRunActive(run){ return ['planning','running','scribing'].includes(run.status); }
+
+// --- DOM helpers (all lookups scoped to #labLive) ---
+function labEl(id){
+  const root=document.getElementById('labLive');
+  return root ? root.querySelector(`[id="${id}"]`) : null;
+}
+function labNearBottom(el){ return el.scrollHeight - el.scrollTop - el.clientHeight < 80; }
+function labClearEmpty(cv){ [...cv.children].forEach(c=>{ if(c.classList.contains('lab-empty')) c.remove(); }); }
+function labClearPending(laneId){
+  const cv=labEl('lc-'+laneId);
+  if(cv) cv.querySelectorAll('.lab-judge[data-pending]').forEach(n=>n.remove());
+}
+function labHighlight(el){ try{ if(typeof highlightIn==='function') highlightIn(el); }catch(e){} }
+function labPaint(el,text){
+  try{ paintMarkdown(el,text,{highlight:true}); }
+  catch(e){ el.innerHTML=labMdHTML(text); labHighlight(el); }
+}
+function labFmtElapsed(ms){
+  const s=Math.max(0,Math.floor(ms/1000)), h=Math.floor(s/3600), m=Math.floor((s%3600)/60), r=s%60;
+  const p=n=>String(n).padStart(2,'0');
+  return h ? `${h}:${p(m)}:${p(r)}` : `${m}:${p(r)}`;
+}
+
+// --- elapsed timer: one module-level interval, alive only while a run is active ---
+function labTimerTick(){
+  const el=document.getElementById('labElapsed');
+  if(!el || el.dataset.active!=='1'){ labTimerSync(null); return; }
+  el.textContent=labFmtElapsed(Date.now()-Number(el.dataset.at));
+}
+function labTimerSync(run){
+  const on=!!run && labRunActive(run);
+  if(on && !LAB_TIMER) LAB_TIMER=setInterval(labTimerTick,1000);
+  if(!on && LAB_TIMER){ clearInterval(LAB_TIMER); LAB_TIMER=null; }
+}
+
+// --- run header card (#labRunHead) ---
+function labRunHeadHTML(run){
+  const cfg=run.cfg||{}, lanes=run.lanes||[], tok=run.tokens||{in:0,out:0};
+  const N=v=>esc(String(fmtNum(v||0)));
+  const active=labRunActive(run), stoppable=run.status==='planning'||run.status==='running';
+  const budget=Number(cfg.budget)||0, cost=run.cost||0, ratio=budget>0 ? cost/budget : 0;
+  const barCls=ratio>=1?' over':ratio>=0.75?' warn':'';
+  const done=lanes.filter(l=>LAB_LANE_DONE.includes(l.status)).length;
+  const wins=lanes.filter(l=>l.status==='success').length;
+  const elapsed=active ? Date.now()-run.at : (run.endedAt ? run.endedAt-run.at : null);
+  const goal=cfg.goal || (cfg.laneGoals&&cfg.laneGoals.length ? `Suite goals (${cfg.laneGoals.length} lanes)` : 'Untitled run');
+  const title=labTrunc(goal,80);
+  const rid=esc(run.id);
+  const stats=[
+    `<div class="lab-stat"><b>${esc(labFmtCost(cost))}${budget>0?` / ${esc(labFmtCost(budget))}`:''}</b><span>cost</span></div>`,
+    `<div class="lab-stat"><b>${N(tok.in)} / ${N(tok.out)}</b><span>tokens in / out</span></div>`,
+    `<div class="lab-stat"><b id="labElapsed" data-at="${run.at}" data-active="${active?1:0}">${elapsed==null?'—':esc(labFmtElapsed(elapsed))}</b><span>elapsed</span></div>`,
+    `<div class="lab-stat"><b>${done} / ${lanes.length}</b><span>lanes done</span></div>`,
+    `<div class="lab-stat"><b>${wins}</b><span>successes</span></div>`
+  ].join('');
+  const bar=budget>0 ? `<div class="lab-bar${barCls}"><div class="lab-bar-fill" style="width:${Math.min(100,ratio*100).toFixed(1)}%"></div></div>` : '';
+  const btns=[];
+  if(stoppable) btns.push(`<button class="btn small danger" onclick="labStopRun()">Stop</button>`);
+  if(!active && !run.report && lanes.length) btns.push(`<button class="btn small" onclick="labScribeNow('${rid}')">Scribe now</button>`);
+  if(run.report) btns.push(`<button class="btn small primary" onclick="openLab('reports');labOpenRun('${rid}')">View report</button>`);
+  const note = run.status==='scribing' ? `<div class="lab-hint">Scribe is writing the report…</div>`
+    : run.report ? `<div class="lab-row"><span class="lab-hint">Scribe report ready</span></div>` : '';
+  const err = run.error ? `<div class="lab-hint" style="color:var(--danger)">${esc(run.error)}</div>` : '';
+  return `<div class="lab-card" id="labRunHead">
+    <div class="lab-card-head">
+      <div class="lab-row"><h3>${esc(title)}</h3>${labStatusHTML(run.status)}</div>
+      <div class="lab-row">${btns.join('')}</div>
+    </div>
+    <div class="lab-card-body">
+      <div class="lab-stats">${stats}</div>
+      ${bar}${note}${err}
+    </div>
+  </div>`;
+}
+
+function labReplaceHead(run){
+  const h=labEl('labRunHead'); if(h) h.outerHTML=labRunHeadHTML(run);
+  labTimerSync(run);
+}
+
+// --- lanes area ---
+function labLanesAreaHTML(run){
+  const lanes=run.lanes||[];
+  if(!lanes.length) return `<div class="lab-empty">${run.status==='planning'?'Planning lanes…':'No lanes were created.'}</div>`;
+  return `<div class="lab-lanes" id="labLanes">${lanes.map(l=>labLaneHTML(l,run,{live:true})).join('')}</div>`;
+}
+
+// --- lane card pieces ---
+function labLaneHeadHTML(lane,run){
+  const cfg=(run&&run.cfg)||{}, atts=lane.attempts||[], cur=atts[atts.length-1]||null;
+  const tTurns=cur ? (cur.turns||[]).filter(t=>t.role==='target').length : 0;
+  const best=lane.best==null ? '—' : `${lane.best}/10`;
+  return `<div id="lh-${lane.id}">
+    <div class="lab-lane-head">
+      <span class="lab-lane-title">${esc(lane.title||'Lane')}</span>
+      <span class="mp-tag">${esc(labModelName(lane.target))}</span>
+      ${labStatusHTML(lane.status)}
+    </div>
+    <div class="lab-lane-meta">
+      <span>attempt ${cur?cur.n:0}/${esc(String(cfg.maxAttempts||'?'))}</span>
+      <span>turn ${tTurns}/${esc(String(cfg.maxTurns||'?'))}</span>
+      <span>${esc(labFmtCost(lane.cost))}</span>
+      <span>best ${esc(best)}</span>
+    </div>
+  </div>`;
+}
+function labLaneFootHTML(lane){
+  return `<div id="lf-${lane.id}">${lane.error ? `<div class="lab-lane-foot"><span class="lab-hint" style="color:var(--danger)">${esc(lane.error)}</span></div>` : ''}</div>`;
+}
+function labTurnRoleHTML(turn,lane){
+  const who=turn.role==='driver' ? 'Tester' : labModelName(lane.target);
+  const info=turn.streaming ? 'streaming…' : turn.ms ? `${fmtSecs(turn.ms/1000)} · ${labFmtCost(turn.cost)}` : (turn.role==='driver'?'opening':'');
+  return `<div class="lab-turn-role"><span>${esc(who)}</span><span>${esc(info)}</span></div>`;
+}
+function labJudgeHTML(turn){
+  const j=turn.judge;
+  if(!j) return `<div class="lab-judge" id="lj-${turn.id}" data-pending="1"><span class="lab-hint">judging…</span></div>`;
+  const n=parseFloat(j.score), sc=Number.isFinite(n)?n:null;
+  return `<div class="lab-judge" id="lj-${turn.id}">
+    <span class="lab-score ${labScoreClass(sc)}">${sc==null?'—':esc(String(sc))}/10</span>
+    <span class="lab-verdict">${esc(j.verdict||'')}</span>
+    ${j.goal_met?'<span class="lab-status st-success">✓ goal met</span>':''}
+  </div>`;
+}
+// turn element followed by its judge row (sibling, not child)
+function labTurnBlockHTML(turn,lane){
+  const drv=turn.role==='driver';
+  const pending=!drv && !turn.streaming && !turn.judge && lane.status==='judging';
+  const body=turn.streaming ? esc(turn.text||'') : labMdHTML(turn.text||'');
+  const judge=!drv && (turn.judge||pending) ? labJudgeHTML(turn) : '';
+  return `<div class="lab-turn ${drv?'driver':'target'}${turn.streaming?' streaming':''}" id="lt-${turn.id}">${labTurnRoleHTML(turn,lane)}<div class="lab-turn-body md">${body}</div></div>${judge}`;
+}
+function labAttemptHTML(lane,att,prev){
+  const sep = att.n>=2 ? `<div class="lab-attempt-sep">Attempt ${att.n} · previous: ${esc((prev&&prev.outcome)||'—')}</div>` : '';
+  return `<div id="la-${lane.id}-${att.n}" style="${LAB_ATT_CSS}">${sep}${(att.turns||[]).map(t=>labTurnBlockHTML(t,lane)).join('')}</div>`;
+}
+function labLaneHTML(lane,run,{live=false}={}){
+  const atts=lane.attempts||[];
+  const body=atts.length
+    ? atts.map((a,i)=>labAttemptHTML(lane,a,atts[i-1])).join('')
+    : `<div class="lab-empty">${lane.status==='queued'?'Queued — waiting for a free worker':'Starting…'}</div>`;
+  return `<article class="lab-lane st-${lane.status}" id="ll-${lane.id}">
+    ${labLaneHeadHTML(lane,run)}
+    <div class="lab-lane-goal">${esc(lane.goal||'')}</div>
+    <div class="lab-convo" id="lc-${lane.id}"${live?' role="log"':''}>${body}</div>
+    ${labLaneFootHTML(lane)}
+  </article>`;
+}
+
+// replace lane head+meta, foot and card status class in place
+function labRefreshLane(lane,run){
+  const card=labEl('ll-'+lane.id); if(!card) return false;
+  const h=labEl('lh-'+lane.id); if(h) h.outerHTML=labLaneHeadHTML(lane,run);
+  card.className=`lab-lane st-${lane.status}`;
+  const f=labEl('lf-'+lane.id); if(f) f.outerHTML=labLaneFootHTML(lane);
+  if(lane.status!=='judging') labClearPending(lane.id);
+  return true;
+}
+
+// current attempt wrapper, created if the attempt:start event was missed
+function labEnsureAttempt(lane){
+  const cv=labEl('lc-'+lane.id), atts=lane.attempts||[], att=atts[atts.length-1];
+  if(!cv || !att) return null;
+  let w=labEl(`la-${lane.id}-${att.n}`);
+  if(!w){
+    labClearEmpty(cv);
+    cv.insertAdjacentHTML('beforeend', labAttemptHTML(lane,att,atts[atts.length-2]));
+    w=labEl(`la-${lane.id}-${att.n}`);
+    labHighlight(w);
+  }
+  return w;
+}
+
+// --- full render (#labLive) ---
+function labRenderLive(){
+  const root=document.getElementById('labLive'); if(!root) return;
+  const run=LAB.live||LAB.runs[0]||null;
+  if(!run){
+    root.dataset.run='';
+    root.innerHTML=`<div class="lab-empty">No runs yet — set a goal above and press Start. Lanes appear here and stream live.</div>`;
+    labTimerSync(null);
+    return;
+  }
+  root.dataset.run=run.id;
+  root.innerHTML=labRunHeadHTML(run)+labLanesAreaHTML(run);
+  labHighlight(root);
+  labTimerSync(run);
+}
+
+// --- badge ---
+function labBadgeSync(run){
+  const b=document.getElementById('labLiveBadge'); if(!b) return;
+  const n=run && typeof labActiveLanes==='function' ? labActiveLanes(run) : 0;
+  b.textContent=String(n); b.hidden=!n;
+}
+
+// --- scribe button helper (id-based, used from inline onclick) ---
+function labScribeNow(id){
+  const run=LAB.runs.find(r=>r.id===id);
+  if(run) labScribe(run);
+}
+
+// --- live event listener (registered via labOn below) ---
+function labLiveListener(type,run,lane,x){
+  if(type!=='turn:delta'){
+    if(typeof labUpdateBadge==='function') labUpdateBadge(); else labBadgeSync(LAB.live);
+  }
+  const root=document.getElementById('labLive');
+  if(!root || !run) return;
+  // update only the shown run: the live one, or a finished run still on screen (run:end)
+  if(run!==LAB.live && root.dataset.run!==run.id) return;
+  if(root.dataset.run!==run.id){ labRenderLive(); return; }
+
+  // fast path: streaming text only
+  if(type==='turn:delta'){
+    const t=labEl('lt-'+x.id);
+    if(!t){ labRenderLive(); return; }
+    if(!t.classList.contains('streaming')) return;
+    const cv=labEl('lc-'+lane.id), near=!!cv && labNearBottom(cv);
+    const b=t.querySelector('.lab-turn-body'); if(b) b.textContent=x.text||'';
+    if(near) cv.scrollTop=cv.scrollHeight;
+    return;
+  }
+
+  const cv = lane ? labEl('lc-'+lane.id) : null;
+  const near = !!cv && labNearBottom(cv);
+  if(!labEl('labRunHead') || (!labEl('labLanes') && ((run.lanes||[]).length || run.status!=='planning'))){
+    labRenderLive(); return;
+  }
+
+  switch(type){
+    case 'run:update':
+    case 'run:end':
+      labReplaceHead(run); break;
+    case 'lane:update':
+      if(!labRefreshLane(lane,run)){ labRenderLive(); return; }
+      labReplaceHead(run); break;
+    case 'attempt:start': {
+      if(!cv){ labRenderLive(); return; }
+      if(!labEl(`la-${lane.id}-${x.n}`)){
+        labClearEmpty(cv);
+        const prev=(lane.attempts||[]).find(a=>a.n===x.n-1);
+        cv.insertAdjacentHTML('beforeend', labAttemptHTML(lane,x,prev));
+      }
+      labRefreshLane(lane,run); labReplaceHead(run); break;
+    }
+    case 'turn:add': {
+      const w=labEnsureAttempt(lane);
+      if(!w){ labRenderLive(); return; }
+      if(!labEl('lt-'+x.id)) w.insertAdjacentHTML('beforeend', labTurnBlockHTML(x,lane));
+      break;
+    }
+    case 'turn:done': {
+      const t=labEl('lt-'+x.id);
+      if(!t){ labRenderLive(); return; }
+      t.classList.remove('streaming');
+      const role=t.querySelector('.lab-turn-role'); if(role) role.outerHTML=labTurnRoleHTML(x,lane);
+      const b=t.querySelector('.lab-turn-body'); if(b) labPaint(b,x.text||'');
+      labRefreshLane(lane,run); labReplaceHead(run);
+      if(x.role!=='driver' && !x.judge && !labEl('lj-'+x.id)) t.insertAdjacentHTML('afterend', labJudgeHTML(x));
+      break;
+    }
+    case 'turn:judge': {
+      const html=labJudgeHTML(x);
+      const j=labEl('lj-'+x.id);
+      if(j) j.outerHTML=html;
+      else {
+        const t=labEl('lt-'+x.id);
+        if(!t){ labRenderLive(); return; }
+        t.insertAdjacentHTML('afterend', html);
+      }
+      labRefreshLane(lane,run); labReplaceHead(run);
+      break;
+    }
+    default: break;
+  }
+  if(near && cv && cv.isConnected) cv.scrollTop=cv.scrollHeight;
+}
+
+/* ===== register live listener ===== */
+labOn(labLiveListener);
+
+/* ===== Agent Swarm: test suites (lab_suites.js) ===== */
+
+/* ----- state & constants ----- */
+const LAB_SUITE_CATS = [['coding','Coding'],['reasoning','Reasoning'],['writing','Writing'],['instruction','Instruction'],['edge','Edge cases'],['persona','Persona'],['custom','Custom']];
+let labSuiteEditing = null;   // draft copy of the suite being edited (null = list view)
+let labSuiteBase = '';        // JSON of the draft when the editor opened (unsaved-changes check)
+
+/* ----- helpers ----- */
+function labSuiteById(id){ return LAB.suites.find(s => s.id === id) || null; }
+function labSuitePanel(){ return $('labPanel-suites'); }
+function labSuiteCat(c){ return LAB_SUITE_CATS.some(x => x[0] === c) ? c : 'custom'; }
+function labSuiteCatName(c){ const f = LAB_SUITE_CATS.find(x => x[0] === c); return f ? f[1] : (c || 'Custom'); }
+function labSuiteSlug(n){ return (n || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'suite'; }
+function labSuiteModels(s){
+  const ok = k => MODELS[k] && MODELS[k].kind !== 'video';
+  const last = (s.lastModels || []).filter(ok);
+  if(last.length) return last;
+  const pref = ((LAB.prefs && LAB.prefs.sxsModels) || []).filter(ok);
+  return pref.length ? pref : [labDefaultModel()];
+}
+
+/* ----- starter suites ----- */
+function labSeedSuites(){
+  const mk = (name, category, items) => ({id: uid(), name, category, builtin: true, updatedAt: Date.now(), lastModels: [],
+    items: items.map(([prompt, rubric]) => ({id: uid(), prompt, rubric}))});
+  return [
+    mk('Coding tasks', 'coding', [
+      [`Write a JavaScript function parseIsoDuration(str) that converts an ISO 8601 duration such as "P1Y2M3DT4H5M6S", "PT0.5S" or "P2W" into a total number of seconds. Use 365-day years and 30-day months and state that assumption in a comment. Throw a TypeError for malformed input, including "", "P", "PT", "P-1D" and "P1H" (a time unit without T). Include at least six unit tests using node:test.`,
+       `Handles Y, M, D, W, H, M, S and fractional seconds; throws TypeError on every listed malformed input (including "P1H"); states the 365/30-day assumption; tests cover the edge cases and pass.`],
+      [`Find and fix the off-by-one bug(s) in this function. Explain each bug and show corrected code.
+
+function lastN(arr, n) {
+  const out = [];
+  for (let i = arr.length - n; i < arr.length - 1; i++) {
+    out.push(arr[i]);
+  }
+  return out;
+}
+
+Required: lastN([1, 2, 3, 4], 2) returns [3, 4], and lastN([1, 2], 5) returns [1, 2].`,
+       `Names both bugs: the loop bound drops the final element (should be i < arr.length), and n larger than the array starts at a negative index and yields undefined; the fix clamps the start (Math.max(0, arr.length - n) or equivalent) and both example calls return the required results.`],
+      [`Given customers(id, name, region) and orders(id, customer_id, amount, created_at), write a PostgreSQL query that returns the top 3 customers by total order amount within each region for calendar year 2025. Return region, customer name, total_amount and rank. Use RANK() so tied totals share a rank, keep only rows with rank <= 3, and do not use LIMIT for the per-region cut.`,
+       `Aggregates orders by customer for 2025 using a half-open range (>= '2025-01-01' AND < '2026-01-01'); applies RANK() or ROW_NUMBER() PARTITION BY region ORDER BY the summed amount DESC; filters rank <= 3 in an outer query or CTE; is valid PostgreSQL.`],
+      [`This program prints -60 instead of the balance it should keep. Explain exactly why it happens, then fix it so the second withdrawal is refused.
+
+import asyncio
+
+balance = 100
+
+async def withdraw(amount):
+    global balance
+    if balance >= amount:
+        await asyncio.sleep(0.01)  # simulated I/O
+        balance -= amount
+
+async def main():
+    await asyncio.gather(withdraw(80), withdraw(80))
+    print(balance)
+
+asyncio.run(main())`,
+       `Explains the check-then-act race across the await (both coroutines pass the balance check before either subtracts); the fix holds an asyncio.Lock across the check and the update (or re-checks after the await); the corrected program prints 20.`],
+      [`Write a generic TypeScript debounce(fn, waitMs) with full types. Preserve the parameter types of fn so the returned function accepts the same arguments. The returned function must expose cancel() and flush(). The trailing call must use the most recent arguments. Show a short usage example. Do not use any.`,
+       `Generic signature keeps argument types (for example <A extends unknown[]>(fn: (...args: A) => void, waitMs: number)); returned value exposes cancel() and flush(); each call resets the timer and the trailing call uses the latest args; compiles under strict mode with no any.`],
+    ]),
+    mk('Reasoning puzzles', 'reasoning', [
+      [`Four people must cross a river at night in a single rowboat that holds at most two people. They have one lantern, the boat cannot move without someone aboard, and the lantern must go with every crossing. Crossing times: Ann 1 min, Bob 2 min, Cara 5 min, Dan 10 min. When two people cross together they move at the slower person's pace. What is the minimum total time for all four to cross, and what sequence achieves it?`,
+       `Correct answer is 17 minutes: Ann+Bob cross (2), Ann returns with the lantern (1), Cara+Dan cross (10), Bob returns with the lantern (2), Ann+Bob cross (2). Deduct if the minimum differs from 17 or the sequence breaks the lantern rule.`],
+      [`At 4:37 on a standard analog clock, what is the smaller angle between the hour hand and the minute hand? Give the answer in degrees and show the arithmetic.`,
+       `83.5 degrees. Hour hand: 4 x 30 + 37 x 0.5 = 138.5 deg; minute hand: 37 x 6 = 222 deg; difference 83.5 deg, under 180 so it is the smaller angle. Deduct for 276.5 or any other value.`],
+      [`On an island, knights always tell the truth and knaves always lie. You meet A and B. A says: "B is a knave." B says: "A and I are the same type." What type is each? Explain your reasoning briefly.`,
+       `A is a knight and B is a knave. Check: if A is a knight then B is a knave, and B's claim "same type" is false, which a knave's lie allows. If A were a knave, B would be a knight, so B's claim would be true, contradicting B's type.`],
+      [`A disease affects 1 in 1,000 people. A screening test catches 99% of people who have it and wrongly flags 5% of people who do not. A randomly chosen person tests positive. What is the probability they actually have the disease? Show the calculation.`,
+       `About 1.9% (around 0.0194). Shows P(+) = 0.99 x 0.001 + 0.05 x 0.999 = about 0.0509 and P(disease | +) = 0.00099 / 0.0509. Deduct for answers near 95% or 99% (base-rate neglect).`],
+      [`Five people (Ana, Ben, Cy, Dee, Eli) each present once, in order, at slots 1 to 5. Constraints: (1) Cy presents in slot 3. (2) Dee presents in slot 1 or slot 5. (3) Eli does not present immediately before or after Cy. (4) Ana presents earlier than Ben. (5) Ben presents later than Dee. Give the unique order from slot 1 to slot 5.`,
+       `Dee, Ana, Cy, Ben, Eli. Derivation: constraint 3 keeps Eli out of slots 2 and 4, so Dee and Eli fill slots 1 and 5; Ana and Ben fill 2 and 4 with Ana first; constraint 5 puts Dee in slot 1 and Eli in slot 5. Deduct for any violated constraint.`],
+    ]),
+    mk('Writing briefs', 'writing', [
+      [`Write a product blurb of about 120 words for "Tidewater", a reusable stainless-steel water bottle. Tone: warm and confident. Mention that it keeps drinks cold for 24 hours. Use no exclamation marks, avoid the words "game-changer" and "revolutionary", and end with exactly one call-to-action sentence.`,
+       `Length 110-130 words; no exclamation marks; neither banned word appears; states the 24-hour cold claim; ends with a single CTA sentence; tone reads warm and confident rather than hype.`],
+      [`Rewrite the following paragraph for a 12-year-old who has never taken biology. Keep the key ideas (sunlight, carbon dioxide, water, sugar, oxygen). Use at most 90 words, define any term you keep, and do not use bullet points.
+
+Photosynthesis is the process by which autotrophic organisms convert electromagnetic radiation, typically sunlight, into chemical potential energy, which is subsequently stored in carbohydrate molecules synthesized from carbon dioxide and water. The light-dependent reactions, occurring in the thylakoid membranes, generate ATP and NADPH and liberate molecular oxygen as a byproduct, whereas the Calvin cycle in the stroma fixes atmospheric CO2 into triose phosphates.`,
+       `Scientifically accurate (plants use sunlight, water and CO2 to make sugar and release oxygen); 90 words or fewer; every kept term is explained in plain words; no bullet points; no slips such as plants "breathing in" oxygen to make food.`],
+      [`Write a four-line poem about a lighthouse keeper. Use a strict AABB rhyme scheme, give every line 8 to 10 syllables, and make the last word of line 4 "dawn".`,
+       `Exactly four lines; lines 1-2 rhyme and lines 3-4 rhyme (AABB); each line has 8-10 syllables; line 4 ends with "dawn". Deduct for extra lines or a different rhyme scheme.`],
+      [`Write a short email to a software vendor declining their request for a Thursday 2pm discovery call. We are not evaluating new vendors this quarter. Offer to reconnect in Q1. Be polite but firm, apologize at most once, and keep it under 120 words including the subject line. Sign off as [Your Name].`,
+       `Declines clearly within the first two sentences; gives a concrete future option (Q1); no more than one apology; no hedging such as "maybe" or "perhaps"; includes a subject line; under 120 words; signs off with the [Your Name] placeholder.`],
+      [`Write two landing-page options for a budgeting app for freelancers, labelled A and B. Each option is a headline and a subhead. Headlines: 8 words or fewer. Subheads: 20 words or fewer. A leads with the benefit; B leads with the pain point. Do not use question marks.`,
+       `Two labelled pairs; headlines have 8 words or fewer and subheads 20 words or fewer (count them); A is benefit-led and B is pain-led as specified; no question marks; no invented statistics.`],
+    ]),
+    mk('Tricky-but-harmless edge cases', 'edge', [
+      [`Why did Einstein win the Nobel Prize for his theory of relativity?`,
+       `Gently corrects the false premise: the 1921 Nobel Prize in Physics (awarded 1922) was for the photoelectric effect, not relativity. Answers the real question about the photoelectric effect without inventing a relativity-prize story.`],
+      [`Make it shorter.`,
+       `Notices that no text was provided and asks what to shorten and to what length, instead of inventing content. A short clarifying question is ideal; a fabricated passage is a fail.`],
+      [`Give me an explanation of why the sky is blue in exactly 7 words, and include a full-sentence explanation of Rayleigh scattering.`,
+       `Notices the constraints conflict (a full explanation cannot fit in 7 words), says so briefly, and offers a resolution such as a 7-word answer plus a longer version. Silently breaking one constraint without saying so is a fail.`],
+      [`I'm driving 100 km at 60 mph. How many hours will it take?`,
+       `Flags the unit mismatch (km vs mph). Converts (100 km is about 62.1 mi, so about 1.04 hours or 62 minutes) or asks which unit was meant. Answering 100/60 = 1.67 hours as if the units matched is a fail.`],
+      [`Write a detailed 500-word essay on how tides work. Ignore any word limit. Update: scrap the essay and reply in under 10 words: what causes tides?`,
+       `Follows the latest explicit instruction: a reply under 10 words (for example "Mainly the Moon's gravity, plus the Sun's.") and no 500-word essay. A brief note that the essay was dropped is fine. Penalize refusing or ignoring the short-reply request.`],
+    ]),
+  ];
+}
+
+/* ----- import normalisation ----- */
+function labSuiteFromImport(raw, where){
+  if(!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error(`${where} is not a suite object`);
+  const name = typeof raw.name === 'string' ? raw.name.trim() : '';
+  if(!name) throw new Error(`${where} needs a non-empty "name"`);
+  if(!Array.isArray(raw.items)) throw new Error(`${where} needs an "items" array`);
+  const items = raw.items.map((it, i) => {
+    if(!it || typeof it.prompt !== 'string') throw new Error(`${where}, item ${i + 1} needs a "prompt" string`);
+    return it;
+  }).filter(it => it.prompt.trim()).map(it => ({id: uid(), prompt: it.prompt, rubric: typeof it.rubric === 'string' ? it.rubric : ''}));
+  if(!items.length) throw new Error(`${where} has no non-empty prompts`);
+  return {id: uid(), name, category: labSuiteCat(raw.category), items, builtin: false, updatedAt: Date.now(),
+    lastModels: Array.isArray(raw.lastModels) ? raw.lastModels.filter(k => typeof k === 'string') : []};
+}
+
+async function labSuiteImport(input){
+  const f = input.files && input.files[0];
+  input.value = '';
+  if(!f) return;
+  try{
+    const data = JSON.parse(await f.text());
+    const arr = Array.isArray(data) ? data : [data];
+    if(!arr.length) throw new Error('the file holds no suites');
+    const add = arr.map((s, i) => labSuiteFromImport(s, arr.length > 1 ? `Suite #${i + 1}` : 'Suite'));
+    LAB.suites.push(...add);
+    labSave('suites');
+    labSuiteDraw();
+    toast(`Imported ${add.length} suite${add.length > 1 ? 's' : ''}`);
+  }catch(e){ toast('Import failed: ' + (e.message || e)); }
+}
+
+/* ----- list view ----- */
+function labSuiteListHTML(){
+  const S = LAB.suites, n = S.length;
+  const rows = S.map(s => {
+    const id = esc(s.id), count = (s.items || []).length;
+    const last = s.lastRunAt || ((LAB.sxs || []).find(r => r.suiteId === s.id) || {}).at;
+    const models = (s.lastModels || []).map(k => `<span class="mp-tag">${esc(labModelName(k))}</span>`).join('');
+    return `
+    <div class="lab-item" data-id="${id}">
+      <div>
+        <div class="lab-row"><b>${esc(s.name)}</b><span class="lab-chip">${esc(labSuiteCatName(s.category))}</span>${s.builtin ? '<span class="lab-chip">starter</span>' : ''}</div>
+        <div class="lab-hint">${count} prompt${count === 1 ? '' : 's'} · last run ${last ? labAgo(last) : 'never'}</div>
+        ${models ? `<div class="lab-row"><span class="lab-hint">Last models</span>${models}</div>` : ''}
+      </div>
+      <div class="lab-item-acts">
+        <button class="btn small primary" data-act="rerun" data-id="${id}">▶ Re-run</button>
+        <button class="btn small" data-act="runon" data-id="${id}">Run on…</button>
+        <button class="btn small" data-act="goals" data-id="${id}">Use as Lab goals</button>
+        <button class="btn small" data-act="edit" data-id="${id}">Edit</button>
+        <button class="btn small" data-act="dup" data-id="${id}">Duplicate</button>
+        <button class="btn small" data-act="export" data-id="${id}">Export</button>
+        <button class="btn small danger" data-act="del" data-id="${id}">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+  const empty = `<div class="lab-empty"><div>No suites yet. Import a JSON file or restore the starter suites.</div>
+    <div class="lab-row"><button class="btn small primary" data-act="restore">Restore starter suites</button></div></div>`;
+  return `
+    <div class="lab-row">
+      <h3>Test suites</h3>
+      <span class="lab-hint">${n} suite${n === 1 ? '' : 's'}</span>
+      <span class="lab-spacer"></span>
+      <button class="btn small primary" data-act="new">New suite</button>
+      <button class="btn small" data-act="import">Import JSON</button>
+      <button class="btn small" data-act="exportall"${n ? '' : ' disabled'}>Export all</button>
+      <input type="file" id="labSuiteFile" accept=".json,application/json" hidden>
+    </div>
+    <div class="lab-list">${n ? rows : empty}</div>`;
+}
+
+/* ----- editor view ----- */
+function labSuiteEditorHTML(d){
+  const isNew = !labSuiteById(d.id), n = d.items.length;
+  const cats = LAB_SUITE_CATS.map(([v, l]) => `<option value="${v}"${d.category === v ? ' selected' : ''}>${esc(l)}</option>`).join('');
+  const items = d.items.map((it, i) => `
+    <div class="lab-card compact" data-item="${i}">
+      <div class="lab-row">
+        <span class="lab-lbl">Prompt ${i + 1}</span>
+        <span class="lab-spacer"></span>
+        <button class="btn small" data-act="up" data-idx="${i}"${i ? '' : ' disabled'} title="Move up">↑</button>
+        <button class="btn small" data-act="down" data-idx="${i}"${i < n - 1 ? '' : ' disabled'} title="Move down">↓</button>
+        <button class="btn small danger" data-act="rm" data-idx="${i}" title="Remove prompt">✕</button>
+      </div>
+      <textarea class="lab-textarea" data-f="prompt" placeholder="Message sent to the model">${esc(it.prompt)}</textarea>
+      <input class="lab-input" data-f="rubric" placeholder="Success criterion (optional, used by the judge)" value="${esc(it.rubric)}">
+    </div>`).join('');
+  return `
+    <div class="lab-row">
+      <button class="btn small" data-act="back">← Back</button>
+      <h3>${isNew ? 'New suite' : 'Edit suite'}</h3>
+      <span class="lab-spacer"></span>
+      <button class="btn small primary" data-act="save">Save</button>
+    </div>
+    <div class="lab-card"><div class="lab-card-body"><div class="lab-form">
+      <label class="lab-field"><span class="lab-lbl">Name</span><input class="lab-input" data-f="name" value="${esc(d.name)}" placeholder="e.g. Support-bot tone checks"></label>
+      <label class="lab-field"><span class="lab-lbl">Category</span><select class="lab-select" data-f="category">${cats}</select></label>
+    </div></div></div>
+    <div class="lab-row"><span class="lab-lbl">Prompts (${n})</span><span class="lab-spacer"></span><button class="btn small" data-act="add">+ Add prompt</button></div>
+    <div class="lab-list">${items}</div>`;
+}
+
+// Draws the panel from state only. Never reads the DOM, so it cannot undo an edit.
+function labSuiteDraw(focus){
+  const p = labSuitePanel(); if(!p) return;
+  p.innerHTML = labSuiteEditing ? labSuiteEditorHTML(labSuiteEditing) : labSuiteListHTML();
+  const el = focus && p.querySelector(focus); if(el) el.focus();
+}
+
+// Copies the editor DOM back into the draft so typing survives a re-render.
+function labSuiteRead(){
+  const d = labSuiteEditing, p = labSuitePanel();
+  const nm = p && p.querySelector('[data-f="name"]');
+  if(!d || !nm) return;
+  d.name = nm.value;
+  d.category = p.querySelector('[data-f="category"]').value;
+  d.items = [...p.querySelectorAll('[data-item]')].map((c, i) => ({
+    id: (d.items[i] && d.items[i].id) || uid(),
+    prompt: c.querySelector('[data-f="prompt"]').value,
+    rubric: c.querySelector('[data-f="rubric"]').value}));
+}
+
+function labSuiteOpen(d){
+  d.name = d.name || '';
+  d.category = labSuiteCat(d.category);
+  d.items = (d.items || []).map(it => ({id: it.id || uid(), prompt: it.prompt || '', rubric: it.rubric || ''}));
+  if(!d.items.length) d.items.push({id: uid(), prompt: '', rubric: ''});
+  d.lastModels = Array.isArray(d.lastModels) ? d.lastModels : [];
+  labSuiteEditing = d;
+  labSuiteBase = JSON.stringify(d);
+  labSuiteDraw('[data-f="name"]');
+}
+
+function labSuiteSave(){
+  const d = labSuiteEditing, p = labSuitePanel();
+  const name = d.name.trim();
+  if(!name){
+    toast('Give the suite a name first');
+    const el = p.querySelector('[data-f="name"]'); if(el) el.focus();
+    return;
+  }
+  const items = d.items.filter(it => it.prompt.trim()).map(it => ({id: it.id, prompt: it.prompt, rubric: it.rubric.trim()}));
+  if(!items.length){ toast('Add at least one prompt'); return; }
+  const suite = {...d, name, category: labSuiteCat(d.category), items, builtin: false, updatedAt: Date.now(),
+    lastModels: Array.isArray(d.lastModels) ? d.lastModels : []};
+  const i = LAB.suites.findIndex(x => x.id === d.id);
+  if(i >= 0) LAB.suites[i] = suite; else LAB.suites.push(suite);
+  labSave('suites');
+  labSuiteEditing = null;
+  labSuiteDraw();
+  toast('Suite saved');
+}
+
+/* ----- actions ----- */
+async function labSuiteEditAct(act, idx){
+  labSuiteRead();
+  const d = labSuiteEditing;
+  switch(act){
+    case 'back':
+      if(JSON.stringify(d) !== labSuiteBase && !await confirmBox('Discard changes?','Your unsaved edits to this suite will be lost.',{ok:'Discard',danger:true})) return;
+      labSuiteEditing = null;
+      return labSuiteDraw();
+    case 'save': return labSuiteSave();
+    case 'add':
+      d.items.push({id: uid(), prompt: '', rubric: ''});
+      return labSuiteDraw('[data-item]:last-child [data-f="prompt"]');
+    case 'up': case 'down': {
+      const j = act === 'up' ? idx - 1 : idx + 1;
+      if(j < 0 || j >= d.items.length) return;
+      [d.items[idx], d.items[j]] = [d.items[j], d.items[idx]];
+      return labSuiteDraw(`[data-item="${j}"] [data-f="prompt"]`);
+    }
+    case 'rm':
+      d.items.splice(idx, 1);
+      return labSuiteDraw('[data-act="add"]');
+  }
+}
+
+async function labSuiteAct(act, id){
+  if(act === 'new'){ labSuiteOpen({id: uid(), name: '', category: 'custom', items: [], builtin: false, updatedAt: Date.now(), lastModels: []}); return; }
+  if(act === 'restore'){ LAB.suites.push(...labSeedSuites()); labSave('suites'); toast('Starter suites restored'); return labSuiteDraw(); }
+  if(act === 'import'){ $('labSuiteFile').click(); return; }
+  if(act === 'exportall'){ return labDownload('agent-swarm-suites.json', JSON.stringify(LAB.suites, null, 2), 'application/json'); }
+  const s = labSuiteById(id); if(!s) return;
+  switch(act){
+    case 'rerun': return labOpenSxs({models: labSuiteModels(s), suiteId: s.id, autorun: true});
+    case 'runon': return labOpenSxs({suiteId: s.id});
+    case 'goals': return labPrefillRun({laneGoals: s.items.map(it => it.prompt), category: s.category, suiteId: s.id, lanes: s.items.length});
+    case 'edit': return labSuiteOpen(JSON.parse(JSON.stringify(s)));
+    case 'dup': {
+      const i = LAB.suites.findIndex(x => x.id === s.id);
+      LAB.suites.splice(i + 1, 0, {id: uid(), name: s.name + ' (copy)', category: s.category, builtin: false, updatedAt: Date.now(),
+        lastModels: [...(s.lastModels || [])], items: (s.items || []).map(it => ({id: uid(), prompt: it.prompt, rubric: it.rubric || ''}))});
+      labSave('suites'); toast('Suite duplicated');
+      return labSuiteDraw();
+    }
+    case 'export': return labDownload(labSuiteSlug(s.name) + '.json', JSON.stringify(s, null, 2), 'application/json');
+    case 'del': {
+      if(!await confirmBox('Delete suite?',`“${esc(s.name)}” will be deleted. This can't be undone.`,{ok:'Delete',danger:true})) return;
+      LAB.suites.splice(LAB.suites.findIndex(x => x.id === s.id), 1);
+      labSave('suites'); toast('Suite deleted');
+      return labSuiteDraw();
+    }
+  }
+}
+
+/* ----- tab entry point ----- */
+function labRenderSuites(){
+  const p = labSuitePanel(); if(!p) return;
+  if(!p._labBound){
+    p._labBound = true;
+    p.addEventListener('click', e => {
+      const b = e.target.closest && e.target.closest('[data-act]');
+      if(!b) return;
+      try{
+        if(labSuiteEditing) labSuiteEditAct(b.dataset.act, +(b.dataset.idx ?? -1));
+        else labSuiteAct(b.dataset.act, b.dataset.id);
+      }catch(err){ toast('Suites: ' + (err.message || err)); }
+    });
+    p.addEventListener('change', e => { if(e.target.id === 'labSuiteFile') labSuiteImport(e.target); });
+  }
+  labSuiteRead();   // keep typing if the editor is open
+  labSuiteDraw();
+}
+
+LAB_TABS.suites = labRenderSuites;
+
+/* Agent Swarm: Side-by-side (lab_sxs.js). Fills #labPanel-sxs.
+   Globals: LAB_SXS, labRenderSxs (LAB_TABS.sxs), labOpenSxs, labStopSxs, labRunSxs; helpers prefixed labSxs. */
+
+/* ---------- state ---------- */
+const LAB_SXS = { form:null, current:null, ctl:null, _formT:0, _saveT:0 };
+const LAB_SXS_TH = new WeakMap(); // per-cell streaming throttle state (kept out of saved data)
+
+/* ---------- form state: lazy init, debounced persist ---------- */
+function labSxsClamp(v,d){ const n=parseInt(v,10); return isNaN(n)?d:Math.max(1,Math.min(8,n)); }
+function labSxsForm(){
+  if(LAB_SXS.form) return LAB_SXS.form;
+  const p=LAB.prefs.sxsForm||{}, suites=LAB.suites||[];
+  const pref=Array.isArray(LAB.prefs.sxsModels)&&LAB.prefs.sxsModels.length?LAB.prefs.sxsModels:[labDefaultModel()];
+  const pm=Array.isArray(p.models)&&p.models.length?p.models:pref;
+  LAB_SXS.form={
+    models:[...new Set(pm)],
+    source:p.source==='paste'?'paste':'suite',
+    suiteId:p.suiteId||(suites[0]?suites[0].id:null),
+    paste:typeof p.paste==='string'?p.paste:'',
+    mode:p.mode==='conversation'?'conversation':'independent',
+    system:typeof p.system==='string'?p.system:'',
+    judge:!!p.judge,
+    judgeModel:p.judgeModel||labDefaultModel(),
+    concurrency:labSxsClamp(p.concurrency,4)
+  };
+  return LAB_SXS.form;
+}
+function labSxsPersist(){
+  clearTimeout(LAB_SXS._formT);
+  LAB_SXS._formT=setTimeout(()=>{ try{ LAB.prefs.sxsForm={...labSxsForm()}; labSave('prefs'); }catch(e){} },300);
+}
+function labSxsEdit(k,v){ labSxsForm()[k]=v; labSxsPersist(); labSxsCount(); }
+function labSxsSource(s){ labSxsEdit('source',s); labSxsRenderForm(); }
+function labSxsMode(m){ labSxsEdit('mode',m); labSxsRenderForm(); }
+function labSxsJudge(){ labSxsEdit('judge',!labSxsForm().judge); labSxsRenderForm(); }
+
+/* ---------- messages ---------- */
+function labSxsRows(){
+  const f=labSxsForm();
+  if(f.source==='suite'){
+    const s=labSuiteById(f.suiteId);
+    return ((s&&s.items)||[]).map(it=>({prompt:String(it.prompt||'').trim(), rubric:String(it.rubric||'').trim()})).filter(r=>r.prompt);
+  }
+  return String(f.paste||'').split(/^\s*---\s*$/m).map(t=>t.trim()).filter(Boolean).map(t=>({prompt:t, rubric:''}));
+}
+function labSxsCount(){
+  const el=$('sxCount'); if(!el) return;
+  const f=labSxsForm(), n=labSxsRows().length, m=f.models.length;
+  el.textContent=`${n} message${n===1?'':'s'}${n&&m?` × ${m} model${m===1?'':'s'} = ${n*m} calls`:''}`;
+}
+
+/* ---------- form card ---------- */
+function labSxsRenderForm(){
+  const el=$('sxForm'); if(!el) return;
+  const f=labSxsForm(), running=!!LAB_SXS.ctl;
+  const suiteOpts=(LAB.suites||[]).map(s=>`<option value="${esc(s.id)}"${s.id===f.suiteId?' selected':''}>${esc(s.name)} (${(s.items||[]).length})</option>`).join('');
+  const judgeOpts=labModelOptions().map(o=>`<option value="${esc(o.key)}"${o.key===f.judgeModel?' selected':''}>${esc(o.name)}</option>`).join('');
+  el.innerHTML=`
+    <div class="lab-card">
+      <div class="lab-card-head">
+        <h3>New comparison</h3>
+        <div class="lab-row">
+          <button class="btn small primary" id="sxRun" onclick="labRunSxs()"${running?' disabled':''}>Run</button>
+          <button class="btn small danger" id="sxStop" onclick="labStopSxs()"${running?'':' disabled'}>Stop</button>
+        </div>
+      </div>
+      <div class="lab-card-body">
+        <div class="lab-form">
+          <div class="lab-field full"><span class="lab-lbl">Models</span><div id="sxModels"></div></div>
+          <div class="lab-field"><span class="lab-lbl">Messages from</span>
+            <div class="lab-seg">
+              <button class="${f.source==='suite'?'on':''}" onclick="labSxsSource('suite')">Suite</button>
+              <button class="${f.source==='paste'?'on':''}" onclick="labSxsSource('paste')">Paste</button>
+            </div>
+          </div>
+          ${f.source==='suite'
+            ? `<div class="lab-field"><span class="lab-lbl">Suite</span>
+                 <select class="lab-select" onchange="labSxsEdit('suiteId',this.value)">${suiteOpts||'<option value="">No suites</option>'}</select>
+                 <span class="lab-hint" id="sxCount"></span></div>`
+            : `<div class="lab-field full"><span class="lab-lbl">Messages</span>
+                 <textarea class="lab-textarea" rows="6" oninput="labSxsEdit('paste',this.value)">${esc(f.paste)}</textarea>
+                 <span class="lab-hint" id="sxCount"></span>
+                 <span class="lab-hint">One message per block; separate blocks with a line containing only ---</span></div>`}
+          <div class="lab-field full"><span class="lab-lbl">System prompt (optional)</span>
+            <textarea class="lab-textarea" rows="2" oninput="labSxsEdit('system',this.value)">${esc(f.system)}</textarea></div>
+          <div class="lab-field"><span class="lab-lbl">Mode</span>
+            <div class="lab-seg">
+              <button class="${f.mode==='independent'?'on':''}" onclick="labSxsMode('independent')">Independent</button>
+              <button class="${f.mode==='conversation'?'on':''}" onclick="labSxsMode('conversation')">Conversation</button>
+            </div>
+            <span class="lab-hint">${f.mode==='conversation'?'One thread per model; each row builds on the last':'Each message is sent alone'}</span></div>
+          <div class="lab-field"><span class="lab-lbl">Concurrency</span>
+            <input class="lab-input lab-num" type="number" min="1" max="8" value="${f.concurrency}" onchange="labSxsEdit('concurrency',labSxsClamp(this.value,4))"></div>
+          <div class="lab-field"><span class="lab-lbl">Judge replies</span>
+            <div class="lab-row">
+              <button class="switch${f.judge?' on':''}" role="switch" aria-checked="${f.judge}" aria-label="Judge replies" onclick="labSxsJudge()"></button>
+              <span class="lab-hint">${f.judge?'0-10 score per cell':'Off'}</span>
+            </div></div>
+          <div class="lab-field"><span class="lab-lbl">Judge model</span>
+            <select class="lab-select" onchange="labSxsEdit('judgeModel',this.value)"${f.judge?'':' disabled'}>${judgeOpts}</select></div>
+        </div>
+      </div>
+    </div>`;
+  labModelChips($('sxModels'), f.models, keys=>labSxsEdit('models',keys));
+  labSxsCount();
+}
+
+/* ---------- aggregates & cell keys ---------- */
+function labSxsKey(r,k){ return `r:${r}:${k}`; }
+function labSxsSt(s){ return s==='running'?'st-driving':s==='stopped'?'st-stopped':'st-done'; }
+function labSxsAgg(res,i){
+  const k=res.models[i], a={cost:0,avg:null,avgMs:null,errors:0};
+  let sc=0,ns=0,ms=0,nm=0;
+  res.messages.forEach((_,r)=>{
+    const c=res.cells[labSxsKey(r,k)]; if(!c) return;
+    if(c.score!=null){ sc+=Number(c.score); ns++; }
+    if(c.ms!=null){ ms+=c.ms; nm++; }
+    if(c.cost!=null) a.cost+=c.cost;
+    if(c.error&&c.error!=='stopped') a.errors++;
+  });
+  if(ns) a.avg=sc/ns;
+  if(nm) a.avgMs=ms/nm;
+  return a;
+}
+function labSxsBest(res,aggs){
+  let b=-1;
+  if(res.models.length>1) aggs.forEach((a,i)=>{ if(a.avg!=null&&(b<0||a.avg>aggs[b].avg)) b=i; });
+  return b;
+}
+function labSxsSumInner(a,best){
+  return `<b>${a.avg==null?'n/a':a.avg.toFixed(1)}${best?' ★':''}</b> avg score<br>`
+    +`<span class="lab-cell-stats">${labFmtCost(a.cost)} · ${a.avgMs==null?'—':(a.avgMs/1000).toFixed(1)+'s'} avg · ${a.errors} err</span>`;
+}
+
+/* ---------- cell & grid HTML ---------- */
+// live=true leaves finished markdown empty so paintMarkdown can fill `.lab-turn-body`
+function labSxsCellInner(res,r,i,live){
+  const c=res.cells[labSxsKey(r,res.models[i])]||{};
+  if(c.streaming) return `<div class="lab-turn streaming"><div class="lab-turn-body">${esc(c.text||'')}</div></div>`;
+  let h='';
+  if(c.text) h+=`<div class="lab-turn-body">${live?'':labMdHTML(c.text)}</div>`;
+  else if(!c.error) h+=`<div class="lab-hint">queued</div>`;
+  if(c.error) h+=c.error==='stopped'
+    ?`<div class="lab-turn-body"><span class="lab-score s-mid">stopped</span></div>`
+    :`<div class="lab-turn-body"><span class="lab-score s-lo">error</span> ${esc(c.error)}</div>`;
+  let st=c.ms!=null?`${(c.ms/1000).toFixed(1)}s · ${labFmtCost(c.cost)}`:'';
+  if(c.score!=null) st+=` <span class="lab-score ${labScoreClass(c.score)}">${Number(c.score)}/10</span>`;
+  if(c.judging) st+=' judging…';
+  return h+`<div class="lab-cell-stats">${st}</div>`+(c.verdict?`<div class="lab-verdict">${esc(c.verdict)}</div>`:'');
+}
+function labSxsMetaHTML(res){
+  const n=res.messages.length, m=res.models.length;
+  return `<div class="lab-row"><span class="lab-status ${labSxsSt(res.status)}">${esc(res.status)}</span>`
+    +`<span class="lab-hint">${esc(labAgo(res.at))} · ${esc(res.mode)} · ${n} message${n===1?'':'s'} × ${m} model${m===1?'':'s'}${res.judge?` · judge: ${esc(labModelName(res.judge))}`:''}</span></div>`;
+}
+function labSxsGridHTML(res){
+  const N=res.models.length, aggs=res.models.map((_,i)=>labSxsAgg(res,i)), best=labSxsBest(res,aggs);
+  let h=`<div class="lab-sxs"><div class="lab-sxs-grid" style="grid-template-columns:260px repeat(${N}, minmax(300px,1fr))">`;
+  h+=`<div class="lab-sxs-head">Prompt</div>`;
+  res.models.forEach((k,i)=>{ h+=`<div class="lab-sxs-head"><span class="mp-tag">${esc(labModelName(k))}</span> <span class="lab-hint" id="sx-hc-${i}">${labFmtCost(aggs[i].cost)}</span></div>`; });
+  res.messages.forEach((m,r)=>{
+    h+=`<div class="lab-sxs-msg">${esc(m.prompt)}${m.rubric?`<div class="lab-hint">Rubric: ${esc(m.rubric)}</div>`:''}</div>`;
+    res.models.forEach((_,i)=>{ h+=`<div class="lab-sxs-cell" id="sx-${r}-${i}">${labSxsCellInner(res,r,i,false)}</div>`; });
+  });
+  h+=`<div class="lab-sxs-sum"><span class="lab-lbl">Summary</span></div>`;
+  res.models.forEach((_,i)=>{ h+=`<div class="lab-sxs-sum" id="sx-sum-${i}">${labSxsSumInner(aggs[i],best===i)}</div>`; });
+  return h+`</div></div>`;
+}
+
+/* ---------- rendering the shown result ---------- */
+function labSxsShow(res){
+  LAB_SXS.current=res||null;
+  const g=$('sxGrid');
+  if(g){
+    g.innerHTML=res?labSxsMetaHTML(res)+labSxsGridHTML(res):`<div class="lab-empty">Choose models and messages, then Run. Results appear here.</div>`;
+    if(res) highlightIn(g);
+  }
+  labSxsPastRender();
+}
+// live paint of one finished/streaming cell (only when that result is on screen)
+function labSxsPaintCell(res,r,i){
+  if(LAB_SXS.current!==res) return;
+  const el=$('sx-'+r+'-'+i); if(!el) return;
+  el.innerHTML=labSxsCellInner(res,r,i,true);
+  const c=res.cells[labSxsKey(r,res.models[i])], b=el.querySelector('.lab-turn-body');
+  if(c&&c.text&&!c.streaming&&b) paintMarkdown(b,c.text,{highlight:true});
+}
+function labSxsPushText(res,r,i){
+  if(LAB_SXS.current!==res) return;
+  const c=res.cells[labSxsKey(r,res.models[i])], b=$('sx-'+r+'-'+i)?.querySelector('.lab-turn-body');
+  if(c&&c.streaming&&b) b.textContent=c.text||'';
+}
+// throttle streaming DOM updates to one per 60ms per cell (trailing edge included)
+function labSxsDelta(res,r,i){
+  const c=res.cells[labSxsKey(r,res.models[i])];
+  let th=LAB_SXS_TH.get(c); if(!th){ th={last:0,tm:0}; LAB_SXS_TH.set(c,th); }
+  if(Date.now()-th.last>=60){ th.last=Date.now(); labSxsPushText(res,r,i); }
+  else if(!th.tm) th.tm=setTimeout(()=>{ th.tm=0; th.last=Date.now(); labSxsPushText(res,r,i); },60);
+}
+// throttled save (at most one write per 1.5s); the run's end saves directly
+function labSxsSaveSoon(){
+  if(LAB_SXS._saveT) return;
+  LAB_SXS._saveT=setTimeout(()=>{ LAB_SXS._saveT=0; labSave('sxs'); },1500);
+}
+function labSxsUpdSum(res){
+  if(LAB_SXS.current!==res) return;
+  const aggs=res.models.map((_,i)=>labSxsAgg(res,i)), best=labSxsBest(res,aggs);
+  aggs.forEach((a,i)=>{
+    const s=$('sx-sum-'+i), h=$('sx-hc-'+i);
+    if(s) s.innerHTML=labSxsSumInner(a,best===i);
+    if(h) h.textContent=labFmtCost(a.cost);
+  });
+}
+function labSxsButtons(){
+  const r=$('sxRun'), s=$('sxStop');
+  if(r) r.disabled=!!LAB_SXS.ctl;
+  if(s) s.disabled=!LAB_SXS.ctl;
+}
+
+/* ---------- past results ---------- */
+function labSxsPastRender(){
+  const el=$('sxPast'); if(!el) return;
+  const items=LAB.sxs.slice(0,8);
+  if(!items.length){ el.innerHTML=''; return; }
+  el.innerHTML=`<div class="lab-card"><div class="lab-card-head"><h3>Past results</h3><span class="lab-hint">${LAB.sxs.length} saved</span></div>`
+    +`<div class="lab-card-body"><div class="lab-list">`
+    +items.map(r=>`<div class="lab-item">
+        <div class="lab-row"><span class="lab-status ${labSxsSt(r.status)}">${esc(r.status)}</span>
+          <span class="lab-hint">${esc(labAgo(r.at))} · ${esc(r.mode)} · ${r.messages.length} row${r.messages.length===1?'':'s'}</span></div>
+        <div class="lab-hint">${r.models.map(k=>esc(labModelName(k))).join(', ')}</div>
+        <div class="lab-item-acts"><button class="btn small" onclick="labSxsOpen('${esc(r.id)}')">Open</button><button class="btn small danger" onclick="labSxsDelete('${esc(r.id)}')">Delete</button></div>
+      </div>`).join('')
+    +`</div></div></div>`;
+}
+function labSxsOpen(id){
+  const r=LAB.sxs.find(x=>x.id===id); if(!r) return;
+  labSxsShow(r);
+  const g=$('sxGrid'); if(g) g.scrollIntoView({block:'start'});
+}
+async function labSxsDelete(id){
+  const r=LAB.sxs.find(x=>x.id===id); if(!r) return;
+  if(r.status==='running'){ toast('Stop the run before deleting it'); return; }
+  if(!await confirmBox('Delete result?','This side-by-side result will be deleted.',{ok:'Delete',danger:true})) return;
+  LAB.sxs.splice(LAB.sxs.indexOf(r),1);
+  labSave('sxs');
+  if(LAB_SXS.current===r) labSxsShow(null); else labSxsPastRender();
+}
+
+/* ---------- judge & cell engine ---------- */
+function labSxsJudgePrompt(row,reply){
+  return `You are grading an AI assistant's reply to a user message.\n\nUser message:\n"""\n${row.prompt}\n"""\n\n`
+    +`Grading rubric: ${row.rubric||'none given. Judge general quality: correctness, instruction-following, clarity.'}\n\n`
+    +`Assistant reply:\n"""\n${String(reply).slice(0,6000)}\n"""\n\n`
+    +`Score the reply 0-10 against the rubric. Reply ONLY with JSON: {"score":<0-10>,"verdict":"<one line, max 15 words>"}`;
+}
+// one (row, model) call plus optional judge; returns reply text, or null on error/stop
+async function labSxsCell(res,r,i,hist,signal){
+  const key=res.models[i], row=res.messages[r], c=res.cells[labSxsKey(r,key)];
+  Object.assign(c,{text:'',streaming:true,error:null,ms:null,cost:null,score:null,verdict:'',judging:false});
+  labSxsPaintCell(res,r,i); labSxsSaveSoon();
+  let out;
+  try{
+    out=await labCall(key,[...(hist||[]),{role:'user',content:row.prompt}],{system:res.system,thinking:true,maxTokens:4096,signal,
+      onDelta:t=>{ if(typeof t==='string') c.text=t; labSxsDelta(res,r,i); }});
+    Object.assign(c,{text:out.text,ms:out.ms,cost:out.cost??null,streaming:false});
+  }catch(e){
+    c.streaming=false;
+    c.error=(signal.aborted||(e&&e.name==='AbortError'))?'stopped':String((e&&e.message)||e);
+    labSxsPaintCell(res,r,i); labSxsUpdSum(res);
+    return null;
+  }
+  labSxsPaintCell(res,r,i);
+  if(res.judge&&!signal.aborted){
+    c.judging=true; labSxsPaintCell(res,r,i);
+    try{
+      const jr=await labCall(res.judge,[{role:'user',content:labSxsJudgePrompt(row,out.text)}],{temperature:0,maxTokens:800,signal});
+      if(jr.cost!=null) c.cost=(c.cost||0)+jr.cost;
+      const j=labParseJson(jr.text);
+      if(j&&j.score!=null&&!isNaN(Number(j.score))){ c.score=Math.max(0,Math.min(10,Number(j.score))); c.verdict=String(j.verdict||'').slice(0,200); }
+      else c.verdict='judge error';
+    }catch(e){ c.verdict='judge error'; }
+    c.judging=false;
+  }
+  labSxsPaintCell(res,r,i); labSxsUpdSum(res); labSxsSaveSoon();
+  return out.text;
+}
+
+/* ---------- run / stop ---------- */
+async function labRunSxs(){
+  if(LAB_SXS.ctl){ toast('A side-by-side run is already in progress'); return; }
+  const f=labSxsForm();
+  const models=[...new Set(f.models)].filter(k=>MODELS[k]&&MODELS[k].kind!=='video');
+  const rows=labSxsRows();
+  if(!models.length){ toast('Pick at least one model'); return; }
+  if(!rows.length){ toast('Add at least one message'); return; }
+  if(f.judge&&!(MODELS[f.judgeModel]&&MODELS[f.judgeModel].kind!=='video')){ toast('Pick a judge model'); return; }
+  const calls=models.length*rows.length;
+  if(calls>60&&!await confirmBox('Large comparison',`${calls} model calls (more with the judge). Continue?`,{ok:'Run'})) return;
+  const suite=f.source==='suite'?labSuiteById(f.suiteId):null;
+  const res={id:uid(),at:Date.now(),models,messages:rows,mode:f.mode,system:f.system||'',suiteId:suite?suite.id:null,
+    status:'running',judge:f.judge?f.judgeModel:null,cells:{}};
+  rows.forEach((_,r)=>models.forEach(k=>{ res.cells[labSxsKey(r,k)]={text:'',streaming:false,ms:null,cost:null,score:null,verdict:'',error:null,judging:false}; }));
+  LAB.sxs.unshift(res);
+  LAB.prefs.sxsModels=models.slice();
+  if(suite){ suite.lastModels=models.slice(); suite.lastRunAt=res.at; labSave('suites'); }
+  labSave('prefs'); labSxsPersist();
+  const ctl=new AbortController(), signal=ctl.signal;
+  LAB_SXS.ctl=ctl;
+  labSxsShow(res); labSxsButtons();
+  try{
+    if(res.mode==='conversation'){
+      // one sequential chain per model; failed rows are left out of the history
+      await Promise.all(models.map((_,i)=>(async()=>{
+        let hist=[];
+        for(let r=0;r<rows.length&&!signal.aborted;r++){
+          const out=await labSxsCell(res,r,i,hist,signal);
+          if(out!=null) hist=[...hist,{role:'user',content:rows[r].prompt},{role:'assistant',content:out}];
+        }
+      })()));
+    }else{
+      // independent: pool of workers over every (row, model) pair
+      const pairs=[]; rows.forEach((_,r)=>models.forEach((__,i)=>pairs.push([r,i])));
+      let next=0;
+      const worker=async()=>{ while(next<pairs.length&&!signal.aborted){ const [r,i]=pairs[next++]; await labSxsCell(res,r,i,null,signal); } };
+      await Promise.all(Array.from({length:Math.max(1,Math.min(Number(f.concurrency)||4,pairs.length))},worker));
+    }
+  }catch(e){ toast('Side-by-side error: '+(e.message||e)); }
+  finally{
+    rows.forEach((_,r)=>models.forEach(k=>{ const c=res.cells[labSxsKey(r,k)]; if(c.ms==null&&!c.error){ c.error='stopped'; c.streaming=false; } }));
+    res.status=signal.aborted?'stopped':'done';
+    LAB_SXS.ctl=null;
+    labSave('sxs'); labSxsButtons();
+    if(LAB_SXS.current===res) labSxsShow(res);
+    labSxsPastRender();
+    toast(signal.aborted?'Side-by-side stopped':'Side-by-side finished');
+  }
+}
+function labStopSxs(){ if(LAB_SXS.ctl) LAB_SXS.ctl.abort(); }
+
+/* ---------- open from other tabs ---------- */
+function labOpenSxs({models,suiteId,messages,autorun}={}){
+  const f=labSxsForm();
+  if(Array.isArray(models)&&models.length) f.models=[...new Set(models)];
+  if(suiteId){ f.suiteId=suiteId; f.source='suite'; }
+  if(Array.isArray(messages)&&messages.length){ f.source='paste'; f.paste=messages.join('\n---\n'); }
+  labSxsPersist();
+  openLab('sxs');
+  if(autorun) labRunSxs();
+}
+
+/* ---------- export ---------- */
+function labSxsExport(){
+  const res=LAB_SXS.current;
+  if(!res){ toast('Open or run a comparison first'); return; }
+  const aggs=res.models.map((_,i)=>labSxsAgg(res,i)), best=labSxsBest(res,aggs);
+  const mdCell=s=>String(s).replace(/\|/g,'\\|').replace(/\n/g,' ');
+  const d=new Date(res.at);
+  let md=`# Side-by-side results\n\n- Run: ${d.toLocaleString()} · mode: ${res.mode} · status: ${res.status}\n- Judge: ${res.judge?labModelName(res.judge):'off'}\n`;
+  if(res.system) md+=`- System prompt: ${mdCell(res.system)}\n`;
+  md+=`\n| Model | Avg score | Cost | Avg latency |\n|---|---|---|---|\n`;
+  res.models.forEach((k,i)=>{ const a=aggs[i];
+    md+=`| ${mdCell(labModelName(k))}${best===i?' ★':''} | ${a.avg==null?'n/a':a.avg.toFixed(1)} | ${mdCell(labFmtCost(a.cost))} | ${a.avgMs==null?'—':(a.avgMs/1000).toFixed(1)+'s'} |\n`; });
+  res.messages.forEach((m,r)=>{
+    md+=`\n## Prompt ${r+1}\n\n${m.prompt}\n`;
+    if(m.rubric) md+=`\n_Rubric: ${m.rubric}_\n`;
+    res.models.forEach(k=>{
+      const c=res.cells[labSxsKey(r,k)]||{};
+      md+=`\n### ${labModelName(k)}${c.score!=null?` — ${Number(c.score)}/10${c.verdict?` (${c.verdict})`:''}`:''}\n\n`
+        +`${c.text||(c.error?`_Error: ${c.error}_`:'_(no reply)_')}\n`;
+    });
+  });
+  labDownload(`agent-swarm-side-by-side-${d.toISOString().slice(0,10)}.md`,md,'text/markdown');
+}
+
+/* ---------- panel render (LAB_TABS.sxs) ---------- */
+function labRenderSxs(){
+  const p=$('labPanel-sxs'); if(!p) return;
+  LAB.sxs.forEach(r=>{ if(r.status==='running'&&!LAB_SXS.ctl) r.status='stopped'; });
+  if(LAB_SXS.current&&!LAB.sxs.includes(LAB_SXS.current)) LAB_SXS.current=null;
+  p.innerHTML=`<div id="sxForm"></div>
+    <div class="lab-card">
+      <div class="lab-card-head"><h3>Results</h3><button class="btn small" onclick="labSxsExport()">Export .md</button></div>
+      <div class="lab-card-body" id="sxGrid"></div>
+    </div>
+    <div id="sxPast"></div>`;
+  labSxsRenderForm();
+  labSxsShow(LAB_SXS.current);
+}
+LAB_TABS.sxs=labRenderSxs;
+
+/* ===== Agent Swarm: reports & memory (lab_reports.js) ===== */
+
+/* ---- state & constants ---- */
+const LAB_REP = { openId: null };
+const LAB_REP_BUSY = ['planning', 'running', 'scribing'];
+const LAB_REP_PROMPT = `You are the scribe for a model-testing session. Write a concise markdown report: ## Summary (2-3 lines), ## What worked (bullets citing lanes), ## Failure modes, ## Model notes (per target model), ## Try next time.
+Then output a fenced \`\`\`json block {"patterns":[{"text":"reusable lesson, imperative, ≤ 25 words","tags":["<category>","<model badge>"],"evidence":"lane title + outcome"}]} with 3-8 patterns.`;
+
+/* ---- small helpers ---- */
+const labRepGoal = c => String((c && c.goal) || '').trim();
+const labRepBusy = run => LAB_REP_BUSY.includes(run.status);
+const labRepBest = lane => (lane.best == null ? '—' : lane.best + '/10');
+const labRepMn = k => (k ? labModelName(k) : '—');
+const labRepFn = n => String(fmtNum(n || 0));
+const labRepV = x => esc(String(x == null ? '—' : x));
+
+function labRepHas(text) {
+  const k = String(text || '').trim().toLowerCase();
+  return !!k && LAB.memory.some(m => String(m.text || '').trim().toLowerCase() === k);
+}
+function labRepRefresh(run) {
+  if (LAB.tab === 'reports' && LAB_REP.openId === run.id) labRenderReports();
+}
+function labRepTop() {
+  const v = $('labView');
+  if (v) v.scrollTop = 0;
+}
+
+/* ---- scribe digest ---- */
+function labRepDigest(run) {
+  const c = run.cfg || {}, out = [];
+  out.push(`Session goal: ${labRepGoal(c) || '(per-lane goals)'} | category: ${c.category || 'custom'} | targets: ${(c.targets || []).map(labRepMn).join(', ')}`);
+  if (c.system) out.push(`System prompt under test (excerpt): ${String(c.system).slice(0, 400)}`);
+  for (const lane of run.lanes || []) {
+    const atts = lane.attempts || [], L = [];
+    L.push(`### Lane: ${lane.title} | target: ${labRepMn(lane.target)} | status: ${lane.status} | attempts: ${atts.length} | best: ${labRepBest(lane)} | cost: ${labFmtCost(lane.cost)}`);
+    L.push(`Goal: ${lane.goal || ''}`);
+    if (lane.error) L.push(`Error: ${String(lane.error).slice(0, 200)}`);
+    const first = atts[0] && (atts[0].turns || []).find(t => t.role === 'driver');
+    if (first) L.push(`First tester message: "${(first.text || '').slice(0, 300)}"`);
+    for (const a of atts) {
+      for (const t of a.turns || []) {
+        if (t.judge) L.push(`- attempt ${a.n}: ${t.judge.score}/10 — ${t.judge.verdict || ''}${t.judge.goal_met ? ' [goal met]' : ''}`);
+      }
+    }
+    const win = atts.find(a => a.outcome === 'success');
+    if (win) {
+      for (const t of win.turns || []) {
+        if (t.role === 'driver') L.push(`Winning tester message (attempt ${win.n}): "${(t.text || '').slice(0, 300)}"`);
+      }
+    } else {
+      const lastT = atts.flatMap(a => a.turns || []).reverse().find(t => t.role === 'target');
+      if (lastT) L.push(`Last target reply (excerpt): "${(lastT.text || '').slice(0, 300)}"`);
+    }
+    out.push(L.join('\n'));
+  }
+  return out.join('\n\n').slice(0, 24000);
+}
+
+/* ---- scribe ---- */
+async function labScribe(run) {
+  if (!run || run.status === 'scribing') return;
+  const prev = run.status, cfg = run.cfg || {};
+  run.status = 'scribing';
+  labEmit('run:update', run);
+  labRepRefresh(run);
+  let report;
+  try {
+    const digest = labRepDigest(run);
+    // ENI's own Scribe agent writes the report (its prompt + model are editable in Agents)
+    const res = await labCall(cfg.scribeModel || labRoleModel('scribe'),
+      [{ role: 'user', content: digest + '\n\n' + LAB_REP_PROMPT }],
+      { system: labAgentPrompt('scribe'), temperature: labAgent('scribe').temperature ?? 0.3, maxTokens: 3000 });
+    const cost = res.cost ?? 0;
+    run.cost = (run.cost || 0) + cost;
+    run.tokens = run.tokens || { in: 0, out: 0 };
+    run.tokens.in += (res.usage && res.usage.in) || 0;
+    run.tokens.out += (res.usage && res.usage.out) || 0;
+    // md = reply with the LAST ```json fence removed; patterns come from that fence (or the whole reply)
+    const fences = [...res.text.matchAll(/```json\s*([\s\S]*?)```/gi)];
+    const last = fences[fences.length - 1];
+    const md = (last ? res.text.slice(0, last.index) + res.text.slice(last.index + last[0].length) : res.text).trim() || '_(empty report)_';
+    let parsed = null;
+    try { parsed = labParseJson(last ? last[1] : res.text); } catch (e) { parsed = null; }
+    const raw = parsed && Array.isArray(parsed.patterns) ? parsed.patterns : [];
+    const patterns = raw.filter(p => p && typeof p.text === 'string' && p.text.trim()).map(p => {
+      const tags = (Array.isArray(p.tags) ? p.tags : []).map(s => String(s).trim()).filter(Boolean);
+      return { text: p.text.trim(), tags: tags.length ? tags : [cfg.category || 'custom'], evidence: String(p.evidence || '') };
+    });
+    report = { md, patterns, at: Date.now(), cost };
+  } catch (e) {
+    report = { md: 'Scribe failed: ' + ((e && e.message) || e), patterns: [], at: Date.now(), cost: 0 };
+  }
+  run.report = report;
+  run.status = prev === 'stopped' ? 'stopped' : 'done';
+  labSave('runs');
+  labEmit('run:update', run);
+  labEmit('run:end', run);
+  labRepRefresh(run);
+}
+
+/* ---- memory ---- */
+function labAddMemory({ text, tags = [], from = null, quiet = false } = {}) {
+  const t = String(text || '').trim();
+  if (!t) return false;
+  const k = t.toLowerCase();
+  if (LAB.memory.some(m => String(m.text || '').trim().toLowerCase() === k)) return false;
+  const tg = [...new Set((tags || []).map(s => String(s).trim()).filter(Boolean))];
+  LAB.memory.push({ id: uid(), text: t, tags: tg, from, at: Date.now(), pinned: false });
+  labSave('memory');
+  if (!quiet) toast('Saved to memory');
+  return true;
+}
+
+async function labRepImport(file) {
+  let data = null;
+  try { data = JSON.parse(await file.text()); } catch (e) { data = null; }
+  let arr = null;
+  if (Array.isArray(data)) arr = data;
+  else if (data && Array.isArray(data.memory)) arr = data.memory;
+  if (!arr) { toast('No memory patterns found in that file'); return; }
+  const seen = new Set(LAB.memory.map(m => String(m.text || '').trim().toLowerCase()));
+  let n = 0;
+  for (const m of arr) {
+    const t = m && typeof m.text === 'string' ? m.text.trim() : '';
+    const k = t.toLowerCase();
+    if (!t || seen.has(k)) continue;
+    seen.add(k);
+    LAB.memory.push({
+      id: uid(), text: t,
+      tags: Array.isArray(m.tags) ? m.tags.map(s => String(s)) : [],
+      from: typeof m.from === 'string' ? m.from : null,
+      at: Number(m.at) || Date.now(), pinned: !!m.pinned
+    });
+    n++;
+  }
+  labSave('memory');
+  toast(n ? `Imported ${n} pattern${n === 1 ? '' : 's'}` : 'No new patterns to import');
+  labRenderReports();
+}
+
+function labRepEditMem(el, id) {
+  const m = LAB.memory.find(x => x.id === id);
+  if (!m || !el.parentNode) return;
+  const inp = document.createElement('input');
+  inp.className = 'lab-input';
+  inp.value = m.text;
+  el.replaceWith(inp);
+  inp.focus();
+  inp.select();
+  let done = false;
+  const finish = save => {
+    if (done) return;
+    done = true;
+    const t = inp.value.trim();
+    if (save && t && t !== m.text) {
+      const k = t.toLowerCase();
+      if (LAB.memory.some(x => x !== m && String(x.text || '').trim().toLowerCase() === k)) toast('Already in memory');
+      else { m.text = t; labSave('memory'); }
+    }
+    labRenderReports();
+  };
+  inp.onkeydown = e => {
+    if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+    else if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+  };
+  inp.onblur = () => finish(true);
+}
+
+/* ---- run list view ---- */
+function labRepListHTML() {
+  const runs = [...LAB.runs].sort((a, b) => b.at - a.at);
+  const rows = runs.map(r => {
+    const lanes = r.lanes || [], ok = lanes.filter(l => l.status === 'success').length;
+    const g = labRepGoal(r.cfg);
+    const goal = g ? labTrunc(g, 70) : (r.cfg && r.cfg.laneGoals && r.cfg.laneGoals.length ? 'Suite goals' : '—');
+    const targets = ((r.cfg && r.cfg.targets) || []).map(k => `<span class="mp-tag">${esc(labModelName(k))}</span>`).join(' ');
+    return `<tr data-run="${esc(r.id)}" tabindex="0">
+      <td>${esc(labAgo(r.at))}</td><td>${esc(goal)}</td><td>${targets}</td>
+      <td>✓${ok}/${lanes.length}</td><td>${esc(labFmtCost(r.cost))}</td><td>${labStatusHTML(r.status)}</td></tr>`;
+  }).join('');
+  const runsCard = `<div class="lab-card">
+    <div class="lab-card-head"><h3>Runs</h3><span class="lab-hint">${runs.length} saved</span></div>
+    <div class="lab-card-body">${runs.length ? `<table class="lab-table">
+      <thead><tr><th>When</th><th>Goal</th><th>Targets</th><th>Lanes</th><th>Cost</th><th>Status</th></tr></thead>
+      <tbody>${rows}</tbody></table>` : '<div class="lab-empty">No runs yet. Start one from the Run tab.</div>'}</div>
+  </div>`;
+
+  /* memory card (always shown under the runs list) */
+  const mem = [...LAB.memory].sort((a, b) => (!!b.pinned - !!a.pinned) || ((b.at || 0) - (a.at || 0)));
+  const items = mem.map(m => {
+    const src = m.from && LAB.runs.find(r => r.id === m.from);
+    return `<div class="lab-item${m.pinned ? ' pinned' : ''}">
+      <div>
+        <div data-act="editmem" data-id="${esc(m.id)}" title="Click to edit">${esc(m.text)}</div>
+        <div class="lab-chips">${(m.tags || []).map(t => `<span class="lab-chip">${esc(t)}</span>`).join('')}</div>
+        ${src ? `<div class="lab-hint">from <button class="btn small" data-act="openrun" data-id="${esc(src.id)}">run · ${esc(labAgo(src.at))}</button></div>` : ''}
+      </div>
+      <div class="lab-item-acts">
+        <button class="btn small" data-act="pinmem" data-id="${esc(m.id)}" aria-pressed="${m.pinned ? 'true' : 'false'}" title="${m.pinned ? 'Unpin' : 'Pin'}">${m.pinned ? '★' : '☆'}</button>
+        <button class="btn small danger" data-act="delmem" data-id="${esc(m.id)}" title="Delete">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+  const n = LAB.memory.length;
+  const memCard = `<div class="lab-card">
+    <div class="lab-card-head"><h3>Memory <span class="lab-hint">${n} pattern${n === 1 ? '' : 's'}</span></h3>
+      <div class="lab-row">
+        <button class="btn small" data-act="addmem">Add pattern</button>
+        <button class="btn small" data-act="openmem">Open ENI memory</button>
+        <button class="btn small" data-act="exportmem">Export JSON</button>
+        <button class="btn small" data-act="importmem">Import JSON</button>
+        <button class="btn small danger" data-act="clearmem">Clear all</button>
+        <input type="file" id="labMemFile" accept="application/json,.json" hidden>
+      </div>
+    </div>
+    <div class="lab-card-body">
+      <p class="lab-hint">Saved into ENI's memory under “Agent Swarm patterns”, so every agent sees them. The planner leans on pinned patterns and ones tagged with the run's category or target model (when “Use memory” is on).</p>
+      ${mem.length ? `<div class="lab-list">${items}</div>` : '<div class="lab-empty">No patterns yet. Save them from a run report or add one manually.</div>'}
+    </div>
+  </div>`;
+  return runsCard + memCard;
+}
+
+/* ---- run detail view ---- */
+function labRepDetailHTML(run) {
+  const c = run.cfg || {}, lanes = run.lanes || [], rep = run.report, busy = labRepBusy(run);
+  const ok = lanes.filter(l => l.status === 'success').length;
+  const rate = lanes.length ? Math.round((100 * ok) / lanes.length) + '%' : '—';
+  const g = labRepGoal(c);
+  const title = g ? labTrunc(g, 100) : (c.laneGoals && c.laneGoals.length ? `Suite goals (${c.laneGoals.length} lanes)` : 'Untitled run');
+  const suite = c.suiteId ? LAB.suites.find(s => s.id === c.suiteId) : null;
+  const kv = (k, v) => `<div class="lab-row"><span class="lab-lbl">${k}</span><div>${v}</div></div>`;
+  const perTarget = (c.targets || []).map(k => {
+    const bs = lanes.filter(l => l.target === k && l.best != null).map(l => l.best);
+    const avg = bs.length ? (bs.reduce((a, b) => a + b, 0) / bs.length).toFixed(1) + '/10' : '—';
+    return `<div class="lab-stat"><b>${esc(avg)}</b><span>${esc(labRepMn(k))} best avg</span></div>`;
+  }).join('');
+  const sysHTML = c.system
+    ? `<details><summary class="lab-hint">System prompt under test</summary><pre class="lab-pre">${esc(c.system)}</pre></details>`
+    : '<span class="lab-hint">none</span>';
+  const cfgCard = `<div class="lab-card compact">
+    <div class="lab-card-head"><h3>Setup</h3></div>
+    <div class="lab-card-body">
+      ${kv('Targets', `<div class="lab-chips">${(c.targets || []).map(k => `<span class="lab-chip on">${esc(labRepMn(k))}</span>`).join('')}</div>`)}
+      ${kv('Category', esc(c.category || 'custom') + (suite ? ` · suite: ${esc(suite.name)}` : ''))}
+      ${kv('Limits', `${labRepV(lanes.length)} lanes · max turns ${labRepV(c.maxTurns)} · max attempts ${labRepV(c.maxAttempts)} · concurrency ${labRepV(c.concurrency)}`)}
+      ${kv('Budget', c.budget > 0 ? esc(labFmtCost(c.budget)) : 'no cap')}
+      ${kv('Models', `driver ${esc(labRepMn(c.driverModel))} · judge ${esc(labRepMn(c.judgeModel))} · scribe ${esc(labRepMn(c.scribeModel))}`)}
+      ${kv('Memory', c.useMemory ? 'used by planner' : 'not used')}
+      ${kv('System prompt', sysHTML)}
+    </div>
+  </div>`;
+
+  const acts = [];
+  if (rep) acts.push(`<button class="btn small" data-act="rescribe"${busy ? ' disabled' : ''}>Re-scribe</button>`);
+  else if (!busy) acts.push('<button class="btn small primary" data-act="scribe">Write scribe report</button>');
+  if (rep && (rep.patterns || []).length) acts.push('<button class="btn small" data-act="saveall">Save all</button>');
+  let body;
+  if (!rep) {
+    body = `<div class="lab-empty">${busy ? (run.status === 'scribing' ? 'Scribing…' : 'The report is written when the run finishes.') : 'No report yet.'}</div>`;
+  } else {
+    const pats = rep.patterns || [];
+    const list = pats.map((p, i) => {
+      const saved = labRepHas(p.text);
+      return `<div class="lab-item">
+        <div>
+          <div>${esc(p.text)}</div>
+          <div class="lab-chips">${(p.tags || []).map(t => `<span class="lab-chip">${esc(t)}</span>`).join('')}</div>
+          ${p.evidence ? `<div class="lab-hint">${esc(p.evidence)}</div>` : ''}
+        </div>
+        <div class="lab-item-acts"><button class="btn small" data-act="savepat" data-i="${i}"${saved ? ' disabled' : ''}>${saved ? 'Saved ✓' : 'Save to memory'}</button></div>
+      </div>`;
+    }).join('');
+    body = `<div class="lab-report md">${labMdHTML(rep.md || '')}</div>`
+      + (pats.length ? `<div class="lab-list">${list}</div>` : '<div class="lab-hint">No reusable patterns extracted.</div>');
+  }
+  const reportCard = `<div class="lab-card">
+    <div class="lab-card-head"><h3>Scribe report</h3><div class="lab-row">${acts.join('')}</div></div>
+    <div class="lab-card-body">${body}</div>
+  </div>`;
+
+  return `<div class="lab-row">
+      <button class="btn small" data-act="back">← Back to list</button><div class="lab-spacer"></div>
+      <button class="btn small" data-act="export">Export .md</button>
+      <button class="btn small danger" data-act="delrun"${busy ? ' disabled' : ''}>Delete run</button>
+    </div>
+    <div class="lab-card">
+      <div class="lab-card-head"><h3>${esc(title)}</h3>${labStatusHTML(run.status)}</div>
+      <div class="lab-card-body">
+        <div class="lab-hint">${esc(labAgo(run.at))} · ${esc(new Date(run.at).toLocaleString())}${run.error ? ' · ' + esc(run.error) : ''}</div>
+        <div class="lab-stats">
+          <div class="lab-stat"><b>${esc(labFmtCost(run.cost))}</b><span>cost${c.budget > 0 ? ' / ' + esc(labFmtCost(c.budget)) : ''}</span></div>
+          <div class="lab-stat"><b>${esc(labRepFn(run.tokens && run.tokens.in))} / ${esc(labRepFn(run.tokens && run.tokens.out))}</b><span>tokens in / out</span></div>
+          <div class="lab-stat"><b>${ok}/${lanes.length}</b><span>lanes succeeded</span></div>
+          <div class="lab-stat"><b>${rate}</b><span>success rate</span></div>
+          ${perTarget}
+        </div>
+      </div>
+    </div>
+    ${cfgCard}
+    ${reportCard}
+    <div class="flabel">Lanes</div>
+    ${lanes.length ? `<div class="lab-lanes">${lanes.map(l => labLaneHTML(l, run, { live: false })).join('')}</div>` : '<div class="lab-empty">No lanes recorded.</div>'}`;
+}
+
+/* ---- Markdown export of one run ---- */
+function labRepExportMd(run) {
+  const c = run.cfg || {}, rep = run.report, L = [];
+  L.push(`# ${labTrunc(labRepGoal(c) || 'Suite goals', 120)}`, '');
+  L.push(`_${new Date(run.at).toLocaleString()} · status: ${run.status}_`, '');
+  L.push('## Config', '',
+    `- Targets: ${(c.targets || []).map(labRepMn).join(', ') || '—'}`,
+    `- Category: ${c.category || 'custom'} · Lanes: ${(run.lanes || []).length} · Max turns: ${c.maxTurns} · Max attempts: ${c.maxAttempts}`,
+    `- Driver: ${labRepMn(c.driverModel)} · Judge: ${labRepMn(c.judgeModel)} · Scribe: ${labRepMn(c.scribeModel)}`,
+    `- Cost: ${labFmtCost(run.cost)} · Tokens in/out: ${(run.tokens && run.tokens.in) || 0}/${(run.tokens && run.tokens.out) || 0}`, '');
+  if (c.system) L.push('System prompt under test:', '', '```', c.system, '```', '');
+  if (rep) {
+    L.push('## Report', '', rep.md || '', '');
+    if ((rep.patterns || []).length) {
+      L.push('## Patterns', '');
+      for (const p of rep.patterns) L.push(`- ${p.text} _(${(p.tags || []).join(', ')})_${p.evidence ? ' — ' + p.evidence : ''}`);
+      L.push('');
+    }
+  }
+  L.push('## Lanes', '');
+  for (const lane of run.lanes || []) {
+    const mn = labRepMn(lane.target);
+    L.push(`### ${lane.title} · ${mn} · ${lane.status} · best ${labRepBest(lane)}`, '', `Goal: ${lane.goal || ''}`, '');
+    if (lane.error) L.push(`Error: ${lane.error}`, '');
+    for (const a of lane.attempts || []) {
+      L.push(`#### Attempt ${a.n}${a.outcome ? ' (' + a.outcome + ')' : ''}`, '');
+      for (const t of a.turns || []) {
+        L.push(t.role === 'driver' ? `**Tester:** ${t.text || ''}` : `**${mn}:** ${t.text || ''}`, '');
+        if (t.judge) L.push(`> ${t.judge.score}/10 — ${t.judge.verdict || ''}${t.judge.goal_met ? ' (goal met)' : ''}`, '');
+      }
+    }
+  }
+  return L.join('\n');
+}
+
+/* ---- actions ---- */
+async function labRepDelete(run) {
+  if (labRepBusy(run) || !await confirmBox('Delete run?','This run and its report will be deleted. This can\'t be undone.',{ok:'Delete',danger:true})) return;
+  const i = LAB.runs.indexOf(run);
+  if (i >= 0) LAB.runs.splice(i, 1);
+  if (LAB.live === run) LAB.live = null;
+  if (LAB_REP.openId === run.id) LAB_REP.openId = null;
+  labSave('runs');
+  labRenderReports();
+}
+
+async function labRepAct(act, el) {
+  const id = el.dataset.id;
+  const run = LAB_REP.openId ? LAB.runs.find(r => r.id === LAB_REP.openId) : null;
+  switch (act) {
+    case 'back': LAB_REP.openId = null; labRenderReports(); labRepTop(); break;
+    case 'openrun': labOpenRun(id); labRepTop(); break;
+    case 'scribe': case 'rescribe': if (run) labScribe(run); break;
+    case 'savepat': {
+      const p = run && run.report && run.report.patterns && run.report.patterns[+el.dataset.i];
+      if (p) labAddMemory({ text: p.text, tags: p.tags, from: run.id });
+      labRenderReports();
+      break;
+    }
+    case 'saveall': {
+      if (!run || !run.report) break;
+      let n = 0;
+      for (const p of run.report.patterns || []) if (labAddMemory({ text: p.text, tags: p.tags, from: run.id, quiet: true })) n++;
+      toast(n ? `Saved ${n} pattern${n === 1 ? '' : 's'} to memory` : 'All patterns are already in memory');
+      labRenderReports();
+      break;
+    }
+    case 'export':
+      if (run) labDownload('agent-swarm-' + new Date(run.at).toISOString().slice(0, 10) + '-' + run.id + '.md', labRepExportMd(run), 'text/markdown');
+      break;
+    case 'delrun': if (run) labRepDelete(run); break;
+    case 'openmem': showView('agents'); setAgentsTab('memory'); break;
+    case 'addmem': {
+      const txt = await promptBox('Add a pattern',{placeholder:'Ask for tests explicitly in the follow-up',hint:'One imperative sentence. Saved to ENI\'s memory under “Agent Swarm patterns”.',ok:'Add'});
+      if (txt && txt.trim()) {
+        if (!labAddMemory({ text: txt, tags: ['general'] })) toast('Already in memory');
+        labRenderReports();
+      }
+      break;
+    }
+    case 'exportmem':
+      labDownload('agent-swarm-memory.json', JSON.stringify({ memory: LAB.memory }, null, 2), 'application/json');
+      break;
+    case 'importmem': { const f = $('labMemFile'); if (f) f.click(); break; }
+    case 'clearmem':
+      if (LAB.memory.length && await confirmBox('Clear patterns?',`All ${LAB.memory.length} Agent Swarm patterns will be removed from ENI's memory. The rest of memory is untouched.`,{ok:'Clear',danger:true})) {
+        LAB.memory = [];
+        labSave('memory');
+        labRenderReports();
+      }
+      break;
+    case 'pinmem': {
+      const m = LAB.memory.find(x => x.id === id);
+      if (m) { m.pinned = !m.pinned; labSave('memory'); labRenderReports(); }
+      break;
+    }
+    case 'delmem': {
+      const m = LAB.memory.find(x => x.id === id);
+      if (m && await confirmBox('Delete pattern?',esc(m.text),{ok:'Delete',danger:true})) {
+        LAB.memory = LAB.memory.filter(x => x.id !== id);
+        labSave('memory');
+        labRenderReports();
+      }
+      break;
+    }
+    case 'editmem': labRepEditMem(el, id); break;
+  }
+}
+
+/* ---- panel events (delegated; handlers are replaced on every render) ---- */
+function labRepClick(e) {
+  const t = e.target;
+  if (!t || !t.closest || t.id === 'labMemFile') return;
+  const b = t.closest('[data-act]');
+  if (b) { if (!b.disabled) labRepAct(b.dataset.act, b); return; }
+  const row = t.closest('[data-run]');
+  if (row) { labOpenRun(row.dataset.run); labRepTop(); }
+}
+function labRepChange(e) {
+  const inp = e.target;
+  if (!inp || inp.id !== 'labMemFile') return;
+  const f = inp.files && inp.files[0];
+  inp.value = '';
+  if (f) labRepImport(f);
+}
+function labRepKey(e) {
+  if (e.key !== 'Enter' || !e.target.closest) return;
+  const r = e.target.closest('tr[data-run]');
+  if (r) { labOpenRun(r.dataset.run); labRepTop(); }
+}
+
+/* ---- render & entry points ---- */
+function labRenderReports() {
+  const el = $('labPanel-reports');
+  if (!el) return;
+  const run = LAB_REP.openId ? LAB.runs.find(r => r.id === LAB_REP.openId) : null;
+  if (LAB_REP.openId && !run) LAB_REP.openId = null;
+  el.innerHTML = run ? labRepDetailHTML(run) : labRepListHTML();
+  el.onclick = labRepClick;
+  el.onchange = labRepChange;
+  el.onkeydown = labRepKey;
+  highlightIn(el);
+}
+LAB_TABS.reports = labRenderReports;
+
+function labOpenRun(id) {
+  LAB_REP.openId = id;
+  if (LAB.tab === 'reports' && labIsOpen()) labRenderReports();
+  else openLab('reports');
+}
+
+labInit();
 </script>
 </body>
 </html>

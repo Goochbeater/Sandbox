@@ -1069,6 +1069,22 @@ textarea#cvCode{font-family:var(--font-mono);font-size:.8rem}
 .lab-chips .lab-input{width:100%}
 .lab-turn{max-width:94%}
 }
+/* ═════ LIL HAT (solo mode card in the session feed) ═════ */
+.sub.lh{--agent:var(--prism-c)}
+.lh-h{cursor:default}
+.lh-h:hover{background:none}
+.lh-ic{display:flex;width:18px;height:18px;color:var(--prism-c);flex-shrink:0}
+.lh-meta{font-family:var(--font-mono);font-size:.62rem;color:var(--text-faint);white-space:nowrap}
+.lh-st{display:flex;align-items:center;font-size:.72rem;color:var(--text-faint)}
+.lh-b{display:flex;flex-direction:column;gap:10px;padding:10px 12px 12px;border-top:1px solid var(--border);background:rgba(0,0,0,.14)}
+.lh-b .lab-turn-body{max-height:420px;overflow:auto}
+.lh-setup{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;font-size:.8rem;color:var(--text-dim)}
+.lh-sys{width:100%}
+.lh-sys summary{cursor:pointer;font-size:.76rem;color:var(--text-faint)}
+.lh-report{border-top:1px dashed var(--border-strong);padding-top:10px;display:flex;flex-direction:column;gap:10px}
+.lh-report .lab-report{font-size:.86rem}
+.lh-tag{font-size:.56rem;padding:1px 7px}
+@media (max-width:820px){.lh-meta{display:none}}
 </style>
 </head>
 <body>
@@ -1717,7 +1733,7 @@ function renderMdFallback(text){
 // An agent is a named profile: system prompt + model + tool allowance. ENI is the base agent;
 // the others are sub-agents ENI (or you) can spin up. Everything here is editable in the Agents view.
 const ALL_TOOLS=['list_files','read_file','write_file','edit_file','delete_file','search_files','run_python','run_javascript',
-  'bash','screenshot_url','web_search','fetch_url','preview','todo_write','propose_plan','ask_user','spawn_agent','memory','load_skill'];
+  'bash','screenshot_url','web_search','fetch_url','preview','todo_write','propose_plan','ask_user','spawn_agent','memory','load_skill','lil_hat'];
 const READ_TOOLS=['list_files','read_file','search_files','web_search','fetch_url','load_skill'];
 const FS_TOOLS=['list_files','read_file','write_file','edit_file','delete_file','search_files'];
 
@@ -1913,6 +1929,7 @@ function buildSystemPrompt(agent,session,{sub=false,planGate=false}={}){
     const av=agentsList().filter(a=>!a.team&&a.id!==agent.id&&(agent.spawn==='any'||(Array.isArray(agent.spawn)&&agent.spawn.includes(a.id))));
     if(av.length)parts.push('# Agents you can spawn (spawn_agent)\n'+av.map(a=>`- ${a.id}: ${a.description}`).join('\n'));
   }
+  if(tools.has('lil_hat')&&typeof lilHatPrompt==='function')parts.push(lilHatPrompt(session));
   if(session&&session.todos&&session.todos.length&&tools.has('todo_write'))
     parts.push('# Current plan\n'+session.todos.map(t=>`- [${t.status==='completed'?'x':t.status==='in_progress'?'~':' '}] ${t.content}`).join('\n'));
   return parts.join('\n\n');
@@ -4257,6 +4274,7 @@ const Mascot = (() => {
 // ── Icons ────────────────────────────────────────────────────────────
 const SV=(d,w=1.8)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const ICONS={
+  hat:SV('<path d="M2.5 17.5h19"/><path d="M6 17.5c0-6.2 2.3-10.5 6-10.5s6 4.3 6 10.5"/><path d="M7.6 13.4h8.8"/>'),
   swarm:SV('<circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="18" r="2.5"/><circle cx="19" cy="18" r="2.5"/><line x1="10.8" y1="7.2" x2="6.2" y2="15.8"/><line x1="13.2" y1="7.2" x2="17.8" y2="15.8"/><line x1="7.5" y1="18" x2="16.5" y2="18"/>'),
   menu:SV('<line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/>'),
   sidebar:SV('<rect x="3" y="4" width="18" height="16" rx="3"/><line x1="9" y1="4" x2="9" y2="20"/>'),
@@ -4993,6 +5011,7 @@ function updateToolCard(tm,s){
 function patchCard(card,am,i,tm,s){
   const tc=am.tool_calls[i];if(!tc)return;
   if(tc.name==='spawn_agent')return patchSubCard(card,am,i,tc,tm,s);
+  if(tc.name==='lil_hat'&&typeof patchLilHatCard==='function')return patchLilHatCard(card,am,i,tc,tm,s);
   if(tc.name==='propose_plan'||tc.name==='ask_user')return patchAskCard(card,am,i,tc,tm,s);
   const t=TOOLS[tc.name]||{};const args=partialArgs(tc);
   const status=tm?tm.status:(am.streaming?'streaming':'queued');
@@ -5400,6 +5419,7 @@ const MODE_ORDER=['auto','plan','ask','full'];
 const SLASH=[
   ['/plan','Plan first: investigate read-only, propose a plan, wait for your OK','/plan '],
   ['/research','Start a deep-research team on a question','/research '],
+  ['/lilhat','Lil Hat: ENI chats one-on-one with another model, judged','/lilhat '],
   ['/auto','Permission mode: Auto (asks only for box commands)'],
   ['/ask','Permission mode: ask before every change'],
   ['/full','Permission mode: full auto, no approvals'],
@@ -5552,6 +5572,7 @@ async function runSlash(s,text){
     case'/plan':setMode(s,'plan');if(arg){$('input').value=arg;return false;}return true;
     case'/auto':case'/ask':case'/full':setMode(s,cmd.slice(1).toLowerCase());if(arg){$('input').value=arg;return false;}return true;
     case'/research':if(!arg){toast('Add a question after /research');return true;}return false;
+    case'/lilhat':if(!arg){toast('Add a model and what to test — e.g. /lilhat kimi k2.5: can it write a strict limerick?');return true;}$('input').value='Lil Hat · '+arg+'\n\n(Use the lil_hat tool: open a judged chat with that model and play the user yourself.)';return false;
     case'/agent':{const a=arg&&agentsList().find(x=>!x.team&&(x.id===arg.toLowerCase()||x.name.toLowerCase()===arg.toLowerCase()));if(a){s.agentId=a.id;saveSession(s);renderComposerState();toast('Agent: '+a.name);}else agentMenu(s);return true;}
     case'/model':openModelPicker({current:agentModel(getAgent(s.agentId)||baseAgent(),s),allowDefault:true,onPick:k=>{s.model=k;saveSession(s);renderComposerState();renderTopbarStats();}});return true;
     case'/think':s.thinking=s.thinking===false;saveSession(s);renderComposerState();toast('Thinking '+(s.thinking?'on':'off'));return true;
@@ -6457,7 +6478,7 @@ const BOX_KIT={"eni-box.mjs": "#!/usr/bin/env node\n// ENI Box \u2014 a tiny, de
 
 const LAB = { runs:[], suites:[], memory:[], sxs:[], prefs:{}, live:null, tab:'run', listeners:[], _loaded:false, _memWriting:false };
 const LAB_TABS = {};
-const LAB_CAP = { runs:15, sxs:8 };   // newest-first lists kept in storage
+const LAB_CAP = { runs:30, sxs:8 };   // newest-first lists kept in storage
 
 /* ----- persistence -----
    Runs and side-by-side results live in IndexedDB (KV, like sessions); suites and prefs in localStorage.
@@ -7404,8 +7425,8 @@ function labLaneFootHTML(lane){
   return `<div id="lf-${lane.id}">${lane.error ? `<div class="lab-lane-foot"><span class="lab-hint" style="color:var(--danger)">${esc(lane.error)}</span></div>` : ''}</div>`;
 }
 function labTurnRoleHTML(turn,lane){
-  const who=turn.role==='driver' ? 'Tester' : labModelName(lane.target);
-  const info=turn.streaming ? 'streaming…' : turn.ms ? `${fmtSecs(turn.ms/1000)} · ${labFmtCost(turn.cost)}` : (turn.role==='driver'?'opening':'');
+  const who=turn.role==='driver' ? (lane.driver||'Tester') : labModelName(lane.target);
+  const info=turn.streaming ? 'streaming…' : turn.ms ? `${fmtSecs(turn.ms/1000)} · ${labFmtCost(turn.cost)}` : (turn.role==='driver'&&!lane.driver?'opening':'');
   return `<div class="lab-turn-role"><span>${esc(who)}</span><span>${esc(info)}</span></div>`;
 }
 function labJudgeHTML(turn){
@@ -7470,7 +7491,7 @@ function labEnsureAttempt(lane){
 // --- full render (#labLive) ---
 function labRenderLive(){
   const root=document.getElementById('labLive'); if(!root) return;
-  const run=LAB.live||LAB.runs[0]||null;
+  const run=LAB.live||LAB.runs.find(r=>!(r.cfg&&r.cfg.solo))||null;   // Lil Hat runs live in their session, not here
   if(!run){
     root.dataset.run='';
     root.innerHTML=`<div class="lab-empty">No runs yet — set a goal above and press Start. Lanes appear here and stream live.</div>`;
@@ -8476,7 +8497,7 @@ function labRepListHTML() {
     const goal = g ? labTrunc(g, 70) : (r.cfg && r.cfg.laneGoals && r.cfg.laneGoals.length ? 'Suite goals' : '—');
     const targets = ((r.cfg && r.cfg.targets) || []).map(k => `<span class="mp-tag">${esc(labModelName(k))}</span>`).join(' ');
     return `<tr data-run="${esc(r.id)}" tabindex="0">
-      <td>${esc(labAgo(r.at))}</td><td>${esc(goal)}</td><td>${targets}</td>
+      <td>${esc(labAgo(r.at))}</td><td>${r.cfg && r.cfg.solo ? '<span class="lab-chip on lh-tag">Lil Hat</span> ' : ''}${esc(goal)}</td><td>${targets}</td>
       <td>✓${ok}/${lanes.length}</td><td>${esc(labFmtCost(r.cost))}</td><td>${labStatusHTML(r.status)}</td></tr>`;
   }).join('');
   const runsCard = `<div class="lab-card">
@@ -8631,7 +8652,7 @@ function labRepExportMd(run) {
     for (const a of lane.attempts || []) {
       L.push(`#### Attempt ${a.n}${a.outcome ? ' (' + a.outcome + ')' : ''}`, '');
       for (const t of a.turns || []) {
-        L.push(t.role === 'driver' ? `**Tester:** ${t.text || ''}` : `**${mn}:** ${t.text || ''}`, '');
+        L.push(t.role === 'driver' ? `**${lane.driver || 'Tester'}:** ${t.text || ''}` : `**${mn}:** ${t.text || ''}`, '');
         if (t.judge) L.push(`> ${t.judge.score}/10 — ${t.judge.verdict || ''}${t.judge.goal_met ? ' (goal met)' : ''}`, '');
       }
     }
@@ -8754,6 +8775,308 @@ function labOpenRun(id) {
   if (LAB.tab === 'reports' && labIsOpen()) labRenderReports();
   else openLab('reports');
 }
+
+/* ===== LIL HAT — Agent Swarm's solo mode =====
+   One lane, inside an ENI session, and ENI itself is the tester. ENI calls lil_hat to open a chat
+   with another model and to send each message; every reply comes back with the Swarm Judge's
+   score. The judge calling the goal met, or the turn/attempt/budget limits, close the attempt;
+   the Scribe writes the report. Runs are kept with the swarm runs (Reports tab, tagged Lil Hat). */
+
+const LH_CLIP=4000;
+const LH_T=new WeakMap();   // toolMsg → last repaint time (streaming throttle)
+
+function lhRun(id){ return id?LAB.runs.find(r=>r.id===id)||null:null; }
+function lhOpenRun(s){
+  const r=s&&s.lilhat&&lhRun(s.lilhat.runId);
+  return r&&r.cfg&&r.cfg.solo&&r.status==='running'?r:null;
+}
+function lhActiveTarget(){
+  const s=typeof activeSession==='function'?activeSession():null, r=lhOpenRun(s);
+  return r?r.cfg.targets[0]:null;
+}
+function lhBudget(run){ const b=Number(run.cfg.budget)||0; return b>0&&run.cost>=b; }
+function lhReplies(att){ return att?att.turns.filter(t=>t.role==='target').length:0; }
+
+// "kimi-k2.5", "Kimi K2.5", "moonshotai/kimi-k2.5" → a MODELS key
+function lhResolveModel(q){
+  q=String(q||'').trim(); if(!q) return null;
+  const ok=k=>k&&MODELS[k]&&MODELS[k].kind!=='video';
+  if(ok(q)) return q;
+  const c=canonicalModel(q); if(ok(c)) return c;
+  const ql=q.toLowerCase(), opts=labModelOptions();
+  const hit=opts.find(o=>o.name.toLowerCase()===ql||String(o.badge).toLowerCase()===ql)
+    ||opts.find(o=>o.key.toLowerCase().endsWith('/'+ql))
+    ||opts.find(o=>o.name.toLowerCase().includes(ql)||o.key.toLowerCase().includes(ql));
+  return hit?hit.key:null;
+}
+function lhModelHint(q){
+  const w=String(q||'').toLowerCase().split(/[^a-z0-9.]+/).filter(x=>x.length>1);
+  const opts=labModelOptions();
+  const near=w.length?opts.filter(o=>w.some(x=>(o.key+' '+o.name).toLowerCase().includes(x))):[];
+  return (near.length?near:opts).slice(0,6).map(o=>`${o.key} (${o.name})`).join(', ');
+}
+
+/* ----- run state ----- */
+
+function lhNewRun(a,key,goal,ctx){
+  const num=(v,d,lo,hi)=>{ if(v==null||v==='') return d; const n=Math.round(Number(v)); return Number.isFinite(n)?Math.min(hi,Math.max(lo,n)):d; };
+  const b=a.budget_usd==null||a.budget_usd===''?1:Number(a.budget_usd);
+  const cfg={solo:true, targets:[key], system:String(a.system_prompt||''), goal, category:String(a.category||'custom'),
+    lanes:1, laneGoals:null, maxTurns:num(a.max_turns,6,1,20), maxAttempts:num(a.max_attempts,2,1,5),
+    budget:Number.isFinite(b)&&b>0?b:0, concurrency:1, plannerModel:null,
+    driverModel:agentModel(ctx.agent,ctx.session), judgeModel:labRoleModel('sw-judge'), scribeModel:labRoleModel('scribe'),
+    useMemory:false, autoScribe:true, suiteId:null, sessionId:ctx.session.id};
+  const lane={id:uid(), target:key, idx:0, title:'Lil Hat', goal, opening:'', driver:(ctx.agent&&ctx.agent.name)||'ENI',
+    status:'driving', cost:0, best:null, error:null, attempts:[{n:1,outcome:null,turns:[]}]};
+  const run={id:uid(), at:Date.now(), cfg, status:'running', error:null, cost:0, tokens:{in:0,out:0},
+    plan:[{title:'Lil Hat',goal,opening:''}], lanes:[lane], report:null};
+  LAB.runs.unshift(run); labSave('runs');
+  return run;
+}
+
+// copy this call's turns onto the tool message (the card renders from it, so it survives reloads)
+function lhSync(ctx,run,lane,att,force){
+  const tm=ctx.toolMsg, L=tm&&tm.lilhat; if(!L) return;
+  const ids=new Set(L.ids);
+  L.turns=(att?att.turns:[]).filter(t=>ids.has(t.id)).map(t=>({id:t.id, role:t.role, text:String(t.text||'').slice(0,LH_CLIP*2),
+    streaming:!!t.streaming, ms:t.ms||0, cost:t.cost||0, judge:t.judge?{...t.judge}:null}));
+  Object.assign(L,{attempt:att?att.n:1, turn:lhReplies(att), cost:run.cost, best:lane.best, status:lane.status, runStatus:run.status});
+  const now=Date.now();
+  if(force||now-(LH_T.get(tm)||0)>80){ LH_T.set(tm,now); touch(tm,ctx.session); }
+}
+
+async function lhExchange(ctx,run,lane,att,message){
+  const c=run.cfg, L=ctx.toolMsg.lilhat;
+  run._ctl={signal:ctx.signal,abort(){}};   // labJudge reads the run's signal
+  const dt={id:uid(), role:'driver', text:String(message).trim(), streaming:false, ms:0, cost:0, judge:null};
+  const tt={id:uid(), role:'target', text:'', streaming:true, ms:0, cost:0, judge:null};
+  att.turns.push(dt,tt); L.ids.push(dt.id,tt.id);
+  lane.status='waiting'; lhSync(ctx,run,lane,att,true); labEmit('lane:update',run,lane);
+  let r;
+  try{
+    r=await labCall(lane.target, labTargetMsgs(att), {system:c.system, thinking:true, maxTokens:8192, signal:ctx.signal,
+      onDelta:t=>{ tt.text=t; lhSync(ctx,run,lane,att); }});
+  }catch(e){
+    // nothing was delivered: drop the exchange so the transcript stays clean
+    att.turns.splice(att.turns.indexOf(dt),2); L.ids=L.ids.filter(id=>id!==dt.id&&id!==tt.id);
+    lane.status='driving'; lhSync(ctx,run,lane,att,true);
+    throw e;
+  }
+  tt.text=r.text; tt.ms=r.ms; tt.cost=r.cost||0; tt.streaming=false; labAddCost(run,lane,r);
+  lane.status='judging'; lhSync(ctx,run,lane,att,true);
+  const j=lhBudget(run)?{score:null,verdict:'Not judged: budget reached',goal_met:false}:await labJudge(run,lane,att,tt);
+  tt.judge=j;
+  if(j.score!=null&&(lane.best==null||j.score>lane.best)) lane.best=j.score;
+  lane.status='driving'; lhSync(ctx,run,lane,att,true);
+  labSave('runs'); labEmit('lane:update',run,lane);
+  return j;
+}
+
+// close the chat: success | failed | ended | budget → Scribe report (same as a swarm run)
+async function lhFinish(ctx,run,lane,att,how,{report=true}={}){
+  const s=ctx.session, L=ctx.toolMsg.lilhat;
+  lane.status=how==='success'?'success':how==='failed'?'failed':'stopped';
+  if(how==='budget'){ run.error='Budget reached'; }
+  run.status=how==='ended'||how==='budget'?'stopped':'running';
+  if(s.lilhat&&s.lilhat.runId===run.id){ s.lilhat=null; saveSession(s); }
+  L.final=true; lhSync(ctx,run,lane,att,true);
+  const anyReply=lane.attempts.some(a=>a.turns.some(t=>t.role==='target'&&t.text));
+  if(report&&anyReply){ L.runStatus='scribing'; touch(ctx.toolMsg,s); await labScribe(run); }
+  else if(run.status==='running') run.status='done';
+  run.endedAt=Date.now();
+  L.report=run.report?{md:String(run.report.md||'').slice(0,12000), patterns:(run.report.patterns||[]).slice(0,8)}:null;
+  labSave('runs'); lhSync(ctx,run,lane,att,true); labEmit('run:update',run);
+  return run.report;
+}
+
+function lhResult(run,lane,att,j,state,rep){
+  const c=run.cfg, mn=labModelName(lane.target), n=lhReplies(att);
+  const last=att&&[...att.turns].reverse().find(t=>t.role==='target');
+  const left=c.maxAttempts-lane.attempts.length, out=[];
+  out.push(`Lil Hat · ${mn} · attempt ${att?att.n:1}/${c.maxAttempts} · turn ${n}/${c.maxTurns} · spent ${labFmtCost(run.cost)}${c.budget?` of $${c.budget}`:''}`);
+  if(j&&last){
+    const txt=String(last.text||'');
+    out.push(`\n${mn} replied:\n"""\n${txt.slice(0,LH_CLIP)}${txt.length>LH_CLIP?'\n…[truncated]':''}\n"""`);
+    out.push(`\nJudge: ${j.score==null?'—':j.score}/10 — ${j.verdict||''}${j.goal_met?' GOAL MET.':' Goal not met yet.'}`);
+  }
+  if(state==='open') out.push(`\nNext: your follow-up with action "say" (${c.maxTurns-n} turn${c.maxTurns-n===1?'':'s'} left in this attempt), "retry" to start over with a different opening (${left} attempt${left===1?'':'s'} left), or "end" to finish and get the report.`);
+  else if(state==='limit') out.push(`\nAttempt ${att.n} used all ${c.maxTurns} turns. Use "retry" with a different opening (${left} attempt${left===1?'':'s'} left), or "end".`);
+  else{
+    const why={success:`goal met on attempt ${att.n}, turn ${n}`, failed:'goal not met within the limits', ended:'ended by you', budget:'budget reached'}[state];
+    out.push(`\nLil Hat chat closed — ${why}. Best score ${lane.best==null?'—':lane.best+'/10'}.`);
+    if(rep&&rep.md) out.push(`\nScribe report:\n${String(rep.md).slice(0,3000)}`);
+    if(rep&&(rep.patterns||[]).length) out.push(`\nPatterns (the user can save these to memory from the Lil Hat card):\n${rep.patterns.map(p=>'- '+p.text).join('\n')}`);
+    out.push('\nNow tell the user what you found.');
+  }
+  return {content:out.join('\n'), display:{lilhat:true}};
+}
+
+/* ----- the tool ----- */
+
+async function lhTool(a,ctx){
+  const s=ctx.session, act=String(a.action||'').toLowerCase(), tm=ctx.toolMsg;
+  tm.lilhat={action:act, ids:[], turns:[]};
+  if(!['start','say','retry','end'].includes(act)) return {error:'action must be one of: start, say, retry, end'};
+  if(labReady) await labReady;
+  let run=lhOpenRun(s);
+  if(act==='start'){
+    if(run) return {error:`A Lil Hat chat with ${labModelName(run.cfg.targets[0])} is still open (goal: "${clip(run.cfg.goal,80)}"). Continue it with "say", or close it with "end" before starting another.`};
+    const key=lhResolveModel(a.model);
+    if(!key) return {error:`Unknown model "${a.model||''}". Use a model id, e.g. ${lhModelHint(a.model)}.`};
+    const goal=String(a.goal||'').trim();
+    if(!goal) return {error:'goal is required for start: one sentence the judge can check, e.g. "Writes a correct ISO-8601 duration parser with tests".'};
+    if(!String(a.message||'').trim()) return {error:'message is required: your opening message to the model.'};
+    run=lhNewRun(a,key,goal,ctx);
+    s.lilhat={runId:run.id}; saveSession(s);
+  }else if(!run) return {error:'No Lil Hat chat is open in this session. Open one with action "start" (model, goal, message).'};
+  const c=run.cfg, lane=run.lanes[0];
+  let att=lane.attempts[lane.attempts.length-1];
+  Object.assign(tm.lilhat,{runId:run.id, target:lane.target, goal:c.goal, driver:lane.driver, maxTurns:c.maxTurns, maxAttempts:c.maxAttempts, budget:c.budget});
+  if(act==='start') tm.lilhat.setup={system:c.system, category:c.category};
+  try{
+    if(act==='end'){
+      if(att&&!att.outcome&&att.turns.length) att.outcome='stopped';
+      const rep=await lhFinish(ctx,run,lane,att,'ended',{report:a.report!==false});
+      return lhResult(run,lane,att,null,'ended',rep);
+    }
+    if(!String(a.message||'').trim()) return {error:'message is required: what you say to the model next.'};
+    if(act==='retry'){
+      if(att.turns.length){
+        if(lane.attempts.length>=c.maxAttempts) return {error:`No attempts left (${c.maxAttempts} used). Use "end" to finish and get the report.`};
+        if(!att.outcome) att.outcome='limit';
+        att={n:lane.attempts.length+1,outcome:null,turns:[]}; lane.attempts.push(att);
+        labEmit('attempt:start',run,lane,att);
+      }
+      tm.lilhat.sep=att.n;
+    }else if(act==='say'&&att.outcome){
+      return {error:`Attempt ${att.n} is over (${att.outcome}). ${lane.attempts.length<c.maxAttempts?'Use "retry" with a fresh opening message, or "end".':'No attempts left — use "end" to get the report.'}`};
+    }
+    if(lhBudget(run)){ const rep=await lhFinish(ctx,run,lane,att,'budget'); return lhResult(run,lane,att,null,'budget',rep); }
+    const j=await lhExchange(ctx,run,lane,att,a.message);
+    if(j.goal_met){ att.outcome='success'; const rep=await lhFinish(ctx,run,lane,att,'success'); return lhResult(run,lane,att,j,'success',rep); }
+    if(lhBudget(run)){ att.outcome='budget'; const rep=await lhFinish(ctx,run,lane,att,'budget'); return lhResult(run,lane,att,j,'budget',rep); }
+    if(lhReplies(att)>=c.maxTurns){
+      att.outcome='limit';
+      if(lane.attempts.length>=c.maxAttempts){ const rep=await lhFinish(ctx,run,lane,att,'failed'); return lhResult(run,lane,att,j,'failed',rep); }
+      lhSync(ctx,run,lane,att,true); labSave('runs');
+      return lhResult(run,lane,att,j,'limit',null);
+    }
+    return lhResult(run,lane,att,j,'open',null);
+  }catch(e){
+    if(e&&e.name==='AbortError'){
+      if(att&&!att.outcome) att.outcome='stopped';
+      lane.status='stopped'; run.status='stopped'; run.endedAt=Date.now();
+      if(s.lilhat&&s.lilhat.runId===run.id) s.lilhat=null;
+      tm.lilhat.final=true; tm.lilhat.runStatus='stopped'; tm.lilhat.status='stopped';
+      labSave('runs'); throw e;
+    }
+    return {error:`${labModelName(lane.target)} didn't answer: ${e.message||e}. Nothing was sent — try "say" again, or "end".`};
+  }
+}
+
+TOOLS.lil_hat={risk:'agent',readOnly:true,parallel:false,verb:'Talked to',icon:'hat',
+  description:'Lil Hat — Agent Swarm\'s solo mode. Hold a judged one-on-one conversation with another AI model, playing the user yourself. '
+    +'"start" opens the chat: model (id or name), goal (one sentence the judge can verify), optional system_prompt to test, optional limits, and your opening message. '
+    +'Every call returns the model\'s reply plus the Swarm Judge\'s 0-10 score, a one-line verdict and whether the goal is met. '
+    +'Keep going with "say" (your next message): read the reply and verdict and push on what is weak, wrong or missing. '
+    +'"retry" starts a fresh attempt with a different opening; "end" stops early. When the judge says the goal is met, or the turn/attempt/budget limits run out, the chat closes and the Scribe writes a report with reusable patterns. '
+    +'One Lil Hat chat per session at a time. Use it to test, evaluate, compare or probe a model or a system prompt.',
+  parameters:{type:'object',properties:{
+    action:{type:'string',enum:['start','say','retry','end'],description:'start a chat, say the next message, retry with a fresh attempt, or end it'},
+    model:{type:'string',description:'start: the model to talk to (id like "moonshotai/kimi-k2.5", or its name)'},
+    goal:{type:'string',description:'start: one-sentence success condition the judge checks after every reply'},
+    message:{type:'string',description:'start/say/retry: exactly what you send to the model, as the user'},
+    system_prompt:{type:'string',description:'start: optional system prompt to test on the model'},
+    category:{type:'string',enum:['coding','reasoning','writing','instruction','edge','persona','custom'],description:'start: optional category, used to tag patterns'},
+    max_turns:{type:'number',description:'start: replies per attempt (1-20, default 6)'},
+    max_attempts:{type:'number',description:'start: attempts (1-5, default 2)'},
+    budget_usd:{type:'number',description:'start: spend cap for target + judge + scribe in USD (default 1, 0 = no cap)'},
+    report:{type:'boolean',description:'end: write the Scribe report (default true)'}
+  },required:['action']},
+  label:a=>{ const k=a.model?lhResolveModel(a.model):lhActiveTarget(); return k?labModelName(k):(a.model||'Lil Hat'); },
+  run:lhTool};
+TOOL_ACT.lil_hat=['writing','Chatting with'];
+
+// ENI's prompt: what Lil Hat is, and the chat that is open right now
+function lilHatPrompt(session){
+  const r=lhOpenRun(session);
+  let t='# Lil Hat (lil_hat) — Agent Swarm\'s solo mode\nYou can hold a judged one-on-one conversation with any other model, playing the user yourself. Use it when the user wants a model tested, compared, probed or evaluated ("see if X can…", "how does Y handle…", /lilhat). start with the target model, a one-sentence goal the judge can verify, an optional system_prompt under test, and your opening message; then continue with say, reading each reply and verdict and pushing where it is weak. Stay in character as a realistic user. retry starts a fresh attempt with a different opening; end finishes early. When the goal is met or limits run out the chat closes and the Scribe writes a report — then summarise the outcome for the user.';
+  if(r){
+    const ln=r.lanes[0], at=ln.attempts[ln.attempts.length-1];
+    t+=`\nOpen now: ${labModelName(ln.target)} · goal "${clip(r.cfg.goal,120)}" · attempt ${at.n}/${r.cfg.maxAttempts} · turn ${lhReplies(at)}/${r.cfg.maxTurns}${at.outcome?` (attempt over: ${at.outcome})`:''}.`;
+  }
+  return t;
+}
+
+/* ----- the feed card ----- */
+
+function lhCardKey(L,tm){ return [tm&&tm.status, L&&L.action, L&&(L.turns||[]).map(t=>t.id+(t.streaming?'s':'d')+(t.judge?'j':'')).join(','),
+  L&&L.status, L&&L.final, L&&L.runStatus, !!(L&&L.report), tm&&tm.status==='error'?tm.content:''].join('|'); }
+
+function patchLilHatCard(card,am,i,tc,tm,s){
+  const a=tc.args&&typeof tc.args==='object'?tc.args:partialArgs(tc);
+  const L=tm&&tm.lilhat, act=String((L&&L.action)||a.action||'').toLowerCase();
+  const key=(L&&L.target)||(a.model?lhResolveModel(a.model):null)||(act!=='start'?lhActiveTarget():null);
+  const mn=key?labModelName(key):(a.model||'…');
+  const status=tm?tm.status:(am.streaming?'streaming':'queued');
+  const meta=L&&L.runId?`attempt ${L.attempt||1}/${L.maxAttempts} · turn ${L.turn||0}/${L.maxTurns} · ${labFmtCost(L.cost)}${L.best!=null?` · best ${L.best}/10`:''}`:'';
+  card.className='sub lh';
+  const sig=lhCardKey(L,tm)+'|'+mn;
+  if(card._lhsig===sig){
+    for(const t of (L&&L.turns)||[]) if(t.streaming){ const b=card.querySelector(`#lt-${CSS.escape(t.id)} .lab-turn-body`); if(b) b.textContent=t.text; }
+    const m=card.querySelector('.lh-meta'); if(m) m.textContent=meta;
+    return;
+  }
+  card._lhsig=sig;
+  const verb={start:'Started a chat with',say:'Said to',retry:'Started over with',end:'Wrapped up with'}[act]||'Lil Hat ·';
+  const st=status==='running'||status==='streaming'?'<span class="spin"></span>':status==='ok'?`<span class="ok">${ic('check','ic')}</span>`
+    :status==='error'?'<span class="bad">failed</span>':status==='cancelled'?'stopped':status==='denied'?'declined':esc(status||'');
+  const head=`<div class="sub-h lh-h"><span class="lh-ic">${ic('hat')}</span><span class="sub-name">Lil Hat</span><span class="sub-task">${esc(verb)} <b>${esc(mn)}</b>${L&&L.goal&&act==='start'?` · ${esc(clip(L.goal,90))}`:''}</span><span class="lh-meta">${esc(meta)}</span><span class="lh-st">${st}</span></div>`;
+  const b=[];
+  if(L&&L.setup){
+    b.push(`<div class="lh-setup"><span class="flabel">Goal</span><span>${esc(L.goal||'')}</span></div>`);
+    b.push(`<div class="lh-setup"><span class="lab-chip">${L.maxTurns} turns</span><span class="lab-chip">${L.maxAttempts} attempt${L.maxAttempts===1?'':'s'}</span><span class="lab-chip">${L.budget?'$'+L.budget+' cap':'no cap'}</span>${L.setup.category&&L.setup.category!=='custom'?`<span class="lab-chip">${esc(L.setup.category)}</span>`:''}${L.setup.system?`<details class="lh-sys"><summary>System prompt under test</summary><div class="lab-pre">${esc(L.setup.system)}</div></details>`:''}</div>`);
+  }
+  if(L&&L.sep>1) b.push(`<div class="lab-attempt-sep">Attempt ${L.sep}</div>`);
+  const lane={target:key, driver:(L&&L.driver)||'ENI', status:L&&L.status};
+  for(const t of (L&&L.turns)||[]) b.push(labTurnBlockHTML(t,lane));
+  if(tm&&tm.status==='error') b.push(`<div class="a-err"><span>${esc(String(tm.content||'').replace(/^Error:\s*/,''))}</span></div>`);
+  if(L&&L.final){
+    const r=L.report, pats=(r&&r.patterns)||[];
+    b.push(`<div class="lh-report"><div class="lab-row">${labStatusHTML(L.runStatus||'done')}<span class="lab-hint">${L.runStatus==='scribing'?'The Scribe is writing the report…':`Chat closed · best ${L.best==null?'—':L.best+'/10'} · ${labFmtCost(L.cost)}`}</span><span class="lab-spacer"></span>${L.runId?`<button class="btn small" data-lh="open" data-run="${esc(L.runId)}">Open in Agent Swarm</button>`:''}</div>`
+      +(r&&r.md?`<div class="md lab-report">${labMdHTML(r.md)}</div>`:'')
+      +(pats.length?`<div class="lab-list">${pats.map((p,k)=>{ const saved=typeof labRepHas==='function'&&labRepHas(p.text);
+        return `<div class="lab-item"><div>${esc(p.text)}<div class="lab-chips">${(p.tags||[]).map(x=>`<span class="lab-chip">${esc(x)}</span>`).join('')}</div></div><div class="lab-item-acts"><button class="btn small" data-lh="save" data-k="${k}"${saved?' disabled':''}>${saved?'Saved ✓':'Save to memory'}</button></div></div>`; }).join('')}</div>`:'')
+      +'</div>');
+  }
+  card.innerHTML=head+(b.length?`<div class="lh-b">${b.join('')}</div>`:'');
+  highlightIn(card);
+  card.onclick=e=>{
+    const x=e.target.closest('[data-lh]'); if(!x) return;
+    e.stopPropagation();
+    if(x.dataset.lh==='open'){ openLab('reports'); labOpenRun(x.dataset.run); }
+    else if(x.dataset.lh==='save'){
+      const p=((L.report||{}).patterns||[])[+x.dataset.k]; if(!p) return;
+      const tags=[...new Set([...(p.tags||[]),'lil-hat'])];
+      if(!labAddMemory({text:p.text,tags,from:L.runId})) toast('Already in memory');
+      x.disabled=true; x.textContent='Saved ✓';
+    }
+  };
+}
+
+// saved agents from before Lil Hat existed: give the base agent the new tool once
+(function lhMigrate(){
+  try{
+    if(LS.get('eni_lilhat_mig')) return;
+    const saved=LS.json('eni_agents',null);
+    if(Array.isArray(saved)){
+      let ch=false;
+      for(const a of saved) if(a&&a.base&&Array.isArray(a.tools)&&!a.tools.includes('lil_hat')){ a.tools.push('lil_hat'); ch=true; }
+      if(ch) LS.setJson('eni_agents',saved);
+    }
+    LS.set('eni_lilhat_mig','1');
+  }catch(e){}
+})();
 
 labInit();
 </script>

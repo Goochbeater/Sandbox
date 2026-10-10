@@ -586,8 +586,8 @@ sup.cite a:hover{background:var(--prism-a);color:var(--bg);text-decoration:none}
   .landing-title{font-size:clamp(2.6rem,12vw,4rem)}
   .msg.compare{width:100%;margin-left:0}
 }
-/* ══ Model Lab ══ */
-/* ===== MODEL LAB (dark only; tokens from SPEC §3) ===== */
+/* ══ Agent Swarm ══ */
+/* ===== AGENT SWARM (dark only; tokens from SPEC §3) ===== */
 .lab{flex:1;min-height:0;overflow-y:auto;padding:18px 22px 40px;display:flex;flex-direction:column;gap:18px}
 .lab[hidden]{display:none!important}
 .lab-top,.lab-body{width:100%;max-width:1500px;margin:0 auto;min-width:0}
@@ -797,7 +797,7 @@ sup.cite a:hover{background:var(--prism-a);color:var(--bg);text-decoration:none}
 
 <nav class="sb-nav" aria-label="Tools">
   <button class="sb-nav-item" id="navLab" onclick="openLab()" aria-pressed="false">
-    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 3h6"/><path d="M10 3v6.2L4.6 18.4A2 2 0 0 0 6.3 21h11.4a2 2 0 0 0 1.7-2.6L14 9.2V3"/><path d="M7 15h10"/></svg><span class="lbl">Model Lab</span>
+    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="18" r="2.5"/><circle cx="19" cy="18" r="2.5"/><line x1="10.8" y1="7.2" x2="6.2" y2="15.8"/><line x1="13.2" y1="7.2" x2="17.8" y2="15.8"/><line x1="7.5" y1="18" x2="16.5" y2="18"/></svg><span class="lbl">Agent Swarm</span>
     <span class="sb-nav-badge" id="labLiveBadge" hidden>0</span>
   </button>
 </nav>
@@ -965,7 +965,7 @@ sup.cite a:hover{background:var(--prism-a);color:var(--bg);text-decoration:none}
 
 <div class="lab" id="labView" hidden>
   <div class="lab-top">
-    <div class="lab-titles"><span class="lab-kicker">Model Lab</span><h2 class="lab-h">Test any model, side by side.</h2></div>
+    <div class="lab-titles"><span class="lab-kicker">Agent Swarm</span><h2 class="lab-h">Test any model, side by side.</h2></div>
     <div class="lab-tabs" role="tablist">
       <button class="lab-tab on" data-tab="run" role="tab" onclick="labTab('run')">Run</button>
       <button class="lab-tab" data-tab="suites" role="tab" onclick="labTab('suites')">Suites</button>
@@ -3251,8 +3251,8 @@ function init(){
 init();
 </script>
 <script>
-/* ══════ MODEL LAB ══════ */
-/* ===== MODEL LAB core: state, persistence, view switching, shared helpers ===== */
+/* ══════ AGENT SWARM ══════ */
+/* ===== AGENT SWARM core: state, persistence, view switching, shared helpers ===== */
 
 const LAB = { runs:[], suites:[], memory:[], sxs:[], prefs:{}, live:null, tab:'run', listeners:[] };
 const LAB_TABS = {};
@@ -3303,7 +3303,7 @@ function labSave(which){
     if(!list||!list.length||drops>=5) break;
     list.pop();   // oldest
   }
-  toast('Model Lab storage is full — export or delete old runs');
+  toast('Agent Swarm storage is full — export or delete old runs');
   return false;
 }
 
@@ -3474,7 +3474,7 @@ function labMemoryFor(cfg){
   return out;
 }
 
-/* lab_engine.js - Model Lab run engine: planner, lanes, attempts, judge, budget, saving */
+/* lab_engine.js - Agent Swarm run engine: planner, lanes, attempts, judge, budget, saving */
 
 // ---- prompts ----
 const LAB_ANGLES=[
@@ -3525,7 +3525,7 @@ function labStartRun(cfg){
   const laneGoals=Array.isArray(c.laneGoals)?c.laneGoals.map(s=>String(s||'').trim()).filter(Boolean):[];
   const goal=String(c.goal||'').trim();
   if(!laneGoals.length&&!goal){ toast('Add a goal or lane goals'); return null; }
-  if(LAB.live&&['planning','running','scribing'].includes(LAB.live.status)){ toast('A Model Lab run is already in progress'); return null; }
+  if(LAB.live&&['planning','running','scribing'].includes(LAB.live.status)){ toast('A Agent Swarm run is already in progress'); return null; }
   const num=(v,d,lo,hi)=>{ const n=Math.round(Number(v)); return isFinite(n)?Math.min(hi,Math.max(lo,n)):d; };
   const b=Number(c.budget), dflt=sel||targets[0];
   const cfgN={
@@ -3810,7 +3810,7 @@ async function labJudge(run, lane, att, tt){
   return j&&typeof j==='object'?labNormJudge(j):{score:null, verdict:'(judge reply unparsable)', goal_met:false};
 }
 
-/* ===== Model Lab: setup card (Run tab), model chips, prefill ===== */
+/* ===== Agent Swarm: setup card (Run tab), model chips, prefill ===== */
 
 // ----- run categories (label + goal placeholder example) -----
 const LAB_CATEGORIES=[
@@ -4048,7 +4048,7 @@ function labPrefillRun(partial){
   openLab('run');
 }
 
-/* ===== MODEL LAB · live run view (lab_live.js) ===== */
+/* ===== AGENT SWARM · live run view (lab_live.js) ===== */
 
 // --- status pills ---
 const LAB_STATUS = {
@@ -4354,7 +4354,7 @@ function labLiveListener(type,run,lane,x){
 /* ===== register live listener ===== */
 labOn(labLiveListener);
 
-/* ===== Model Lab: test suites (lab_suites.js) ===== */
+/* ===== Agent Swarm: test suites (lab_suites.js) ===== */
 
 /* ----- state & constants ----- */
 const LAB_SUITE_CATS = [['coding','Coding'],['reasoning','Reasoning'],['writing','Writing'],['instruction','Instruction'],['edge','Edge cases'],['persona','Persona'],['custom','Custom']];
@@ -4641,7 +4641,7 @@ function labSuiteAct(act, id){
   if(act === 'new'){ labSuiteOpen({id: uid(), name: '', category: 'custom', items: [], builtin: false, updatedAt: Date.now(), lastModels: []}); return; }
   if(act === 'restore'){ LAB.suites.push(...labSeedSuites()); labSave('suites'); toast('Starter suites restored'); return labSuiteDraw(); }
   if(act === 'import'){ $('labSuiteFile').click(); return; }
-  if(act === 'exportall'){ return labDownload('model-lab-suites.json', JSON.stringify(LAB.suites, null, 2), 'application/json'); }
+  if(act === 'exportall'){ return labDownload('agent-swarm-suites.json', JSON.stringify(LAB.suites, null, 2), 'application/json'); }
   const s = labSuiteById(id); if(!s) return;
   switch(act){
     case 'rerun': return labOpenSxs({models: labSuiteModels(s), suiteId: s.id, autorun: true});
@@ -4686,7 +4686,7 @@ function labRenderSuites(){
 
 LAB_TABS.suites = labRenderSuites;
 
-/* Model Lab: Side-by-side (lab_sxs.js). Fills #labPanel-sxs.
+/* Agent Swarm: Side-by-side (lab_sxs.js). Fills #labPanel-sxs.
    Globals: LAB_SXS, labRenderSxs (LAB_TABS.sxs), labOpenSxs, labStopSxs, labRunSxs; helpers prefixed labSxs. */
 
 /* ---------- state ---------- */
@@ -5057,7 +5057,7 @@ function labSxsExport(){
         +`${c.text||(c.error?`_Error: ${c.error}_`:'_(no reply)_')}\n`;
     });
   });
-  labDownload(`model-lab-side-by-side-${d.toISOString().slice(0,10)}.md`,md,'text/markdown');
+  labDownload(`agent-swarm-side-by-side-${d.toISOString().slice(0,10)}.md`,md,'text/markdown');
 }
 
 /* ---------- panel render (LAB_TABS.sxs) ---------- */
@@ -5076,7 +5076,7 @@ function labRenderSxs(){
 }
 LAB_TABS.sxs=labRenderSxs;
 
-/* ===== Model Lab: reports & memory (lab_reports.js) ===== */
+/* ===== Agent Swarm: reports & memory (lab_reports.js) ===== */
 
 /* ---- state & constants ---- */
 const LAB_REP = { openId: null };
@@ -5447,7 +5447,7 @@ function labRepAct(act, el) {
       break;
     }
     case 'export':
-      if (run) labDownload('model-lab-' + new Date(run.at).toISOString().slice(0, 10) + '-' + run.id + '.md', labRepExportMd(run), 'text/markdown');
+      if (run) labDownload('agent-swarm-' + new Date(run.at).toISOString().slice(0, 10) + '-' + run.id + '.md', labRepExportMd(run), 'text/markdown');
       break;
     case 'delrun': if (run) labRepDelete(run); break;
     case 'addmem': {
@@ -5459,7 +5459,7 @@ function labRepAct(act, el) {
       break;
     }
     case 'exportmem':
-      labDownload('model-lab-memory.json', JSON.stringify({ memory: LAB.memory }, null, 2), 'application/json');
+      labDownload('agent-swarm-memory.json', JSON.stringify({ memory: LAB.memory }, null, 2), 'application/json');
       break;
     case 'importmem': { const f = $('labMemFile'); if (f) f.click(); break; }
     case 'clearmem':

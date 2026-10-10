@@ -3541,7 +3541,7 @@ function labStartRun(cfg){
     plan:[], lanes:[], report:null, _ctl:new AbortController()};
   LAB.runs.unshift(run); LAB.live=run;
   labSave('runs'); labEmit('run:update', run); labTickBadge();
-  labExecute(run).catch(e=>{ run.status='error'; run.error=String((e&&e.message)||e); labSave('runs'); labEmit('run:end', run); });
+  labExecute(run).catch(e=>{ run.status='error'; run.error=String((e&&e.message)||e); if(!run.endedAt) run.endedAt=Date.now(); labSave('runs'); labEmit('run:end', run); });
   return run;
 }
 
@@ -3549,6 +3549,7 @@ function labStopRun(){
   const run=LAB.live;
   if(!run||!['planning','running'].includes(run.status)) return false;
   run.status='stopped';
+  if(!run.endedAt) run.endedAt=Date.now();
   try{ run._ctl.abort(); }catch(e){}
   labEmit('run:update', run); labSave('runs'); labTickBadge();
   return true;
@@ -3671,6 +3672,7 @@ async function labFinish(run){
     }
     else run.status='done';
   }
+  if(!run.endedAt) run.endedAt=Date.now();
   clearTimeout(labSaveTimer); labSaveTimer=null;
   labEmit('run:update', run); labEmit('run:end', run);
   if(LAB.live===run) LAB.live=null;

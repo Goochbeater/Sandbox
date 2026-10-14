@@ -3841,6 +3841,7 @@ function buildGardens(g) {
   const B = new Builder(), Bo = new Builder(), Bt = new Builder(), r = mulberry(4040);
   const PH = EST.PH, GH = EST.GH, tz = -112;
   const wild = [], wildFlowers = [], wildBush = [];   // instanced overgrowth (hidden once restored)
+  const tameFlowers = [], tameRoses = [];            // formal planting (shown once restored)
   // ---- retaining wall with rusticated face and balustrade ----
   for (const [x0, x1] of [[-54, -4.6], [4.6, 54]]) {
     const F = facade(V3(x0, GH - 0.4, tz + 0.5), V3(0, 0, 1));
@@ -3910,9 +3911,10 @@ function buildGardens(g) {
       pg.translate(fx + Math.cos(a) * d, fy + 0.63 + r() * 0.01, fz + Math.sin(a) * d); pads.push(pg);
       if (r() < 0.18) { const bg = new THREE.ConeGeometry(0.09, 0.12, 6, 1, true).rotateX(Math.PI); bg.translate(fx + Math.cos(a) * d, fy + 0.7, fz + Math.sin(a) * d); buds.push(bg); }
     }
-    const pm = new THREE.Mesh(mergeGeos(pads), padM); pm.receiveShadow = true; g.add(pm);
-    if (buds.length) g.add(new THREE.Mesh(mergeGeos(buds), budM));
-    EST.fountain = { x: fx, z: fz, water, top: fy + 4.5 };
+    const pm = new THREE.Mesh(mergeGeos(pads), padM); pm.receiveShadow = true;
+    if (buds.length) pm.add(new THREE.Mesh(mergeGeos(buds), budM));
+    g.add(pm);
+    EST.fountain = { x: fx, z: fz, water, top: fy + 4.5, pads: pm };
     EST.poi.fountain = [fx + 7.5, fz];
     const triton = makeStatue('sailor', 909, { t: 1.2, arm: V3(fx + 0.6, fy + 7.4, fz + 0.2) });
     if (triton) { triton.root.position.set(fx, fy + 4.5, fz); triton.root.scale.setScalar(0.85); triton.root.rotation.y = 0.3; g.add(triton.root); }
@@ -3936,6 +3938,10 @@ function buildGardens(g) {
       for (const p of cardClusterAtlas(tx, GH + 2.6, tz2, 1.1, 10, 1.3, r)) Bo.add('leafBush', p);
       addCollider(tx, tz2, 0.8, 0.8, 0, GH - 1, GH + 2.5);
     }
+    // restored planting: flower borders inside the hedges, an oval of roses at the centre
+    for (let x = cx - 13; x <= cx + 13; x += 1.1) for (const dz of [-5.6, -4.6, 4.6, 5.6]) tameFlowers.push([x, GH, cz + dz, r() * TAU, 0.8 + r() * 0.2]);
+    for (let i = 0; i < 18; i++) { const a = i / 18 * TAU; tameRoses.push([cx + Math.cos(a) * 5.2, GH, cz + Math.sin(a) * 2.6, r() * TAU, 0.42]); }
+    for (let i = 0; i < 26; i++) { const a = i / 26 * TAU; tameFlowers.push([cx + Math.cos(a) * 3.8, GH, cz + Math.sin(a) * 1.7, r() * TAU, 0.75]); }
     // the beds: rank grass, self-seeded flowers and the odd bramble
     for (let i = 0; i < 520; i++) {
       const x = cx + (r() - 0.5) * 28, z = cz + (r() - 0.5) * 13.5;
@@ -4025,6 +4031,7 @@ function buildGardens(g) {
   };
   inst('tuft', wild.filter((_, i) => i % 2 === 0), 0); inst('tuft', wild.filter((_, i) => i % 2 === 1), 1);
   inst('flower', wildFlowers, 0); inst('bush', wildBush, 0);
+  inst('flower', tameFlowers, 1, EST.groups.gardenTame); inst('bush', tameRoses, 1, EST.groups.gardenTame);
   const fern = [];
   for (let i = 0; i < 80; i++) { const x = (r() - 0.5) * 92, z = EST.frontZ + 0.7 + r() * 1.2; fern.push([x, groundHeight(x, z, PH + 2), z, r() * TAU, 0.6 + r() * 0.6]); }
   inst('fern', fern, 0, g);
@@ -6925,7 +6932,7 @@ function initCharacters() {
   const g = ASSET.glb.rig;
   if (!g) { console.warn('[chars] rig unavailable'); return; }
   CH.rig = g;
-  CH.clips = g.animations.filter(c => ['idle', 'walk', 'run', 'agree', 'headShake'].includes(c.name)).map(c => {
+  CH.clips = g.animations.filter(c => ['idle', 'walk', 'run', 'agree', 'headShake', 'sneak_pose', 'sad_pose'].includes(c.name)).map(c => {
     // keep motion in place: pin the hips' horizontal travel
     const t = c.tracks.find(t => t.name === 'mixamorigHips.position');
     if (t) for (let i = 0; i < t.values.length; i += 3) { t.values[i] = t.values[0]; t.values[i + 2] = t.values[2]; }
@@ -6945,6 +6952,504 @@ HCDBG.lineup = (x, z) => {
   styles.forEach((st, i) => { const c = new Character(st, 100 + i); c.root.position.set(x + (i - styles.length / 2) * 0.9, y, z); c.root.rotation.y = Math.PI; G.scene.add(c.root); if (i % 3 === 1) c.play('walk', 0); if (i % 4 === 3) c.play('agree', 0); });
 };
 BOOT_STEPS.push({ p: 0.55, msg: 'Signing on the crew…', fn: initCharacters });
+
+// =====================================================================
+//  CREW — sailors working the ship. Each hand has a station and a job:
+//  the helm, the lookout in the main top, halyard haulers, topmen who
+//  climb the shrouds when sail is made, swabbers, gun crews, a fiddler
+//  and dancers on the forecastle, the bosun on his rounds, a man with
+//  a crate and another with a bottle. All motion is mocap + live IK.
+// =====================================================================
+const CREW = { byShip: new Map() };
+const _cA = V3(), _cB = V3(), _cC = V3(), _cD = V3();
+const CREW_M = {};
+function crewMats() {
+  if (CREW_M.wood) return CREW_M;
+  CREW_M.wood = new THREE.MeshStandardMaterial({ map: ASSET.tex.woodC || null, color: 0x8a6a4a, roughness: 0.8 });
+  CREW_M.rope = new THREE.MeshStandardMaterial({ map: TEX.rope || null, color: 0xb8a078, roughness: 0.95 });
+  CREW_M.brass = new THREE.MeshStandardMaterial({ color: 0xc8a050, metalness: 1, roughness: 0.3 });
+  CREW_M.mop = new THREE.MeshStandardMaterial({ color: 0xc8c0a8, roughness: 1 });
+  CREW_M.glass = new THREE.MeshStandardMaterial({ color: 0x2a4a2a, roughness: 0.1, metalness: 0.2 });
+  CREW_M.dark = new THREE.MeshStandardMaterial({ color: 0x3a2618, roughness: 0.7 });
+  return CREW_M;
+}
+// ship-local → world
+const SL = (ship, x, y, z, out = V3()) => ship.model.localToWorld(out.set(x, y, z));
+// IK helpers with sensible poles in the character's own frame (+z forward, right hand at -x)
+function armTo(c, side, target, out = 0.55, down = -0.5, back = -0.6) {
+  const sx = side === 'Right' ? -1 : 1;
+  c.solve(side + 'Arm', side + 'ForeArm', side + 'Hand', target, c.root.localToWorld(_cD.set(sx * out, 1.1 + down, back)), 1);
+}
+function legTo(c, side, target, fwd = 1) {
+  const sx = side === 'Right' ? -1 : 1;
+  c.solve(side + 'UpLeg', side + 'Leg', side + 'Foot', target, c.root.localToWorld(_cD.set(sx * 0.15, 0.55, fwd)), 1);
+}
+// a stick prop (rope, mop handle, rammer…) laid between two ship-local points
+function stick(ship, mat, r = 0.02, seg = 5) {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 1, seg, 1, true), mat); m.castShadow = true; ship.model.add(m); return m;
+}
+function layStick(m, a, b) {
+  const d = _cC.subVectors(b, a), L = d.length();
+  m.position.copy(a).addScaledVector(d, 0.5); m.scale.set(1, L, 1);
+  m.quaternion.setFromUnitVectors(_cB.set(0, 1, 0), d.normalize());
+}
+function face(c, dx, dz) { c.root.rotation.y = Math.atan2(dx, dz); }
+function stand(c, ship, x, z, yOff = 0) { c.root.position.set(x, ship.deckHeight(x, z) + yOff, z); }
+// walk a character toward a point on deck; returns true on arrival
+function walkTo(c, ship, x, z, dt, speed = 1.3) {
+  const p = c.root.position, dx = x - p.x, dz = z - p.z, d = Math.hypot(dx, dz);
+  if (d < 0.08) { c.play('idle', 0.3); return true; }
+  c.play('walk', 0.25, speed / 1.3);
+  const st = Math.min(d, speed * dt);
+  p.x += dx / d * st; p.z += dz / d * st; p.y = ship.deckHeight(p.x, p.z);
+  c.root.rotation.y = wrapAng(c.root.rotation.y + clamp(wrapAng(Math.atan2(dx, dz) - c.root.rotation.y), -dt * 5, dt * 5));
+  return false;
+}
+const workAloft = (ship, mi) => ship.sailWork.some(w => !w.done && (mi === undefined || w.mi === mi));
+const inBattle = ship => G.enemies && G.enemies.some(e => e.ship.alive && Math.hypot(e.ship.x - ship.x, e.ship.z - ship.z) < 520);
+
+// ---------------------------------------------------------------- jobs
+const JOBS = {
+  // hands on the spokes; steps aside when the captain takes the wheel himself
+  helm: { style: 'sailor', tick(j, c, s, dt) {
+    const w = s.ud.wheel, h = s.ud.helm, cx = h[0] + 0.9, cy = s.deck.qd + 1.25;
+    const captain = s.player && G.mode === 'helm' && !j.captain;
+    if (j.captain) c.hidden = !(s.player && G.mode === 'helm');
+    if (captain || c.hidden) { if (!c.hidden) { stand(c, s, cx - 1.2, 1.7); face(c, 1, -0.3); c.play('idle'); } return; }
+    stand(c, s, cx - 0.72, 0); face(c, 1, 0); c.play('idle');
+    c.root.updateMatrixWorld(true);
+    const spin = clamp(s.wheelAngle * 0.35, -0.5, 0.5);
+    for (const [side, a] of [['Right', 0.35 - spin], ['Left', 0.35 + spin]]) {
+      const zz = (side === 'Right' ? 1 : -1) * 0.72 * Math.cos(a), yy = cy + 0.72 * Math.sin(a) * (side === 'Right' ? 1 : 1) + (side === 'Right' ? -spin : spin) * 0.3;
+      armTo(c, side, SL(s, cx - 0.12, yy, zz, _cA), 0.6, -0.6, -0.5);
+    }
+  } },
+  // scanning the horizon from the main top with a glass
+  lookout: { style: 'sailor', init(j, c, s) { j.glass = stick(s, crewMats().brass, 0.025, 8); j.m = s.ud.masts[Math.min(1, s.ud.masts.length - 1)]; }, tick(j, c, s, dt) {
+    const m = j.m, y = m.topY + 0.13; c.root.position.set(m.x + 0.5, y, 0.35);
+    j.t += dt; const look = Math.sin(j.t * 0.17) * 1.1 + (inBattle(s) ? 0 : 0);
+    c.root.rotation.y = Math.PI / 2 + look; c.play('idle');
+    c.root.updateMatrixWorld(true);
+    const head = c.boneWorld('Head', _cA); const fw = c.root.localToWorld(_cB.set(0, 0, 1)).sub(c.root.getWorldPosition(_cC)).normalize();
+    const eye = head.clone().addScaledVector(fw, 0.12).add(_cC.set(0, -0.02, 0)), far = eye.clone().addScaledVector(fw, 0.42);
+    const a = s.model.worldToLocal(eye.clone()), b = s.model.worldToLocal(far.clone()); layStick(j.glass, a, b);
+    armTo(c, 'Right', eye.clone().addScaledVector(fw, 0.1), 0.7, -0.4, -0.2);
+    armTo(c, 'Left', far.clone().addScaledVector(fw, -0.04), 0.5, -0.6, 0.1);
+  } },
+  // hand over hand on a halyard while sail is being made, else coiling idle
+  haul: { style: 'sailor', init(j, c, s) {
+    const m = s.ud.masts[Math.min(1, s.ud.masts.length - 1)], x = m.x + j.off, rail = s.H.rail(x), half = s.H.half(x, rail) - 0.35;
+    j.pin = V3(x + 0.2, rail + 0.15, j.sd * half); j.top = V3(m.x, m.topY - 0.4, j.sd * 0.8);
+    j.rope = stick(s, crewMats().rope, 0.022); layStick(j.rope, j.pin, j.top); j.st = V3(x, 0, j.sd * (half - 0.75));
+  }, tick(j, c, s, dt) {
+    stand(c, s, j.st.x, j.st.z); face(c, 0.15, j.sd);
+    const busy = workAloft(s); c.play(busy ? 'sneak_pose' : 'idle', 0.5);
+    if (!busy) return;
+    c.root.updateMatrixWorld(true); j.t += dt * 1.6;
+    const pinW = SL(s, j.pin.x, j.pin.y, j.pin.z, _cA), topW = SL(s, j.top.x, j.top.y, j.top.z, _cB), dir = topW.clone().sub(pinW).normalize();
+    for (const [side, ph] of [['Right', 0], ['Left', 0.5]]) {
+      const q = (j.t + ph) % 1, k = q < 0.65 ? 1 - q / 0.65 : (q - 0.65) / 0.35;   // pull down slowly, reach up quickly
+      armTo(c, side, pinW.clone().addScaledVector(dir, 0.9 + k * 0.85), 0.5, -0.7, -0.4);
+    }
+  } },
+  // topmen: up the shrouds when there is sail to make, down again after
+  climb: { style: 'sailor', init(j, c, s) {
+    j.m = s.ud.masts[Math.min(1, s.ud.masts.length - 1)]; const m = j.m, x = m.x - 0.9;
+    const cy = s.H.rail(m.x) - 0.25; j.bot = V3(x, cy, j.sd * (s.H.half(m.x, cy) + 0.85)); j.topP = V3(m.x - 0.45, m.topY - 0.2, j.sd * (0.9 * m.ys + 0.55));
+    j.home = V3(m.x - 1.6, 0, j.sd * 2.4); j.state = 'deck'; j.h = 0; stand(c, s, j.home.x, j.home.z);
+  }, tick(j, c, s, dt) {
+    const L = j.bot.distanceTo(j.topP);
+    c.root.rotation.x = 0;
+    if (j.state === 'deck') { if (walkTo(c, s, j.home.x, j.home.z, dt)) face(c, 0, -j.sd); if (workAloft(s)) j.state = 'toShroud'; return; }
+    if (j.state === 'toShroud') { if (walkTo(c, s, j.bot.x + 0.2, j.sd * (Math.abs(j.bot.z) - 1.6), dt, 1.9)) { j.state = 'up'; j.h = 0; } return; }
+    if (j.state === 'aloft') {
+      c.root.position.set(j.m.x - 0.8, j.m.topY + 0.13, j.sd * 0.6); c.root.rotation.x = 0; face(c, 0.4, j.sd); c.play('idle');
+      c.root.updateMatrixWorld(true); j.t += dt;
+      const yard = SL(s, j.m.x + 0.1, j.m.topY + 1.7 + Math.sin(j.t * 3) * 0.15, j.sd * 1.2, _cA);
+      armTo(c, 'Right', yard, 0.4, 0.4, 0.2); armTo(c, 'Left', yard.add(_cB.set(0, -0.25, 0)), 0.4, 0.4, 0.2);
+      if (!workAloft(s)) { j.wait = (j.wait || 0) + dt; if (j.wait > 2) { j.state = 'down'; j.wait = 0; } }
+      return;
+    }
+    // on the ratlines: body outside the shroud, facing inboard; limbs step rung to rung
+    const up = j.state === 'up'; j.h = clamp(j.h + (up ? 0.75 : -0.95) * dt, 0, L);
+    if (up && j.h >= L) { j.state = 'aloft'; return; }
+    if (!up && j.h <= 0) { j.state = 'deck'; stand(c, s, j.bot.x + 0.2, j.sd * (Math.abs(j.bot.z) - 1.6)); return; }
+    const f = j.h / L, p = j.bot.clone().lerp(j.topP, f), dir = j.topP.clone().sub(j.bot).normalize();
+    c.root.position.set(p.x, p.y - 0.15, p.z + j.sd * 0.32); c.play('idle');
+    c.root.rotation.set(-0.2 * j.sd, Math.atan2(0, -j.sd), 0);
+    c.root.updateMatrixWorld(true);
+    const rung = 0.42, at = (off, hgt) => { const q = (j.h + off) / rung, base = Math.floor(q) + smooth(0.7, 1.0, q % 1); return j.bot.clone().addScaledVector(dir, Math.min(L, base * rung + hgt)); };
+    armTo(c, 'Right', SL(s, ...at(0.0, 1.45).toArray(), _cA).add(_cB.set(0, 0, 0)), 0.5, -0.2, 0.3);
+    armTo(c, 'Left', SL(s, ...at(rung * 0.5, 1.45).toArray(), _cA), 0.5, -0.2, 0.3);
+    legTo(c, 'Right', SL(s, ...at(rung * 0.5, 0.05).toArray(), _cA), 1.2);
+    legTo(c, 'Left', SL(s, ...at(0.0, 0.05).toArray(), _cA), 1.2);
+  } },
+  // swabbing the quarterdeck: a mop swinging left and right in front
+  swab: { style: 'sailor', init(j, c, s) { const M = crewMats(); j.handle = stick(s, M.wood, 0.018); j.head = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.17, 0.22, 8), M.mop); j.head.castShadow = true; s.model.add(j.head); j.x0 = j.x; },
+  tick(j, c, s, dt) {
+    j.t += dt; const shuffle = (j.t % 9) > 7.5;
+    if (shuffle) { j.x += dt * 0.5 * j.dir; if (j.x > j.x0 + 3 || j.x < j.x0 - 3) j.dir *= -1; c.play('walk', 0.3, 0.45); } else c.play('sneak_pose', 0.4);
+    stand(c, s, j.x, j.z); face(c, j.dir * 0.15, j.fz);
+    c.root.updateMatrixWorld(true);
+    const sw = Math.sin(j.t * 2.4) * 0.55, dy = s.deckHeight(j.x, j.z);
+    const headL = V3(j.x + sw * j.fz + j.dir * 0.1, dy + 0.11, j.z + j.fz * 1.05), gripL = V3(j.x + sw * j.fz * 0.35, dy + 1.0, j.z + j.fz * 0.3);
+    j.head.position.copy(headL); layStick(j.handle, headL, gripL.clone().addScaledVector(gripL.clone().sub(headL).normalize(), 0.25));
+    armTo(c, 'Right', SL(s, gripL.x, gripL.y, gripL.z, _cA), 0.6, -0.6, -0.4);
+    armTo(c, 'Left', SL(s, ...headL.clone().lerp(gripL, 0.6).toArray(), _cA), 0.5, -0.6, -0.2);
+  } },
+  // gun crews heave the guns while they reload
+  gun: { style: 'sailor', tick(j, c, s, dt) {
+    const g = s.ud.guns[j.gi]; if (!g) return; const sd = g.side, gx = g.base.x, gz = g.base.z;
+    const busy = s.reload[sd] > 0; j.t += dt;
+    const x = gx + j.k * 0.95, z = gz - sd * (busy ? 1.2 + Math.sin(j.t * 3.2) * 0.15 : 1.6);
+    stand(c, s, x, z); face(c, -j.k * 0.5, sd); c.play(busy ? 'sneak_pose' : 'idle', 0.4);
+    if (!busy) return;
+    c.root.updateMatrixWorld(true);
+    const y = s.deckHeight(x, z) + 0.75, tgt = SL(s, gx + j.k * 0.35, y, gz - sd * 0.55, _cA);
+    armTo(c, 'Right', tgt, 0.5, -0.7, -0.3); armTo(c, 'Left', tgt.add(_cB.set(0, 0.12, 0)), 0.5, -0.7, -0.3);
+  } },
+  // the fiddler on the forecastle saws away while the hands dance
+  fiddle: { style: 'sailor', init(j, c, s) { const M = crewMats(); j.body = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), M.dark); j.body.scale.set(1, 1.6, 0.4); s.model.add(j.body); j.bow = stick(s, M.wood, 0.005, 4); },
+  tick(j, c, s, dt) {
+    const quiet = inBattle(s); j.body.visible = j.bow.visible = !quiet;
+    stand(c, s, j.x, j.z); face(c, -1, 0.3); c.play('idle'); if (quiet) return;
+    c.root.updateMatrixWorld(true); j.t += dt;
+    const chin = c.boneWorld('LeftShoulder', _cA).lerp(c.boneWorld('Neck', _cB), 0.4), fw = c.root.localToWorld(_cC.set(0, 0, 1)).sub(c.root.getWorldPosition(_cD)).normalize();
+    const lft = c.root.localToWorld(V3(1, 0, 0)).sub(c.root.getWorldPosition(V3())).normalize();
+    const fb = chin.clone().addScaledVector(fw, 0.16).add(V3(0, -0.06, 0)), neckEnd = fb.clone().addScaledVector(lft, 0.38).addScaledVector(fw, 0.12);
+    j.body.position.copy(s.model.worldToLocal(fb.clone())); j.body.rotation.set(1.1, c.root.rotation.y, 0.5);
+    armTo(c, 'Left', neckEnd, 0.6, -0.8, 0.0);
+    const saw = Math.sin(j.t * 7) * 0.22, bowHand = fb.clone().addScaledVector(lft, -0.1 + saw).addScaledVector(fw, 0.06).add(V3(0, 0.05, 0));
+    armTo(c, 'Right', bowHand, 0.7, -0.4, -0.2);
+    layStick(j.bow, s.model.worldToLocal(bowHand.clone()), s.model.worldToLocal(bowHand.clone().addScaledVector(lft, 0.55)));
+  } },
+  dance: { style: 'sailor', tick(j, c, s, dt) {
+    j.t += dt; const quiet = inBattle(s);
+    const a = j.t * 0.6 + j.ph, x = j.x + Math.cos(a) * 0.5, z = j.z + Math.sin(a) * 0.5;
+    stand(c, s, x, z, quiet ? 0 : Math.abs(Math.sin(j.t * 5.6)) * 0.08);
+    if (quiet) { c.play('idle'); face(c, 0, 1); return; }
+    c.root.rotation.y = a + Math.PI + Math.sin(j.t * 2.8) * 0.6; c.play(j.ph > 1 ? 'agree' : 'run', 0.4, j.ph > 1 ? 1.5 : 0.55);
+    if (j.ph > 1) { c.root.updateMatrixWorld(true); const clap = Math.abs(Math.sin(j.t * 5.6)) * 0.14, ch = c.boneWorld('Spine2', _cA).add(c.root.localToWorld(_cB.set(0, 0, 0.35)).sub(c.root.getWorldPosition(_cC))); armTo(c, 'Right', ch.clone().add(c.root.localToWorld(_cB.set(-clap, 0.1, 0)).sub(c.root.getWorldPosition(_cC))), 0.5, -0.6, -0.3); armTo(c, 'Left', ch.add(c.root.localToWorld(_cB.set(clap, 0.1, 0)).sub(c.root.getWorldPosition(_cC))), 0.5, -0.6, -0.3); }
+  } },
+  // the bosun walks his rounds, pausing to shake his head at the work
+  bosun: { style: 'officer', tick(j, c, s, dt) {
+    if (j.pause > 0) { j.pause -= dt; c.play(j.say, 0.4); return; }
+    const tx = j.leg ? j.x1 : j.x0;
+    if (walkTo(c, s, tx, j.z, dt, 1.1)) { j.leg = !j.leg; j.pause = 2.5 + R() * 3; j.say = R() < 0.5 ? 'headShake' : 'agree'; }
+  } },
+  // ferrying a crate between the hatch and the forecastle
+  carry: { style: 'sailor', init(j, c, s) { j.crate = new THREE.Mesh(boxUV(0.55, 0.42, 0.42, 1), crewMats().wood); j.crate.castShadow = true; s.model.add(j.crate); },
+  tick(j, c, s, dt) {
+    if (j.pause > 0) { j.pause -= dt; c.play('idle', 0.3); }
+    else if (walkTo(c, s, j.leg ? j.x1 : j.x0, j.z, dt, 1.0)) { j.leg = !j.leg; j.pause = 1.5; }
+    c.root.updateMatrixWorld(true);
+    const p = c.root.position, fw = V3(Math.sin(c.root.rotation.y), 0, Math.cos(c.root.rotation.y)), bob = Math.abs(Math.sin(j.t += dt * 6)) * 0.03;
+    j.crate.position.set(p.x + fw.x * 0.42, p.y + 1.02 + bob, p.z + fw.z * 0.42); j.crate.rotation.y = c.root.rotation.y;
+    const side = V3(fw.z, 0, -fw.x);
+    armTo(c, 'Right', SL(s, ...j.crate.position.clone().addScaledVector(side, -0.3).toArray(), _cA), 0.5, -0.5, -0.2);
+    armTo(c, 'Left', SL(s, ...j.crate.position.clone().addScaledVector(side, 0.3).toArray(), _cA), 0.5, -0.5, -0.2);
+  } },
+  // sat on a barrel, nursing a bottle
+  drink: { style: 'sailor', init(j, c, s) { const M = crewMats(); j.barrel = new THREE.Mesh(latheGeo([[0, 0], [0.24, 0], [0.29, 0.25], [0.24, 0.5], [0, 0.5]], 12), M.wood); j.barrel.castShadow = true; s.model.add(j.barrel); j.bottle = new THREE.Mesh(latheGeo([[0, 0], [0.035, 0], [0.035, 0.12], [0.011, 0.17], [0.011, 0.22], [0, 0.22]], 8), M.glass); s.model.add(j.bottle); },
+  tick(j, c, s, dt) {
+    const dy = s.deckHeight(j.x, j.z); j.barrel.position.set(j.x, dy, j.z - j.fz * 0.05);
+    c.root.position.set(j.x, dy - 0.42, j.z); face(c, 0, j.fz); c.play('idle');
+    c.root.updateMatrixWorld(true); j.t += dt;
+    for (const [side, sx] of [['Right', -0.17], ['Left', 0.17]]) legTo(c, side, c.root.localToWorld(_cA.set(sx, 0.5, 0.55)), 1.5);
+    const sip = smooth(0.0, 0.25, Math.sin(j.t * 0.7)) , mouth = c.boneWorld('Head', _cA).add(c.root.localToWorld(_cB.set(0, -0.06, 0.16)).sub(c.root.getWorldPosition(_cC)));
+    const lap = c.root.localToWorld(_cB.set(-0.2, 0.95, 0.35)), hand = lap.clone().lerp(mouth, sip);
+    armTo(c, 'Right', hand, 0.6, -0.6, -0.3); armTo(c, 'Left', c.root.localToWorld(_cC.set(0.2, 0.9, 0.3)), 0.5, -0.7, -0.2);
+    j.bottle.position.copy(s.model.worldToLocal(hand.clone())).add(V3(0, -0.05, 0)); j.bottle.rotation.set(0, 0, sip * 1.9 * -j.fz);
+  } },
+};
+
+function crewAdd(ship, kind, job, seed) {
+  const c = new Character(job.captain ? 'captain' : (JOBS[kind].style || 'sailor'), seed);
+  ship.model.add(c.root); c.visibleDist = ship.player ? 220 : 170;
+  Object.assign(job, { kind, t: R() * 10 });
+  if (JOBS[kind].init) JOBS[kind].init(job, c, ship);
+  c.overlay = (ch, t) => { const dt = Math.min(0.25, t - (ch._jt ?? t)); ch._jt = t; JOBS[kind].tick(job, ch, ship, dt); };
+  (CREW.byShip.get(ship) || (CREW.byShip.set(ship, []), CREW.byShip.get(ship))).push({ c, job });
+  return c;
+}
+G.crewSpawner = (ship, n) => {
+  if (!CH.ready || CREW.byShip.has(ship)) return;
+  const sp = ship.spec, qd = sp.qd, fc = sp.fc, seed = Math.floor(R() * 1e5);
+  const deckZ = x => ship.H.half(x, ship.deck.main + 0.5) - 1.0;
+  if (n === 'player') {
+    crewAdd(ship, 'helm', {}, seed);
+    crewAdd(ship, 'helm', { captain: true }, 7);
+    crewAdd(ship, 'lookout', {}, seed + 1);
+    for (const sd of [-1, 1]) crewAdd(ship, 'haul', { sd, off: 1.3 }, seed + 2 + sd);
+    for (const sd of [-1, 1]) crewAdd(ship, 'climb', { sd }, seed + 5 + sd);
+    crewAdd(ship, 'swab', { x: qd - 9, z: -1.2, dir: 1, fz: 1 }, seed + 8);
+    crewAdd(ship, 'swab', { x: qd - 6.5, z: 1.4, dir: -1, fz: -1 }, seed + 9);
+    const gi = ship.ud.guns.map((g, i) => [g, i]);
+    for (const sd of [-1, 1]) { const mid = gi.filter(([g]) => g.side === sd); const pick2 = mid[Math.floor(mid.length / 2)]; if (pick2) { crewAdd(ship, 'gun', { gi: pick2[1], k: 1 }, seed + 10 + sd); crewAdd(ship, 'gun', { gi: pick2[1], k: -1 }, seed + 13 + sd); } }
+    const fx = fc + (sp.L / 2 - fc) * 0.45;
+    crewAdd(ship, 'fiddle', { x: fx + 1.2, z: 0.9 }, seed + 16);
+    crewAdd(ship, 'dance', { x: fx - 0.6, z: -0.7, ph: 0.3 }, seed + 17);
+    crewAdd(ship, 'dance', { x: fx - 0.4, z: 1.2, ph: 2.2 }, seed + 18);
+    crewAdd(ship, 'bosun', { x0: qd + 1.5, x1: fc - 2.5, z: deckZ(0) - 0.4, leg: false, pause: 0 }, seed + 19);
+    crewAdd(ship, 'carry', { x0: qd + 2.2, x1: fc - 1.8, z: -(deckZ(0) - 0.5), leg: true, pause: 0 }, seed + 20);
+    crewAdd(ship, 'drink', { x: qd + 1.4, z: deckZ(qd + 1.4) - 0.2, fz: -1 }, seed + 21);
+  } else {
+    crewAdd(ship, 'helm', {}, seed);
+    const gi = ship.ud.guns.map((g, i) => [g, i]);
+    for (const sd of [-1, 1]) { const mid = gi.filter(([g]) => g.side === sd); const p2 = mid[Math.floor(mid.length / 2)]; if (p2) crewAdd(ship, 'gun', { gi: p2[1], k: 1 }, seed + 3 + sd); }
+    crewAdd(ship, 'bosun', { x0: qd + 1.5, x1: fc - 2.5, z: deckZ(0) - 0.4, leg: false, pause: 0 }, seed + 6);
+    if (n > 4) { crewAdd(ship, 'lookout', {}, seed + 7); crewAdd(ship, 'haul', { sd: 1, off: 1.3 }, seed + 8); }
+  }
+};
+G.crewDespawn = ship => {
+  const list = CREW.byShip.get(ship); if (!list) return;
+  for (const { c } of list) { if (c.root.parent) c.root.parent.remove(c.root); const i = CH.all.indexOf(c); if (i >= 0) CH.all.splice(i, 1); c.mesh && c.mesh.geometry.dispose(); }
+  CREW.byShip.delete(ship);
+};
+// crew stay aboard a sinking ship only until it slips under
+UPDATERS.push(() => { for (const [s, list] of CREW.byShip) if (!s.alive && s.sinking > 8) G.crewDespawn(s); });
+HCDBG.crew = () => [...CREW.byShip.values()].map(l => l.length);
+HCDBG.shipCam = (lx, ly, lz, tx, ty, tz) => { const s = G.playerShip; s.obj.updateMatrixWorld(true); const p = SL(s, lx, ly, lz, V3()), t = SL(s, tx, ty, tz, V3()); G.camera.position.copy(p); G.camera.lookAt(t); G.debugCam = true; };
+
+// =====================================================================
+//  RAVENMOOR'S PEOPLE — the household and tenants who stayed on: each
+//  with a place, a task and something to say. Restoration projects are
+//  bought with plunder and change the estate before your eyes.
+// =====================================================================
+const NPC = { list: [] };
+const PROJECTS = {
+  garden: { name: 'Restore the formal gardens', cost: 300, done: 'The parterres are clipped and the beds replanted.' },
+  fountain: { name: 'Clear and re-pipe the fountain', cost: 150, done: 'The triton spouts again; the basin runs clear.' },
+  lighthouse: { name: 'Relight the lighthouse', cost: 250, done: 'The great lamp turns again over the reef.' },
+  roof: { name: 'Re-roof the east wing', cost: 600, done: 'Slate and lead are back on the east wing.' },
+};
+function applyRestorations() {
+  const R2 = G.save.restored, gp = EST.groups;
+  if (gp.roofFixed) { gp.roofFixed.visible = !!R2.roof; gp.roofBroken.visible = !R2.roof; }
+  if (gp.gardenTame) { gp.gardenTame.visible = !!R2.garden; gp.gardenWild.visible = !R2.garden; }
+  if (EST.fountain) {
+    const w = EST.fountain.water.material; w.color.set(R2.fountain ? 0x2a4a50 : 0x1a2416); w.normalScale.setScalar(R2.fountain ? 0.45 : 0.18);
+    if (EST.fountain.pads) EST.fountain.pads.visible = !R2.fountain;
+    if (EST.fountain.jet) EST.fountain.jet.visible = !!R2.fountain;
+  }
+  EST.beamOn = !!R2.lighthouse;
+  for (const n of NPC.list) if (n.when) n.c.hidden = !n.when();
+}
+function buyProject(k) {
+  const p = PROJECTS[k]; if (G.save.restored[k] || G.save.gold < p.cost) return;
+  fadeTo(() => { addGold(-p.cost); G.save.restored[k] = true; saveGame(); applyRestorations(); toast(p.done); });
+}
+// ---------------------------------------------------------------- helpers
+const _nA = V3(), _nB = V3(), _nC = V3();
+function standL(c, x, z, yOff = 0) { c.root.position.set(x, groundHeight(x, z, c.root.position.y + 1.5) + yOff, z); }
+function walkL(c, x, z, dt, speed = 1.2) {
+  const p = c.root.position, dx = x - p.x, dz = z - p.z, d = Math.hypot(dx, dz);
+  if (d < 0.1) { c.play('idle', 0.3); return true; }
+  c.play('walk', 0.25, speed / 1.3);
+  const st = Math.min(d, speed * dt); p.x += dx / d * st; p.z += dz / d * st; p.y = groundHeight(p.x, p.z, p.y + 1.5);
+  c.root.rotation.y = wrapAng(c.root.rotation.y + clamp(wrapAng(Math.atan2(dx, dz) - c.root.rotation.y), -dt * 4, dt * 4));
+  return false;
+}
+function worldStick(mat, r = 0.02) { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 1, 5, 1, true), mat); m.castShadow = true; G.scene.add(m); return m; }
+const fwdOf = c => _nC.set(Math.sin(c.root.rotation.y), 0, Math.cos(c.root.rotation.y));
+const local = (c, x, y, z, out = V3()) => c.root.localToWorld(out.set(x, y, z));
+
+const LJOBS = {
+  // the butler at the door: hands clasped behind, the occasional nod
+  door: { tick(j, c, dt) {
+    standL(c, j.x, j.z); c.root.rotation.y = j.a; j.t += dt;
+    c.play((j.t % 14) > 12 ? 'agree' : 'idle', 0.5); c.root.updateMatrixWorld(true);
+    armTo(c, 'Right', local(c, -0.06, 0.98, -0.2, _nA), 0.6, -0.3, -0.9); armTo(c, 'Left', local(c, 0.06, 0.98, -0.2, _nA), 0.6, -0.3, -0.9);
+  } },
+  // sweeping the flags with a broom, working slowly along a line
+  sweep: { init(j) { const M = crewMats(); j.handle = worldStick(M.wood, 0.016); j.head = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.36, 8), new THREE.MeshStandardMaterial({ color: 0xa88a52, roughness: 1 })); j.head.castShadow = true; G.scene.add(j.head); j.u = 0; j.dir = 1; },
+  tick(j, c, dt) {
+    j.t += dt; const mv = (j.t % 6) > 4.6;
+    if (mv) { j.u = clamp(j.u + dt * 0.35 * j.dir, 0, 1); if (j.u <= 0 || j.u >= 1) j.dir *= -1; c.play('walk', 0.3, 0.4); } else c.play('idle', 0.4);
+    const x = lerp(j.x0, j.x1, j.u), z = lerp(j.z0, j.z1, j.u); standL(c, x, z); c.root.rotation.y = j.a;
+    c.root.updateMatrixWorld(true);
+    const sw = Math.sin(j.t * 2.6) * 0.45, gy = c.root.position.y;
+    const head = local(c, sw, 0, 0.95, _nA); head.y = gy + 0.12; const grip = local(c, sw * 0.3 - 0.05, 1.05, 0.32, _nB);
+    j.head.position.copy(head); j.head.position.y += 0.05; j.head.quaternion.setFromUnitVectors(_cB.set(0, -1, 0), head.clone().sub(grip).normalize());
+    layStick(j.handle, head, grip.clone().addScaledVector(grip.clone().sub(head).normalize(), 0.2));
+    armTo(c, 'Right', grip, 0.6, -0.6, -0.4); armTo(c, 'Left', head.clone().lerp(grip, 0.62), 0.5, -0.6, -0.2);
+  } },
+  // the gardener chops at the weeds
+  hoe: { init(j) { const M = crewMats(); j.handle = worldStick(M.wood, 0.018); j.blade = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.02, 0.13), new THREE.MeshStandardMaterial({ color: 0x3a3a3c, metalness: 0.6, roughness: 0.5 })); j.blade.castShadow = true; G.scene.add(j.blade); },
+  tick(j, c, dt) {
+    j.t += dt; standL(c, j.x + Math.sin(j.t * 0.05) * 1.5, j.z); c.root.rotation.y = j.a; c.play('sneak_pose', 0.5);
+    c.root.updateMatrixWorld(true);
+    const ph = (j.t * 0.9) % 1, lift = ph < 0.6 ? smooth(0, 0.6, ph) : 1 - smooth(0.6, 0.72, ph);
+    const tip = local(c, 0, 0.1 + lift * 0.9, 0.95 - lift * 0.2, _nA); tip.y = Math.max(tip.y, c.root.position.y + 0.05);
+    const grip = local(c, -0.05, 0.85 + lift * 0.35, 0.25, _nB);
+    j.blade.position.copy(tip); j.blade.rotation.y = c.root.rotation.y;
+    layStick(j.handle, tip, grip.clone().addScaledVector(grip.clone().sub(tip).normalize(), 0.25));
+    armTo(c, 'Right', grip, 0.6, -0.6, -0.4); armTo(c, 'Left', tip.clone().lerp(grip, 0.55), 0.5, -0.6, -0.2);
+  } },
+  // a guard walks his beat, musket at the shoulder
+  patrol: { init(j) { j.gun = worldStick(new THREE.MeshStandardMaterial({ color: 0x3a2618, roughness: 0.6 }), 0.022); j.k = 0; j.pause = 0; },
+  tick(j, c, dt) {
+    if (j.pause > 0) { j.pause -= dt; c.play('idle', 0.4); }
+    else { const w = j.pts[j.k]; if (walkL(c, w[0], w[1], dt, 1.05)) { j.k = (j.k + 1) % j.pts.length; j.pause = 2 + R() * 3; } }
+    c.root.updateMatrixWorld(true);
+    const butt = local(c, -0.2, 0.95, 0.12, _nA), muzzle = local(c, -0.24, 2.25, -0.15, _nB);
+    layStick(j.gun, butt, muzzle); armTo(c, 'Right', butt.clone().lerp(muzzle, 0.12), 0.5, -0.7, -0.2);
+  } },
+  // fishing off the dock, legs over the edge
+  fish: { init(j) { const M = crewMats(); j.rod = worldStick(M.wood, 0.012); j.line = worldStick(new THREE.MeshBasicMaterial({ color: 0xd8d0c0 }), 0.003); },
+  tick(j, c, dt) {
+    j.t += dt; c.root.position.set(j.x, j.y - 0.46, j.z); c.root.rotation.y = j.a; c.play('idle');
+    c.root.updateMatrixWorld(true);
+    for (const [side, sx] of [['Right', -0.15], ['Left', 0.15]]) legTo(c, side, local(c, sx, -0.05 + Math.sin(j.t * 1.3 + sx * 9) * 0.06, 0.45, _nA), 1.3);
+    const twitch = Math.sin(j.t * 0.7) * 0.05 + (Math.sin(j.t * 0.23) > 0.96 ? 0.25 : 0);
+    const grip = local(c, -0.1, 0.95, 0.35, _nA), tip = local(c, -0.2, 2.6 + twitch, 2.6, _nB);
+    layStick(j.rod, grip.clone().addScaledVector(tip.clone().sub(grip).normalize(), -0.35), tip);
+    const bob = tip.clone(); bob.y = waveHeight(bob.x, bob.z, G.t) + 0.02; layStick(j.line, tip, bob);
+    armTo(c, 'Right', grip, 0.5, -0.6, -0.2); armTo(c, 'Left', grip.clone().lerp(tip, 0.12), 0.5, -0.6, -0.1);
+  } },
+  // looking out to sea, hands folded
+  gaze: { tick(j, c, dt) {
+    j.t += dt; standL(c, j.x, j.z); c.root.rotation.y = j.a + Math.sin(j.t * 0.11) * 0.4; c.play('idle', 0.5);
+    c.root.updateMatrixWorld(true);
+    armTo(c, 'Right', local(c, -0.04, 1.02, 0.2, _nA), 0.5, -0.6, -0.3); armTo(c, 'Left', local(c, 0.04, 1.0, 0.2, _nA), 0.5, -0.6, -0.3);
+  } },
+  // ferrying a basket between two points
+  basket: { init(j) { j.box = new THREE.Mesh(latheGeo([[0, 0], [0.2, 0], [0.26, 0.24], [0, 0.24]], 10), new THREE.MeshStandardMaterial({ color: 0x9a7a4a, roughness: 1 })); j.box.castShadow = true; G.scene.add(j.box); j.leg = false; j.pause = 0; },
+  tick(j, c, dt) {
+    if (j.pause > 0) { j.pause -= dt; c.play('idle', 0.3); }
+    else if (walkL(c, ...(j.leg ? j.b : j.a2), dt, 1.0)) { j.leg = !j.leg; j.pause = 3; }
+    c.root.updateMatrixWorld(true);
+    const p = local(c, 0, 0.88 + Math.abs(Math.sin((j.t += dt) * 6)) * 0.02, 0.36, _nA); j.box.position.copy(p).y -= 0.12;
+    armTo(c, 'Right', local(c, -0.22, 0.98, 0.34, _nB), 0.5, -0.5, -0.2); armTo(c, 'Left', local(c, 0.22, 0.98, 0.34, _nB), 0.5, -0.5, -0.2);
+  } },
+  // sat on a barrel with a bottle
+  sit: { init(j) { const M = crewMats(); j.barrel = new THREE.Mesh(latheGeo([[0, 0], [0.24, 0], [0.29, 0.25], [0.24, 0.5], [0, 0.5]], 12), M.wood); j.barrel.castShadow = true; G.scene.add(j.barrel); j.bottle = new THREE.Mesh(latheGeo([[0, 0], [0.035, 0], [0.035, 0.12], [0.011, 0.17], [0.011, 0.22], [0, 0.22]], 8), M.glass); G.scene.add(j.bottle); },
+  tick(j, c, dt) {
+    const gy = groundHeight(j.x, j.z, 60); j.barrel.position.set(j.x, gy, j.z); c.root.position.set(j.x, gy - 0.42, j.z); c.root.rotation.y = j.a; c.play('idle');
+    c.root.updateMatrixWorld(true); j.t += dt;
+    for (const [side, sx] of [['Right', -0.17], ['Left', 0.17]]) legTo(c, side, local(c, sx, 0.5, 0.55, _nA), 1.5);
+    const sip = smooth(0.0, 0.25, Math.sin(j.t * 0.6)), mouth = c.boneWorld('Head', _nA).add(local(c, 0, -0.06, 0.16, _nB).sub(c.root.getWorldPosition(_nC)));
+    const hand = local(c, -0.2, 0.95, 0.35, _nB).lerp(mouth, sip);
+    armTo(c, 'Right', hand, 0.6, -0.6, -0.3); armTo(c, 'Left', local(c, 0.2, 0.9, 0.3, _nC), 0.5, -0.7, -0.2);
+    j.bottle.position.copy(hand).y -= 0.05; j.bottle.rotation.set(sip * 1.6, c.root.rotation.y, 0);
+  } },
+};
+// turn to face whoever is talking to you
+function npcTalkPose(n, dt) {
+  const c = n.c, p = c.root.position, cam = G.camera.position;
+  c.root.rotation.y = wrapAng(c.root.rotation.y + clamp(wrapAng(Math.atan2(cam.x - p.x, cam.z - p.z) - c.root.rotation.y), -dt * 4, dt * 4));
+  c.play(UI.dialog && UI.dialog.typing ? 'agree' : 'idle', 0.4, 0.8);
+}
+function addNPC(o) {
+  const c = new Character(o.style, o.seed || Math.floor(R() * 1e5));
+  G.scene.add(c.root); c.visibleDist = 150;
+  const j = Object.assign({ t: R() * 10 }, o.job);
+  const job = LJOBS[o.kind]; if (job.init) job.init(j, c);
+  const n = { c, j, o, name: o.name, role: o.role, when: o.when };
+  c.overlay = (ch, t) => { const dt = Math.min(0.25, t - (ch._jt ?? t)); ch._jt = t; if (n.talking) npcTalkPose(n, dt); else job.tick(j, ch, dt); };
+  const start = o.job.pts ? o.job.pts[0] : [o.job.x ?? o.job.x0 ?? (o.job.a2 && o.job.a2[0]), o.job.z ?? o.job.z0 ?? (o.job.a2 && o.job.a2[1])];
+  c.root.position.set(start[0], groundHeight(start[0], start[1], 60), start[1]);
+  if (o.lines) addInteract({ pos: () => c.root.visible ? c.boneWorld('Head', V3()) : null, r: 3.4, prio: 0.5, label: `Speak with ${o.name}`, fn: () => talkTo(n) });
+  NPC.list.push(n); return n;
+}
+function talkTo(n) {
+  n.talking = true;
+  const lines = typeof n.o.lines === 'function' ? n.o.lines(n) : n.o.lines;
+  openDialog(n.name, n.role, lines, () => { n.talking = false; });
+}
+// ---------------------------------------------------------------- dialogue
+const fmtGold = n => `${n} doubloons`;
+function projectChoices() {
+  const out = [];
+  for (const k in PROJECTS) {
+    const p = PROJECTS[k]; if (G.save.restored[k]) continue;
+    out.push({ t: `${p.name} — ${fmtGold(p.cost)}`, dis: () => G.save.gold < p.cost, fn: () => { closeDialog(); buyProject(k); } });
+  }
+  out.push({ t: 'Not today, Hobbes.', fn: () => closeDialog() });
+  return out;
+}
+function butlerLines() {
+  const done = Object.keys(G.save.restored).length, total = Object.keys(PROJECTS).length;
+  const greet = done === 0 ? 'Your Grace. Welcome home. The house has kept, after a fashion — the hurricane took the east wing, and the Crown took everything else.'
+    : done < total ? `Your Grace. ${done} of the works are finished; the household is quite transformed. There remains a little more to do.`
+    : 'Your Grace. Ravenmoor stands as your father kept it. I took the liberty of polishing the silver.';
+  return [
+    { txt: greet },
+    { txt: 'How may I be of service?', choices: [
+      { t: 'What needs doing about the place?', fn: () => dialogGoto([{ txt: done < total ? 'Every repair has its price, and the tradesmen want coin before they lift a hammer. Choose, and I shall see it done.' : 'Nothing at all, Your Grace. A rare pleasure.', choices: projectChoices() }]) },
+      { t: 'Any news from the sea lanes?', fn: () => dialogGoto([{ txt: pick(['A Navy frigate, the Resolute, has been asking after you in every harbour. Her captain swears he will hang you from your own yardarm.', 'Merchantmen run silver north along the cays to the south-east. Fat, slow and poorly gunned, so the fishermen say.', 'The fishermen will not put out after dark. They speak of a green-sailed ship that makes no wake.']) }, { txt: 'Will that be all?', choices: [{ t: 'That will be all.', fn: () => closeDialog() }] }]) },
+      { t: 'That will be all.', fn: () => closeDialog() },
+    ] },
+  ];
+}
+// ---------------------------------------------------------------- the household
+function spawnEstateNPCs() {
+  if (!CH.ready) return;
+  const pz = EST.porticoZ || -146, R2 = () => G.save.restored;
+  addNPC({ name: 'Hobbes', role: 'Butler', style: 'butler', seed: 31, kind: 'door', job: { x: 1.6, z: pz + 3.6, a: 0 }, lines: () => butlerLines() });
+  addNPC({ name: 'Mrs. Pell', role: 'Housekeeper', style: 'maid', seed: 32, kind: 'sweep', job: { x0: -14, z0: -146, x1: -4, z1: -146.5, a: Math.PI / 2 },
+    lines: [{ txt: 'Mind the step, Your Grace — half the flags are loose. I sweep, and the wind brings the leaves back. It is a contest I mean to win.' }, { txt: 'Your grandfather buried something on one of the cays, you know. The old Duke never trusted a bank in his life.' }] });
+  addNPC({ name: 'Old Tom', role: 'Head Gardener', style: 'gardener', seed: 33, kind: 'hoe', job: { x: -22, z: -90, a: 0 },
+    lines: () => [{ txt: R2().garden ? 'Look at her now! Box clipped square and not a thistle in the beds. Your mother would weep, Your Grace.' : 'Box hedges grow a hand a year if no one clips them. Twenty years… you can see for yourself. Give me the coin for hands and shears and I will give you a garden.' }] });
+  addNPC({ name: 'Lady Isobel', role: 'Your sister', style: 'lady', seed: 34, kind: 'gaze', job: { x: 36, z: -64.5, a: Math.PI * 0.9 },
+    lines: [{ txt: 'They told me you were dead, Edmund. Then they told me you were a pirate. I confess I preferred the second.' }, { txt: 'Father built this house on Navy contracts. It would be a fine joke to restore it with Navy silver.' }] });
+  addNPC({ name: 'Sergeant Kemp', role: 'Gatekeeper', style: 'guard', seed: 35, kind: 'patrol', job: { pts: [[-6, -46], [6, -46], [6, -40], [-6, -40]] },
+    lines: [{ txt: 'Gate is secure, Your Grace. Mostly. One leaf of it is lying in the grass, but no one has come through it but goats.' }] });
+  addNPC({ name: 'Private Dunn', role: 'Guard', style: 'guard', seed: 36, kind: 'patrol', job: { pts: [[-46, -116], [46, -116], [46, -140], [-46, -140]] },
+    lines: [{ txt: 'Quiet on the terrace, sir. I watch the sea for sails. Navy blue, I sound the bell.' }] });
+  addNPC({ name: 'Mrs. Bramble', role: 'Cook', style: 'cook', seed: 37, kind: 'sit', job: { x: -63, z: -121, a: -0.4 },
+    lines: [{ txt: 'Turtle soup tonight, and salt pork the night after, and turtle soup the night after that. Bring me limes and a side of beef and I will cook you a dinner fit for a Duke.' }] });
+  addNPC({ name: 'Jenny', role: 'Housemaid', style: 'maid', seed: 38, kind: 'basket', job: { a2: [-30, -150], b: [-64, -124] },
+    lines: [{ txt: 'Oh! Your Grace. Mrs. Pell says I am not to look at you, on account of the hook. Sorry, Your Grace.' }] });
+  addNPC({ name: 'Ned', role: 'Fisherman', style: 'sailor', seed: 39, kind: 'fish', job: { x: EST.dock.x + 10.5, y: EST.dock.y, z: EST.dock.z1 + 0.1, a: 0 },
+    lines: [{ txt: 'Snapper are biting off the reef. The big fish go deep when the Navy ships come by — I reckon they can smell the officers.' }] });
+  addNPC({ name: 'Old Abel', role: 'Fisherman', style: 'sailor', seed: 40, kind: 'fish', job: { x: EST.dock.x - 2.1, y: EST.dock.y, z: EST.dock.z0 + 48, a: -Math.PI / 2 },
+    lines: [{ txt: 'Green sails, I tell you. No wake, no sound. I saw her off the stacks to the north, three nights running.' }] });
+  addNPC({ name: 'Martha', role: 'Fishwife', style: 'maid', seed: 41, kind: 'sweep', job: { x0: -24, z0: 258, x1: -16, z1: 254, a: -1.2 },
+    lines: [{ txt: 'The hamlet is glad you are back, Your Grace. Glad, and a little frightened. Mostly glad.' }] });
+  addNPC({ name: 'Silas', role: 'Lighthouse keeper', style: 'sailor', seed: 42, kind: 'gaze', job: { x: EST.lighthouse.x - 4, z: EST.lighthouse.z + 6, a: 2.2 },
+    lines: () => [{ txt: R2().lighthouse ? 'She burns bright again, Your Grace. Forty miles on a clear night. The reef will take no more ships while I live.' : 'No oil, no wicks, and the lens cracked. Two wrecks on the reef this year. Give me the means and I will give you a light.' }] });
+  addNPC({ name: 'Gideon', role: 'Sexton', style: 'gardener', seed: 43, kind: 'hoe', job: { x: EST.chapel.x + 6, z: EST.chapel.z + 9, a: 2.6 },
+    lines: [{ txt: 'Your father lies yonder, under the yew. I keep the grass short on him. Seemed only right.' }] });
+  // when the gardens are restored, a second gardener clips the hedges
+  addNPC({ name: 'Will', role: 'Under-gardener', style: 'gardener', seed: 44, kind: 'sweep', job: { x0: 10, z0: -106, x1: 32, z1: -106, a: Math.PI / 2 }, when: () => !!G.save.restored.garden,
+    lines: [{ txt: 'Tom has me raking the gravel twice a day now. He says gravel is the soul of a garden. I think it is gravel.' }] });
+  applyRestorations();
+}
+// estate set-dressing that the projects switch on
+function buildRestorationFX() {
+  // fountain jet: a ring of falling droplets over the vase
+  if (EST.fountain) {
+    const n = 140, pos = new Float32Array(n * 3), geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const pts = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xdff4ff, size: 0.22, transparent: true, opacity: 0.75, depthWrite: false, map: TEX.soft }));
+    pts.frustumCulled = false; G.scene.add(pts); EST.fountain.jet = pts; pts.userData.seed = Array.from({ length: n }, () => [R(), R()]);
+  }
+  // lighthouse beam: two long additive cones that sweep the sea at night
+  const lh = EST.lighthouse, bm = new THREE.MeshBasicMaterial({ color: 0xfff0c0, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+  const beam = new THREE.Group(); beam.position.set(lh.x, lh.y || 30, lh.z);
+  for (const s of [-1, 1]) { const c = new THREE.Mesh(new THREE.ConeGeometry(9, 160, 16, 1, true), bm); c.rotation.z = s * Math.PI / 2; c.position.x = s * 80; beam.add(c); }
+  G.scene.add(beam); EST.beam = beam; EST.beamMat = bm;
+}
+UPDATERS.push(dt => {
+  if (!EST.root) return;
+  const f = EST.fountain;
+  if (f && f.jet && f.jet.visible) {
+    const P = f.jet.geometry.attributes.position, sd = f.jet.userData.seed;
+    for (let i = 0; i < sd.length; i++) {
+      const t = (G.t * 0.55 + sd[i][0]) % 1, a = sd[i][1] * TAU, r = 0.3 + t * 2.0;
+      P.setXYZ(i, f.x + Math.cos(a) * r, f.top + 0.4 + t * 2.4 - t * t * 4.6, f.z + Math.sin(a) * r);
+    }
+    P.needsUpdate = true;
+  }
+  if (EST.beam) {
+    const on = EST.beamOn ? SKY.night : 0;
+    EST.beamMat.opacity = on * 0.09; EST.beam.visible = on > 0.02; EST.beam.rotation.y += dt * 0.6;
+  }
+  if (f && f.water.material.normalMap) f.water.material.normalMap.offset.x += dt * 0.004;
+});
+BOOT_STEPS.push({ p: 0.62, msg: 'Waking the household…', fn: () => { buildRestorationFX(); spawnEstateNPCs(); } });
+HCDBG.restore = k => { G.save.restored[k] = true; applyRestorations(); };
+HCDBG.npcs = () => NPC.list.map(n => n.name);
 
 // =====================================================================
 //  BOOT & MAIN LOOP
@@ -7043,6 +7548,7 @@ Object.assign(window.HCDBG, {
   th: (x, z) => terrainHeight(x, z),
   tex(k) { const t = TEX[k] || ASSET.tex[k]; const im = t && t.image; if (!im) return null; if (im.toDataURL) return im.toDataURL(); const c = makeCanvas(im.width, im.height); c.getContext('2d').drawImage(im, 0, 0); return c.toDataURL(); },
   ui(on) { document.getElementById('ui').style.display = on ? '' : 'none'; },
+  sim(n = 1, dt = 1 / 30) { G.manual = true; for (let i = 0; i < n; i++) { G.dt = dt; G.t += dt; G.frame++; SU.uTime.value = G.t; for (const u of UPDATERS) u(dt); } },
   step(n = 1, dt = 1 / 30) { G.manual = true; for (let i = 0; i < n; i++) frame(dt); },
 });
 boot();

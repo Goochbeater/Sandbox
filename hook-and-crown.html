@@ -5695,8 +5695,11 @@ function buildPistol(M) {
 }
 function buildLantern(M) {
   const g = new THREE.Group();
-  const frame = new THREE.Mesh(new THREE.LatheGeometry([[0.0, 0], [0.045, 0], [0.05, 0.01], [0.045, 0.02], [0.045, 0.11], [0.05, 0.12], [0.03, 0.15], [0.012, 0.17], [0, 0.17]].map(p => new THREE.Vector2(p[0], p[1])), 8), M.gold);
-  frame.material = M.gold; g.add(frame);
+  // brass cage: base, pierced crown and four posts, so the lit glass shows between them
+  const base = new THREE.Mesh(new THREE.LatheGeometry([[0.0, 0], [0.047, 0], [0.051, 0.008], [0.047, 0.018], [0, 0.018]].map(p => new THREE.Vector2(p[0], p[1])), 16), M.gold); g.add(base);
+  const crown = new THREE.Mesh(new THREE.LatheGeometry([[0.0, 0.11], [0.05, 0.11], [0.052, 0.118], [0.036, 0.14], [0.016, 0.158], [0.012, 0.17], [0, 0.17]].map(p => new THREE.Vector2(p[0], p[1])), 16), M.gold); g.add(crown);
+  for (let i = 0; i < 4; i++) { const a = i / 4 * TAU + Math.PI / 4, post = new THREE.Mesh(new THREE.CylinderGeometry(0.0035, 0.0035, 0.095, 5), M.gold); post.position.set(Math.cos(a) * 0.046, 0.064, Math.sin(a) * 0.046); g.add(post); }
+  const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.046, 0.0025, 4, 20), M.gold); hoop.rotation.x = Math.PI / 2; hoop.position.y = 0.064; g.add(hoop);
   const glass = new THREE.Mesh(new THREE.CylinderGeometry(0.043, 0.043, 0.09, 8, 1, true), M.lanternGlass); glass.position.y = 0.065; g.add(glass);
   const flame = new THREE.Mesh(new THREE.SphereGeometry(0.012, 8, 6), M.flame); flame.scale.y = 1.8; flame.position.y = 0.06; g.add(flame);
   const ring = new THREE.Mesh(new THREE.TorusGeometry(0.02, 0.003, 6, 14), M.gold); ring.position.y = 0.18; g.add(ring);
@@ -5743,7 +5746,8 @@ function buildChartBase() {
   g.font = 'bold 13px Georgia, serif'; g.fillStyle = '#3a2416'; g.textAlign = 'center'; g.fillText('N', cx, cy - 40);
   g.font = 'italic 18px Georgia, serif'; g.fillText('The Shattered Isles', S * 0.5, 30);
   CHART.base = c;
-  CHART.canvas = makeCanvas(S); CHART.tex = canvasTex(CHART.canvas, { repeat: false });
+  CHART.canvas = makeCanvas(S); CHART.canvas.getContext('2d').drawImage(c, 0, 0);   // visible while still rolled, before it is first opened
+  CHART.tex = canvasTex(CHART.canvas, { repeat: false });
 }
 function drawChart() {
   const S = 512, g = CHART.canvas.getContext('2d');
@@ -5772,8 +5776,24 @@ function buildChart(M) {
   const p = geo.attributes.position; for (let i = 0; i < p.count; i++) p.setZ(i, Math.pow(p.getX(i) / 0.2, 2) * -0.025);
   geo.computeVertexNormals();
   const m = new THREE.MeshStandardMaterial({ map: CHART.tex, roughness: 0.85, side: THREE.DoubleSide, alphaTest: 0.5 });
-  const mesh = new THREE.Mesh(geo, m);
-  return mesh;
+  const sheet = new THREE.Mesh(geo, m), g = new THREE.Group(); g.add(sheet);
+  // carried rolled up: a parchment scroll with curled ends, tied with a faded ribbon
+  const roll = new THREE.Group();
+  const ptex = pixelTex(128, (u, v, x, y, o) => { const n = fbmT(u * 6, v * 6, 6, 4), st = smooth(0.2, 0.45, fbmT(u * 3 + 2, v * 3, 3, 3)), l = 0.9 + n * 0.14 - st * 0.12 - Math.abs(Math.sin(u * TAU * 3)) * 0.03; o[0] = 226 * l; o[1] = 206 * l; o[2] = 160 * l; });
+  const parch = new THREE.MeshStandardMaterial({ map: ptex, roughness: 0.9 });
+  roll.add(new THREE.Mesh(new THREE.CylinderGeometry(0.021, 0.021, 0.34, 18, 1, true), parch));
+  const curl = new THREE.MeshStandardMaterial({ color: 0xa88e60, roughness: 0.95, side: THREE.DoubleSide });
+  for (const e of [-1, 1]) {
+    const pts = []; for (let k = 0; k <= 60; k++) { const a = k / 60 * TAU * 3.2, r = 0.004 + k / 60 * 0.017; pts.push(new THREE.Vector2(Math.cos(a) * r, Math.sin(a) * r)); }
+    const sp = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map(p => V3(p.x, 0, p.y))), 60, 0.0012, 4), curl);
+    sp.position.y = e * 0.17; roll.add(sp);
+  }
+  const rib = new THREE.MeshStandardMaterial({ color: 0x7a1a14, roughness: 0.6 });
+  for (const y of [-0.012, 0.012]) { const t = new THREE.Mesh(new THREE.TorusGeometry(0.0225, 0.0028, 5, 20), rib); t.rotation.x = Math.PI / 2; t.position.y = y + 0.05; roll.add(t); }
+  const bow = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.05, 0.012), rib); bow.position.set(0.024, 0.04, 0); bow.rotation.z = 0.4; roll.add(bow);
+  roll.traverse(o => { if (o.isMesh) o.castShadow = false; });
+  g.add(roll); g.userData.sheet = sheet; g.userData.roll = roll;
+  return g;
 }
 
 // ---- assembly ----
@@ -5791,7 +5811,7 @@ function initHands() {
     gripWrap: new S({ map: TEX.rope, color: 0x2a1a12, roughness: 0.7 }), lens: new S({ color: 0x223344, roughness: 0.05, metalness: 0.4, envMapIntensity: 2 }),
     glassTint: new S({ color: 0xffffff, roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.18, envMapIntensity: 2 }),
     red: new S({ color: 0x9a1a10, roughness: 0.4 }), walnut: new S({ map: TEX.wood, color: 0x8a5a3a, roughness: 0.45 }),
-    lanternGlass: new S({ color: 0xffe0a0, emissive: 0xffa040, emissiveIntensity: 0.3, transparent: true, opacity: 0.55, roughness: 0.1 }),
+    lanternGlass: new S({ color: 0xffe0a0, emissive: 0xffa040, emissiveIntensity: 0.3, transparent: true, opacity: 0.7, roughness: 0.1, depthWrite: false }),
     flame: new THREE.MeshBasicMaterial({ color: 0xffd080 }),
   };
   const scene = G.fpScene = new THREE.Scene();
@@ -5821,15 +5841,16 @@ function initHands() {
   items.spyglass.position.set(0, 0.0, 0.02); items.spyglass.rotation.set(0.25, 0, 0);
   items.watch.position.set(0.0, 0.035, 0.0); items.watch.rotation.set(0.5, 0, 0);
   items.pistol.position.set(0, -0.005, 0.035); items.pistol.rotation.set(-0.05, 0, 0);
-  items.lantern.position.set(0, -0.19, 0.0);
-  items.map.position.set(-0.19, 0.06, 0.0); items.map.rotation.set(-0.25, 0.0, 0.05);
+  items.lantern.position.set(0, -0.17, -0.04);
+  items.map.userData.sheet.position.set(-0.19, 0.06, 0.0); items.map.userData.sheet.rotation.set(-0.25, 0.0, 0.05);
+  items.map.userData.roll.position.set(0, 0.03, 0.0); items.map.userData.roll.rotation.set(-0.7, 0.0, 0.25);
   // world light for the lantern
   HANDS.lamp = new THREE.PointLight(0xffb060, 0, 18, 1.6); G.scene.add(HANDS.lamp);
   equip(G.save.item ?? 'sword', true);
   addEventListener('resize', () => { cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); });
 }
 function equip(name, instant) {
-  if (!HANDS.items) return;
+  if (!HANDS.items || !HANDS.items[name]) return;
   if (instant) { for (const k in HANDS.items) HANDS.items[k].visible = k === name; HANDS.item = name; HANDS.state = 'idle'; refreshItemIcons(); return; }
   if (name === HANDS.item && HANDS.switchT <= 0) return;
   HANDS.pendingItem = name; HANDS.switchT = 0.6; HANDS.state = 'idle'; HANDS.mapOpen = false; HANDS.watchOpen = false;
@@ -5888,13 +5909,13 @@ function updateHands(dt) {
   let rp = [0.21, -0.27, -0.5], rr = [0.38, 0.32, 0.05], lp = [-0.2, -0.26, -0.5], lr = [0.42, -0.3, -0.05];
   let curl = 0.75, spread = 0.02, thumb = 0.7;
   if (it === 'sword') { rp = [0.21, -0.26, -0.5]; rr = [0.45, 0.3, 0.1]; }
-  if (it === 'pistol') { rp = [0.17, -0.2, -0.42]; rr = [0.02, 0.06, 0.0]; }
+  if (it === 'pistol') { rp = [0.19, -0.19, -0.37]; rr = [0.08, 0.38, -0.12]; }
   if (it === 'spyglass') { rp = [0.19, -0.22, -0.38]; rr = [0.15, 0.1, -0.2]; curl = 0.6; }
   if (it === 'watch') { rp = [0.16, -0.24, -0.34]; rr = [0.5, 0.25, 0.2]; curl = 0.45; thumb = 0.3; }
-  if (it === 'lantern') { rp = [0.25, -0.12, -0.42]; rr = [0.0, 0.0, 0.0]; curl = 0.8; }
+  if (it === 'lantern') { rp = [0.2, -0.09, -0.5]; rr = [0.75, 0.3, 0.05]; curl = 0.8; }
   if (it === 'map') { rp = [0.21, -0.27, -0.38]; rr = [0.5, 0.0, 0.1]; curl = 0.35; thumb = 0.15; }
   if (st === 'scope') { rp = [0.06, -0.04, -0.12]; rr = [0.0, 0.0, -0.1]; lp = [-0.04, -0.11, -0.2]; lr = [0.5, 0.1, 0.6]; }
-  if (st === 'map') { rp = [0.17, -0.13, -0.34]; rr = [0.9, -0.1, 0.25]; lp = [-0.2, -0.13, -0.36]; lr = [0.9, 0.15, -0.6]; curl = 0.25; }
+  if (st === 'map') { rp = [0.16, -0.2, -0.4]; rr = [1.0, -0.1, 0.25]; lp = [-0.19, -0.2, -0.42]; lr = [1.0, 0.15, -0.6]; curl = 0.25; }
   if (st === 'watch') { rp = [0.06, -0.15, -0.28]; rr = [0.95, 0.0, 0.1]; lp = [-0.22, -0.2, -0.36]; lr = [0.4, -0.2, -0.4]; curl = 0.4; }
   // sword swing: a slash across the body; every third stroke the hook jabs
   if (HANDS.swing > 0) {
@@ -5935,6 +5956,7 @@ function updateHands(dt) {
     w.lid.rotation.x = damp(w.lid.rotation.x, HANDS.watchOpen ? -1.9 : 0, 8, dt);
     if (HANDS.watchOpen && Math.floor(G.t) !== HANDS._tick) { HANDS._tick = Math.floor(G.t); if (G.audio) G.audio.tick(); }
   }
+  items.map.userData.sheet.visible = !!HANDS.mapOpen; items.map.userData.roll.visible = !HANDS.mapOpen;
   if (items.map.visible && HANDS.mapOpen && G.frame % 15 === 0) drawChart();
   if (items.lantern.visible) {
     const on = HANDS.lanternOn;
@@ -5951,6 +5973,7 @@ function updateHands(dt) {
 }
 function M_lantern(on) { const m = HANDS.M.lanternGlass; m.emissiveIntensity = on ? 2.5 : 0.1; }
 UPDATERS.push(updateHands);
+HCDBG.use = (held = false) => HANDS.useInput(held, !held);
 
 // =====================================================================
 //  FX — instanced billboard particles (smoke, fire, spray, splinters)
@@ -5972,21 +5995,27 @@ class ParticleSystem {
     this.p = []; // particle objects
     const mat = new THREE.ShaderMaterial({
       uniforms: Object.assign({ tMap: { value: tex }, uSunCol: SU.uSunCol, uSkyCol: SU.uSkyCol, uSunDir: SU.uSunDir }, fogUniforms()),
-      vertexShader: `attribute vec4 pA; attribute vec4 pC; attribute vec2 pR; varying vec2 vUv; varying vec4 vC; varying vec3 vWP; varying float vLit;
+      vertexShader: `attribute vec4 pA; attribute vec4 pC; attribute vec2 pR; varying vec2 vUv; varying vec4 vC; varying vec3 vWP; varying float vLit; varying float vRot;
         void main(){
           vec3 right = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]);
           vec3 up = vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]);
           float c = cos(pR.x), s = sin(pR.x);
           vec2 q = vec2(position.x * c - position.y * s, position.x * s + position.y * c) * pA.w;
           vec3 wp = pA.xyz + right * q.x + up * q.y;
-          vUv = uv; vC = pC; vWP = wp; vLit = pR.y;
+          vUv = uv; vC = pC; vWP = wp; vLit = pR.y; vRot = pR.x;
           gl_Position = projectionMatrix * viewMatrix * vec4(wp, 1.0);
         }`,
-      fragmentShader: GLSL_FOG + `uniform sampler2D tMap; uniform vec3 uSunCol; uniform vec3 uSkyCol; uniform vec3 uSunDir; varying vec2 vUv; varying vec4 vC; varying vec3 vWP; varying float vLit;
+      fragmentShader: GLSL_FOG + `uniform sampler2D tMap; uniform vec3 uSunCol; uniform vec3 uSkyCol; uniform vec3 uSunDir; varying vec2 vUv; varying vec4 vC; varying vec3 vWP; varying float vLit; varying float vRot;
         void main(){
           vec4 t = texture2D(tMap, vUv);
-          vec3 light = mix(vec3(1.0), uSunCol * 0.32 + uSkyCol * 0.7, vLit);
-          vec3 c = vC.rgb * t.rgb * light;
+          // each puff shaded as a soft sphere: a view-space normal from the sprite uv, lit by the sun
+          vec2 d = vUv * 2.0 - 1.0; float cr = cos(vRot), sr = sin(vRot); d = vec2(d.x * cr - d.y * sr, d.x * sr + d.y * cr);
+          vec3 nV = normalize(vec3(d * 0.9, sqrt(max(0.0, 1.0 - dot(d, d))) + 0.25));
+          vec3 Lv = normalize((viewMatrix * vec4(uSunDir, 0.0)).xyz), Vd = normalize(vWP - cameraPosition);
+          float ndl = clamp(dot(nV, Lv) * 0.8 + 0.2, 0.0, 1.0), fwd = pow(max(dot(Vd, uSunDir), 0.0), 8.0) * (1.0 - t.a * 0.6);
+          vec3 lit = uSunCol * (ndl * 0.55 + fwd * 1.1) + uSkyCol * (0.3 + 0.2 * nV.y);
+          vec3 light = mix(vec3(1.0), lit, vLit);
+          vec3 c = vC.rgb * mix(vec3(1.0), t.rgb, 0.7) * light;
           float a = t.a * vC.a;
           ${additive ? 'gl_FragColor = vec4(c * a, 1.0);' : 'gl_FragColor = vec4(applyFog(c, vWP), a);'}
         }`,
@@ -5997,7 +6026,7 @@ class ParticleSystem {
   }
   spawn(o) {
     if (this.p.length >= this.max) this.p.shift();
-    const q = Object.assign({ x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, life: 1, age: 0, s0: 1, s1: 2, r: 1, g: 1, b: 1, a: 1, grav: 0, drag: 0.5, rot: R() * TAU, vr: (R() - 0.5), lit: 1, fadeIn: 0.1, buoy: 0, floor: -99 }, o);
+    const q = Object.assign({ x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, life: 1, age: 0, s0: 1, s1: 2, r: 1, g: 1, b: 1, a: 1, grav: 0, drag: 0.5, rot: R() * TAU, vr: (R() - 0.5), lit: 1, fadeIn: 0.1, buoy: 0, floor: -99, wind: 0 }, o);
     this.p.push(q); return q;
   }
   update(dt) {
@@ -6006,6 +6035,7 @@ class ParticleSystem {
     for (const q of this.p) {
       q.age += dt; if (q.age >= q.life) continue;
       q.vy += (q.buoy - q.grav) * dt;
+      if (q.wind) { const k = Math.min(1, dt * 0.35), ws = 3.2 * WIND.speed * q.wind; q.vx += (Math.cos(WIND.dir) * ws - q.vx) * k; q.vz += (-Math.sin(WIND.dir) * ws - q.vz) * k; }
       const d = Math.exp(-q.drag * dt); q.vx *= d; q.vy *= d; q.vz *= d;
       q.x += q.vx * dt; q.y += q.vy * dt; q.z += q.vz * dt;
       if (q.y < q.floor) { q.y = q.floor; q.vy *= -0.2; q.vx *= 0.6; q.vz *= 0.6; }
@@ -6030,10 +6060,13 @@ const FX = {
     FX.glow = new ParticleSystem(500, true, TEX.soft);
     FX.drop = new ParticleSystem(700, false, TEX.soft);
     FX.flash = new THREE.PointLight(0xffa050, 0, 60, 1.8); G.scene.add(FX.flash);
-    FX.emitters = [];
+    FX.emitters = []; FX.queue = [];
   },
+  // run fn after delay seconds of game time (pauses with the game, unlike setTimeout)
+  after(delay, fn) { FX.queue.push({ t: G.t + delay, fn }); },
   update(dt) {
     if (!FX.smoke) return;
+    if (FX.queue.length) { const due = FX.queue.filter(q => q.t <= G.t); if (due.length) { FX.queue = FX.queue.filter(q => q.t > G.t); for (const q of due) q.fn(); } }
     for (const e of FX.emitters) e.fn(dt, e);
     FX.emitters = FX.emitters.filter(e => !e.dead);
     FX.smoke.update(dt); FX.glow.update(dt); FX.drop.update(dt);
@@ -6045,9 +6078,15 @@ const FX = {
     FX.light(p.x, p.y, p.z, big);
     for (let i = 0; i < 3; i++) FX.glow.spawn({ x: p.x + dir.x * i * 0.6, y: p.y + dir.y * i * 0.6, z: p.z + dir.z * i * 0.6, s0: 2.6 * big, s1: 4.5 * big, life: 0.14 + i * 0.03, r: 1, g: 0.62, b: 0.25, a: 1.6, fadeIn: 0.01 });
     for (let i = 0; i < 10; i++) FX.glow.spawn({ x: p.x, y: p.y, z: p.z, vx: dir.x * rr(10, 30) + rr(-4, 4), vy: dir.y * 20 + rr(-2, 5), vz: dir.z * rr(10, 30) + rr(-4, 4), s0: 0.18, s1: 0.05, life: rr(0.3, 0.7), r: 1, g: 0.7, b: 0.3, a: 1.4, grav: 9, drag: 1.5, fadeIn: 0.01 });
-    for (let i = 0; i < 9; i++) {
-      const sp = rr(2, 12);
-      FX.smoke.spawn({ x: p.x + dir.x * i * 0.7, y: p.y, z: p.z + dir.z * i * 0.7, vx: dir.x * sp + rr(-1, 1), vy: rr(0.3, 1.6), vz: dir.z * sp + rr(-1, 1), s0: 1.6 * big, s1: rr(6, 10) * big, life: rr(4, 7), r: 0.86, g: 0.84, b: 0.8, a: 0.7, drag: 0.9, buoy: 0.25, fadeIn: 0.04 });
+    // the jet: a dense tongue of powder smoke punched out of the port, braking hard
+    for (let i = 0; i < 7; i++) {
+      const sp = rr(14, 34);
+      FX.smoke.spawn({ x: p.x + dir.x * i * 0.5, y: p.y + rr(-0.2, 0.3), z: p.z + dir.z * i * 0.5, vx: dir.x * sp + rr(-2, 2), vy: dir.y * sp + rr(0, 2), vz: dir.z * sp + rr(-2, 2), s0: 1.2 * big, s1: rr(5, 8) * big, life: rr(6, 10), r: 0.9, g: 0.89, b: 0.86, a: 0.7, drag: 2.4, buoy: 0.12, fadeIn: 0.03, wind: 0.8 });
+    }
+    // the bank: slow billows that swell, roll up the ship's side and drift downwind for a long time
+    for (let i = 0; i < 12; i++) {
+      const sp = rr(1, 8), g = rr(0.7, 0.9);
+      FX.smoke.spawn({ x: p.x + dir.x * rr(0, 6), y: p.y + rr(-0.5, 1.5), z: p.z + dir.z * rr(0, 6), vx: dir.x * sp + rr(-1, 1), vy: rr(0.4, 1.8), vz: dir.z * sp + rr(-1, 1), s0: 2.0 * big, s1: rr(8, 15) * big, life: rr(14, 24), r: g, g: g, b: g * 0.97, a: 0.45, drag: 0.7, buoy: 0.06, fadeIn: 0.06, wind: 1, vr: rr(-0.15, 0.15) });
     }
   },
   muzzle(p, dir) {
@@ -6311,7 +6350,7 @@ function fireBroadside(ship, side, targets) {
   const guns = ship.ud.guns.filter(g => g.side === side);
   const V = 115;
   guns.forEach((gun, i) => {
-    setTimeout(() => {
+    FX.after((i * 85 + rr(0, 60)) / 1000, () => {
       if (!ship.alive) return;
       gun.recoil = 1;
       const m = ship.localToWorld(_v1.copy(gun.muzzle));
@@ -6340,7 +6379,7 @@ function fireBroadside(ship, side, targets) {
       const cd = G.camera.position.distanceTo(m);
       if (G.audio) G.audio.cannon(cd);
       if (ship.player || cd < 60) camShake(ship.player ? 0.32 : 0.15);
-    }, i * 85 + rr(0, 60));
+    });
   });
   if (ship.onFire) ship.onFire(side);
 }
@@ -6586,6 +6625,9 @@ function updateSpawns(dt) {
 }
 BOOT_STEPS.push({ p: 0.72, msg: 'Rolling out the guns…', fn: initCombat });
 UPDATERS.push(dt => { for (const e of G.enemies) e.update(dt); updateBalls(dt); updateLoot(dt); updateSpawns(dt); });
+// debug: an enemy of a given type abeam of the player's ship at distance d (starboard when side = 1)
+HCDBG.enemy = (type = 'navy', d = 140, side = 1) => { const s = G.playerShip, [x, z] = s.toWorld2(0, side * d); const e = new Enemy(type, x, z, s.yaw); return [Math.round(x), Math.round(z), G.enemies.length]; };
+HCDBG.fire = (side = 1) => fireBroadside(G.playerShip, side);
 
 // =====================================================================
 //  GAME FLOW — flagship, title cinematic, start, death & respawn, repairs
@@ -6669,7 +6711,7 @@ async function startGame() {
   boardShip(s, s.ud.helm[0] + 2.6, 0.0); P.yaw = 0; P.pitch = -0.05;
   G.mode = 'foot'; HANDS.setVisible(true);
   setTimeout(() => placeCard('Ravenmoor', 'Seat of the exiled Duke', 'HOME'), 900);
-  setTimeout(() => toast('Take the helm to sail — or step ashore and see what remains of your estate.', 6), 4200);
+  setTimeout(() => toast('Take the helm to sail — or step ashore and see what remains of your estate.', 6), 6400);  // after the arrival card fades
   if (!G.save.introDone) { G.save.introDone = 1; saveGame(); }
 }
 

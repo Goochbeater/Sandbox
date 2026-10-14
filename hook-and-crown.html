@@ -4498,7 +4498,7 @@ function buildShipModel(specKey) {
 
   // ---- masts, yards, sails, rigging ----
   const sailTex = sailTexture(sp);
-  const mastObjs = [];
+  const mastObjs = [], cloths = root.userData.cloths = [];
   const ropes = [];  // [x0,y0,z0, x1,y1,z1, radius]
   const lines = [];  // thin ratlines
   sp.masts.forEach(([mx, mh, ys], mi) => {
@@ -4548,31 +4548,15 @@ function buildShipModel(specKey) {
       const yg = new THREE.CylinderGeometry(0.1 * ys + 0.04, 0.2 * ys + 0.06, lv.w, 8); yg.rotateX(Math.PI / 2);
       yards.push(xf(yg, { p: [0.45, lv.y, 0] }));
       yards.push(xf(new THREE.BoxGeometry(0.3, 0.3, 0.6), { p: [0.3, lv.y, 0] }));
-      // sail hanging from this yard
-      const sw = lv.w * 0.92, sh = lv.h;
-      // build our own grid: u across (z), v down (y)
-      const gp = [], gu = [], gi = [], NX2 = 8, NY2 = 6;
-      for (let j = 0; j <= NY2; j++) for (let i = 0; i <= NX2; i++) {
-        const uu = i / NX2, vv = 1 - j / NY2;
-        const bottomW = lerp(1, 1.12, 1 - vv);
-        gp.push(0.65, -(1 - vv) * sh, (uu - 0.5) * sw * bottomW); gu.push(uu, vv);
-      }
-      for (let j = 0; j < NY2; j++) for (let i = 0; i < NX2; i++) { const a = j * (NX2 + 1) + i, b = a + NX2 + 1; gi.push(a, b, a + 1, a + 1, b, b + 1); }
-      const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(gp, 3)); sg.setAttribute('uv', new THREE.Float32BufferAttribute(gu, 2)); sg.setIndex(gi);
-      sg.computeVertexNormals();
-            const ng = sg.toNonIndexed(); const cnt = ng.attributes.position.count, info = new Float32Array(cnt * 4);
-      for (let i = 0; i < cnt; i++) { info[i * 4] = li + (levels.length === 2 ? 1 : 0); info[i * 4 + 1] = sw; info[i * 4 + 2] = sh; info[i * 4 + 3] = 0; }
-      ng.setAttribute('sailInfo', new THREE.BufferAttribute(info, 4));
-      // y in the shader is relative: set position.y to 0 at the yard and shift with mesh-level translate
-      const pp = ng.attributes.position; for (let i = 0; i < cnt; i++) pp.setY(i, 0);
-      sailParts.push({ geo: ng, y: lv.y - 0.15 });
+      sailParts.push({ li, sw: lv.w * 0.92, sh: lv.h, y: lv.y });
     });
-    // merge square sails of this mast into one mesh (sail y offset baked via group children)
-    const sailMat = sailMaterial(sp, sailTex);
-    const sailMeshes = sailParts.map(s => { const m = new THREE.Mesh(s.geo, sailMat); m.position.y = s.y; m.castShadow = true; m.receiveShadow = false; m.frustumCulled = false; mg.add(m); return m; });
-    if (sp.emblem !== 'none' && mi === (sp.masts.length > 2 ? 1 : sp.masts.length - 1)) {
-      sailMat.userData.u.tEmblem.value = emblemTexture(sp.emblem, sp.ghost ? '#0f3a30' : sp.emblem === 'cross' ? '#b02420' : sp.emblem === 'skull' ? '#e8e2d4' : '#6a1016');
-      sailMat.userData.u.uEmb.value.set(levels.length === 2 ? 1 : 0, 0, 0, 1);
+    // square sails: Verlet cloth hanging from each yard, in the braced mast group's frame
+    const emblemMast = sp.emblem !== 'none' && mi === (sp.masts.length > 2 ? 1 : sp.masts.length - 1);
+    const sailMat = clothSailMaterial(sp, sailTex, null);
+    const embMat = emblemMast ? clothSailMaterial(sp, sailTex, emblemTexture(sp.emblem, sp.ghost ? '#0f3a30' : sp.emblem === 'cross' ? '#b02420' : sp.emblem === 'skull' ? '#e8e2d4' : '#6a1016')) : null;
+    for (const s2 of sailParts) {
+      const rig = squareSailRig(s2.sw, s2.sh, s2.y, s2.li === 0 && embMat ? embMat : sailMat);
+      rig.mi = mi; rig.li = s2.li; mg.add(rig.mesh); cloths.push(rig);
     }
     const ym = new THREE.Mesh(mergeGeos(yards.map(g => std(g))), M.mast); ym.castShadow = true; mg.add(ym);
     mastObjs.push({ x: mx, group: mg, sailMat, levels, baseY, topY, height: mh, ys, lowerH });
@@ -4581,49 +4565,23 @@ function buildShipModel(specKey) {
   const faSails = [];
   {
     const fm = mastObjs[0], tip = root.userData.bowTip;
-    const jibGeo = (ax, ay, bx, by, cx, cy) => {
-      // triangle luff from (ax,ay) [low, forward] to (bx,by) [high, at mast], foot to (cx,cy)
-      const g = new THREE.BufferGeometry();
-      const verts = [], uvs = [], seg = 6;
-      const P = (s, t) => { const x = ax + (bx - ax) * t + (cx - ax) * s, y = ay + (by - ay) * t + (cy - ay) * s; return [x, y, 0]; };
-      for (let i = 0; i < seg; i++) for (let j = 0; j < seg - i; j++) {
-        const q = [[i, j], [i + 1, j], [i, j + 1]], q2 = [[i + 1, j], [i + 1, j + 1], [i, j + 1]];
-        for (const [s, t] of q) { verts.push(...P(s / seg, t / seg)); uvs.push(s / seg, t / seg); }
-        if (i + j + 2 <= seg) for (const [s, t] of q2) { verts.push(...P(s / seg, t / seg)); uvs.push(s / seg, t / seg); }
-      }
-      g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2)); g.computeVertexNormals();
-      const cnt = verts.length / 3, info = new Float32Array(cnt * 4);
-      for (let i = 0; i < cnt; i++) { info[i * 4] = 3; info[i * 4 + 1] = 9; info[i * 4 + 2] = by; info[i * 4 + 3] = 1; }
-      g.setAttribute('sailInfo', new THREE.BufferAttribute(info, 4));
-      return g;
-    };
-    const fy = fm.baseY + fm.lowerH * 0.95;
-    const j1 = jibGeo(tip[0] - 1.5, tip[1] - 0.4, fm.x + 1.2, fy, fm.x + 3.5, fcY + 2.2);
-    const j2 = jibGeo(tip[0] - 5.5, tip[1] - 1.7, fm.x + 0.8, fy - 3.5, fm.x + 2.5, fcY + 1.8);
-    const jm = sailMaterial(sp, sailTex);
-    const jibMesh = new THREE.Mesh(mergeGeos([j1, j2].map(g => { g.deleteAttribute('normal'); g.computeVertexNormals(); return g; })), jm); jibMesh.castShadow = true;
-    root.add(jibMesh); faSails.push({ mesh: jibMesh, mat: jm, pivotX: tip[0] });
+    const fy = fm.baseY + fm.lowerH * 0.95, jm = clothSailMaterial(sp, sailTex, null);
+    for (const [A, Bh, Cc] of [[[tip[0] - 1.5, tip[1] - 0.4], [fm.x + 1.2, fy], [fm.x + 3.5, fcY + 2.2]], [[tip[0] - 5.5, tip[1] - 1.7], [fm.x + 0.8, fy - 3.5], [fm.x + 2.5, fcY + 1.8]]]) {
+      const rig = jibRig(A, Bh, Cc, jm); root.add(rig.mesh); cloths.push(rig);
+    }
+    faSails.push({ mat: jm });
     ropes.push([tip[0], tip[1], 0, fm.x + 0.2, fy + 0.4, 0, 0.04]);
     ropes.push([tip[0] - 5, tip[1] - 1.6, 0, fm.x + 0.2, fy - 3.3, 0, 0.035]);
     if (sp.masts.length > 2 || sp.L < 33) {
       const mz = mastObjs[mastObjs.length - 1];
       const gaffY = mz.baseY + mz.lowerH * 0.95, boomY = mz.baseY + 2.6, aft = -L / 2 - 2;
-      const sg = new THREE.BufferGeometry(), verts = [], uvs = [], NX3 = 6, NY3 = 6;
-      const P = (s, t) => [lerp(mz.x - 0.4, lerp(aft, aft + 1.5, t), s), lerp(boomY, gaffY + s * 1.8, t), 0];
-      for (let j = 0; j < NY3; j++) for (let i = 0; i < NX3; i++) {
-        const c = [[i, j], [i + 1, j], [i + 1, j + 1], [i, j], [i + 1, j + 1], [i, j + 1]];
-        for (const [a, b] of c) { verts.push(...P(a / NX3, b / NY3)); uvs.push(a / NX3, b / NY3); }
-      }
-      sg.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3)); sg.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2)); sg.computeVertexNormals();
-      const cnt = verts.length / 3, info = new Float32Array(cnt * 4); for (let i = 0; i < cnt; i++) { info[i * 4] = 4; info[i * 4 + 1] = 10; info[i * 4 + 2] = gaffY; info[i * 4 + 3] = 1; }
-      sg.setAttribute('sailInfo', new THREE.BufferAttribute(info, 4));
-      const spm = sailMaterial(sp, sailTex);
+      const spm = clothSailMaterial(sp, sailTex, null);
       const spGroup = new THREE.Group(); spGroup.position.set(mz.x, 0, 0); root.add(spGroup);
-      const spMesh = new THREE.Mesh(sg, spm); spMesh.position.x = -mz.x; spMesh.castShadow = true; spGroup.add(spMesh);
+      const rig = spankerRig(mz.x, aft, boomY, gaffY, spm); rig.group = spGroup; spGroup.add(rig.mesh); cloths.push(rig);
       const boom = new THREE.CylinderGeometry(0.12, 0.16, mz.x - aft, 6); boom.rotateZ(Math.PI / 2);
       const bm = new THREE.Mesh(mergeGeos([xf(boom, { p: [-(mz.x - aft) / 2, boomY, 0] }), xf(boom.clone(), { p: [-(mz.x - aft) / 2 + 0.6, gaffY + 0.9, 0], r: [0, 0, 0.18] })].map(g => std(g))), M.mast);
       spGroup.add(bm);
-      faSails.push({ mesh: spMesh, mat: spm, group: spGroup });
+      faSails.push({ mat: spm, group: spGroup });
     }
   }
   // stays between mastheads and to the bow
@@ -4651,16 +4609,13 @@ function buildShipModel(specKey) {
   }
   // ensign and masthead pennant
   {
-    const ft = flagTexture(sp.flag), fm = flagMaterial(ft);
-    const fg = new THREE.PlaneGeometry(5.2, 3.2, 12, 4); fg.translate(2.6, 0, 0);
-    const flag = new THREE.Mesh(fg, fm); flag.position.set(-L / 2 - 0.6, H.rail(-L / 2) + 5.2, 0); flag.rotation.y = Math.PI;
-    root.add(flag);
+    const ft = flagTexture(sp.flag), fm = clothFlagMaterial(ft);
+    const ens = flagRig(-L / 2 - 0.6, H.rail(-L / 2) + 5.2, 5.2, 3.2, fm, 14, 9); root.add(ens.mesh); cloths.push(ens);
     B.geo(mk('mast'), new THREE.CylinderGeometry(0.06, 0.09, 6.2, 6), [-L / 2 - 0.4, H.rail(-L / 2) + 2.8, 0], [0, 0, 0.25]);
     const main = mastObjs[Math.min(1, mastObjs.length - 1)];
-    const pg = new THREE.PlaneGeometry(7, 0.6, 14, 1); pg.translate(3.5, 0, 0); { const p = pg.attributes.position; for (let i = 0; i < p.count; i++) p.setY(i, p.getY(i) * (1 - p.getX(i) / 8)); }
-    const pen = new THREE.Mesh(pg, flagMaterial(flagTexture(sp.flag))); pen.position.set(main.x + 0.1, main.baseY + main.height + 0.6, 0); pen.rotation.y = Math.PI;
-    root.add(pen);
-    root.userData.flags = [flag, pen];
+    const pen = flagRig(main.x + 0.1, main.baseY + main.height + 0.6, 7, 0.6, clothFlagMaterial(flagTexture(sp.flag)), 16, 3, 0.85); root.add(pen.mesh); cloths.push(pen);
+    const flag = ens.mesh;
+    root.userData.flags = [flag, pen.mesh];
   }
   const meshes = B.flush(root);
   for (const m of meshes) { m.matrixAutoUpdate = true; }
@@ -4790,20 +4745,9 @@ class Ship {
     const brace = pos.from < 0.25 ? 0 : -Math.sign(pos.rel) * clamp((pos.from - 0.2) * 0.42, 0, 0.62);
     this.brace = damp(this.brace, brace, 0.8, dt);
     this.boom = damp(this.boom, -Math.sign(pos.rel) * clamp(0.25 + pos.from * 0.18, 0, 0.75), 0.8, dt);
-    const luff = pos.from > 2.5 ? 1 : 0;
-    this.ud.masts.forEach((m, mi) => {
-      m.group.rotation.y = this.brace;
-      const u = m.sailMat.userData.u;
-      m.levels.forEach((lv, li) => { u.uFurl.value[li + (m.levels.length === 2 ? 1 : 0)] = this.furl[mi][li]; });
-      u.uBillow.value = WIND.speed * (luff ? 0.18 : 0.9);
-      u.uBack.value = luff ? -0.6 : 1;
-    });
-    for (const fa of this.ud.fa) {
-      const u = fa.mat.userData.u;
-      u.uFurl.value[3] = this.faFurl[0]; u.uFurl.value[4] = this.faFurl[1];
-      u.uBillow.value = WIND.speed * (luff ? 0.2 : 1); u.uBack.value = -Math.sign(pos.rel) || 1;
-      if (fa.group) fa.group.rotation.y = this.boom;
-    }
+    this.ud.masts.forEach(m => { m.group.rotation.y = this.brace; });
+    for (const fa of this.ud.fa) if (fa.group) fa.group.rotation.y = this.boom;
+    updateShipCloth(this, dt);
     if (this.ud.wheel) this.ud.wheel.rotation.z = this.wheelAngle;
     // cannon recoil
     for (const g of this.ud.guns) {
@@ -4913,6 +4857,220 @@ UPDATERS.push(dt => {
   SU.uWind.value.set(Math.cos(WIND.dir) * WIND.speed, -Math.sin(WIND.dir) * WIND.speed);
 });
 UPDATERS.push(dt => { for (const s of G.ships) s.update(dt); });
+
+// =====================================================================
+//  CLOTH — position-based Verlet cloth for every sail, jib, spanker,
+//  ensign and pennant. Each cloth lives in the local frame of the spar
+//  it hangs from (a braced yard, the boom, the hull) and feels apparent
+//  wind, gravity tilted by the ship's roll and pitch, buntlines that
+//  gather it to the yard, and sheets that hold its clews.
+// =====================================================================
+const CLOTH_DT = 1 / 60;
+class Cloth {
+  // nx × ny particles; pos(i, j) → [x, y, z] rest position; uv(i, j) → [u, v]
+  constructor(nx, ny, pos, uv, { stretch = 1, shear = 0.6, bend = 0.12, damping = 0.988, mass = 1 } = {}) {
+    this.nx = nx; this.ny = ny; const n = this.n = nx * ny;
+    this.p = new Float32Array(n * 3); this.o = new Float32Array(n * 3); this.r = new Float32Array(n * 3); this.w = new Float32Array(n).fill(1 / mass);
+    this.damping = damping; this.att = []; this.acc = 0; this.iters = 8; this.t = R() * 100;
+    const uvs = new Float32Array(n * 2);
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+      const k = j * nx + i, q = pos(i, j), u = uv(i, j);
+      this.p.set(q, k * 3); this.o.set(q, k * 3); this.r.set(q, k * 3); uvs[k * 2] = u[0]; uvs[k * 2 + 1] = u[1];
+    }
+    // constraints: structural, shear and bending springs between grid neighbours
+    const ca = [], cr = [], cs = [];
+    const link = (a, b, s) => { const ax = this.r[a * 3] - this.r[b * 3], ay = this.r[a * 3 + 1] - this.r[b * 3 + 1], az = this.r[a * 3 + 2] - this.r[b * 3 + 2]; ca.push(a, b); cr.push(Math.hypot(ax, ay, az)); cs.push(s); };
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+      const k = j * nx + i;
+      if (i + 1 < nx) link(k, k + 1, stretch);
+      if (j + 1 < ny) link(k, k + nx, stretch);
+      if (i + 1 < nx && j + 1 < ny) { link(k, k + nx + 1, shear); link(k + 1, k + nx, shear); }
+      if (i + 2 < nx) link(k, k + 2, bend);
+      if (j + 2 < ny) link(k, k + 2 * nx, bend);
+    }
+    this.ca = new Uint16Array(ca); this.cr = new Float32Array(cr); this.cs = new Float32Array(cs);
+    const idx = [];
+    for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) { const a = j * nx + i, b = a + nx; idx.push(a, b, a + 1, a + 1, b, b + 1); }
+    const g = this.geo = new THREE.BufferGeometry();
+    this.posAttr = new THREE.BufferAttribute(this.p, 3); this.posAttr.setUsage(THREE.DynamicDrawUsage);
+    g.setAttribute('position', this.posAttr); g.setAttribute('uv', new THREE.BufferAttribute(uvs, 2)); g.setIndex(idx);
+    g.computeVertexNormals(); this.nrm = g.attributes.normal.array;
+    g.boundingSphere = new THREE.Sphere(V3(), 1e4);
+  }
+  pin(i, j) { this.w[j * this.nx + i] = 0; }
+  // soft or hard attachment toward a target that the owner moves each frame
+  attach(i, j, k = 1) { const a = { i: j * this.nx + i, x: 0, y: 0, z: 0, k }; this.att.push(a); return a; }
+  // wind: apparent wind in this cloth's frame (m/s); g: gravity in this frame; cn/ct: normal and tangential drag
+  step(dt, wind, g, cn = 0.12, ct = 0.012, gust = 0.0, collide = null) {
+    this.acc = Math.min(this.acc + dt, CLOTH_DT * 3);
+    let stepped = false;
+    while (this.acc >= CLOTH_DT) { this.acc -= CLOTH_DT; this._step(CLOTH_DT, wind, g, cn, ct, gust, collide); stepped = true; }
+    if (stepped) { this.posAttr.needsUpdate = true; this.geo.computeVertexNormals(); this.nrm = this.geo.attributes.normal.array; }
+  }
+  _step(dt, wind, g, cn, ct, gust, collide) {
+    const p = this.p, o = this.o, w = this.w, N = this.nrm, dt2 = dt * dt, dmp = this.damping; this.t += dt;
+    const wl = Math.hypot(wind.x, wind.y, wind.z);
+    for (let k = 0; k < this.n; k++) {
+      if (w[k] === 0) continue;
+      const i3 = k * 3, vx = (p[i3] - o[i3]) / dt, vy = (p[i3 + 1] - o[i3 + 1]) / dt, vz = (p[i3 + 2] - o[i3 + 2]) / dt;
+      // relative wind with a little turbulence that travels across the cloth
+      const tb = gust ? 1 + gust * (Math.sin(this.t * 7.3 + k * 0.37) * 0.6 + Math.sin(this.t * 13.1 - k * 0.71) * 0.4) : 1;
+      const rx = wind.x * tb - vx, ry = wind.y * tb - vy, rz = wind.z * tb - vz;
+      const nx = N[i3], ny = N[i3 + 1], nz = N[i3 + 2], dn = rx * nx + ry * ny + rz * nz;
+      const fn = cn * dn * Math.abs(dn), rl = Math.hypot(rx, ry, rz);
+      const ax = g.x + nx * fn + (rx - dn * nx) * ct * rl, ay = g.y + ny * fn + (ry - dn * ny) * ct * rl, az = g.z + nz * fn + (rz - dn * nz) * ct * rl;
+      const px = p[i3], py = p[i3 + 1], pz = p[i3 + 2];
+      p[i3] += (px - o[i3]) * dmp + ax * dt2; p[i3 + 1] += (py - o[i3 + 1]) * dmp + ay * dt2; p[i3 + 2] += (pz - o[i3 + 2]) * dmp + az * dt2;
+      o[i3] = px; o[i3 + 1] = py; o[i3 + 2] = pz;
+    }
+    const ca = this.ca, cr = this.cr, cs = this.cs, nc = cr.length;
+    for (let it = 0; it < this.iters; it++) {
+      for (let c = 0; c < nc; c++) {
+        const a = ca[c * 2], b = ca[c * 2 + 1], wa = w[a], wb = w[b], ws = wa + wb; if (ws === 0) continue;
+        const a3 = a * 3, b3 = b * 3, dx = p[b3] - p[a3], dy = p[b3 + 1] - p[a3 + 1], dz = p[b3 + 2] - p[a3 + 2];
+        const d = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1e-6, f = (d - cr[c]) / d * cs[c] / ws;
+        p[a3] += dx * f * wa; p[a3 + 1] += dy * f * wa; p[a3 + 2] += dz * f * wa;
+        p[b3] -= dx * f * wb; p[b3 + 1] -= dy * f * wb; p[b3 + 2] -= dz * f * wb;
+      }
+      for (const at of this.att) { const i3 = at.i * 3, k = at.k; if (k <= 0) continue; p[i3] += (at.x - p[i3]) * k; p[i3 + 1] += (at.y - p[i3 + 1]) * k; p[i3 + 2] += (at.z - p[i3 + 2]) * k; }
+      if (collide) collide(p, this.n);
+    }
+    // pinned particles snap to their (owner-moved) rest positions
+    for (let k = 0; k < this.n; k++) if (w[k] === 0) { const i3 = k * 3; p[i3] = o[i3] = this.r[i3]; p[i3 + 1] = o[i3 + 1] = this.r[i3 + 1]; p[i3 + 2] = o[i3 + 2] = this.r[i3 + 2]; }
+  }
+  // shift everything (used when the owner frame jumps, e.g. a respawn)
+  reset() { this.p.set(this.r); this.o.set(this.r); }
+}
+
+// ---------------------------------------------------------------- sail canvas material
+function clothSailMaterial(sp, tex, emblem) {
+  const m = new THREE.MeshStandardMaterial({ map: tex, side: THREE.DoubleSide, roughness: 0.88, envMapIntensity: 0.55, transparent: !!sp.ghost, opacity: sp.ghost ? 0.8 : 1 });
+  const u = { uGhostS: { value: sp.ghost ? 1 : 0 }, tEmblem: { value: emblem || null }, uEmb: { value: emblem ? 1 : 0 } };
+  m.userData.u = u;
+  return patch(m, 'csail' + (emblem ? 'E' : ''), s => {
+    Object.assign(s.uniforms, u);
+    s.vertexShader = s.vertexShader.replace('#include <common>', '#include <common>\nvarying vec2 vSailUv;').replace('#include <uv_vertex>', '#include <uv_vertex>\nvSailUv = uv;');
+    s.fragmentShader = s.fragmentShader.replace('#include <common>', `#include <common>
+uniform vec3 uSunDir; uniform vec3 uSunCol; uniform float uGhostS; uniform sampler2D tEmblem; uniform float uEmb; uniform float uTime; varying vec2 vSailUv;`)
+      .replace('#include <map_fragment>', `#include <map_fragment>
+if (uEmb > 0.5) { vec2 eu = (vSailUv - vec2(0.5, 0.48)) * vec2(1.35, 1.25) + 0.5; if (eu.x > 0.0 && eu.x < 1.0 && eu.y > 0.0 && eu.y < 1.0) { vec4 e = texture2D(tEmblem, eu); diffuseColor.rgb = mix(diffuseColor.rgb, e.rgb, e.a * 0.92); } }`)
+      // canvas glows when the sun is behind it
+      .replace('#include <opaque_fragment>', `{ vec3 Lv = normalize((viewMatrix * vec4(uSunDir, 0.0)).xyz); vec3 Vv = normalize(vViewPosition);
+  float tr = pow(max(dot(-Vv, Lv), 0.0), 2.0) * (gl_FrontFacing ? 1.0 : 1.0); outgoingLight += diffuseColor.rgb * uSunCol * tr * 0.34;
+  if (uGhostS > 0.5) outgoingLight += vec3(0.1, 0.6, 0.45) * (0.5 + 0.5 * sin(uTime * 1.7 + vSailUv.y * 6.0)); }
+#include <opaque_fragment>`);
+  });
+}
+function clothFlagMaterial(tex) {
+  return new THREE.MeshStandardMaterial({ map: tex, side: THREE.DoubleSide, roughness: 0.82, alphaTest: 0.5 });
+}
+
+// ---------------------------------------------------------------- per-ship rig
+// apparent wind & gravity in ship-local coordinates
+const _cw1 = V3(), _cw2 = V3(), _cg1 = V3(), _cq1 = new THREE.Quaternion();
+function shipClothFrame(ship) {
+  const rel = WIND.dir - ship.yaw, ws = 8.5 * WIND.speed * (0.85 + 0.15 * Math.sin(G.t * 0.37 + ship.x * 0.01));
+  _cw1.set(ws * Math.cos(rel) - ship.speed, 0, -ws * Math.sin(rel));
+  _cq1.copy(ship.obj.quaternion).invert(); _cg1.set(0, -9.8, 0).applyQuaternion(_cq1);
+  return { wind: _cw1, g: _cg1 };
+}
+// Euler y-rotation by +a maps local→parent as x' = x cos + z sin, z' = -x sin + z cos; this is the inverse
+function toGroup(v, a, out) { const c = Math.cos(a), s = Math.sin(a); return out.set(v.x * c - v.z * s, v.y, v.x * s + v.z * c); }
+
+function updateShipCloth(ship, dt) {
+  const C = ship.ud.cloths; if (!C) return;
+  const cam = G.camera.position, d = Math.hypot(cam.x - ship.x, cam.z - ship.z);
+  if (d > 900) return;
+  const iters = d < 120 ? 8 : d < 350 ? 5 : 3;
+  const { wind, g } = shipClothFrame(ship);
+  for (const c of C) {
+    c.cloth.iters = iters;
+    if (c.kind === 'square') {
+      const f = ship.furl[c.mi][c.li], m = ship.ud.masts[c.mi];
+      toGroup(wind, m.group.rotation.y, _cw2); const gl = toGroup(g, m.group.rotation.y, V3());
+      c.setFurl(f);
+      c.cloth.step(dt, _cw2, gl, 0.11, 0.01, 0.12, c.collide);
+    } else if (c.kind === 'jib') {
+      c.setFurl(ship.faFurl[0], Math.sign(wrapAng(WIND.dir - ship.yaw)) || 1);
+      c.cloth.step(dt, wind, g, 0.1, 0.01, 0.15);
+    } else if (c.kind === 'spanker') {
+      const a = c.group.rotation.y; toGroup(wind, a, _cw2); const gl = toGroup(g, a, V3());
+      c.setFurl(ship.faFurl[1]);
+      c.cloth.step(dt, _cw2, gl, 0.1, 0.01, 0.15);
+    } else {
+      // flags stream downwind and flog
+      c.cloth.step(dt, wind, g, 0.05, 0.06, 0.55);
+    }
+  }
+}
+
+// ---------------------------------------------------------------- builders (called from buildShipModel)
+function squareSailRig(sw, sh, yardY, mat, nx = 11, ny = 9) {
+  const top = yardY - 0.15;
+  const cl = new Cloth(nx, ny, (i, j) => { const u = i / (nx - 1), t = j / (ny - 1), bw = lerp(1, 1.12, t); return [0.65, top - t * sh, (u - 0.5) * sw * bw]; },
+    (i, j) => [i / (nx - 1), 1 - j / (ny - 1)], { stretch: 1, shear: 0.5, bend: 0.08, damping: 0.985 });
+  for (let i = 0; i < nx; i++) cl.pin(i, 0);
+  // clews (sheeted to the yard below) and the buntlines that gather the canvas up to the yard
+  const clews = [cl.attach(0, ny - 1, 0), cl.attach(nx - 1, ny - 1, 0)];
+  const bunt = []; for (let j = 1; j < ny; j++) for (let i = 0; i < nx; i++) bunt.push({ a: cl.attach(i, j, 0), j, i });
+  const mesh = new THREE.Mesh(cl.geo, mat); mesh.castShadow = true; mesh.receiveShadow = true; mesh.frustumCulled = false;
+  const rig = { kind: 'square', cloth: cl, mesh, f: -1 };
+  rig.setFurl = f => {
+    if (Math.abs(f - rig.f) < 1e-3) return; rig.f = f;
+    const set = 1 - f, cw = sw * 1.12 * 0.5;
+    for (const [k, c] of clews.entries()) { c.x = 0.75; c.y = top - sh * Math.max(set, 0.04); c.z = (k ? 1 : -1) * cw * lerp(0.75, 1, set); c.k = set > 0.06 ? 0.5 : 0; }
+    for (const b of bunt) {
+      const t = b.j / (ny - 1), over = t - set;                 // how far above the current foot this row is gathered
+      const s = clamp(over / 0.12 + 0.02, 0, 1);
+      b.a.k = s * 0.35; b.a.x = 0.62 + Math.sin(b.j * 1.9) * 0.08; b.a.y = top - 0.18 - (b.j % 3) * 0.07; b.a.z = (b.i / (nx - 1) - 0.5) * sw * 0.96;
+    }
+  };
+  // keep the canvas forward of the mast when it is taken aback
+  rig.collide = (p, n) => { for (let k = 0; k < n; k++) { const i3 = k * 3; if (Math.abs(p[i3 + 2]) < 0.7 && p[i3] < 0.42) p[i3] = 0.42; } };
+  return rig;
+}
+function jibRig(A, Bh, Cc, mat, nu = 8, nv = 8) {
+  // luff from tack A (at the bowsprit) to head Bh (up the stay); clew Cc trimmed to leeward
+  const P = (u, v) => [A[0] + (Bh[0] - A[0]) * v + (Cc[0] - A[0]) * u * (1 - v), A[1] + (Bh[1] - A[1]) * v + (Cc[1] - A[1]) * u * (1 - v), 0];
+  const cl = new Cloth(nu, nv, (i, j) => P(i / (nu - 1), j / (nv - 1)), (i, j) => [i / (nu - 1), j / (nv - 1)], { stretch: 1, shear: 0.5, bend: 0.06, damping: 0.985 });
+  for (let j = 0; j < nv; j++) cl.pin(0, j);
+  for (let i = 0; i < nu; i++) cl.pin(i, nv - 1);
+  const clew = cl.attach(nu - 1, 0, 0.5);
+  const bunt = []; for (let j = 0; j < nv - 1; j++) for (let i = 1; i < nu; i++) bunt.push({ a: cl.attach(i, j, 0), u: i / (nu - 1), v: j / (nv - 1) });
+  const mesh = new THREE.Mesh(cl.geo, mat); mesh.castShadow = true; mesh.frustumCulled = false;
+  const rig = { kind: 'jib', cloth: cl, mesh, f: -1, side: 0 };
+  rig.setFurl = (f, side) => {
+    const set = 1 - f;
+    clew.x = Cc[0] - 0.4; clew.y = Cc[1]; clew.z = -side * lerp(0.6, 2.4, set); clew.k = set > 0.08 ? 0.5 : 0;
+    // furled: the canvas is hauled down along the stay toward the tack
+    for (const b of bunt) { const s = clamp((b.u - set) / 0.2 + 0.02, 0, 1) * (f > 0.02 ? 1 : 0); b.a.k = s * 0.3; const q = P(0, b.v); b.a.x = q[0] + 0.1; b.a.y = q[1] - 0.15; b.a.z = 0; }
+  };
+  return rig;
+}
+function spankerRig(mx, aft, boomY, gaffY, mat, nx = 9, ny = 9) {
+  // in the boom group's frame (origin at the mast): luff up the mast, foot along the boom, head along the gaff
+  const P = (s, t) => [lerp(-0.4, lerp(aft - mx, aft - mx + 1.5, t), s), lerp(boomY, gaffY + s * 1.8, t), 0];
+  const cl = new Cloth(nx, ny, (i, j) => P(i / (nx - 1), j / (ny - 1)), (i, j) => [i / (nx - 1), j / (ny - 1)], { stretch: 1, shear: 0.5, bend: 0.06, damping: 0.985 });
+  for (let j = 0; j < ny; j++) cl.pin(0, j);
+  for (let i = 0; i < nx; i++) { cl.pin(i, ny - 1); cl.pin(i, 0); }
+  const brail = []; for (let j = 1; j < ny - 1; j++) for (let i = 1; i < nx; i++) brail.push({ a: cl.attach(i, j, 0), s: i / (nx - 1), t: j / (ny - 1) });
+  const mesh = new THREE.Mesh(cl.geo, mat); mesh.castShadow = true; mesh.frustumCulled = false;
+  const rig = { kind: 'spanker', cloth: cl, mesh, f: -1 };
+  rig.setFurl = f => {
+    // brailed up: the canvas is drawn in toward the mast
+    for (const b of brail) { const s = clamp((b.s - (1 - f)) / 0.2 + 0.02, 0, 1) * (f > 0.02 ? 1 : 0); b.a.k = s * 0.3; b.a.x = -0.2 - b.t * 0.3; b.a.y = lerp(boomY, gaffY, b.t); b.a.z = 0.15; }
+  };
+  return rig;
+}
+function flagRig(x0, y0, w, h, mat, nx = 14, ny = 9, taper = 0) {
+  const cl = new Cloth(nx, ny, (i, j) => { const u = i / (nx - 1), t = j / (ny - 1), hh = h * (1 - taper * u); return [x0 - u * w, y0 + (0.5 - t) * hh, 0]; },
+    (i, j) => [i / (nx - 1), 1 - j / (ny - 1)], { stretch: 1, shear: 0.6, bend: 0.04, damping: 0.99 });
+  for (let j = 0; j < ny; j++) cl.pin(0, j);
+  const mesh = new THREE.Mesh(cl.geo, mat); mesh.castShadow = true; mesh.frustumCulled = false;
+  return { kind: 'flag', cloth: cl, mesh };
+}
+HCDBG.wind = a => { WIND.dir = WIND.target = a; };
+HCDBG.place = (x, z, yaw) => { const s = G.playerShip; s.x = x; s.z = z; s.yaw = yaw; s.anchored = false; for (const c of s.ud.cloths) c.cloth.reset(); };
 
 // =====================================================================
 //  INPUT — dynamic thumbstick, look drag, buttons (touch first), keyboard fallback
@@ -7450,6 +7608,203 @@ UPDATERS.push(dt => {
 BOOT_STEPS.push({ p: 0.62, msg: 'Waking the household…', fn: () => { buildRestorationFX(); spawnEstateNPCs(); } });
 HCDBG.restore = k => { G.save.restored[k] = true; applyRestorations(); };
 HCDBG.npcs = () => NPC.list.map(n => n.name);
+
+// =====================================================================
+//  WILDLIFE — parrot flocks over the islands, gulls wheeling round the
+//  masts, flamingos along the coast, horses in the paddock, a dolphin
+//  pod riding the bow wave, crabs on the beaches, butterflies in the
+//  gardens. Birds and horses are morph-animated scans from three.js.
+// =====================================================================
+const WILD = { list: [], flocks: [], dolphins: [], ready: false };
+function morphAnimal(key, len) {
+  const g = ASSET.glb[key]; if (!g) return null;
+  let src = null; g.scene.traverse(o => { if (o.isMesh && !src) src = o; }); if (!src) return null;
+  const m = src.clone(); src.geometry.computeBoundingBox();
+  const bb = src.geometry.boundingBox, L = Math.max(bb.max.x - bb.min.x, bb.max.z - bb.min.z);
+  m.scale.setScalar(len / L); m.castShadow = true; m.frustumCulled = false; m.position.set(0, 0, 0); m.rotation.set(0, 0, 0);
+  const obj = new THREE.Group(); obj.add(m); G.scene.add(obj);
+  const mixer = new THREE.AnimationMixer(m), act = mixer.clipAction(g.animations[0]); act.play(); mixer.update(R() * 2);
+  return { obj, mesh: m, mixer, act };
+}
+// banked flight along a path: face velocity, roll into turns
+const _wv = V3(), _wp = V3();
+function flyTo(a, p, dt) {
+  _wv.subVectors(p, a.obj.position);
+  const sp = _wv.length() / Math.max(dt, 1e-3);
+  if (sp > 0.01) {
+    const yaw = Math.atan2(_wv.x, _wv.z), turn = wrapAng(yaw - (a.yaw ?? yaw)) / Math.max(dt, 1e-3);
+    a.yaw = yaw; a.bank = damp(a.bank || 0, clamp(-turn * 0.35, -0.7, 0.7), 3, dt);
+    a.obj.rotation.set(0, 0, 0); a.obj.rotateY(yaw); a.obj.rotateX(-Math.atan2(_wv.y, Math.hypot(_wv.x, _wv.z)) * 0.6); a.obj.rotateZ(a.bank);
+  }
+  a.obj.position.copy(p);
+}
+// ---------------------------------------------------------------- birds
+function nearestIslandTo(x, z) { let best = null, bd = 1e9; for (const I of G.islands) { const d = Math.hypot(I.x - x, I.z - z) - I.r; if (d < bd) { bd = d; best = I; } } return best; }
+function initWildlife() {
+  if (WILD.ready) return; WILD.ready = true;
+  // three parrot flocks that settle over whichever islands you are near
+  for (let f = 0; f < 3; f++) {
+    const flock = { birds: [], c: V3(), R: 30 + f * 12, h: 26 + f * 5, w: 0.22 + f * 0.05, ph: f * 2.1, island: null };
+    for (let i = 0; i < 6; i++) { const a = morphAnimal('parrot', 0.85); if (!a) break; a.off = [R() * 6 - 3, R() * 4 - 2, R() * 6 - 3, R() * 0.6]; a.act.timeScale = 1.4 + R() * 0.4; flock.birds.push(a); }
+    WILD.flocks.push(flock);
+  }
+  // gulls around the masts of your ship
+  WILD.gulls = [];
+  for (let i = 0; i < 5; i++) { const a = morphAnimal('stork', 1.7); if (!a) break; a.mesh.material = a.mesh.material.clone(); a.mesh.material.color.set(0xf4f2ee); a.act.timeScale = 0.55; a.r = 22 + R() * 22; a.h = 26 + R() * 18; a.w = (0.18 + R() * 0.12) * (R() < 0.5 ? 1 : -1); a.ph = R() * TAU; WILD.gulls.push(a); }
+  // flamingos in a skein along the home island's shore
+  WILD.flamingos = [];
+  for (let i = 0; i < 7; i++) { const a = morphAnimal('flamingo', 1.5); if (!a) break; a.k = i; a.act.timeScale = 0.9; WILD.flamingos.push(a); }
+  // horses running laps of the paddock by the stables
+  WILD.horses = [];
+  for (let i = 0; i < 2; i++) { const a = morphAnimal('horse', 2.5); if (!a) break; a.ph = i * 2.2; a.act.timeScale = 1.1; WILD.horses.push(a); }
+  buildDolphins(); buildCrabs(); buildButterflies(); buildPaddock();
+}
+function updateBirds(dt) {
+  const cam = G.camera.position, t = G.t;
+  for (const fl of WILD.flocks) {
+    // pick up and move to the nearest island if you've gone elsewhere
+    const I = nearestIslandTo(cam.x, cam.z);
+    if (I && fl.island !== I) { fl.island = I; const a = R() * TAU; fl.c.set(I.x + Math.cos(a) * I.r * 0.4, (I.maxH || 20), I.z + Math.sin(a) * I.r * 0.4); for (const b of fl.birds) b.obj.position.copy(fl.c).add(V3(0, 40, 0)); }
+    const ta = t * fl.w + fl.ph;
+    for (const b of fl.birds) {
+      const o = b.off, a2 = ta + o[3];
+      _wp.set(fl.c.x + Math.cos(a2) * (fl.R + o[0] * 2), fl.c.y + fl.h * 0.5 + Math.sin(a2 * 2.3) * 5 + o[1], fl.c.z + Math.sin(a2 * 1.3) * (fl.R * 0.7 + o[2] * 2));
+      flyTo(b, _wp.clone(), dt); b.mixer.update(dt);
+    }
+  }
+  const s = G.playerShip;
+  if (s && WILD.gulls) for (const g of WILD.gulls) {
+    const a = t * g.w + g.ph;
+    flyTo(g, _wp.set(s.x + Math.cos(a) * g.r, g.h + Math.sin(a * 1.7) * 3, s.z + Math.sin(a) * g.r).clone(), dt); g.mixer.update(dt);
+  }
+  if (WILD.flamingos && WILD.flamingos.length) {
+    const H = G.islandById.home, u = t * 0.018;
+    for (const f of WILD.flamingos) {
+      const k = f.k, lag = (k === 0 ? 0 : Math.ceil(k / 2) * 0.012), sd = k % 2 ? 1 : -1, a = u - lag;
+      const R2 = H.r * 1.12 + (k ? sd * Math.ceil(k / 2) * 4 : 0);
+      flyTo(f, _wp.set(H.x + Math.cos(a) * R2, 16 + Math.sin(a * 3) * 2 + k * 0.3, H.z + Math.sin(a) * R2 * 0.92).clone(), dt);
+      if (cam.distanceTo(f.obj.position) < 700) f.mixer.update(dt);
+    }
+  }
+  if (WILD.horses) for (const h of WILD.horses) {
+    const P0 = WILD.paddock; if (!P0) break;
+    const a = t * 0.42 + h.ph, rr = P0.r - 3 - (h.ph > 1 ? 2.5 : 0), x = P0.x + Math.cos(a) * rr, z = P0.z + Math.sin(a) * rr;
+    h.obj.position.set(x, groundHeight(x, z, P0.y + 2) - 0.05, z); h.obj.rotation.set(0, Math.atan2(-Math.sin(a), Math.cos(a)), 0);
+    if (cam.distanceTo(h.obj.position) < 180) h.mixer.update(dt);
+  }
+}
+function buildPaddock() {
+  const x = 96, z = -102, y = terrainHeight(x, z), r = 14, B = new Builder();
+  WILD.paddock = { x, z, y, r };
+  const n = 28;
+  for (let i = 0; i < n; i++) {
+    const a = i / n * TAU, a2 = (i + 1) / n * TAU, px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r, py = terrainHeight(px, pz);
+    B.geo('woodDark', new THREE.CylinderGeometry(0.07, 0.08, 1.5, 5), [px, py + 0.55, pz]);
+    if (i === 3) continue;  // the gate gap
+    const qx = x + Math.cos(a2) * r, qz = z + Math.sin(a2) * r, L = Math.hypot(qx - px, qz - pz), ang = Math.atan2(-(qz - pz), qx - px);
+    for (const hy of [0.55, 1.05]) B.box('wood', (px + qx) / 2, py + hy, (pz + qz) / 2, L, 0.09, 0.05, ang, 1);
+  }
+  B.flush(EST.root || G.scene);
+}
+// ---------------------------------------------------------------- dolphins
+function dolphinGeo() {
+  const body = latheGeo([[0, -1.1], [0.07, -1.0], [0.2, -0.75], [0.3, -0.35], [0.32, 0.0], [0.27, 0.45], [0.16, 0.8], [0.07, 1.0], [0.04, 1.18], [0, 1.22]], 14);
+  body.rotateX(Math.PI / 2);  // length along z, nose at +z
+  const fin = new THREE.ConeGeometry(0.16, 0.38, 4); fin.scale(0.25, 1, 1); fin.rotateX(-0.5); fin.translate(0, 0.42, -0.05);
+  const fl = new THREE.BoxGeometry(0.8, 0.03, 0.22); fl.translate(0, 0, -1.12);
+  const fp = new THREE.BoxGeometry(0.62, 0.025, 0.16); fp.rotateY(0.2); fp.translate(0, -0.15, 0.3);
+  const g = mergeGeos([body, fin, fl, fp].map(x => std(x)));
+  const P = g.attributes.position, col = new Float32Array(P.count * 3);
+  for (let i = 0; i < P.count; i++) { const k = smooth(-0.15, 0.2, P.getY(i)); col[i * 3] = lerp(0.62, 0.17, k); col[i * 3 + 1] = lerp(0.64, 0.2, k); col[i * 3 + 2] = lerp(0.66, 0.24, k); }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  return g;
+}
+function buildDolphins() {
+  const g = dolphinGeo(), m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.25, metalness: 0.05 });
+  for (let i = 0; i < 5; i++) {
+    const d = new THREE.Mesh(g, m); d.castShadow = true; d.visible = false; G.scene.add(d);
+    WILD.dolphins.push({ m: d, side: i % 2 ? 1 : -1, ahead: 4 + i * 3.2, out: 5 + (i % 3) * 2.5, ph: R(), per: 2.4 + R() * 0.8 });
+  }
+}
+function updateDolphins(dt) {
+  const s = G.playerShip; if (!s) return;
+  const on = s.speed > 3.2 && Math.hypot(G.camera.position.x - s.x, G.camera.position.z - s.z) < 220;
+  WILD.dolphinW = damp(WILD.dolphinW || 0, on ? 1 : 0, 0.3, dt);
+  for (const d of WILD.dolphins) {
+    if (WILD.dolphinW < 0.05) { d.m.visible = false; continue; }
+    d.ph += dt / d.per; const p = d.ph % 1;
+    const [x, z] = s.toWorld2(s.L / 2 + d.ahead - 6, d.side * (s.spec.B / 2 + d.out));
+    const jump = p < 0.42, k = p / 0.42, y = jump ? -0.7 + Math.sin(k * Math.PI) * 1.9 : -2.5;
+    const sea = waveHeight(x, z, G.t);
+    d.m.visible = jump; d.m.position.set(x, sea + y, z);
+    d.m.rotation.set(0, 0, 0); d.m.rotateY(s.yaw + Math.PI / 2); d.m.rotateX(-Math.cos(k * Math.PI) * 0.9);
+    if (jump && (k < 0.06 || k > 0.94) && !d.splashed) { d.splashed = true; emitFoam(x, z, 0, 0, 2.2, 0.8, 3); }
+    if (k > 0.1 && k < 0.9) d.splashed = false;
+  }
+}
+// ---------------------------------------------------------------- crabs
+function buildCrabs() {
+  const parts = [xf(new THREE.SphereGeometry(0.09, 8, 5), { s: [1.3, 0.55, 1] })];
+  for (const sd of [-1, 1]) { for (let k = 0; k < 3; k++) parts.push(xf(new THREE.BoxGeometry(0.11, 0.015, 0.015), { p: [sd * 0.12, -0.01, -0.04 + k * 0.04], r: [0, 0, sd * -0.5] })); parts.push(xf(new THREE.SphereGeometry(0.035, 6, 4), { p: [sd * 0.08, 0.0, 0.1] })); }
+  const g = mergeGeos(parts.map(p => std(p)));
+  const m = new THREE.MeshStandardMaterial({ color: 0xc8582a, roughness: 0.5 });
+  const n = 40; WILD.crabs = new THREE.InstancedMesh(g, m, n); WILD.crabs.castShadow = true; WILD.crabs.frustumCulled = false; G.scene.add(WILD.crabs);
+  WILD.crabData = Array.from({ length: n }, () => ({ x: 0, z: 0, y: -50, t: R() * 5, dir: R() * TAU, hide: 0 }));
+  WILD.crabAnchor = null;
+}
+const _wm = new THREE.Matrix4(), _wq = new THREE.Quaternion(), _ws = V3(1, 1, 1);
+function updateCrabs(dt) {
+  const cam = G.camera.position, C = WILD.crabData; if (!C) return;
+  // re-seed the crabs along the nearest stretch of beach when you wander off
+  if (!WILD.crabAnchor || Math.hypot(cam.x - WILD.crabAnchor.x, cam.z - WILD.crabAnchor.z) > 60) {
+    WILD.crabAnchor = { x: cam.x, z: cam.z };
+    for (const c of C) { for (let k = 0; k < 14; k++) { const a = R() * TAU, d = 6 + R() * 45, x = cam.x + Math.cos(a) * d, z = cam.z + Math.sin(a) * d, h = terrainHeight(x, z); if (h > 0.35 && h < 1.6) { c.x = x; c.z = z; c.y = h; break; } c.y = -50; } }
+  }
+  for (let i = 0; i < C.length; i++) {
+    const c = C[i]; if (c.y < -10) { _wm.makeScale(0, 0, 0); WILD.crabs.setMatrixAt(i, _wm); continue; }
+    const dp = Math.hypot(cam.x - c.x, cam.z - c.z);
+    c.t -= dt;
+    if (dp < 3.5) { c.dir = Math.atan2(c.x - cam.x, c.z - cam.z); c.t = 0.6; c.hide = Math.min(1, c.hide + dt * 0.8); }
+    else c.hide = Math.max(0, c.hide - dt * 0.2);
+    if (c.t > 0) { const sp = dp < 3.5 ? 1.6 : 0.5; const nx = c.x + Math.sin(c.dir) * sp * dt, nz = c.z + Math.cos(c.dir) * sp * dt, h = terrainHeight(nx, nz); if (h > 0.3 && h < 1.8) { c.x = nx; c.z = nz; c.y = h; } else c.dir += Math.PI; }
+    else if (c.t < -2 - R() * 3) { c.t = 0.5 + R() * 1.5; c.dir = R() * TAU; }
+    _wq.setFromAxisAngle(_up, c.dir + Math.PI / 2);
+    _wm.compose(_wp.set(c.x, c.y + 0.04 - c.hide * 0.12, c.z), _wq, _ws.set(1, 1, 1)); WILD.crabs.setMatrixAt(i, _wm);
+  }
+  WILD.crabs.instanceMatrix.needsUpdate = true;
+}
+// ---------------------------------------------------------------- butterflies
+function buildButterflies() {
+  const wing = new THREE.PlaneGeometry(0.09, 0.07); wing.translate(0.045, 0, 0);
+  const n = 36, cols = [0xf2c43a, 0xe86a2a, 0x6aa8e8, 0xf4f0e8, 0xd84a8a];
+  const m = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, vertexColors: false });
+  WILD.bfL = new THREE.InstancedMesh(wing, m, n); WILD.bfR = new THREE.InstancedMesh(wing, m, n);
+  for (let i = 0; i < n; i++) { const c = new THREE.Color(cols[i % cols.length]); WILD.bfL.setColorAt(i, c); WILD.bfR.setColorAt(i, c); }
+  WILD.bfL.frustumCulled = WILD.bfR.frustumCulled = false; G.scene.add(WILD.bfL, WILD.bfR);
+  WILD.bf = Array.from({ length: n }, (_, i) => ({ ph: R() * 10, cx: 0, cz: 0, r: 1 + R() * 2.5, sp: 0.5 + R() * 0.6 }));
+  WILD.bfAnchor = null;
+}
+function updateButterflies(dt) {
+  const cam = G.camera.position; if (!WILD.bf) return;
+  const onLand = !(P && P.ship) && terrainHeight(cam.x, cam.z) > 2 && SKY.night < 0.4;
+  WILD.bfL.visible = WILD.bfR.visible = onLand; if (!onLand) return;
+  if (!WILD.bfAnchor || Math.hypot(cam.x - WILD.bfAnchor.x, cam.z - WILD.bfAnchor.z) > 40) {
+    WILD.bfAnchor = { x: cam.x, z: cam.z };
+    for (const b of WILD.bf) { const a = R() * TAU, d = 4 + R() * 30; b.cx = cam.x + Math.cos(a) * d; b.cz = cam.z + Math.sin(a) * d; }
+  }
+  for (let i = 0; i < WILD.bf.length; i++) {
+    const b = WILD.bf[i]; b.ph += dt * b.sp;
+    const x = b.cx + Math.cos(b.ph) * b.r + Math.sin(b.ph * 2.7) * 0.6, z = b.cz + Math.sin(b.ph * 1.3) * b.r, y = groundHeight(x, z, cam.y + 2) + 0.7 + Math.sin(b.ph * 3.1) * 0.35;
+    const yaw = b.ph * 1.2, flap = Math.sin(G.t * 22 + i) * 1.1;
+    for (const [im, sgn] of [[WILD.bfL, -1], [WILD.bfR, 1]]) {
+      _wq.setFromEuler(new THREE.Euler(0, yaw, 0)).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0, sgn < 0 ? Math.PI : 0, flap * -1, 'YXZ')));
+      _wm.compose(_wp.set(x, y, z), _wq, _ws.set(1, 1, 1)); im.setMatrixAt(i, _wm);
+    }
+  }
+  WILD.bfL.instanceMatrix.needsUpdate = WILD.bfR.instanceMatrix.needsUpdate = true;
+}
+BOOT_STEPS.push({ p: 0.74, msg: 'Releasing the parrots…', fn: initWildlife });
+UPDATERS.push(dt => { if (!WILD.ready) return; updateBirds(dt); updateDolphins(dt); updateCrabs(dt); updateButterflies(dt); });
 
 // =====================================================================
 //  BOOT & MAIN LOOP

@@ -1,0 +1,15 @@
+import { launch, shot, begin, synth } from "./lib.mjs";
+const { page, logs, ev, browser } = await launch({ w: 1100, h: 700 });
+const T = synth(page);
+await page.waitForTimeout(1200);
+await begin(page, T);
+await page.waitForTimeout(800);
+console.log(await ev(() => ({ en: G.input.enabled, st: G.game.state, paused: G.game.paused, scr: G.ui.getScreen(), fps: G.stats.fps })));
+await ev(() => { G.player.reset({ x: -4.4, z: 31, facing: Math.PI }); });
+await page.waitForTimeout(400);
+console.log(await ev(() => ({ en: G.input.enabled, st: G.game.state, pz: G.player.z, alive: G.player.alive, act: G.player.action })));
+await T.down(1, 150, 520); await T.move(1, 150, 440);
+await page.waitForTimeout(1000);
+console.log(await ev(() => ({ stick: G.input.stick.mag, pz: G.player.z, vz: G.player.vz, el: document.elementFromPoint(150,520).className, hasInput: G.player.hasInput, mx: G.player.moveX, mz: G.player.moveZ })));
+console.log(logs.join("\n"));
+await browser.close();

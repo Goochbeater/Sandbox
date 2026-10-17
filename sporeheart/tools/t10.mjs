@@ -1,0 +1,14 @@
+import { launch, shot, begin, synth } from "./lib.mjs";
+const { page, logs, ev, browser } = await launch({ w: 1100, h: 700 });
+const T = synth(page);
+await page.waitForTimeout(2500);
+await begin(page, T);
+await ev(() => { G.player.reset({ x: 3, z: 20, facing: Math.PI }); });
+await page.waitForTimeout(5000);
+await shot(page, "t10_a");
+await ev(() => { G.player.reset({ x: 0, z: 8, facing: Math.PI }); G.player.cam.pitch = 0.5; G.player.cam.dist = 7; });
+await page.waitForTimeout(5000);
+await shot(page, "t10_b");
+console.log(await ev(() => ({ calls: G.stats.drawCalls, tris: G.stats.tris, fps: G.stats.fps })));
+console.log(logs.join("\n") || "no errors");
+await browser.close();

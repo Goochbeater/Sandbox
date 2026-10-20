@@ -91,7 +91,7 @@ MG.boot = async function () {
     HUD.init(); GAME.load(); FX.init();
     if (MG.flags.view) await MG.view();
     else {
-      await CHAR.buildMaul((p, m) => MG.loadUI(0.05 + p * 0.5, m));
+      await HERO.boot((p) => MG.loadUI(0.05 + p * 0.5, 'Awakening'));
       MOV.init();
       if (MG.flags.diff) MG.difficulty = MG.flags.diff;
       if (MG.flags.play) { MG.skipIntro = !!MG.flags.nointro; await LEVEL.load(MG.flags.play, { cp: MG.flags.cp || 0, progress: (p) => MG.loadUI(0.55 + p * 0.4, 'Building the world') }); MG.skipIntro = false; GAME.levelStart = { t: 0, kills: 0 }; if (PLAYER.state !== 'cine') HUD.show(true); MG.state = MG.state === 'loading' ? 'play' : MG.state; }
@@ -108,7 +108,7 @@ MG.boot = async function () {
 window.__mg = {
   shot: (q) => R.shot(q),
   step: (n, dt) => { MG.manual = true; for (let i = 0; i < (n || 1); i++) MG.tick(dt || 1 / 60); return MG.frame; },
-  info: () => ({ state: MG.state, frame: MG.frame, errors: MG.errors.slice(0, 20), calls: R.calls, tris: R.tris, fps: R.fpsEMA, stats: CHAR.T.maul && CHAR.T.maul.stats }),
+  info: () => ({ state: MG.state, frame: MG.frame, errors: MG.errors.slice(0, 20), calls: R.calls, tris: R.tris, fps: R.fpsEMA, stats: CHAR.T.rath3 && CHAR.T.rath3.stats }),
   get R() { return R; }, get MG() { return MG; }, get CHAR() { return CHAR; },
 };
 window.addEventListener('load', () => MG.boot());

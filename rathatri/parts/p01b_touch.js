@@ -18,13 +18,13 @@ TOUCH.MODES = {
     { n: 'block', a: 'block', ic: 'shield', lb: '', size: 1.0, rel: [1.58, 52], hold: true },
     { n: 'jump', a: 'jump', ic: 'jump', lb: '', size: 1.0, rel: [1.58, 148], hold: false },
     { n: 'dodge', a: 'dodge', ic: 'dash', lb: '', size: 1.0, rel: [1.58, 196], hold: false },
-    { n: 'push', a: 'push', ic: 'push', lb: '', size: 0.82, abs: { r: 0.62, b: 4.35 }, hold: false },
-    { n: 'grip', a: 'grip', ic: 'claw', lb: '', size: 0.82, abs: { r: 0.62, b: 5.25 }, hold: true },
-    { n: 'throw', a: 'throw', ic: 'throw', lb: '', size: 0.82, abs: { r: 0.62, b: 6.15 }, hold: false },
-    { n: 'rage', a: 'rage', ic: 'flame', lb: 'RAGE', size: 1.1, abs: { r: 4.9, b: 2.4 }, hold: false, show: () => (typeof PLAYER !== 'undefined' && PLAYER.rage >= 100 && !PLAYER.rageOn && PLAYER.skills && PLAYER.skills.rage), pulse: true },
-    { n: 'ctx', a: 'interact', ic: 'hand', lb: 'USE', size: 1.15, rel: [2.7, 128], hold: false, show: () => !!TOUCH.ctx, ctxBtn: true, pulse: true },
-    { n: 'ship', a: 'ship', ic: 'ship', lb: 'SHIP', size: 0.9, abs: { r: 3.1, b: 4.0 }, hold: false, show: () => (typeof SHIP !== 'undefined' && SHIP.on && SHIP.avail && SHIP.avail()), cdKey: 'ship' },
-    { n: 'scan', a: 'scan', ic: 'scan', lb: 'SCAN', size: 0.9, abs: { r: 4.2, b: 4.0 }, hold: false, show: () => (typeof SCAN !== 'undefined' && SCAN.on), cdKey: 'scan' },
+    { n: 'push', a: 'push', ic: 'push', lb: '', size: 0.84, rel: [2.8, 68], hold: false },
+    { n: 'grip', a: 'grip', ic: 'claw', lb: '', size: 0.84, rel: [2.8, 104], hold: true },
+    { n: 'throw', a: 'throw', ic: 'throw', lb: '', size: 0.84, rel: [2.8, 140], hold: false },
+    { n: 'rage', a: 'rage', ic: 'flame', lb: 'RAGE', size: 1.1, abs: { r: 4.5, b: 1.55 }, hold: false, show: () => (typeof PLAYER !== 'undefined' && PLAYER.rage >= 100 && !PLAYER.rageOn && PLAYER.skills && PLAYER.skills.rage), pulse: true },
+    { n: 'ctx', a: 'interact', ic: 'hand', lb: 'USE', size: 1.2, abs: { r: 4.5, b: 3.45 }, hold: false, show: () => !!TOUCH.ctx, ctxBtn: true, pulse: true },
+    { n: 'ship', a: 'ship', ic: 'ship', lb: 'SHIP', size: 0.9, abs: { r: 6.4, b: 1.55 }, hold: false, show: () => (typeof SHIP !== 'undefined' && SHIP.on && SHIP.avail && SHIP.avail()), cdKey: 'ship' },
+    { n: 'scan', a: 'scan', ic: 'scan', lb: 'SCAN', size: 0.9, abs: { r: 6.4, b: 3.25 }, hold: false, show: () => (typeof SCAN !== 'undefined' && SCAN.on), cdKey: 'scan' },
     { n: 'lock', a: 'lock', ic: 'lock', lb: '', size: 0.7, abs: { r: 1.7, t: 0.55 }, hold: false },
     { n: 'pause', a: 'pause', ic: 'pause', lb: '', size: 0.7, abs: { r: 0.6, t: 0.55 }, hold: false, always: true },
   ],
@@ -140,7 +140,8 @@ TOUCH.layout = function () {
   if (TOUCH.base) { Object.assign(TOUCH.base.style, { width: R * 2 + 'px', height: R * 2 + 'px' }); TOUCH.knob.style.width = TOUCH.knob.style.height = R * 0.95 + 'px'; }
 };
 /* ---- pointer routing */
-TOUCH.activeMode = () => (MG.state === 'play' && !TOUCH.portrait && TOUCH.mode !== 'none' && !TOUCH.cineNow()) ? TOUCH.mode : 'none';
+TOUCH.want = 'ground';   // which control set the current scene wants ('ground' | 'space'); the flow sets it, e.g. SPACE.start -> 'space'
+TOUCH.activeMode = () => (MG.state === 'play' && !TOUCH.portrait && TOUCH.want !== 'none' && !TOUCH.cineNow()) ? TOUCH.want : 'none';
 TOUCH.cineNow = () => (typeof PLAYER !== 'undefined' && PLAYER.state === 'cine') || (typeof CAM !== 'undefined' && !!CAM.cine) || (typeof CINE !== 'undefined' && !!CINE.cur);
 TOUCH.hit = function (x, y) {   // nearest visible button whose (slightly inflated) disc contains the point
   let best = null, bd = 1e9;
@@ -165,8 +166,7 @@ TOUCH.onDown = function (e) {
   if (e.target && e.target.closest && e.target.closest('.menu,#intro,#boot,.tm,#cineChoice,#err,#codex,#yard,#galaxy,input,button,a')) return;   // DOM UI handles its own taps
   const first = !TOUCH._fs; if (first) TOUCH.goFull();
   if (TOUCH.skipEl && TOUCH.skipEl.classList.contains('on') && e.target === TOUCH.skipEl) return;
-  const am = TOUCH.activeMode(); if (am === 'none') return;
-  if (am !== TOUCH.mode) return;
+  const am = TOUCH.activeMode(); if (am === 'none' || am !== TOUCH.mode) return;
   e.preventDefault(); const x = e.clientX, y = e.clientY, id = e.pointerId;
   const b = TOUCH.hit(x, y);
   if (b) { TOUCH.ptr.set(id, { b }); TOUCH.press(b, id); return; }

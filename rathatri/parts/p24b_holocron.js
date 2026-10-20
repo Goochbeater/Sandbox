@@ -10,7 +10,7 @@ HOLOCRON.LORE = {
   generator: ['The plasma generators beneath Theed power the palace and every fighter in the hangar.', 'Maul\u2019s markings are a Dathomirian rite — each line a pledge written in pain.', 'Obi-Wan Kenobi: a Padawan, proud and impulsive. The kind who never lets go.'],
   pit: ['The laser gates hold back the plasma in a rhythm. Patience is also a weapon.', 'Dark Side rage is a door. Walk through it and pain becomes fuel.', 'At last we will reveal ourselves to the Jedi. At last we will have revenge.'],
 };
-HOLOCRON.count = () => Object.keys(GAME.save.holo || {}).length;
+HOLOCRON.count = () => Object.keys(SAVE.d.holo || {}).length;
 HOLOCRON.apply = function () {
   const n = HOLOCRON.count();
   if (PLAYER.a) { const was = PLAYER.a.hpMax; PLAYER.a.hpMax = 100 + n * 3; PLAYER.a.hp += PLAYER.a.hpMax - was; }
@@ -19,7 +19,7 @@ HOLOCRON.apply = function () {
 HOLOCRON.place = function (L, list) {
   L.holos = [];
   list.forEach((p, i) => {
-    const id = L.id + ':' + i, got = GAME.save.holo && GAME.save.holo[id];
+    const id = L.id + ':' + i, got = SAVE.d.holo && SAVE.d.holo[id];
     const g = new THREE.Group();
     if (!HOLOCRON.geo) { HOLOCRON.geo = new THREE.OctahedronGeometry(0.18, 0); HOLOCRON.geo.scale(1, 1.25, 1); }
     const core = new THREE.Mesh(HOLOCRON.geo, new THREE.MeshStandardMaterial({ color: 0x100204, emissive: 0xff1a0a, emissiveIntensity: got ? 0.3 : 2.4, metalness: 0.7, roughness: 0.2, transparent: !!got, opacity: got ? 0.35 : 1 }));
@@ -33,7 +33,7 @@ HOLOCRON.place = function (L, list) {
     for (const h of L.holos) {
       h.g.rotation.y = t * 1.3; h.cage.rotation.x = t * 0.7; h.g.position.y += Math.sin(t * 2 + h.g.position.x) * 0.002;
       if (!h.got && P && P.alive && h.g.position.distanceTo(V3(P.x, P.y + 1.1, P.z)) < 1.4) {
-        h.got = true; GAME.save.holo = GAME.save.holo || {}; GAME.save.holo[h.id] = true; GAME.store(); HOLOCRON.apply();
+        h.got = true; SAVE.d.holo = SAVE.d.holo || {}; SAVE.d.holo[h.id] = true; GAME.store(); HOLOCRON.apply();
         if (h.Ls) R.removeLight(h.Ls); h.core.material.emissiveIntensity = 0.3; h.core.material.transparent = true; h.core.material.opacity = 0.3; h.cage.material.opacity = 0.12;
         HUD.toast('SITH HOLOCRON', HOLOCRON.count() + ' / 24', 2.6);
         const lore = HOLOCRON.LORE[L.id]; if (lore) HUD.sub('SITH HOLOCRON', lore[+h.id.split(':')[1]] || '', 6, 'sid'); FX.ring(h.g.position.clone().setY(P.y), [2, 0.3, 0.2], 2, 0.5); FX.spark(h.g.position, V3(0, 1, 0), 20, 3, [4, 1, 0.5]);

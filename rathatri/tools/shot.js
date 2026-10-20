@@ -32,11 +32,11 @@ try { ({ chromium } = require('playwright')); } catch (e) { ({ chromium } = requ
   const cdp = await ctx.newCDPSession(page); const pts = new Map();
   const sendTouch = (type) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: [...pts.entries()].map(([id, p]) => ({ id, x: p[0], y: p[1] })) });
   const Hn = {
-    page, out, eval: (f, ...a) => page.evaluate(f, ...a),
+    page, out, eval: (f, a) => page.evaluate(f, a),
     shot: async (name, q) => { const p = `${out}/${name}.jpg`; const data = await page.evaluate((q) => __mg.shot(q || 0.9), q); fs.writeFileSync(p, Buffer.from(data.split(',')[1], 'base64')); console.log('shot', p); return p; },
     pshot: async (name) => { const p = `${out}/${name}.jpg`; await page.evaluate(() => { R.render(0); }); await page.screenshot({ path: p, type: 'jpeg', quality: 88 }); console.log('shot', p); return p; },
     wait: (ms) => new Promise((r) => setTimeout(r, ms)), key: page.keyboard, mouse: page.mouse,
-    step: (n, dt) => page.evaluate((n, dt) => __mg.step(n, dt), n, dt || 1 / 60),
+    step: (n, dt) => page.evaluate(([n, dt]) => __mg.step(n, dt), [n, dt || 1 / 60]),
     waitFor: (fn, arg, timeout) => page.waitForFunction(fn, arg, { timeout: timeout || 300000 }),
     tap: async (x, y) => { await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y, id: 99 }] }); await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); },
     touch: {

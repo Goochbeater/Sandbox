@@ -11,7 +11,7 @@ LEVEL.load = async function (id, o) {
   if (PLAYER.a) { PLAYER.a.dispose(); PLAYER.a = null; }
   R.scene.background = null; R.scene.fog = null;
   await TEX.init(def.tex || [], o.progress ? (p) => o.progress(p * 0.5) : null);
-  if (def.cast) await CAST.need(def.cast, o.progress ? (p) => o.progress(0.5 + p * 0.45) : null);
+  await CAST.need((def.cast || []).concat([HERO.name(def)]), o.progress ? (p) => o.progress(0.5 + p * 0.45) : null);   // the hero's stage template always rides along
   const L = { def, id, skipIntro: !!MG.skipIntro, triggers: [], waves: [], doors: [], extras: [], killY: def.killY !== undefined ? def.killY : -40, t: 0, cp: o.cp || 0, updates: [], prompt: null, flags: {} };
   LEVEL.cur = L;
   R.resetGrade(); R.setShadowBox(16);   // after LEVEL.cur so per-world character light defaults apply

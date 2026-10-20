@@ -1,6 +1,6 @@
 /* LIGHTSABERS — lathe hilts (Maul's saberstaff, Qui-Gon's and Obi-Wan's hilts), layered HDR blades, swept trails,
    and a light-pool source per blade. The hilt's local +Y is the blade axis; y = 0 is the hilt centre. */
-const SABER = { COL: { red: [1.0, 0.07, 0.03], green: [0.18, 1.0, 0.12], blue: [0.1, 0.35, 1.0], yellow: [1.0, 0.8, 0.1] } };
+const SABER = { COL: { red: [1.0, 0.07, 0.03], crimson: [0.92, 0.025, 0.07], green: [0.18, 1.0, 0.12], blue: [0.1, 0.35, 1.0], yellow: [1.0, 0.8, 0.1] } };
 SABER.mats = function () {
   if (SABER._m) return SABER._m;
   SABER._m = {
@@ -10,6 +10,8 @@ SABER.mats = function () {
     dark: new THREE.MeshStandardMaterial({ color: 0x3a3c40, metalness: 1.0, roughness: 0.38, envMapIntensity: 1.0 }),
     red: new THREE.MeshStandardMaterial({ color: 0x9a0a06, metalness: 0.2, roughness: 0.35, emissive: 0x200000 }),
     gold: new THREE.MeshStandardMaterial({ color: 0xc8962e, metalness: 1.0, roughness: 0.3 }),
+    bone: new THREE.MeshStandardMaterial({ color: 0xcfc2a8, metalness: 0.0, roughness: 0.66, envMapIntensity: 0.6 }),
+    leather: new THREE.MeshStandardMaterial({ color: 0x241810, metalness: 0.0, roughness: 0.85, envMapIntensity: 0.4 }),
   };
   return SABER._m;
 };
@@ -43,6 +45,15 @@ SABER.buildStaff = function () {
 };
 SABER.buildSingle = function (kind) {
   const M = SABER.mats(), g = new THREE.Group();
+  if (kind === 'bone') {   // Rathatri's hilt: carved from a Hutta beast's leg-bone — knuckled, off-white, leather-bound, a crimson vent in the emitter
+    const prof = [[0.006, -0.14], [0.016, -0.139], [0.0215, -0.128], [0.017, -0.11], [0.0145, -0.09], [0.0168, -0.07], [0.0135, -0.05], [0.0172, -0.03], [0.0138, -0.01], [0.0165, 0.01], [0.0145, 0.03], [0.0175, 0.05], [0.0148, 0.065], [0.018, 0.08], [0.0235, 0.098], [0.0245, 0.118], [0.02, 0.126], [0.0114, 0.13], [0.006, 0.13]];
+    const m = new THREE.Mesh(SABER.lathe(prof, 20), M.bone); m.castShadow = true; g.add(m);
+    for (const y of [-0.075, -0.04, -0.005, 0.03, 0.062]) { const t = new THREE.Mesh(new THREE.TorusGeometry(0.0158, 0.0024, 6, 20), M.leather); t.rotation.x = Math.PI / 2; t.position.y = y; g.add(t); }
+    const em = new THREE.Mesh(new THREE.TorusGeometry(0.0225, 0.0028, 6, 24), M.satin); em.rotation.x = Math.PI / 2; em.position.y = 0.126; g.add(em);
+    const vent = new THREE.Mesh(new THREE.TorusGeometry(0.0205, 0.0016, 6, 24), new THREE.MeshBasicMaterial({ color: 0xff2a1a, toneMapped: false })); vent.rotation.x = Math.PI / 2; vent.position.y = 0.11; g.add(vent);
+    g.userData = { ends: [0.14], grips: [-0.05, 0.02], len: 0.28 };
+    return g;
+  }
   let prof;
   if (kind === 'quigon') {
     prof = [[0.006, -0.14], [0.017, -0.139], [0.018, -0.13], [0.0165, -0.12], [0.0165, -0.05]].concat(SABER.ribs(-0.05, 0.03, 7, 0.0165, 0.0185, 0.55)).concat([[0.0165, 0.035], [0.0175, 0.06], [0.0175, 0.1], [0.0195, 0.105], [0.0215, 0.13], [0.0215, 0.14], [0.012, 0.141]]);

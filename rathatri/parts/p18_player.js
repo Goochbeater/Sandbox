@@ -7,10 +7,12 @@ const PLAYER = {
 };
 PLAYER.spawn = function (x, y, z, yaw) {
   if (PLAYER.a) PLAYER.a.dispose();
-  const a = new Actor(CHAR.T.maul, { x, y, z, yaw, hp: 100, team: 'hero', moves: MOV.maul, r: 0.33, h: 1.8 });
+  const def = LEVEL.cur && LEVEL.cur.def, stage = HERO.stageFor(def); HERO.stage = stage;
+  const a = new Actor(CHAR.T[HERO.NAMES[stage]], { x, y, z, yaw, hp: 100, team: 'hero', moves: MOV.maul, r: 0.33, h: 1.8 });   // MOV.maul = the shared one-handed sword-mocap set (see p50_sith)
   a.isPlayer = true; PLAYER.a = a;
-  const S = new Saber('staff', 'red', { prio: 5 }); S.addTo(R.scene); a.saber = S; PLAYER.saber = S; a.setProp(S, true);
-  S.ignite(undefined, true); S.ign = [1, 1];
+  const S = HERO.makeSaber(stage); S.addTo(R.scene); a.saber = S; PLAYER.saber = S; a.setProp(S, false);
+  S.ignite(undefined, true); S.ign = S.ends.map(() => 1);
+  PLAYER.skills = HERO.skills(def, stage);
   a.onLand = (airT) => PLAYER.onLand(airT);
   a.react = (info) => PLAYER.react(info);
   a.die = (info) => PLAYER.die(info);

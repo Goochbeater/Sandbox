@@ -1,0 +1,1 @@
+{ "name": "deepcrown-tools", "version": "1.0.0", "private": true, "type": "commonjs", "dependencies": { "puppeteer-core": "^23.11.1" } }

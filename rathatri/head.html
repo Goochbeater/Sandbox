@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>DARTH MAUL · Sith Apprentice</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<style>
+  :root { --red: #ff2a1a; --red2: #b3120a; --deep: #3a0503; --ink: #0b0707; --bone: #e9dccb; --dim: #9c8a80; --gold: #d9a441;
+          --f: "Avenir Next Condensed", "Avenir Next", "Futura", "Helvetica Neue", Arial, sans-serif; }
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  body { user-select: none; -webkit-user-select: none; touch-action: none; font-family: var(--f); color: var(--bone); }
+  #cv { position: absolute; left: 0; top: 0; display: block; width: 100%; height: 100%; outline: none; }
+  .ui { position: absolute; pointer-events: none; }
+  #err { position: absolute; left: 20px; right: 20px; top: 20px; color: #fff; background: #600; font: 12px/1.4 Menlo, monospace;
+         white-space: pre-wrap; padding: 12px; display: none; z-index: 99; max-height: 70%; overflow: auto; pointer-events: auto; }
+  /* ---------------- loader */
+  #boot { position: absolute; inset: 0; background: #000; z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 1.2s; }
+  #boot h1 { margin: 0; font-weight: 900; font-size: min(9vw, 96px); letter-spacing: 0.32em; color: #120404; -webkit-text-stroke: 1px #ff2a1a;
+             text-shadow: 0 0 28px rgba(255,40,20,0.55), 0 0 2px #ff5a40; padding-left: 0.32em; }
+  #boot h2 { margin: 10px 0 44px; font-weight: 500; font-size: 15px; letter-spacing: 0.9em; color: #a3322a; padding-left: 0.9em; }
+  #ldTrack { width: min(60vw, 520px); height: 3px; background: #1a0605; border-radius: 3px; position: relative; overflow: visible; }
+  #ldBar { position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: #fff; border-radius: 3px;
+           box-shadow: 0 0 6px 2px #ff3020, 0 0 18px 5px rgba(255,30,10,0.7), 0 0 44px 10px rgba(255,0,0,0.35); transition: width 0.25s; }
+  #ldMsg { margin-top: 22px; font-size: 12px; letter-spacing: 0.4em; color: #7a5a52; text-transform: uppercase; }
+  #ldQuote { position: absolute; bottom: 7%; width: 80%; text-align: center; font-size: 15px; font-style: italic; letter-spacing: 0.08em; color: #6b5550; }
+  /* ---------------- HUD */
+  #hud { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.5s; }
+  #hud.on { opacity: 1; }
+  #hpBox { position: absolute; left: 34px; top: 30px; width: 340px; }
+  .barLbl { font-size: 11px; letter-spacing: 0.45em; color: #b39488; margin-bottom: 6px; text-transform: uppercase; }
+  .bar { height: 10px; background: rgba(20,4,3,0.75); border: 1px solid rgba(255,70,50,0.25); position: relative; transform: skewX(-24deg); margin-bottom: 9px; overflow: hidden; }
+  .bar > i { position: absolute; left: 0; top: 0; bottom: 0; display: block; }
+  #hpLag { background: #f5d0b0; opacity: 0.55; }
+  #hpFill { background: linear-gradient(90deg, #7a0a04, #ff3a1e 70%, #ffb090); box-shadow: 0 0 14px rgba(255,40,10,0.7); }
+  #fpBar { height: 6px; width: 78%; }
+  #fpFill { background: linear-gradient(90deg, #2b0d3d, #9b3cff 70%, #e5c6ff); box-shadow: 0 0 10px rgba(160,70,255,0.7); }
+  #rageBar { height: 4px; width: 60%; border-color: rgba(255,160,40,0.3); }
+  #rageFill { background: linear-gradient(90deg, #6b1c00, #ff8a1a 70%, #fff0a0); box-shadow: 0 0 12px rgba(255,140,20,0.9); }
+  #rageBar.full { animation: ragepulse 0.6s infinite alternate; }
+  @keyframes ragepulse { from { box-shadow: 0 0 4px #ff7a10; } to { box-shadow: 0 0 22px #ffb030; } }
+  #obj { position: absolute; top: 28px; right: 34px; text-align: right; max-width: 420px; }
+  #objT { font-size: 11px; letter-spacing: 0.5em; color: #a0463a; }
+  #objD { font-size: 18px; letter-spacing: 0.08em; color: #f2e3d6; margin-top: 4px; text-shadow: 0 1px 6px #000; }
+  #chapT { font-size: 12px; letter-spacing: 0.35em; color: #7c6a62; margin-top: 8px; }
+  #combo { position: absolute; right: 44px; top: 42%; text-align: right; opacity: 0; transition: opacity 0.25s; }
+  #combo.on { opacity: 1; }
+  #cN { font-size: 64px; font-weight: 900; font-style: italic; color: #fff; line-height: 0.9; text-shadow: 0 0 18px rgba(255,40,20,0.9); }
+  #cL { font-size: 12px; letter-spacing: 0.5em; color: #ff6a50; }
+  #cR { font-size: 30px; font-weight: 900; letter-spacing: 0.2em; color: var(--red); text-shadow: 0 0 16px #ff1a00; margin-top: 6px; }
+  #cRbar { height: 3px; background: rgba(255,60,40,0.2); margin-top: 6px; position: relative; }
+  #cRfill { position: absolute; right: 0; top: 0; bottom: 0; background: #ff3a20; box-shadow: 0 0 8px #ff2a10; }
+  #boss { position: absolute; left: 50%; bottom: 58px; transform: translateX(-50%); width: min(62vw, 720px); text-align: center; opacity: 0; transition: opacity 0.4s; }
+  #boss.on { opacity: 1; }
+  #bossN { font-size: 17px; letter-spacing: 0.5em; color: #f4e6d8; margin-bottom: 8px; text-shadow: 0 0 8px #000; }
+  #bossBar { height: 8px; background: rgba(8,10,14,0.8); border: 1px solid rgba(160,190,255,0.25); position: relative; }
+  #bossFill { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, #1b3a8a, #6aa8ff 70%, #e0f0ff); box-shadow: 0 0 12px rgba(80,150,255,0.7); }
+  #bossFill.green { background: linear-gradient(90deg, #0f5a1c, #5cff72 70%, #e6ffe8); box-shadow: 0 0 12px rgba(60,255,90,0.6); }
+  #bossFill.foe { background: linear-gradient(90deg, #5a3a0a, #e8b84a 70%, #fff4d0); box-shadow: 0 0 12px rgba(255,190,60,0.5); }
+  #bossGuard { height: 3px; margin-top: 4px; background: rgba(255,255,255,0.08); position: relative; }
+  #bossGuardF { position: absolute; left: 0; top: 0; bottom: 0; background: #fff; opacity: 0.75; }
+  #bossSub { font-size: 11px; letter-spacing: 0.3em; color: #8a9ab8; margin-top: 6px; }
+  #sub { position: absolute; left: 50%; bottom: 13%; transform: translateX(-50%); width: min(80vw, 900px); text-align: center; font-size: 22px; line-height: 1.35;
+         color: #f6ece2; text-shadow: 0 2px 8px #000, 0 0 2px #000; opacity: 0; transition: opacity 0.3s; letter-spacing: 0.03em; }
+  #sub.on { opacity: 1; }
+  #sub b { color: #ff5a40; font-weight: 700; letter-spacing: 0.25em; font-size: 14px; display: block; margin-bottom: 4px; }
+  #sub b.jedi { color: #7fb0ff; } #sub b.sid { color: #b58cff; }
+  #hint { position: absolute; left: 50%; bottom: 26%; transform: translateX(-50%); text-align: center; font-size: 17px; letter-spacing: 0.12em; color: #fff;
+          background: rgba(10,2,2,0.62); border: 1px solid rgba(255,60,40,0.35); padding: 10px 22px; opacity: 0; transition: opacity 0.3s; white-space: nowrap; }
+  #hint.on { opacity: 1; }
+  kbd { display: inline-block; min-width: 18px; padding: 1px 7px; margin: 0 3px; border: 1px solid #ff7060; border-radius: 3px; font: 700 14px var(--f); color: #ffd6cc; background: rgba(255,50,30,0.15); }
+  #prompt { position: absolute; font-size: 14px; letter-spacing: 0.2em; color: #fff; transform: translate(-50%, -50%); opacity: 0; transition: opacity 0.15s; text-shadow: 0 0 6px #000; white-space: nowrap; }
+  #prompt.on { opacity: 1; }
+  #lock { position: absolute; width: 46px; height: 46px; margin: -23px 0 0 -23px; opacity: 0; transition: opacity 0.12s; }
+  #lock.on { opacity: 1; }
+  #lock:before, #lock:after { content: ''; position: absolute; inset: 0; border: 2px solid #ff3a20; transform: rotate(45deg) scale(0.62); box-shadow: 0 0 10px #ff2000; }
+  #lock:after { border-color: rgba(255,255,255,0.8); transform: rotate(45deg) scale(0.3); box-shadow: none; }
+  #toast { position: absolute; left: 50%; top: 19%; transform: translateX(-50%); text-align: center; opacity: 0; transition: opacity 0.4s; }
+  #toast.on { opacity: 1; }
+  #toastA { font-size: 13px; letter-spacing: 0.6em; color: #ff5a40; }
+  #toastB { font-size: 38px; font-weight: 900; letter-spacing: 0.3em; color: #fff; text-shadow: 0 0 20px rgba(255,40,20,0.8); margin-top: 6px; }
+  #holo { position: absolute; left: 34px; bottom: 34px; font-size: 13px; letter-spacing: 0.3em; color: #c99bff; opacity: 0.85; }
+  #flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
+  #vig { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(150,0,0,0.75) 100%); }
+  #lbT, #lbB { position: absolute; left: 0; right: 0; height: 0; background: #000; transition: height 0.6s ease; z-index: 5; }
+  #lbT { top: 0; } #lbB { bottom: 0; }
+  body.cine #lbT, body.cine #lbB { height: 11vh; }
+  #skip { position: absolute; right: 30px; bottom: 3.5vh; font-size: 12px; letter-spacing: 0.3em; color: #8d7a70; z-index: 6; opacity: 0; transition: opacity .4s; }
+  body.cine #skip { opacity: 1; }
+  body.cine #hint { opacity: 0; }
+  #intro { position: absolute; inset: 0; background: #000; z-index: 70; display: none; transition: opacity 1.4s; cursor: pointer; overflow: hidden; }
+  #introV { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; display: block; }
+  #introSkip { position: absolute; right: 34px; bottom: 28px; font-size: 12px; letter-spacing: 0.35em; color: #7d6a62; transition: opacity 0.6s; z-index: 3; }
+  #introBar { position: absolute; left: 34px; bottom: 30px; width: 180px; height: 2px; background: #1a0605; z-index: 3; transition: opacity 0.6s; }
+  #introBar i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: #ff3020; box-shadow: 0 0 8px #ff2010; }
+  /* title card in the music tail */
+  #introTitle { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; opacity: 0; z-index: 2; }
+  #introTitle.on { opacity: 1; animation: itPush 7s linear forwards; }
+  #introTitle .it-glow { position: absolute; left: 50%; top: 50%; width: 90vw; height: 60vh; transform: translate(-50%, -50%); background: radial-gradient(ellipse at center, rgba(160,12,4,0.35) 0%, rgba(90,6,2,0.14) 38%, rgba(0,0,0,0) 70%); opacity: 0; }
+  #introTitle.on .it-glow { animation: itFade 3s ease-out 0.4s forwards, itPulse 3.2s ease-in-out 3.4s infinite; }
+  #introTitle .it-d { font-weight: 500; font-size: clamp(14px, 1.5vw, 24px); letter-spacing: 1.25em; margin-left: 1.25em; color: #cdb8ac; opacity: 0; }
+  #introTitle.on .it-d { animation: itRise 1.6s ease-out 0.9s forwards; }
+  #introTitle .it-m { font-weight: 900; font-size: clamp(96px, 17vw, 300px); line-height: 0.86; letter-spacing: 0.1em; margin-left: 0.1em; color: #ff2414;
+    text-shadow: 0 0 22px rgba(255,40,10,0.95), 0 0 70px rgba(255,20,0,0.6), 0 0 160px rgba(200,10,0,0.45); opacity: 0; filter: blur(18px); transform: scale(1.12); }
+  #introTitle.on .it-m { animation: itMaul 2.2s cubic-bezier(.2,.7,.2,1) 0.15s forwards; }
+  #introTitle .it-blade { position: relative; width: 0; height: 3px; margin: 2.2vh 0 2.4vh; background: #fff6f0; border-radius: 2px; box-shadow: 0 0 6px 2px #ff4020, 0 0 22px 6px rgba(255,30,0,0.75), 0 0 60px 14px rgba(255,20,0,0.35); opacity: 0; }
+  #introTitle.on .it-blade { animation: itBlade 0.55s cubic-bezier(.3,1.4,.4,1) 1.25s forwards, itFlick 0.09s steps(2) 1.8s 14 alternate; }
+  #introTitle .it-s { font-weight: 500; font-size: clamp(12px, 1.25vw, 20px); letter-spacing: 0.95em; margin-left: 0.95em; color: #b89c90; opacity: 0; }
+  #introTitle.on .it-s { animation: itRise 1.8s ease-out 1.9s forwards; }
+  @keyframes itMaul { 0% { opacity: 0; filter: blur(18px); transform: scale(1.12); letter-spacing: 0.34em; } 60% { opacity: 1; } 100% { opacity: 1; filter: blur(0); transform: scale(1); letter-spacing: 0.1em; } }
+  @keyframes itBlade { 0% { width: 0; opacity: 1; } 100% { width: min(62vw, 1100px); opacity: 1; } }
+  @keyframes itFlick { from { opacity: 1; } to { opacity: 0.82; } }
+  @keyframes itRise { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
+  @keyframes itFade { to { opacity: 1; } }
+  @keyframes itPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+  @keyframes itPush { from { transform: scale(1); } to { transform: scale(1.045); } }
+  /* start gate (only when the browser refuses to autoplay with sound) */
+  #introGate { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; background: #000; z-index: 4; cursor: pointer; }
+  #introGate.on { display: flex; }
+  #introGate .ig-t { font-weight: 900; font-size: clamp(28px, 3.4vw, 54px); letter-spacing: 0.5em; margin-left: 0.5em; color: #e9dccb; }
+  #introGate .ig-t span { color: var(--red); text-shadow: 0 0 20px rgba(255,20,0,0.8); }
+  #introGate .ig-l { width: 220px; height: 2px; margin: 26px 0; background: #fff; box-shadow: 0 0 6px 2px #ff3020, 0 0 18px 5px rgba(255,20,0,0.6); }
+  #introGate .ig-p { font-size: 16px; letter-spacing: 0.5em; margin-left: 0.5em; color: #e0cfc4; animation: igBlink 1.6s ease-in-out infinite; }
+  #introGate .ig-s { margin-top: 16px; font-size: 12px; letter-spacing: 0.4em; color: #8a766c; }
+  @keyframes igBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+  #dbg { position: absolute; left: 8px; bottom: 8px; font: 11px/1.35 Menlo, monospace; color: #9f9; background: rgba(0,0,0,0.55); padding: 6px 8px; white-space: pre; display: none; z-index: 40; }
+  /* ---------------- menus */
+  .menu { position: absolute; inset: 0; display: none; pointer-events: auto; z-index: 20; }
+  .menu.on { display: block; }
+  #title { background: linear-gradient(90deg, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.6) 40%, rgba(0,0,0,0) 68%); }
+  #title .logo { position: absolute; left: 7vw; top: 12vh; }
+  #title .logo h1 { margin: 0; font-weight: 900; font-size: min(8.2vw, 104px); line-height: 0.92; letter-spacing: 0.08em; color: #fff;
+                    text-shadow: 0 0 30px rgba(255,40,20,0.45); }
+  #title .logo h1 span { color: var(--red); text-shadow: 0 0 26px rgba(255,20,0,0.85); }
+  #title .logo h2 { margin: 16px 0 0 4px; font-weight: 500; font-size: 15px; letter-spacing: 0.85em; color: #c9b4a8; }
+  #title .logo .blade { margin: 18px 0 0 3px; width: min(30vw, 380px); height: 3px; background: #fff; border-radius: 2px; box-shadow: 0 0 6px 2px #ff3020, 0 0 22px 6px rgba(255,20,0,0.6); }
+  .mlist { position: absolute; left: 7vw; top: 48vh; }
+  .mi { font-size: 21px; letter-spacing: 0.34em; color: #a6918a; padding: 9px 0 9px 26px; cursor: pointer; position: relative; transition: color 0.15s, padding 0.15s; }
+  .mi:before { content: ''; position: absolute; left: 0; top: 50%; width: 0; height: 2px; background: #fff; box-shadow: 0 0 6px 2px #ff2a10; transition: width 0.18s; }
+  .mi.sel, .mi:hover { color: #fff; padding-left: 40px; }
+  .mi.sel:before, .mi:hover:before { width: 26px; }
+  .mi.dis { color: #4a3d38; pointer-events: none; }
+  .mi small { display: block; font-size: 11px; letter-spacing: 0.25em; color: #7a655d; margin-top: 3px; }
+  #title .mchap { position: absolute; left: calc(7vw + min(30vw, 380px) + 10px); top: calc(48vh - 30px); padding: 10px 28px 12px 0; border-left: 1px solid rgba(255,80,60,0.35); background: linear-gradient(90deg, rgba(0,0,0,0.62), rgba(0,0,0,0.3) 80%, rgba(0,0,0,0)); }
+  #title .mchap .mh { font-size: 11px; letter-spacing: 0.5em; color: #ff5a40; padding-left: 26px; margin-bottom: 2px; }
+  #title .mchap .mi small { white-space: nowrap; color: #9a8278; }
+  #title .mchap .mi { font-size: 18px; padding-top: 7px; padding-bottom: 7px; }
+  #title .mchap .mi b { display: inline-block; min-width: 2.4em; color: #ff5a40; font-weight: 700; letter-spacing: 0.12em; }
+  .card .lvlb { cursor: pointer; color: #e8c8b8; transition: color 0.15s; }
+  .card .lvlb:hover, .card .lvlb.sel { color: #ff5a40; text-shadow: 0 0 10px rgba(255,40,20,0.6); }
+  #title .foot { position: absolute; left: 7vw; bottom: 5vh; font-size: 12px; letter-spacing: 0.3em; color: #5d4b45; }
+  #title .quote { position: absolute; right: 5vw; bottom: 5vh; font-size: 14px; font-style: italic; color: #8c7068; letter-spacing: 0.06em; text-align: right; }
+  #chap { background: rgba(0,0,0,0.78); }
+  #chap .hd { position: absolute; left: 7vw; top: 9vh; font-size: 13px; letter-spacing: 0.7em; color: #ff5a40; }
+  #chapList { position: absolute; left: 7vw; right: 7vw; top: 16vh; display: flex; gap: 2.2vw; }
+  .card { flex: 1; min-height: 52vh; border: 1px solid rgba(255,80,60,0.18); background: linear-gradient(180deg, rgba(40,6,4,0.55), rgba(0,0,0,0.6)); padding: 26px 24px; cursor: pointer; transition: border-color .2s, transform .2s; position: relative; }
+  .card:hover, .card.sel { border-color: rgba(255,80,60,0.85); transform: translateY(-4px); box-shadow: 0 0 30px rgba(255,30,10,0.25); }
+  .card.lock { opacity: 0.35; pointer-events: none; }
+  .card .n { font-size: 12px; letter-spacing: 0.5em; color: #ff5a40; }
+  .card .t { font-size: 30px; font-weight: 900; letter-spacing: 0.12em; color: #fff; margin: 10px 0 4px; }
+  .card .p { font-size: 13px; letter-spacing: 0.3em; color: #a88e84; }
+  .card .d { font-size: 15px; line-height: 1.55; color: #cbbab0; margin-top: 18px; letter-spacing: 0.02em; }
+  .card .s { position: absolute; bottom: 20px; left: 24px; right: 24px; font-size: 12px; letter-spacing: 0.25em; color: #7a655d; }
+  .card .lore { font-size: 12px; color: #8a766c; margin-top: 14px; font-style: italic; letter-spacing: 0.04em; }
+  #chap .back, .panel .back { position: absolute; left: 7vw; bottom: 6vh; font-size: 14px; letter-spacing: 0.4em; color: #a6918a; cursor: pointer; }
+  #pause { background: rgba(0,0,0,0.66); }
+  #pause .hd { position: absolute; left: 7vw; top: 20vh; font-size: 44px; font-weight: 900; letter-spacing: 0.3em; color: #fff; }
+  #pause .mlist { top: 34vh; }
+  .panel { background: rgba(0,0,0,0.86); }
+  .panel .hd { position: absolute; left: 7vw; top: 9vh; font-size: 13px; letter-spacing: 0.7em; color: #ff5a40; }
+  .cols { position: absolute; left: 7vw; right: 7vw; top: 16vh; display: flex; gap: 5vw; }
+  .cols > div { flex: 1; }
+  .row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 15px; letter-spacing: 0.08em; color: #d8c8be; }
+  .row span:last-child { color: #fff; }
+  .row kbd { font-size: 12px; }
+  .sect { font-size: 12px; letter-spacing: 0.5em; color: #ff6a50; margin: 20px 0 8px; }
+  #result { background: rgba(0,0,0,0.7); }
+  #result .hd { position: absolute; left: 7vw; top: 16vh; font-size: 13px; letter-spacing: 0.7em; color: #ff5a40; }
+  #result .big { position: absolute; left: 7vw; top: 21vh; font-size: 56px; font-weight: 900; letter-spacing: 0.2em; color: #fff; text-shadow: 0 0 24px rgba(255,40,20,0.6); }
+  #resStats { position: absolute; left: 7vw; top: 36vh; width: min(520px, 80vw); }
+  #result .mlist { top: auto; bottom: 10vh; }
+  #dead { background: radial-gradient(ellipse at center, rgba(30,0,0,0.35), rgba(0,0,0,0.9)); }
+  #dead .big { position: absolute; left: 0; right: 0; top: 34vh; text-align: center; font-size: 60px; font-weight: 900; letter-spacing: 0.4em; color: #ff2a1a; text-shadow: 0 0 30px #ff0000; }
+  #dead .q { position: absolute; left: 0; right: 0; top: 47vh; text-align: center; font-size: 17px; font-style: italic; color: #b4948a; letter-spacing: 0.06em; }
+  #dead .mlist { left: 50%; transform: translateX(-50%); top: 58vh; text-align: center; }
+  #dead .mi { padding-left: 0; } #dead .mi:before { display: none; }
+  #skillMenu .cols { top: 18vh; }
+  .sk { border: 1px solid rgba(255,80,60,0.2); padding: 14px 16px; margin-bottom: 12px; background: rgba(40,6,4,0.35); }
+  .sk b { display: block; font-size: 16px; letter-spacing: 0.2em; color: #fff; }
+  .sk i { display: block; font-style: normal; font-size: 13px; color: #b9a69c; margin-top: 5px; line-height: 1.45; }
+  .sk.own { border-color: rgba(255,120,60,0.7); }
+</style>
+</head>
+<body>
+<canvas id="cv" tabindex="0"></canvas>
+<div id="hud">
+  <div id="hpBox">
+    <div class="barLbl">Darth Maul</div>
+    <div class="bar" id="hpBar"><i id="hpLag"></i><i id="hpFill"></i></div>
+    <div class="bar" id="fpBar"><i id="fpFill"></i></div>
+    <div class="bar" id="rageBar"><i id="rageFill"></i></div>
+  </div>
+  <div id="obj"><div id="objT">OBJECTIVE</div><div id="objD"></div><div id="chapT"></div></div>
+  <div id="combo"><div id="cN">0</div><div id="cL">HITS</div><div id="cR"></div><div id="cRbar"><i id="cRfill"></i></div></div>
+  <div id="boss"><div id="bossN"></div><div id="bossBar"><i id="bossFill"></i></div><div id="bossGuard"><i id="bossGuardF"></i></div><div id="bossSub"></div></div>
+  <div id="lock"></div>
+  <div id="prompt"></div>
+  <div id="toast"><div id="toastA"></div><div id="toastB"></div></div>
+  <div id="holo"></div>
+</div>
+<div id="sub" class="ui"></div>
+<div id="hint" class="ui"></div>
+<div id="vig" class="ui"></div>
+<div id="flash" class="ui"></div>
+<div id="lbT"></div><div id="lbB"></div>
+<div id="skip" class="ui">HOLD <kbd>ESC</kbd> / <kbd>ENTER</kbd> TO SKIP</div>
+<div id="menus"></div>
+<div id="boot">
+  <h1>DARTH MAUL</h1>
+  <h2>SITH APPRENTICE</h2>
+  <div id="ldTrack"><div id="ldBar"></div></div>
+  <div id="ldMsg">Awakening</div>
+  <div id="ldQuote">“At last we will reveal ourselves to the Jedi. At last we will have revenge.”</div>
+</div>
+<div id="intro"><video id="introV" playsinline preload="auto"></video><div id="introTitle"><div class="it-glow"></div><div class="it-d">DARTH</div><div class="it-m">MAUL</div><div class="it-blade"></div><div class="it-s">SITH APPRENTICE</div></div><div id="introGate"><div class="ig-t">DARTH <span>MAUL</span></div><div class="ig-l"></div><div class="ig-p">PRESS ANY KEY TO BEGIN</div><div class="ig-s">SOUND ON</div></div><div id="introBar"><i id="introBarF"></i></div><div id="introSkip">PRESS ANY KEY TO SKIP</div></div>
+<div id="dbg"></div>
+<div id="err"></div>
+<script>

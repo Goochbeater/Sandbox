@@ -1,0 +1,5 @@
+rathatri/build/
+rathatri/out/
+rathatri/out*/
+rathatri/tools/node_modules/
+*.tmp

@@ -1,0 +1,3 @@
+module.exports = async (H) => { await H.step(40); await H.eval(() => { window.__ikdbg = {}; }); await H.step(3);
+  console.log('BEND', JSON.stringify(await H.eval(() => { const B = PLAYER.a.inst.bones, o = {}; for (const [f, h] of [[7, 8], [11, 12]]) { const zf = new THREE.Vector3(0, 0, 1).applyQuaternion(B[f].getWorldQuaternion(new THREE.Quaternion())), zh = new THREE.Vector3(0, 0, 1).applyQuaternion(B[h].getWorldQuaternion(new THREE.Quaternion())); o[h] = Math.round(zf.angleTo(zh) * 57.3); }
+    return { bend: o, end8: window.__ikdbg.end8.toFixed(3), end12: window.__ikdbg.end12.toFixed(3), gs: PLAYER.a.inst._gs, gft: PLAYER.a.inst._gft }; }))); };

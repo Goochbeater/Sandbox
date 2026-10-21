@@ -62,7 +62,7 @@ CINE.EFFECT = {
   '2_2_bosskarr_ambush:A': () => { SAVE.choice('bosskarr', 'oath'); }, '2_2_bosskarr_ambush:B': () => { SAVE.choice('bosskarr', 'dead'); HEAT.add(5, 'bosskarr'); },
   '2_3_starving_beast:A': () => { SAVE.choice('beast', 'left'); }, '2_3_starving_beast:B': () => { SAVE.choice('beast', 'culled'); },
   '2_6_first_hunters:A': () => { HEAT.add(2, 'ambush'); SAVE.choice('hunters', 'ambush'); }, '2_6_first_hunters:B': () => { SAVE.choice('hunters', 'beasts'); },
-  '3_2_the_seizure:A': () => { HEAT.sub(2); SAVE.choice('donn', 'alive'); }, '3_2_the_seizure:B': () => { HEAT.add(4, 'donn'); SAVE.choice('donn', 'dead'); },
+  '3_2b_the_lieutenant:A': () => { HEAT.sub(2); SAVE.choice('donn', 'alive'); }, '3_2b_the_lieutenant:B': () => { HEAT.add(4, 'donn'); SAVE.choice('donn', 'dead'); },
 };
 CINE.play = async function (id, onDone) {
   if (CINE.cur) { console.warn('CINE busy'); return; }

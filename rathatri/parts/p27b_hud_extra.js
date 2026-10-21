@@ -8,7 +8,7 @@ HUD.heat = function (v) {
   if (v == null) { el.heat.classList.remove('on'); return; }
   const x = clamp(+v || 0, 0, 100), t = x >= 90 ? 4 : x >= 75 ? 3 : x >= 50 ? 2 : x >= 25 ? 1 : 0;
   el.heatF.style.width = x.toFixed(1) + '%';
-  if (t !== HUD.heatTier) { HUD.heatTier = t; el.heat.setAttribute('data-t', t); el.heatT.textContent = 'T' + t; }
+  if (t !== HUD.heatTier) { HUD.heatTier = t; el.heat.setAttribute('data-t', t); el.heatT.textContent = ['QUIET', 'RUMOR', 'HUNTED', 'MARKED', 'THE CELL'][t]; }
   el.heat.classList.add('on');
 };
 /* "+N ESSENCE" float beside the health bar (CSS animation, 1.6 s) */

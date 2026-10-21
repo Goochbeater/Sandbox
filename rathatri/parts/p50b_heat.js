@@ -9,7 +9,8 @@ HEAT.set = function (v) {
   if (typeof HUD !== 'undefined' && HUD.heat && HUD.el && HUD.el.hud) HUD.heat(HEAT.val);
   const t1 = HEAT.tier(); if (t1 > t0 && typeof HUD !== 'undefined' && HUD.toast && HUD.el && HUD.el.hud) HUD.toast('EXPOSURE', HEAT.NAMES[t1], 2.2);
 };
-HEAT.add = function (n, why) { if (n > 0) n *= HEAT.mask(); HEAT.set(HEAT.val + n); HEAT.last = why || ''; };
+HEAT.add = function (n, why) { if (n > 0) n *= HEAT.mask() * (SAVE.hasArtifact && SAVE.hasArtifact('sith_amulet') ? 0.85 : 1);   // the amulet: the Exchange's ledgers lose your name a little faster
+  HEAT.set(HEAT.val + n); HEAT.last = why || ''; };
 HEAT.sub = function (n) { HEAT.set(HEAT.val - n); };
 /* loud Force use is a beacon: call from powers. Hunters (seekers) converge via ENEMY.alertAt when it exists. */
 HEAT.force = function (kind, x, z) {

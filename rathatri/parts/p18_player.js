@@ -148,7 +148,7 @@ PLAYER.states = {
     // idle flourish out of combat
     const calm = a.speed < 0.2 && mag < 0.05 && !PLAYER.lock && !COMBAT.foes().some((e) => e.dist(a) < 16) && !BOSS.list.some((b) => b.alive && !b.hidden && b.dist(a) < 16);
     PLAYER.idleT = calm && !a.act ? (PLAYER.idleT || 0) + dt : 0;
-    if (PLAYER.idleT > 6.5) { PLAYER.idleT = -4; a.play('flourish', { fade: 0.2 }); }
+    if (PLAYER.idleT > 6.5) { PLAYER.idleT = -4; if (!HERO.sheathed && !(PLAYER.saber && PLAYER.saber.fists)) a.play('flourish', { fade: 0.2 }); }
     if (a.act === 'flourish' && (mag > 0.05 || IN.peek('attack', 0.05) || IN.peek('jump', 0.05))) a.stop(0.12);
     PLAYER.jumps = 0;
     if (IN.take('jump')) { PLAYER.jump(); return; }

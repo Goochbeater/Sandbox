@@ -212,7 +212,8 @@ SPACE.flyPlayer = function (dt) {
   P.regenT += dt; if (P.regenT > 3.5) P.shield = Math.min(P.shieldMax, P.shield + dt * P.shieldMax * 0.12);
   // collisions: rocks/wrecks and hulls
   for (const r of SPACE.rocks) { const d = P.pos.distanceTo(r.p); if (d < r.r + P.r) { const n = _sv1.subVectors(P.pos, r.p).normalize(); P.pos.copy(r.p).addScaledVector(n, r.r + P.r + 0.5); const imp = P.speed * 0.4; SPACE.damage(P, imp, null); P.speed *= 0.35; P.yaw += (RNG() - 0.5) * 0.6; FX.spark(P.pos, n, 20, 20, [3, 2, 1.2], 0.8); FX.addShake(0.6); break; } }
-  for (const s of SPACE.ships) { if (s === P || !s.alive || s.hidden) continue; const d = P.pos.distanceTo(s.pos); if (d < s.r + P.r) { const n = _sv1.subVectors(P.pos, s.pos).normalize(); P.pos.copy(s.pos).addScaledVector(n, s.r + P.r + 0.5); SPACE.damage(P, 30, s); SPACE.damage(s, 60, P); P.speed *= 0.5; } }
+  P.colT = Math.max(0, (P.colT || 0) - dt);
+  for (const s of SPACE.ships) { if (s === P || !s.alive || s.hidden || s.dominated) continue; const d = P.pos.distanceTo(s.pos); if (d < s.r + P.r) { const n = _sv1.subVectors(P.pos, s.pos).normalize(); P.pos.copy(s.pos).addScaledVector(n, s.r + P.r + 0.5); if (P.colT <= 0) { P.colT = 0.6; SPACE.damage(P, 30, s); SPACE.damage(s, 60, P); FX.addShake(0.5); } P.speed *= 0.5; } }
   // targeting: the foe nearest the reticle within a cone (or the manual lock while it lasts)
   if (IN.hit('lock')) { const C = SPACE.inCone(P, 0.45, 1400).filter((s) => s !== P.target); P.target = C[0] || null; P.manual = MG.rt; }
   if (!P.target || !P.target.alive || P.target.dominated || (MG.rt - (P.manual || -9) > 6 && P.target !== SPACE.inCone(P, 0.25, 1000)[0])) { P.target = SPACE.inCone(P, 0.25, 1000)[0] || (P.target && P.target.alive && !P.target.dominated ? P.target : null); }

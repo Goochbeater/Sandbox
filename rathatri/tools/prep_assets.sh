@@ -37,5 +37,17 @@ jpg "$BF/_script02_e5fba4a2.webp" "$OUT/planks_dark.jpg"          512x512 78   #
 jpg "$BF/_script02_bc010bdd.webp" "$OUT/leather_brown.jpg"        512x512 78   # fabric_leather_01 albedo
 jpg "$BF/_script02_5a16f49d.webp" "$OUT/leather_brown_nrm.jpg"    512x512 85   # fabric_leather_01 normal
 
+jpg "$BF/_script02_4710437c.webp" "$OUT/planks_dark_nrm.jpg"      512x512 85   # dark_wooden_planks normal
+jpg "$BF/_script02_fc104b5d.webp" "$OUT/wall_slates.jpg"          512x512 78   # castle_wall_slates albedo (Hutta pit walls, Dxun ruins)
+jpg "$BF/_script02_36c2c5e6.webp" "$OUT/wall_slates_nrm.jpg"      512x512 85   # castle_wall_slates normal
+jpg "$BF/_script02_ebe2661c.webp" "$OUT/blocks_sand.jpg"          512x512 78   # medieval_blocks_03 albedo (Iziz, Sith temple ashlar)
+jpg "$BF/_script02_abc6506b.webp" "$OUT/blocks_sand_nrm.jpg"      512x512 85   # medieval_blocks_03 normal
+jpg "$BF/_script02_98d6cb98.webp" "$OUT/planks_old.jpg"           512x512 78   # old_planks_02 albedo (cantina, Trandoshan decks)
+jpg "$BF/_script02_ed4478a6.webp" "$OUT/planks_old_nrm.jpg"       512x512 85   # old_planks_02 normal
+jpg "$BF/_script02_673001cd.webp" "$OUT/plaster_dark.jpg"         512x512 78   # plastered_stone_wall albedo (Nar Shaddaa undercity, Hutta)
+jpg "$BF/_script02_9c8c131d.webp" "$OUT/plaster_dark_nrm.jpg"     512x512 85   # plastered_stone_wall normal
+jpg "$BF/_script02_cd0f51ec.webp" "$OUT/flags_grey.jpg"           512x512 78   # stone_tiles_02 albedo (temple floors, Onderon plazas)
+jpg "$BF/_script02_596b3f8d.webp" "$OUT/flags_grey_nrm.jpg"       512x512 85   # stone_tiles_02 normal
+
 echo "assets in $OUT:"; ls -l "$OUT" | awk 'NR>1{print "  " $9 "  " $5}'
 du -cb "$OUT"/* | tail -1 | awk '{printf "total %d bytes (%.2f MB)\n", $1, $1/1048576}'

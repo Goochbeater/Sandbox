@@ -85,3 +85,13 @@ HERO.skills = function (def, stage) {
   if (stage === 1) return { push: !!(def && def.force && def.force.includes('push')), grip: false, throw: false, rage: !!(def && def.force && def.force.includes('rage')), heavy: true };   // the pit: only what the scene unlocks (the first surge)
   return { push: k('push'), grip: k('grip'), throw: k('throw'), rage: k('rage'), heavy: stage >= 3 };
 };
+/* ---- the blade stays hidden in the crowd: a level with `sheathed: true` spawns him with the saber off; any attack, or a foe that has
+   seen him within 24 m, lights it (and a lit blade in a crowd is exactly what the tail meter in p58n counts as "too loud") */
+HERO.sheathed = false;
+PLAYER.sheath = function (on) {
+  const S = PLAYER.saber; if (!S || S.fists) return; HERO.sheathed = !!on; S.ignite(undefined, !on);
+};
+{ const sp0 = PLAYER.spawn; PLAYER.spawn = function () { const a = sp0.apply(this, arguments); const d = LEVEL.cur && LEVEL.cur.def; HERO.sheathed = false; if (d && d.sheathed) { PLAYER.sheath(true); PLAYER.saber.ign = PLAYER.saber.ends.map(() => 0); } return a; }; }
+{ const at0 = PLAYER.attack; PLAYER.attack = function () { if (HERO.sheathed) PLAYER.sheath(false); return at0.apply(this, arguments); }; }
+{ const u0 = PLAYER.update; PLAYER.update = function (dt) { u0.call(this, dt);
+    if (HERO.sheathed && PLAYER.a && (MG.frame & 7) === 0) for (const e of COMBAT.foes()) if (e.alerted && e.alive && e.dist(PLAYER.a) < 24) { PLAYER.sheath(false); break; } }; }

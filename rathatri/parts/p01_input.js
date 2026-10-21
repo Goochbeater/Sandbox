@@ -75,6 +75,7 @@ IN.poll = function () {
   if (IN.keys.KeyW) my -= 1; if (IN.keys.KeyS) my += 1; if (IN.keys.KeyA) mx -= 1; if (IN.keys.KeyD) mx += 1;
   mx += px; my += py;
   if (typeof TOUCH !== 'undefined' && TOUCH.on) { mx += TOUCH.jx; my += TOUCH.jy; }
+  if (IN.bot) { mx += IN.bot[0]; my += IN.bot[1]; }   // test bots steer here
   const L = Math.hypot(mx, my); if (L > 1) { mx /= L; my /= L; }
   IN.A.mx = mx; IN.A.my = my;
   let lx = IN.mdx * 0.0024 * IN.sens, ly = IN.mdy * 0.0024 * IN.sens;

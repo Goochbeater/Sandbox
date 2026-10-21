@@ -95,6 +95,7 @@ MG.boot = async function () {
       MOV.init();
       if (MG.flags.diff) MG.difficulty = MG.flags.diff;
       if (MG.flags.play) { MG.skipIntro = !!MG.flags.nointro; await LEVEL.load(MG.flags.play, { cp: MG.flags.cp || 0, progress: (p) => MG.loadUI(0.55 + p * 0.4, 'Building the world') }); MG.skipIntro = false; GAME.levelStart = { t: 0, kills: 0 }; if (PLAYER.state !== 'cine') HUD.show(true); MG.state = MG.state === 'loading' ? 'play' : MG.state; }
+      else if (MG.flags.space) { await SPACE.start(MG.flags.space, (res) => { MG.spaceResult = res; console.log('SPACE RESULT ' + JSON.stringify(res)); }); }
       else { await MENU.titleScene(); MENU.open('title'); }
     }
     MG.$('boot').style.opacity = 0; setTimeout(() => { MG.$('boot').style.display = 'none'; }, 1300);

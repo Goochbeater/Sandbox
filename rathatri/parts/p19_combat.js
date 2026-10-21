@@ -33,14 +33,18 @@ COMBAT.sweep = function (atk, saber, mask, prev, onHit, reach) {
     const pb = prev[i] ? prev[i].b : COMBAT._sb, pt = prev[i] ? prev[i].t : COMBAT._st;
     for (const t of COMBAT.actors) {
       if (t === atk || !t.alive || t.team === atk.team || t.hidden) continue;
-      if (Math.hypot(t.x - atk.x, t.z - atk.z) > (reach || 3.6)) continue;
-      const c0 = COMBAT._c0.set(t.x, t.y + 0.25, t.z), c1 = COMBAT._c1.set(t.x, t.y + t.h * 0.92, t.z);
-      const rr = t.r + 0.06;
-      for (let s = 0; s <= 3; s++) {
-        const f = s / 3;
-        const b = COMBAT._lb.lerpVectors(pb, COMBAT._sb, f), tp = COMBAT._lt.lerpVectors(pt, COMBAT._st, f);
-        const d = COMBAT.segSeg(b, tp, c0, c1);
-        if (d < rr) { hits.push({ t, p: COMBAT._hp.clone(), blade: i }); break; }
+      if (Math.hypot(t.x - atk.x, t.z - atk.z) > (reach || 3.6) + (t.ext || 0)) continue;
+      const caps = t.caps ? t.caps() : null;   // long bodies (beasts) supply several world capsules; everyone else is one upright capsule
+      let hit = false;
+      for (let ci = 0; ci < (caps ? caps.length : 1) && !hit; ci++) {
+        const C = caps && caps[ci], c0 = C ? COMBAT._c0.set(C[0], C[1], C[2]) : COMBAT._c0.set(t.x, t.y + 0.25, t.z), c1 = C ? COMBAT._c1.set(C[3], C[4], C[5]) : COMBAT._c1.set(t.x, t.y + t.h * 0.92, t.z);
+        const rr = (C ? C[6] : t.r) + 0.06;
+        for (let s = 0; s <= 3; s++) {
+          const f = s / 3;
+          const b = COMBAT._lb.lerpVectors(pb, COMBAT._sb, f), tp = COMBAT._lt.lerpVectors(pt, COMBAT._st, f);
+          const d = COMBAT.segSeg(b, tp, c0, c1);
+          if (d < rr) { hits.push({ t, p: COMBAT._hp.clone(), blade: i }); hit = true; break; }
+        }
       }
     }
   }

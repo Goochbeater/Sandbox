@@ -15,12 +15,12 @@ try { ({ chromium } = require('playwright')); } catch (e) { ({ chromium } = requ
   const exe = process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
   const browser = await chromium.launch({ executablePath: fs.existsSync(exe) ? exe : undefined, headless: true,
     args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--mute-audio', '--no-sandbox',
-      '--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows', '--allow-file-access-from-files', '--autoplay-policy=no-user-gesture-required'] });
+      '--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows', '--allow-file-access-from-files', '--autoplay-policy=no-user-gesture-required', '--disable-background-networking', '--disable-component-update', '--disable-sync', '--no-first-run', '--no-default-browser-check', '--disable-default-apps', '--disable-extensions', '--metrics-recording-only', '--disable-features=Translate,OptimizationHints,MediaRouter'] });
   const ctx = await browser.newContext({ viewport: { width: W, height: Hh }, deviceScaleFactor: +(process.env.DSF || 1), hasTouch: mobile, isMobile: mobile });
   const page = await ctx.newPage();
   page.setDefaultTimeout(900000);
   const errors = [];
-  page.on('pageerror', (e) => { errors.push('PAGEERROR ' + e.message); console.log('PAGEERROR', e.message); });
+  page.on('pageerror', (e) => { errors.push('PAGEERROR ' + e.message); console.log('PAGEERROR', e.message, process.env.STACK ? e.stack : ''); });
   page.on('console', (m) => { const t = m.type(); const x = t + ': ' + m.text().slice(0, 3000); if (t === 'error') errors.push(x); if (!process.env.QUIET || t === 'error' || t === 'warning') console.log(x); });
   const t0 = Date.now(); await page.goto(url, { waitUntil: 'load', timeout: 180000 });
   try { await page.waitForFunction(() => typeof MG !== 'undefined' && (MG.ready || MG.bootError), null, { timeout: 300000 }); } catch (e) { console.log('BOOT TIMEOUT'); }

@@ -1,22 +1,32 @@
-/* HUD — DOM overlay: health / Force / rage bars, objective, combo + style rank, boss bar, lock-on reticle,
-   interaction prompt, subtitles, hints, toasts and damage vignette. */
-const HUD = { hpLag: 1, popT: 0, hintT: 0, subT: 0, toastT: 0, hurtT: 0, boss: null };
+/* HUD — DOM overlay for phone landscape: name + health / Force / rage bars and status chip (top-left), one-line objective,
+   boss bar and EXPOSURE meter (top-centre), hint pill, combo (left-middle), world prompt, toast, subtitles (bottom-centre, in the
+   gap between the thumb zones), damage vignette and flash. Every id and HUD.* signature below is stable; heat / essence / chip
+   and the layout sync live in p27b_hud_extra.js. Nothing is drawn on the canvas. */
+const HUD = { hpLag: 1, popT: 0, hintT: 0, subT: 0, toastT: 0, hurtT: 0, chipT: 0, boss: null };
+HUD.ids = ['hud', 'hpFill', 'hpLag', 'fpFill', 'rageFill', 'rageBar', 'objD', 'chapT', 'combo', 'cN', 'cR', 'cRfill', 'boss', 'bossN', 'bossFill', 'bossGuardF', 'bossSub',
+  'lock', 'prompt', 'toast', 'toastA', 'toastB', 'sub', 'hint', 'vig', 'flash', 'holo', 'heat', 'heatF', 'heatT', 'chip', 'essence'];
 HUD.init = function () {
-  HUD.el = {}; for (const id of ['hud', 'hpFill', 'hpLag', 'fpFill', 'rageFill', 'rageBar', 'objD', 'chapT', 'combo', 'cN', 'cR', 'cRfill', 'boss', 'bossN', 'bossFill', 'bossGuardF', 'bossSub', 'lock', 'prompt', 'toast', 'toastA', 'toastB', 'sub', 'hint', 'vig', 'flash', 'holo']) HUD.el[id] = MG.$(id);
+  HUD.el = {}; for (const id of HUD.ids) HUD.el[id] = MG.$(id);
 };
 HUD.show = function (on) { HUD.el.hud.classList.toggle('on', !!on); };
 HUD.obj = function (t) { HUD.el.objD.textContent = t || ''; if (t) { HUD.el.objD.style.color = '#ffb09c'; setTimeout(() => { HUD.el.objD.style.color = ''; }, 900); } };
 HUD.chapter = function (t) { HUD.el.chapT.textContent = t || ''; };
-HUD.pop = function (t) { HUD.el.prompt.textContent = t; HUD.el.prompt.style.left = '50%'; HUD.el.prompt.style.top = '36%'; HUD.el.prompt.classList.add('on'); HUD.popT = 1.1; HUD.popFixed = true; };
+HUD.pop = function (t) { HUD.el.prompt.textContent = t; HUD.el.prompt.style.left = '50%'; HUD.el.prompt.style.top = '40%'; HUD.el.prompt.classList.add('on'); HUD.popT = 1.1; HUD.popFixed = true; };
 HUD.toast = function (a, b, dur) { if (!a && !b) { HUD.el.toast.classList.remove('on'); return; } HUD.el.toastA.textContent = a; HUD.el.toastB.textContent = b; HUD.el.toast.classList.add('on'); HUD.toastT = dur || 2.4; };
 HUD.hint = function (html, dur) { HUD.el.hint.innerHTML = html; HUD.el.hint.classList.add('on'); HUD.hintT = dur || 5; };
 HUD.hideHint = function () { HUD.el.hint.classList.remove('on'); HUD.hintT = 0; };
 HUD.sub = function (who, text, dur, cls) { HUD.el.sub.innerHTML = (who ? `<b class="${cls || ''}">${who}</b>` : '') + text; HUD.el.sub.classList.add('on'); HUD.subT = dur || Math.max(2.5, text.length * 0.065); };
 HUD.hurt = function () { HUD.hurtT = 0.5; };
 HUD.flash = function (a) { HUD.el.flash.style.transition = 'none'; HUD.el.flash.style.opacity = a || 0.6; requestAnimationFrame(() => { HUD.el.flash.style.transition = 'opacity 0.6s'; HUD.el.flash.style.opacity = 0; }); };
-HUD.setBoss = function (a, name, sub, cls) { if (a && a !== HUD.boss && name) HUD.toast(sub ? sub.split('·')[0].trim() : '', name, 3); HUD.boss = a; HUD.el.bossN.textContent = name || ''; HUD.el.bossSub.textContent = sub || ''; HUD.el.bossFill.className = cls || ''; HUD.el.boss.classList.toggle('on', !!a); };
+/* boss bar: takes the objective's place at the top; the objective collapses while it is up (#hud.bossUp) */
+HUD.setBoss = function (a, name, sub, cls) {
+  if (a && a !== HUD.boss && name) HUD.toast(sub ? sub.split('·')[0].trim() : '', name, 3);
+  HUD.boss = a; HUD.el.bossN.textContent = name || ''; HUD.el.bossSub.textContent = sub || ''; HUD.el.bossFill.className = cls || '';
+  HUD.el.boss.classList.toggle('on', !!a); HUD.el.hud.classList.toggle('bossUp', !!a);
+};
 HUD.update = function (dt) {
   const P = PLAYER.a;
+  HUD.syncLayout();
   if (P) {
     const hp = sat(P.hp / P.hpMax); HUD.hpLag = hp < HUD.hpLag ? damp(HUD.hpLag, hp, 2.5, dt) : hp;
     HUD.el.hpFill.style.width = (hp * 100).toFixed(1) + '%'; HUD.el.hpLag.style.width = (HUD.hpLag * 100).toFixed(1) + '%';
@@ -34,7 +44,7 @@ HUD.update = function (dt) {
     }
   }
   if (HUD.popT > 0) { HUD.popT -= dt; if (HUD.popT <= 0) { HUD.popFixed = false; HUD.el.prompt.classList.remove('on'); } }
-  // combo
+  // combo (style rank from COMBAT)
   const S = COMBAT.style;
   if (S.n >= 2) { HUD.el.combo.classList.add('on'); HUD.el.cN.textContent = S.n; HUD.el.cR.textContent = COMBAT.RANKS[S.rank] || ''; HUD.el.cRfill.style.width = (sat(S.t / 3.2) * 100).toFixed(0) + '%'; }
   else HUD.el.combo.classList.remove('on');
@@ -44,6 +54,7 @@ HUD.update = function (dt) {
   if (HUD.hintT > 0 && !document.body.classList.contains('cine')) { HUD.hintT -= dt; if (HUD.hintT <= 0) HUD.el.hint.classList.remove('on'); }   // a hint set under a cutscene waits for gameplay
   if (HUD.subT > 0) { HUD.subT -= dt; if (HUD.subT <= 0) HUD.el.sub.classList.remove('on'); }
   if (HUD.toastT > 0) { HUD.toastT -= dt; if (HUD.toastT <= 0) HUD.el.toast.classList.remove('on'); }
+  if (HUD.chipT > 0) { HUD.chipT -= dt; if (HUD.chipT <= 0) HUD.el.chip.classList.remove('on'); }
   HUD.hurtT = Math.max(0, HUD.hurtT - dt);
   const low = P ? sat(1 - P.hp / (P.hpMax * 0.35)) : 0;
   HUD.el.vig.style.opacity = Math.max(HUD.hurtT * 1.4, low * (0.5 + 0.2 * Math.sin(MG.rt * 5))).toFixed(3);

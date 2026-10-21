@@ -7,10 +7,10 @@ const PLAYER = {
 };
 PLAYER.spawn = function (x, y, z, yaw) {
   if (PLAYER.a) PLAYER.a.dispose();
-  const def = LEVEL.cur && LEVEL.cur.def, stage = HERO.stageFor(def); HERO.stage = stage;
-  const a = new Actor(CHAR.T[HERO.NAMES[stage]], { x, y, z, yaw, hp: 100, team: 'hero', moves: MOV.maul, r: 0.33, h: 1.8 });   // MOV.maul = the shared one-handed sword-mocap set (see p50_sith)
+  const def = LEVEL.cur && LEVEL.cur.def, stage = HERO.stageFor(def); HERO.stage = stage; HERO.baseHp = stage === 1 ? 70 : stage === 3 ? 100 : 120; HERO.baseFp = stage === 1 ? 60 : 100;
+  const a = new Actor(CHAR.T[HERO.NAMES[stage]], { x, y, z, yaw, hp: HERO.baseHp, team: 'hero', moves: stage === 1 ? HERO.buildFists() : MOV.maul, r: 0.33, h: 1.8 });   // MOV.maul = the one-handed sword-mocap set; stage I fights bare-handed
   a.isPlayer = true; PLAYER.a = a;
-  const S = HERO.makeSaber(stage); S.addTo(R.scene); a.saber = S; PLAYER.saber = S; a.setProp(S, false);
+  const S = HERO.makeSaber(stage); S.addTo(R.scene); a.saber = S; PLAYER.saber = S; a.setProp(S.fists ? null : S, false);
   S.ignite(undefined, true); S.ign = S.ends.map(() => 1);
   PLAYER.skills = HERO.skills(def, stage);
   a.onLand = (airT) => PLAYER.onLand(airT);

@@ -185,6 +185,26 @@ SC.extra.kyros = (T) => {   // scar across the brow and cheek: a thin painted-da
   const c = SC.headC(T), at = (x, y, z) => [c[0] + x, c[1] + y, c[2] + z];
   T.attach.push({ bone: 4, geo: SC.tube([at(-0.058, 0.052, 0.07), at(-0.034, 0.034, 0.092), at(-0.012, 0.012, 0.1)], 0.0016), mat: new THREE.MeshStandardMaterial({ color: 0x4a2a22, roughness: 0.8 }), pos: [0, 0, 0], name: 'scar' });
 };
+/* RATHATRI — the pit wrote on him: a split brow, a cheek slash, a lip scar (every stage), and in stage I the Hutt slave collar,
+   pitted iron with a tracking diode that never stops blinking */
+SC.rathScars = (T) => {
+  const c = SC.headC(T), at = (x, y, z) => [c[0] + x, c[1] + y, c[2] + z], m = new THREE.MeshStandardMaterial({ color: 0x8e6656, roughness: 0.5, metalness: 0, envMapIntensity: 0.5 }), dk = new THREE.MeshStandardMaterial({ color: 0x4a241c, roughness: 0.7 });
+  T.attach.push({ bone: 4, geo: SC.merge([SC.tube([at(0.034, 0.072, 0.084), at(0.038, 0.055, 0.093), at(0.041, 0.04, 0.096)], 0.0014),
+    SC.tube([at(-0.05, 0.012, 0.075), at(-0.039, -0.006, 0.086), at(-0.026, -0.022, 0.093)], 0.0013),
+    SC.tube([at(0.008, -0.036, 0.104), at(0.011, -0.048, 0.1)], 0.0014)]), mat: m, pos: [0, 0, 0], name: 'scar' });
+  T.attach.push({ bone: 4, geo: SC.tube([at(0.07, 0.03, 0.02), at(0.074, 0.0, 0.03), at(0.07, -0.03, 0.035)], 0.0021), mat: dk, pos: [0, 0, 0], name: 'scar' });   // burn line under the ear
+};
+SC.extra.rath3 = SC.extra.rath5 = (T) => SC.rathScars(T);
+SC.extra.rath1 = (T) => {
+  SC.rathScars(T);
+  const r = 0.068;
+  const ring = new THREE.TorusGeometry(r, 0.0135, 8, 28); ring.rotateX(Math.PI / 2); ring.scale(1, 1.6, 1.12);
+  const lock = new THREE.BoxGeometry(0.034, 0.03, 0.02); lock.translate(0, -0.004, r * 1.12 + 0.012);
+  const iron = new THREE.MeshStandardMaterial({ color: 0x3a3530, roughness: 0.55, metalness: 0.85, envMapIntensity: 0.7 });
+  T.attach.push({ bone: 3, geo: SC.merge([ring, lock]), mat: iron, pos: [0, 0.035, 0.012], name: 'collar', shadow: true });
+  const led = new THREE.SphereGeometry(0.0042, 8, 6); led.translate(0.009, 0.0, r * 1.12 + 0.023);
+  T.attach.push({ bone: 3, geo: led, mat: new THREE.MeshBasicMaterial({ color: new THREE.Color(3.2, 0.25, 0.1), toneMapped: false }), pos: [0, 0.035, 0.012], name: 'collarLed' });
+};
 SC.extra.trandoshan = (T) => { SC.reptile(T, {}); SC.claws(T, [[8, 1], [12, -1]]); };
 SC.extra.trandoshan2 = (T) => { SC.reptile(T, { tint: 0xc8a870 }); SC.claws(T, [[8, 1], [12, -1]]); };
 SC.extra.bosskarr = (T) => {

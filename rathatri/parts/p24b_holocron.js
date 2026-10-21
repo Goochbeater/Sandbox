@@ -13,8 +13,8 @@ HOLOCRON.LORE = {
 HOLOCRON.count = () => Object.keys(SAVE.d.holo || {}).length;
 HOLOCRON.apply = function () {
   const n = HOLOCRON.count();
-  if (PLAYER.a) { const was = PLAYER.a.hpMax; PLAYER.a.hpMax = 100 + n * 3; PLAYER.a.hp += PLAYER.a.hpMax - was; }
-  PLAYER.fpMax = 100 + n * 3;
+  if (PLAYER.a) { const was = PLAYER.a.hpMax; PLAYER.a.hpMax = (HERO.baseHp || 100) + n * 3; PLAYER.a.hp += PLAYER.a.hpMax - was; }
+  PLAYER.fpMax = (HERO.baseFp || 100) + n * 3;
 };
 HOLOCRON.place = function (L, list) {
   L.holos = [];

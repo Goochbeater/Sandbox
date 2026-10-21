@@ -13,14 +13,14 @@ const TOUCH = {
 /* Button table. at: polar offset from the PRIMARY button (r in u, deg CCW from +x) or abs {r:u from right edge, b:u from bottom}. size in u. hold: stays down while touched. */
 TOUCH.MODES = {
   ground: [
-    { n: 'attack', a: 'attack', ic: 'slash', lb: '', size: 1.55, abs: { r: 1.85, b: 1.85 }, hold: true, main: true },
-    { n: 'heavy', a: 'heavy', ic: 'heavy', lb: '', size: 1.0, rel: [1.58, 100], hold: true },
+    { n: 'attack', a: 'attack', ic: 'slash', icFn: () => (typeof PLAYER !== 'undefined' && PLAYER.saber && PLAYER.saber.fists ? 'fist' : 'slash'), lb: '', size: 1.55, abs: { r: 1.85, b: 1.85 }, hold: true, main: true },
+    { n: 'heavy', a: 'heavy', ic: 'heavy', icFn: () => (typeof PLAYER !== 'undefined' && PLAYER.saber && PLAYER.saber.fists ? 'shove' : 'heavy'), lb: '', size: 1.0, rel: [1.58, 100], hold: true },
     { n: 'block', a: 'block', ic: 'shield', lb: '', size: 1.0, rel: [1.58, 52], hold: true },
     { n: 'jump', a: 'jump', ic: 'jump', lb: '', size: 1.0, rel: [1.58, 148], hold: false },
     { n: 'dodge', a: 'dodge', ic: 'dash', lb: '', size: 1.0, rel: [1.58, 196], hold: false },
-    { n: 'push', a: 'push', ic: 'push', lb: '', size: 0.84, rel: [2.8, 68], hold: false },
-    { n: 'grip', a: 'grip', ic: 'claw', lb: '', size: 0.84, rel: [2.8, 104], hold: true },
-    { n: 'throw', a: 'throw', ic: 'throw', lb: '', size: 0.84, rel: [2.8, 140], hold: false },
+    { n: 'push', a: 'push', show: () => TOUCH.sk('push'), ic: 'push', lb: '', size: 0.84, rel: [2.8, 68], hold: false },
+    { n: 'grip', a: 'grip', show: () => TOUCH.sk('grip'), ic: 'claw', lb: '', size: 0.84, rel: [2.8, 104], hold: true },
+    { n: 'throw', a: 'throw', show: () => TOUCH.sk('throw'), ic: 'throw', lb: '', size: 0.84, rel: [2.8, 140], hold: false },
     { n: 'rage', a: 'rage', ic: 'flame', lb: 'RAGE', size: 1.1, abs: { r: 4.5, b: 1.55 }, hold: false, show: () => (typeof PLAYER !== 'undefined' && PLAYER.rage >= 100 && !PLAYER.rageOn && PLAYER.skills && PLAYER.skills.rage), pulse: true },
     { n: 'ctx', a: 'interact', ic: 'hand', lb: 'USE', size: 1.2, abs: { r: 4.5, b: 3.45 }, hold: false, show: () => !!TOUCH.ctx, ctxBtn: true, pulse: true },
     { n: 'ship', a: 'ship', ic: 'ship', lb: 'SHIP', size: 0.9, abs: { r: 6.4, b: 1.55 }, hold: false, show: () => (typeof SHIP !== 'undefined' && SHIP.on && SHIP.avail && SHIP.avail()), cdKey: 'ship' },
@@ -39,6 +39,7 @@ TOUCH.MODES = {
     { n: 'pause', a: 'pause', ic: 'pause', lb: '', size: 0.7, abs: { r: 0.6, t: 0.55 }, hold: false, always: true },
   ],
 };
+TOUCH.sk = (k) => typeof PLAYER !== 'undefined' && !!(PLAYER.skills && PLAYER.skills[k]);
 /* SVG glyphs (24×24, stroke currentColor) */
 TOUCH.IC = {
   slash: '<path d="M5 19L19 5M14 5h5v5M5 14l5 5"/>', heavy: '<path d="M4 20L20 4M4 4l16 16M12 2v4M12 18v4"/>', shield: '<path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z"/>',
@@ -49,6 +50,8 @@ TOUCH.IC = {
   lock: '<circle cx="12" cy="12" r="6"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/>', pause: '<path d="M8 5v14M16 5v14"/>',
   fire: '<circle cx="12" cy="12" r="4"/><path d="M12 1v6M12 17v6M1 12h6M17 12h6"/>', boost: '<path d="M7 14l5-9 5 9M7 20l5-9 5 9"/>', roll: '<path d="M20 12a8 8 0 11-3-6.2M20 4v5h-5"/>',
   missile: '<path d="M5 19L19 5M14 5h5v5M7 14l-3 1 1-3M10 17l-1 3 3-1"/>', brake: '<path d="M4 6h16M4 12h16M4 18h16"/>', eye: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  fist: '<path d="M7 11V8a1.6 1.6 0 013.2 0v2M10.2 10V6.6a1.6 1.6 0 013.2 0V10M13.4 10V7.4a1.6 1.6 0 013.2 0V12c0 5-2.6 8-6 8-3 0-5-2-5.5-5l-.4-2.2A1.7 1.7 0 017 11.5zM5 13h5.5"/>',
+  shove: '<path d="M3 12h7M7 8l4 4-4 4M14 5v14M18 7v10"/>',
   skip: '<path d="M4 5l8 7-8 7zM13 5l8 7-8 7z"/>',
 };
 TOUCH.CSS = `
@@ -233,7 +236,7 @@ TOUCH.frame = function () {
   }
   TOUCH.ctx = ctx;
   for (const b of TOUCH.btns) {
-    const d = b.d; const show = d.always || !d.show || d.show(); if (show !== b.vis) { b.vis = show; b.el.classList.toggle('hide', !show); if (!show) TOUCH.release(b); }
+    const d = b.d; if (d.icFn) { const ic = d.icFn(); if (ic !== b.ic) { b.ic = ic; b.el.querySelector('svg').innerHTML = TOUCH.IC[ic] || ''; } } const show = d.always || !d.show || d.show(); if (show !== b.vis) { b.vis = show; b.el.classList.toggle('hide', !show); if (!show) TOUCH.release(b); }
     if (d.ctxBtn && ctx) { const lb = b.el.querySelector('b'); if (lb && lb.textContent !== ctx.text) lb.textContent = ctx.text; }
     if (d.cdKey) { const f = TOUCH.cd[d.cdKey]; const v = f ? f() : 0; if (b._cd !== v) { b._cd = v; b.el.style.setProperty('--cd', v.toFixed(3)); } }
   }

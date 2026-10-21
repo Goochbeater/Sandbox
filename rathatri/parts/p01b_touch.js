@@ -216,6 +216,7 @@ TOUCH.goFull = function () {
 TOUCH.buzz = function (ms) { if (TOUCH.cfg.haptics && !MG.headless && navigator.vibrate) { try { navigator.vibrate(ms); } catch (e) { /* ignore */ } } };
 /* SKIP for cutscenes: speed the cinematic until it ends (CINE.skip when the sequencer is up) */
 TOUCH.skipDown = function () {
+  if (MG.skipHook) { const f = MG.skipHook; MG.skipHook = null; f(); return; }   // a level-owned sequence (descent, lift ride) takes the skip first
   if (typeof CINE !== 'undefined' && CINE.cur && CINE.skip) { CINE.skip(); return; }
   IN.keys.T_confirm = true; IN.pressed.T_confirm = true; setTimeout(() => { IN.keys.T_confirm = false; }, 2500);
 };

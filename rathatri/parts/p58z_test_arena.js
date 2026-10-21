@@ -15,3 +15,19 @@ LEVEL.def('test_arena', {
     LEVEL.wave([['guard', -5, 6], ['guard', 5, 6], ['csf', 0, 12]], () => { HUD.pop('CLEARED'); if (typeof MISSION !== 'undefined' && MISSION.cur) MISSION.complete({ rank: 'A' }); }, { now: true, stagger: 0.4 });
   },
 });
+/* PLANET TEST — any world (?play=planet_test&world=dxun|hutta|zx34|ambria|raxus|krayiss|lenico|onderon) with a ruin set at the start */
+LEVEL.def('planet_test', {
+  chapter: 'DEBUG', name: 'WORLD TEST', cast: ['guard'], tex: [], start: [0, 0, -6, 0], checkpoints: [[0, 0, -6, 0]], killY: -60,
+  async build(L) {
+    const id = MG.flags.world || 'dxun', Wd = PLANET.build(L, id, { pads: [[0, 0, 14, 0, 10], [0, 40, 10, 0, 12]] }); L.Wd = Wd;
+    const st = FLORA.stone('blocks_sand', id === 'dxun' ? 0x8a8a7c : 0x9a9a90, id === 'dxun' ? 0x3a5a22 : null), dark = FLORA.stone('rock_dark', 0x4a4a50, id === 'dxun' ? 0x3a5a22 : null), y = (x, z) => Wd.y(x, z);
+    FLORA.statue(-6, y(-6, 8), 8, Math.PI * 0.9, 1.6, st, { eyes: 0xff2a1a }); FLORA.statue(7, y(7, 10), 10, -2.2, 1.6, st, { fallen: true });
+    for (const [x, z, b] of [[-9, 20, 0], [-9, 28, 1], [9, 20, 1], [9, 28, 0]]) FLORA.pillar(x, y(x, z), z, 0.75, 7, st, { broken: !!b, glyph: b ? null : 0xff2a1a });
+    FLORA.arch(0, y(0, 32), 32, 0, 4.4, 5.5, st, 0xff2a1a);
+    FLORA.obelisk(16, y(16, 44), 44, 5, 16, 1.6, dark, 0x7aa7c7);
+    L.door = FLORA.tombDoor(0, y(0, 52), 52, Math.PI, 3.2, 4.2, dark, 0xff2a1a);
+    L.ward = FLORA.wardStone(-12, y(-12, 40), 40, dark, 0xff3a20);
+    FLORA.wall(-20, 14, -12, 34, y(-16, 24), 3.5, 0.9, st, FLORA.rs(4));
+  },
+  onStart(L) { HUD.obj('World: ' + (MG.flags.world || 'dxun')); SCAN.setup(L, [{ x: 0, z: 40, text: 'An echo: two footprints, one stepping on the other.' }, { x: -12, z: 40 }]); },
+});

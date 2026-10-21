@@ -932,6 +932,7 @@ function glInit() {
     gl.uniform1i(U.uMask, 0);
     Object.assign(GL, { ok: true, c, gl, U, tex });
     c.addEventListener('webglcontextlost', e => { e.preventDefault(); GL.ok = false; });
+    c.addEventListener('webglcontextrestored', () => { GL.tried = false; GL.ok = false; for (const k in BACKDROPS) delete BACKDROPS[k]; });
     return true;
   } catch (e) { console.warn('GPU ground unavailable, painting by hand:', e && e.message); GL.ok = false; return false; }
 }
@@ -1489,6 +1490,7 @@ function obstNear(w, x, y, r, out) {
 const _near = [];
 function collide(e) {
   const w = G.world; if (!w) return;
+  if (!(isFinite(e.x) && isFinite(e.y))) { e.x = e._lx ?? w.w / 2; e.y = e._ly ?? w.h / 2; e.vx = 0; e.vy = 0; if (e.kbx !== undefined) e.kbx = e.kby = 0; }
   if (!e.noObst) {
     obstNear(w, e.x, e.y, e.r + 40, _near);
     for (const o of _near) {
@@ -1509,6 +1511,7 @@ function collide(e) {
   if (w.arena) { const a = w.arena, dx = e.x - a.x, dy = e.y - a.y, d = Math.hypot(dx, dy), m = a.R - e.r; if (d > m) { e.x = a.x + dx / d * m; e.y = a.y + dy / d * m; } }
   if (G.trial && G.trial.active && e.trialBound) { const a = G.trial, dx = e.x - a.x, dy = e.y - a.y, d = Math.hypot(dx, dy), m = a.R - e.r; if (d > m) { e.x = a.x + dx / d * m; e.y = a.y + dy / d * m; } }
   if (w.voidY && e.y > w.voidY - e.r) e.y = w.voidY - e.r;
+  e._lx = e.x; e._ly = e.y;
 }
 function addObst(w, o) { w.obst.push(o); gridAdd(w, o); return o; }
 
@@ -2265,7 +2268,7 @@ function updPlayer(dt) {
       break;
     }
     case 'dodge': {
-      const k = p.st / .34, sp = 470 * Math.pow(1 - k, .55) * (p.freyja > 0 ? 1.15 : 1);
+      const k = p.st / .34, sp = 470 * Math.pow(Math.max(0, 1 - k), .55) * (p.freyja > 0 ? 1.15 : 1);
       p.vx = p.ddx * sp; p.vy = p.ddy * sp;
       if (wantP && IN.atkJ && p.st > .12) p.rollAtk = true;
       if (k >= 1) {
@@ -5082,7 +5085,7 @@ function vsmoke(g, x, y, hgt, wid, col, a, t, seed, wind = .3) {
   for (let i = 0; i < n; i++) {
     const f = (i / n + t * .035 * (1 + hash2(seed, i) * .4)) % 1;
     const yy = y - f * hgt, xx = x + wind * f * f * hgt + Math.sin(f * 5 + seed + t * .25) * wid * .3;
-    const r = wid * (.45 + f * 1.7), al = a * Math.min(1, f * 7) * Math.pow(1 - f, .7);
+    const r = wid * (.45 + f * 1.7), al = a * Math.min(1, f * 7) * Math.pow(Math.max(0, 1 - f), .7);
     g.globalAlpha = al; g.drawImage(puffSpr(col, (i + seed) % 4), xx - r, yy - r, r * 2, r * 2);
   }
   g.globalAlpha = 1;
@@ -5678,8 +5681,11 @@ function clearActors() {
   G.boss = null; G.decoy = null; G.trial = null; G.npcs = []; G.camLock = null; G.hearthLow = 0; G.lightning = 0;
   hudBoss();
 }
+/* ground textures are the big memory cost on a phone: keep only what the next step needs */
+const ARENAW = {};
+function freeArenas(keep) { for (const k in ARENAW) if (k !== keep) freeGround(ARENAW[k]); }
 function enterHub(spawn) {
-  clearActors(); G.valhalla = false;
+  clearActors(); G.valhalla = false; freeArenas();
   G.world = genHub(); G.scene = { kind: 'hub' };
   G.npcs = npcList();
   const sp = spawn === 'gate' ? { x: 1000, y: 470 } : spawn === 'swan' ? { x: 1560, y: 640 } : HUB.spawn;
@@ -5692,6 +5698,7 @@ function enterHub(spawn) {
 function enterRealm(id, at) {
   clearActors(); G.valhalla = false;
   for (const k in WORLDS) if (k !== id && WORLDS[k].chunks) freeGround(WORLDS[k]);
+  freeArenas();
   const w = WORLDS[id] || (WORLDS[id] = genRealm(id));
   if (!w.chunks && !w.ground) buildGround(w);
   G.world = w; G.scene = { kind: 'realm', id };
@@ -5723,7 +5730,10 @@ function makeBoss(bid, valhalla) {
 }
 function enterArena(bid, valhalla, quick) {
   clearActors(); G.valhalla = !!valhalla;
-  const w = genArena(bid); G.world = w; G.scene = { kind: 'arena', id: bid };
+  freeArenas(bid);
+  const ar = ARENAS[bid].realm; for (const k in WORLDS) if (k !== ar && WORLDS[k].chunks) freeGround(WORLDS[k]);
+  const w = ARENAW[bid] || (ARENAW[bid] = genArena(bid)); if (!w.chunks && !w.ground) buildGround(w);
+  G.world = w; G.scene = { kind: 'arena', id: bid };
   const a = w.arena;
   P = newPlayer(a.x, a.y + a.R * .68); P.face = -PI / 2; P.hp = S.maxhp;
   if (valhalla) refillPowers(); else { const mx = stat.maxCharge(); for (const k of S.slots) if (k) S.charge[k] = Math.max(S.charge[k] || 0, Math.min(mx, 1)); }
@@ -6288,6 +6298,7 @@ function updCam(rdt) {
   cam.z = lerp(cam.z, zoomForSpan(span), 1 - Math.exp(-rdt * 2.6));
   const w = G.world, hw = W / 2 / cam.z, hh = H / 2 / cam.z;
   if (w && w.kind !== 'arena') { if (w.w > hw * 2) cam.x = clamp(cam.x, hw - 40, w.w - hw + 40); if (w.h > hh * 2) cam.y = clamp(cam.y, hh - 60, w.h - hh + 40); }
+  if (!(isFinite(cam.x) && isFinite(cam.y) && cam.z > 0)) { cam.x = isFinite(tx) ? tx : P.x || 0; cam.y = isFinite(ty) ? ty : P.y || 0; cam.z = zoomForSpan(isFinite(span) && span > 0 ? span : 400); cam.span = 1 / cam.z * Math.min(W, H); }
   cam.shake *= Math.exp(-rdt * 9); if (cam.shake < .05) cam.shake = 0;
   cam.sx = rand(-1, 1) * cam.shake; cam.sy = rand(-1, 1) * cam.shake;
 }
@@ -6408,6 +6419,10 @@ function update(dt, rdt) {
 }
 
 /* ---------------- the loop ---------------- */
+function resetCtx() { // unwind any save()/clip() a thrown frame left behind
+  for (const g of [ctx, lctx]) { if (g.reset) g.reset(); else { for (let i = 0; i < 64; i++) g.restore(); } g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; g.shadowBlur = 0; g.shadowColor = 'transparent'; g.lineDash && g.setLineDash([]); }
+  if (!isFinite(cam.x) || !isFinite(cam.y) || !(cam.z > 0)) { cam.x = P ? P.x : 0; cam.y = P ? P.y : 0; cam.z = zoomForSpan(cam.span || 400); }
+}
 let lastTs = 0;
 function frame(ts) {
   const now = ts / 1000; let rdt = lastTs ? now - lastTs : 1 / 60; lastTs = now; rdt = Math.min(rdt, 1 / 20);
@@ -6419,7 +6434,7 @@ function frame(ts) {
   QUAL.acc += rdt; QUAL.n++;
   if (QUAL.acc > 2.5) { const avg = QUAL.acc / QUAL.n; QUAL.acc = 0; QUAL.n = 0; if (G.playing && !G.cs) { if (avg > 1 / 38 && QUAL.cap > 1) { QUAL.cap = Math.max(1, QUAL.cap - .25); resize(); } else if (avg < 1 / 57 && QUAL.cap < QUAL.max) { QUAL.cap = Math.min(QUAL.max, QUAL.cap + .25); resize(); } } }
   try { update(dt, rdt); render(rdt); }
-  catch (err) { console.error(err); }
+  catch (err) { console.error(err); resetCtx(); }
   clearPresses();
   requestAnimationFrame(frame);
 }

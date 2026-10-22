@@ -95,7 +95,7 @@ Other subjects:
 - [ ] **Animation.** Every attack wind-up still moves visibly, and the boss mirrors correctly on both sides of the hero.
 - [ ] **Tests.** `test5` passes in full; `test7` reports `dark 0` and `errs 0`.
 - [ ] **Size.** `einheri.html` is under 16 MB.
-- [ ] **Disclaimer.** In `game.js`, search for "Credits & disclaimer". Replace "no assets from the original game are included" with a sentence saying the build contains art traced from Jotun screenshots for private, non-commercial use only. Keep it accurate.
+- [ ] **Disclaimer.** In `game.js`, search for `Credits &amp; disclaimer`. Replace "no assets from the original game are included" with a sentence saying the build contains art traced from Jotun screenshots for private, non-commercial use only. Keep it accurate.
 - [ ] **Privacy.** Keep this build private: don't share its link publicly, and don't push it to a public repository.
 - [ ] **Commit and push.** Build, commit with a clear message, then `git push -u origin claude/magical-mendel-vxjkpv`.
 

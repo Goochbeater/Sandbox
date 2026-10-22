@@ -65,14 +65,16 @@ BEDROOM.build = function () {
   BUILD.box(B0 + 0.12, B0 + 0.62, 0.8, 1.0, BZ0 + 0.15, BZ0 + 0.85, T.linen); BUILD.box(B0 + 0.12, B0 + 0.62, 0.8, 1.0, BZ0 + 0.95, BZ1 - 0.15, T.linen);
   BUILD.box(B0 - 0.06, B0 + 0.04, 0.4, 1.7, BZ0, BZ1, T.woodRed);
   BUILD.box(B0 - 0.1, B1 + 0.1, 0.9, BT, 0.03, 0.08, T.teal, { col: 0x7ab0aa, cast: false });
-  BUILD.card(T.goldCurtain, B0 + 0.28, 0, BZ1 + 0.04, { h: BT - 0.05, w: 0.7 });
-  BUILD.card(T.goldCurtain, B1 - 0.28, 0, BZ1 + 0.04, { h: BT - 0.05, w: 0.7 });
+  // the two front curtains can be tied back to the posts (BEDROOM.tieBack), so they're kept out of the static batch
+  room.bedCurtains = [[BUILD.card(T.goldCurtain, B0 + 0.28, 0, BZ1 + 0.04, { h: BT - 0.05, w: 0.7, dyn: true }), B0 + 0.28, -1], [BUILD.card(T.goldCurtain, B1 - 0.28, 0, BZ1 + 0.04, { h: BT - 0.05, w: 0.7, dyn: true }), B1 - 0.28, 1]];
   BUILD.card(T.goldCurtain, B1 + 0.05, 0, BZ0 + 0.35, { h: BT - 0.05, w: 0.6, ry: Math.PI / 2 });
-  room.interact('bed', -7.0, 1.5, room.KZ, 1.1, () => { if (!SCENE.player.crownMesh.visible) NIGHT.show(); else say('bed'); }).label = 'Retire for the night (18+)';
+  room.interact('bed', -7.0, 1.5, room.KZ, 1.1, () => { if (!SCENE.player.crownMesh.visible) NIGHT.start(); else say('bed'); }).label = 'Retire for the night (18+)';
+  // night only: a candle on the bedside chest, lit when the queen comes to bed
+  room.lights.bedside = BUILD.light(new THREE.PointLight(0xffa050, 0, 0, 2), -5.55, 1.35, 2.25, { flicker: 8.1 }); room.lights.bedside.userData.night = 6.5;
 
   /* window by the bed head, with the evening sun */
-  BUILD.card(T.window, -10.55, 0.9, 0.04, { basic: true, k: 1.55, cast: false });
-  BUILD.glow(-10.55, 2.4, 0.3, 2.6, 0xffc070, 0.22);
+  room.windowCard = BUILD.card(T.window, -10.55, 0.9, 0.04, { basic: true, k: 1.55, cast: false, dyn: true });
+  room.windowGlow = BUILD.glow(-10.55, 2.4, 0.3, 2.6, 0xffc070, 0.22);
   room.lights.sun = BUILD.shadow(BUILD.light(new THREE.SpotLight(0xffc27a, 210, 0, 0.75, 0.75, 2), -10.6, 3.4, 0.35), R.q === 'low' ? 512 : 1024);
   room.lights.sun.target.position.set(-7.6, 0.3, 2.2);
   for (const [o, w, a] of [[0, 1.3, 0.34], [0.55, 0.8, 0.22], [-0.4, 0.55, 0.18]]) BUILD.shaft(-10.55 + o, 3.2, 0.5 + o * 0.5, w, 5.4, a, [-0.35, 0.15, 0.62]);
@@ -152,12 +154,17 @@ BEDROOM.build = function () {
   /* rugs (no reflection on them, they stay matte) */
   BUILD.rug(T.rugA, -2.2, 3.8, 1.6, 3.85); BUILD.rug(T.rugB, 4.9, 7.9, 1.45, 2.7);
 
-  /* foreground: posts and a candle table close to the lens, for the depth of field to chew on */
-  BUILD.box(-7.7, -7.42, 0, CE, 6.2, 6.48, T.woodPost, { cast: false });
-  BUILD.box(10.6, 10.88, 0, CE, 6.0, 6.28, T.woodPost, { cast: false });
-  BUILD.box(-11.2, -8.6, 0.45, 0.55, 6.8, 7.8, T.woodRed, { cast: false });
-  BUILD.card(T.candles, -9.6, 0.55, 7.2, { s: 1.6, cast: false }); BUILD.flame(-9.76, 1.07, 7.21, 0.6); BUILD.flame(-9.48, 1.2, 7.21, 0.6);
-  BUILD.glow(-9.6, 1.3, 7.25, 1.0, 0xffa050, 0.6);
+  /* foreground: posts and a candle table close to the lens, for the depth of field to chew on. The left post sits
+     dead centre of the bed once the camera pushes in on it, so these all keep their own material and fade out through
+     BEDROOM.lens(k) while the night scene eases in (see g26). */
+  const lens = room.lensProps = [];
+  const fg = (m) => { m.userData.dyn = true; if (m.material) { m.material = m.material.clone(); m.material.transparent = true; } lens.push(m); return m; };
+  fg(BUILD.box(-7.7, -7.42, 0, CE, 6.2, 6.48, T.woodPost, { cast: false, dyn: true }));
+  fg(BUILD.box(10.6, 10.88, 0, CE, 6.0, 6.28, T.woodPost, { cast: false, dyn: true }));
+  fg(BUILD.box(-11.2, -8.6, 0.45, 0.55, 6.8, 7.8, T.woodRed, { cast: false, dyn: true }));
+  fg(BUILD.card(T.candles, -9.6, 0.55, 7.2, { s: 1.6, cast: false, dyn: true }));
+  fg(BUILD.flame(-9.76, 1.07, 7.21, 0.6)); fg(BUILD.flame(-9.48, 1.2, 7.21, 0.6));
+  fg(BUILD.glow(-9.6, 1.3, 7.25, 1.0, 0xffa050, 0.6));
 
   /* light, dust */
   BUILD.light(new THREE.HemisphereLight(0x7a6068, 0x3a2418, 2.3), 0, 4, 0);
@@ -166,7 +173,37 @@ BEDROOM.build = function () {
   room.update(0, 0);
   return BUILD.end();
 };
+/* night in the bedchamber: moonlight at the window instead of the evening sun, the room dimmed to the hearth, a candle by
+   the bed. Lights keep their built intensity in userData.base, so this can be undone exactly. */
+BEDROOM.setNight = function (on) {
+  const room = this; if (!room.built) return; room.night = on;
+  room.group.traverse((o) => { if (!o.isLight || o.userData.base === undefined) return;
+    let k = 1; if (on) { if (o === room.lights.fire) k = 1.1; else if (o === room.lights.sun) k = 0.3; else if (o.isHemisphereLight) k = 0.42; else if (o.isDirectionalLight) k = 0.38; else k = 0.8; }
+    o.intensity = o === room.lights.bedside ? (on ? o.userData.night : 0) : o.userData.base * k; });
+  for (const f of room.flick) f.base = f.L === room.lights.bedside ? (on ? f.L.userData.night : 0) : f.L.userData.base * (on && f.L === room.lights.fire ? 1.1 : 1);
+  room.lights.sun.color.set(on ? 0x8aa6ff : 0xffc27a);
+  for (const s of room.shafts) { const m = s.me.material; if (!m.userData.c0) m.userData.c0 = m.color.clone(); m.color.copy(m.userData.c0).multiply(on ? new THREE.Color(0x5070c0).multiplyScalar(0.6) : new THREE.Color(1, 1, 1)); }
+  const wm = room.windowCard.material; if (!wm.userData.c0) wm.userData.c0 = wm.color.clone(); wm.color.copy(wm.userData.c0).multiply(on ? new THREE.Color(0x4a5a98) : new THREE.Color(1, 1, 1));
+  const gm = room.windowGlow.material; if (!gm.userData.c0) gm.userData.c0 = gm.color.clone(); gm.color.copy(on ? new THREE.Color(0x6a88ff).multiplyScalar(0.12) : gm.userData.c0);
+  R.mat.final.uniforms.uExpo.value = room.exposure * (on ? 0.92 : 1);
+  R.r.shadowMap.needsUpdate = true;
+};
+/* the front bed curtains: 0 = hanging closed over the bed's ends, 1 = tied back to the posts */
+BEDROOM.tieBack = function (k) {
+  for (const [c, x, sd] of this.bedCurtains || []) { const s = lerp(1, 0.36, k); c.scale.x = s; c.position.x = x + sd * 0.7 * (1 - s) / 2; }
+};
+/* the near-lens props (the two posts and the candle table): 0 = solid, 1 = gone. They are what the room's depth of
+   field eats on a wide shot, but the left post lands exactly on the bed's centre line, so the night scene clears them
+   before the camera pushes in rather than have a pillar through the middle of the bed. */
+BEDROOM.lens = function (k) {
+  k = clamp(k, 0, 1); this.lensK = k;
+  for (const m of this.lensProps || []) {
+    const o = 1 - k; m.visible = o > 0.02;
+    if (m.material) m.material.opacity = o;
+  }
+};
 BEDROOM.onEnter = function () {
   const worn = SCENE.player.crownMesh.visible; this.crownCard.visible = this.crownGlow.visible = !worn;   // the crown is on his head or on its cushion
   if (!CUT.playing) SCENE.caption(...this.caption);
 };
+

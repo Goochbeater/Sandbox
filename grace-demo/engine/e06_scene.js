@@ -150,7 +150,7 @@ SCENE.update = function (dt) {
     m.el.classList.toggle('show', show && !(SCENE.bubble && SCENE.near === m.it)); m.el.classList.toggle('near', SCENE.near === m.it); m.el.style.left = m.pos.x + 'px'; m.el.style.top = m.pos.y + 'px'; }
   const B = SCENE.bubble;
   if (B) { B.t -= dt; if (B.t <= 0 || (!B.wait && Math.abs(B.actor.v) > 0.6)) SCENE.bubbleOff(); }
-  if (SCENE.bubble) { const a = SCENE.bubble.actor, b = $('bubble'), bp = R.toView(Actor._c.set(a.x, a.y + (a.spec.headY || 2.12) + (a.crownMesh && a.crownMesh.visible ? 0.1 : 0), a.z), {});
+  if (SCENE.bubble) { const a = SCENE.bubble.actor, b = $('bubble'), bp = R.toView(a.speakAt ? a.speakAt(Actor._c) : Actor._c.set(a.x, a.y + (a.spec.headY || 2.12), a.z), {});
     const bw = b.offsetWidth || 240, bw2 = bw / 2 + 10, bl = clamp(bp.x, bw2, R.vw - bw2);
     b.style.left = bl + 'px'; b.style.top = Math.max(bp.y - 6, b.offsetHeight + 6) + 'px'; b.style.setProperty('--tail', clamp(bp.x - bl + bw / 2, 14, bw - 14) + 'px'); }
 };
@@ -168,3 +168,4 @@ SCENE.step = function (n, dir) {
   SCENE.dir = d0; SCENE.render(); const P = SCENE.player;
   return { room: SCENE.room.id, x: +P.x.toFixed(2), yaw: +P.yaw.toFixed(2), v: +P.v.toFixed(2), crown: P.crownMesh.visible, near: SCENE.near && SCENE.near.id, sit: !!P.sitting };
 };
+

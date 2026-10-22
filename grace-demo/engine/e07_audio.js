@@ -169,6 +169,14 @@ AUDIO.sfx = function (name, o) {
   else if (name === 'drum') { const os = c.createOscillator(), g = c.createGain(); os.frequency.setValueAtTime(120, t); os.frequency.exponentialRampToValueAtTime(48, t + 0.25); g.gain.setValueAtTime(0.9 * gain, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.5); os.connect(g); g.connect(out); os.start(t); os.stop(t + 0.55); AUDIO.burst(out, t, 0.08, 'lowpass', 900, 1, 0.4 * gain, AUDIO.N.pink); }
   else if (name === 'whoosh') { const s = c.createBufferSource(); s.buffer = AUDIO.N.pink; const f = AUDIO.filt('bandpass', 400, 1.2), g = c.createGain(); f.frequency.setValueAtTime(300, t); f.frequency.exponentialRampToValueAtTime(2400, t + 0.5);
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.5 * gain, t + 0.3); g.gain.linearRampToValueAtTime(0, t + 0.7); AUDIO.chain(s, f, g, out); s.start(t, 0, 0.8); }
+  // the bedchamber at night: linen, breath, the old bed frame
+  else if (name === 'sheets') { const d = 0.35 + Math.random() * 0.4; AUDIO.burst(out, t, d, 'bandpass', 1800 + Math.random() * 1400, 0.6, 0.22 * gain, AUDIO.N.pink); AUDIO.burst(out, t + d * 0.4, d * 0.7, 'bandpass', 3800, 0.8, 0.1 * gain, AUDIO.N.pink); }
+  else if (name === 'breath') { const s = c.createBufferSource(); s.buffer = AUDIO.N.pink; const f = AUDIO.filt('bandpass', o.pitch || 900, 1.6), g = c.createGain(), d = o.dur || 0.7;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.3 * gain, t + d * 0.25); g.gain.exponentialRampToValueAtTime(0.0001, t + d); AUDIO.chain(s, f, g, out); s.start(t, Math.random() * 2, d + 0.05); }
+  else if (name === 'creak') { const os = c.createOscillator(), bp = AUDIO.filt('bandpass', 520 + Math.random() * 160, 9), g = c.createGain(), d = 0.22 + Math.random() * 0.12; os.type = 'sawtooth'; os.frequency.setValueAtTime(38 + Math.random() * 10, t); os.frequency.linearRampToValueAtTime(30 + Math.random() * 14, t + d);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.16 * gain, t + 0.04); g.gain.linearRampToValueAtTime(0, t + d); AUDIO.chain(os, bp, g, out); os.start(t); os.stop(t + d + 0.05); }
+  else if (name === 'kiss') { AUDIO.burst(out, t, 0.035, 'bandpass', 2600, 2, 0.3 * gain); AUDIO.burst(out, t + 0.05, 0.05, 'bandpass', 1700, 1.5, 0.18 * gain, AUDIO.N.pink); }
+  else if (name === 'skin') { AUDIO.burst(out, t, 0.05, 'lowpass', 700 + Math.random() * 300, 1, 0.4 * gain, AUDIO.N.pink); AUDIO.burst(out, t, 0.03, 'bandpass', 2400, 1.2, 0.08 * gain); }
   else if (name === 'coin') { const a = new Audio(AUDIO.base + 'coin.mp3'); a.volume = clamp(0.8 * gain * AUDIO.vol.sfx, 0, 1); a.play().catch(() => {}); }
 };
 /* footsteps: called by actors on each foot contact; quieter and panned with distance from the frame's centre */
@@ -176,3 +184,4 @@ AUDIO.step = function (surface, x, z) {
   if (!AUDIO.ready) return; const dx = x - R.cam.position.x, k = clamp(1 - Math.abs(dx) / 14, 0, 1) * clamp(1 - Math.abs(z - (SCENE.room ? SCENE.room.KZ : 0)) / 8, 0.4, 1);
   if (k > 0.05) AUDIO.sfx('step', { surface, gain: 0.55 * k, pan: clamp(dx / 10, -0.8, 0.8) });
 };
+

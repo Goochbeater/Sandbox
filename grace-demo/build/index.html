@@ -124,9 +124,12 @@
     border-radius: 4px; background: rgba(140, 20, 20, 0.85); box-shadow: 0 2px 10px rgba(0,0,0,0.6); text-shadow: none; }
   #title .rating span { font-family: var(--caps); letter-spacing: 0.12em; font-size: max(11px, min(1.2cqw, 3cqh)); } #title:not(.ready) .menu { opacity: 0; pointer-events: none; }
   .badge18 { position: absolute; right: 3cqw; top: 5cqh; border: 2px solid #e8c26a; color: #e8c26a; background: rgba(10, 6, 5, 0.75); font-family: var(--caps); font-size: min(2cqw, 4.6cqh); padding: 0.1em 0.5em; border-radius: 50%; letter-spacing: 0.04em; pointer-events: none; text-shadow: 0 2px 6px #000; }
-  #night { position: absolute; inset: 0; z-index: 9; background: #050303; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 10px; }
-  #nightCv { height: min(76vh, 56.25vw); aspect-ratio: 16 / 9; max-width: 96vw; image-rendering: pixelated; background: #000; }
-  #night .row .btn { min-width: 5em; padding: 0.3em 1em; }
+  #night { position: absolute; left: 50%; bottom: 3.5%; transform: translateX(-50%); z-index: 7; display: flex; flex-direction: column; align-items: center; gap: 6px; width: max-content; max-width: 96vw; }
+  #night .row { justify-content: center; flex-wrap: wrap; gap: 6px; }
+  #night .row:empty, #night .row[hidden] { display: none; }
+  #night .btn { min-width: 4.5em; padding: 0.28em 0.9em; background: rgba(16, 11, 9, 0.82); font-size: max(12px, min(1.5cqw, 3.4cqh)); }
+  #night .btn.on { border-color: #e3b75a; color: #fff; box-shadow: 0 0 0 1px #e3b75a inset; }
+  #night #nAsk .btn { font-size: max(13px, min(1.7cqw, 3.8cqh)); padding: 0.4em 1.2em; }
   #ageGate { z-index: 10; text-align: center; } #ageGate p { margin: 0; color: var(--dim); line-height: 1.4; }
   .panel { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 8; width: min(92vw, 520px); max-height: 86vh; overflow: auto; background: rgba(16, 11, 9, 0.95); border: 1px solid rgba(227, 183, 90, 0.55);
            padding: clamp(14px, 2.4vw, 26px); display: flex; flex-direction: column; gap: 14px; box-shadow: 0 0 0 4px rgba(16, 11, 9, 0.7), 0 12px 40px rgba(0,0,0,0.6); }
@@ -196,8 +199,11 @@
   </div>
   <div class="panel" id="ageGate" hidden role="dialog" aria-labelledby="ageT"><h2 id="ageT">Adults only</h2><p>This scene contains explicit sexual content between adult characters. Continue only if you are 18 or older.</p>
     <div class="row"><button class="btn gold" id="ageYes">I am 18 or older</button><button class="btn" id="ageNo">Go back</button></div></div>
-  <div id="night" hidden role="dialog" aria-label="The night"><canvas id="nightCv"></canvas>
-    <div class="row"><button class="btn" id="nSlow">Slow</button><button class="btn" id="nMid">Steady</button><button class="btn" id="nFast">Quick</button><button class="btn" id="nZoom">Close-up</button><button class="btn gold" id="nightClose">Leave</button></div></div>
+  <!-- the night scene plays in the bedchamber itself; this strip only holds its choices and controls -->
+  <div id="night" hidden role="group" aria-label="The night">
+    <div class="row" id="nAsk"></div>
+    <div class="row" id="nPos"></div>
+    <div class="row" id="nPace"><button class="btn" id="nSlow">Slow</button><button class="btn" id="nMid">Steady</button><button class="btn" id="nFast">Quick</button><button class="btn" id="nView">Closer</button><button class="btn gold" id="nFinish">Finish</button></div></div>
   <div class="panel" id="settings" hidden role="dialog" aria-labelledby="setTitle">
     <h2 id="setTitle">Settings</h2>
     <label class="slider">Music <input type="range" id="volMusic" min="0" max="100" step="5"></label>
@@ -53913,11 +53919,12 @@ class Actor {
     const skinT = new THREE.Color(S.skin || 0xd8b096).multiplyScalar(S.skinK || 0.92);
     const headTex = await QA.tex(sex + '_col'), handTex = await QA.tex(bindKey + '_col');
     const skin = new THREE.MeshStandardMaterial({ map: headTex, color: skinT, roughness: 0.62 }), hands = new THREE.MeshStandardMaterial({ map: handTex, color: skinT, roughness: 0.62 });
+    this.skinT = skinT; this.clothes = [];   // everything undress() hides: outfit pieces (and the Regular hands they come with), gown, collar, tabard
     for (const [mesh, prim, dye] of S.parts || []) {
       const g = QA.geometry(mesh, (p) => p.name === prim && (dye === 'skin' ? p.mat.startsWith('MI_Regular') : !p.mat.startsWith('MI_Regular')));
       if (!g.index.count) { console.warn('no part', mesh, prim); continue; }
       const tex = await QA.tex(mesh.includes('ranger') ? 'ranger_col' : 'peasant_col');
-      this.add(g, dye === 'skin' ? hands : Actor.dye(tex, dye));
+      this.clothes.push(this.add(g, dye === 'skin' ? hands : Actor.dye(tex, dye)));
     }
     // head, eyes and brows from the base body; hair refit from the hair library when it was modelled for the other head
     const H = this.wt[I.Head], ny = this.wt[I.neck_01][1];
@@ -53927,9 +53934,11 @@ class Actor {
     const browTex = sex === 'female' ? 'hair2_col' : 'hair1_col';
     this.add(QA.geometry(sex, (p) => p.mat.startsWith('MI_Hair')), hairMat(await QA.tex(browTex), S.brows || 0x1a1512));
     for (const [h, col] of S.hair || []) { const g = QA.refit(QA.geometry(h), QA.HAIR_SRC[h] || 'male', sex); this.add(g, hairMat(await QA.tex(M.meshes[h].prims[0].mat === 'MI_Hair_2' ? 'hair2_col' : 'hair1_col'), col)); }
+    const n0 = inner.children.length;
     if (S.robe) this.robe(S.robe);
     if (S.collar) this.collar(S.collar);
     if (S.tabard) this.tabard(S.tabard);
+    this.outer = inner.children.slice(n0); this.clothes.push(...this.outer);
     this.crownMesh = Actor.crown(S.crown && S.crown.k || 1); this.attachHead(this.crownMesh, S.crown && S.crown.y || 0.135); this.crownMesh.visible = !!(S.crown && S.crown.worn);
     if (S.helmet) { const hm = Actor.helmet(S.helmet.col); this.attachHead(hm, 0.11); }
     if (S.prop) this.prop(S.prop);
@@ -53947,6 +53956,44 @@ class Actor {
     const at = new THREE.Matrix4().makeTranslation(0, this.wt[I.Head][1] + up, this.wt[I.Head][2] + 0.017);
     Hb.clone().invert().multiply(at).decompose(obj.position, obj.quaternion, obj.scale); this.bones[I.Head].add(obj);
   }
+  /* a rigid object riding any bone, placed at `p` (bind / body space: x = the actor's left, y up, z toward his front) and
+     oriented in body space, so its children can be posed in body terms whatever the bone's own axes are */
+  attachBody(obj, bone, p) {
+    const i = QA.idx[bone], Bm = new THREE.Matrix4().compose(new THREE.Vector3().fromArray(this.wt[i]), this.wr[i], new THREE.Vector3(1, 1, 1));
+    Bm.invert().multiply(new THREE.Matrix4().makeTranslation(p[0], p[1], p[2])).decompose(obj.position, obj.quaternion, obj.scale); this.bones[i].add(obj);
+  }
+  /* ---------------------------------------------------------------- undressing
+     The outfits are cut from the Regular bodies, which have nothing under them; the bare body is the full Superhero base
+     body of the same sex (it shares the Regular skeleton: identical joints for the women, within 2 cm for the men), with
+     its painted underwear repainted to skin and the anatomy painted on (Actor.bareTex). Built on first use, so only the
+     actors that ever undress pay for it. */
+  async makeBare() {
+    if (this.bare) return this.bare;
+    const I = QA.idx, H = this.wt[I.Head], ny = this.wt[I.neck_01][1], inHead = (x, y, z) => y > ny - 0.035 && Math.abs(x) < 0.11 && z > H[2] - 0.16;
+    const g = QA.geometry(this.sex, (p) => p.mat.startsWith('MI_Superhero')), P = g.attributes.position, Ix = g.index.array, keep = [];
+    for (let t = 0; t < Ix.length; t += 3) if (![Ix[t], Ix[t + 1], Ix[t + 2]].every((i) => inHead(P.getX(i), P.getY(i), P.getZ(i)))) keep.push(Ix[t], Ix[t + 1], Ix[t + 2]);
+    g.setIndex(keep);
+    const tex = await Actor.bareTex(this, g);
+    this.bare = this.add(g, new THREE.MeshStandardMaterial({ map: tex, color: this.skinT, roughness: 0.55 }));
+    this.bare.traverse((o) => o.layers.mask = this.root.layers.mask); this.bare.visible = false;
+    this.marks = Actor.bareMarks(this, g);
+    if (this.sex === 'male') { this.sexGroup = Actor.genitals(this, this.marks); this.sexGroup.visible = false; this.setArousal(0); }
+    return this.bare;
+  }
+  /* 'outer' = gown / robe, collar, tabard and crown; 'all' = down to the skin */
+  async undress(level) {
+    this.crownMesh.visible = false;
+    for (const m of this.outer) m.visible = false;
+    if (level !== 'all') return;
+    await this.makeBare();
+    for (const m of this.clothes) m.visible = false;
+    this.bare.visible = true; if (this.sexGroup) this.sexGroup.visible = true; this.nude = true;
+  }
+  dress() { for (const m of this.clothes) m.visible = true; if (this.bare) this.bare.visible = false; if (this.sexGroup) this.sexGroup.visible = false; this.nude = false; }
+  /* 0 = soft, 1 = fully hard (men only; a no-op otherwise) */
+  setArousal(k) { const s = this.sexGroup && this.sexGroup.userData.shaft; if (!s) return; this.arousal = k;
+    const a = lerp(Math.PI - 0.32, Math.PI / 2 - 0.55, smooth(0, 1, k)); s.rotation.set(a, 0, 0);
+    s.scale.set(lerp(1, 1.18, k), lerp(0.62, 1, k), lerp(1, 1.18, k)); }
   /* ---------------------------------------------------------------- procedural garments */
   /* long skirt / gown: a flared tube from the waist down, weighted to the pelvis and, lower down, to the thighs */
   robe(o) {
@@ -54038,6 +54085,8 @@ class Actor {
     this.path = { x0: this.x, y0: this.y, z0: this.z, x1: p.x, y1: p.y || 0, z1: p.z, t: 0, dur: len / (p.speed || 0.85), yaw: Math.atan2(dx, dz), cb }; this.target = null; this.sitting = null; this.sitK = 0; }
   setVisible(on) { this.visible = on; this.card.visible = on; this.blob.visible = on; this.shadow.visible = on; if (this.propObj) this.propObj.visible = on; }
   update(dt) {
+    if (this.puppet) {   // a procedural controller owns the body (POSE / the night scene): it fills D and pel and places the root
+      this.puppet(this, dt); this.compose(); this.root.position.set(this.x, this.y, this.z); this.root.rotation.y = this.yaw; return; }
     const S0 = this.spec, H = this.curHome || S0;
     if (H.wander && this.target === null && !this.path && !this.sitting && !this.talking && !this.dir) { this.wanderT -= dt;
       if (this.wanderT <= 0) { const w = H.wander; this.walkTo(lerp(w.x0, w.x1, Math.random())); this.wanderT = lerp(w.pause[0], w.pause[1], Math.random()); } }
@@ -54085,7 +54134,11 @@ class Actor {
     for (const [name, t, w] of layers) { if (w <= 0.001) continue; const c = QA.clips[name];
       if (first) { QA.sample(c, t, D, pel, this.pelvisH); first = false; wsum = w; continue; }
       QA.sample(c, t, B, pb, this.pelvisH); wsum += w; const k = w / wsum; for (let i = 0; i < D.length; i++) D[i].slerp(B[i], k); pel.lerp(pb, k); }
-    const bones = this.bones, P = QA.M.skel.parents, Wq = this.W;
+    this.compose();
+  }
+  /* D (each bone's world-space rotation away from the bind pose) and pel (the pelvis offset, body space) -> the bones */
+  compose() {
+    const D = this.D, pel = this.pel, bones = this.bones, P = QA.M.skel.parents, Wq = this.W;
     for (let i = 0; i < bones.length; i++) { if (i === 0) D[0].identity(); Wq[i].copy(D[i]).multiply(this.wr[i]); bones[i].quaternion.copy(P[i] < 0 ? Wq[i] : QA._a.copy(Wq[P[i]]).invert().multiply(Wq[i])); }
     bones[1].position.fromArray(this.wt[1]).add(pel).applyQuaternion(this.rootInv);
   }
@@ -54104,9 +54157,32 @@ class Actor {
     this.shadow = new THREE.Mesh(sg, this.shadowMat); this.shadow.frustumCulled = false; this.shadow.layers.set(2); R.scene.add(this.shadow);
     Actor.lights();
   }
+  /* a different sprite box (w x h metres) — e.g. a body lying down, or two bodies in one frame */
+  reframe(w, h) {
+    if (!this.box0) this.box0 = [this.VW, this.VH];
+    if (w === undefined) [w, h] = this.box0;
+    if (w === this.VW && h === this.VH) return;
+    this.VW = w; this.VH = h; const SW = Math.round(w * PX.D), SH = Math.round(h * PX.D);
+    this.rt.setSize(SW, SH); this.rt2.setSize(SW, SH);
+    Object.assign(this.cam, { left: -w / 2, right: w / 2, top: h / 2, bottom: -h / 2 }); this.cam.updateProjectionMatrix();
+    this.fxU.texel.set(1 / SW, 1 / SH);
+    this.card.geometry.dispose(); this.card.geometry = new THREE.PlaneGeometry(w, h);
+    this.shadowMat.dispose(); this.shadowMat = this.shadow.material = Actor.shadowMat(this.rt.texture, SW, SH);
+  }
+  /* draw this actor inside another actor's sprite (one camera, one depth buffer: bodies that touch overlap correctly);
+     hostInto(null) gives it its own sprite back */
+  hostInto(host) {
+    this.hostedBy = host || null; const layer = host ? host.layer : this.layer;
+    this.root.traverse((o) => o.layers.set(layer));
+    this.card.visible = this.blob.visible = this.shadow.visible = !host && this.visible;
+  }
+  /* where speech bubbles anchor: the head, wherever the pose has put it */
+  speakAt(out) { if (!this.puppet) return out.set(this.x, this.y + (this.spec.headY || 2.12) + (this.crownMesh && this.crownMesh.visible ? 0.1 : 0), this.z);
+    this.bones[QA.idx.Head].getWorldPosition(out); out.y += 0.32; return out; }
   render(room) {
-    if (!this.visible) return;
-    const r = R.r, cy = this.VH / 2 - 0.05, c = Actor._c.set(this.x, this.y + cy, this.z), cam = this.cam;
+    if (!this.visible || this.hostedBy) return;
+    const r = R.r, cy = this.VH / 2 - 0.05, c = this.frame ? Actor._c.copy(this.frame) : Actor._c.set(this.x, this.y + cy, this.z), cam = this.cam;
+    this.blob.visible = !this.puppet;
     const sx = R.toView(c, Actor._sv).x; if (sx < -R.vw * 0.25 || sx > R.vw * 1.25) return;   // off-screen: keep the last sprite
     const d = Actor._d.copy(c).sub(R.cam.position).normalize();
     cam.position.copy(c).addScaledVector(d, -7); cam.lookAt(c); cam.updateMatrixWorld();
@@ -54123,7 +54199,7 @@ class Actor {
     // floor shadows: a soft contact blob, and the sprite's silhouette projected from the room's main low light
     this.blob.position.set(this.x, this.y + 0.008, this.z + 0.02);
     const ss = room && room.shadowSrc;
-    if (!ss || this.sitting) { this.shadowMat.uniforms.uK.value = 0; return; }
+    if (!ss || this.sitting || this.puppet) { this.shadowMat.uniforms.uK.value = 0; return; }
     const L = Actor._L.set(ss[0], ss[1], ss[2]), right = Actor._r.set(1, 0, 0).applyQuaternion(cam.quaternion), up = Actor._u.set(0, 1, 0).applyQuaternion(cam.quaternion);
     const base = c.clone().addScaledVector(up, -this.VH / 2), corners = [base.clone().addScaledVector(right, -this.VW / 2), base.clone().addScaledVector(right, this.VW / 2)];
     for (const b of corners.slice()) { const tp = b.clone().addScaledVector(up, this.VH); const k = L.y / Math.max(L.y - tp.y, 0.35); corners.push(new THREE.Vector3(L.x + (tp.x - L.x) * k, 0.01, L.z + (tp.z - L.z) * k)); }
@@ -54198,6 +54274,7 @@ Actor.helmet = function (col) {
   const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.2, 0.02, 16), steel); brim.position.y = -0.005; grp.add(brim);
   return grp;
 };
+
 
 /* ==== engine/e06_scene.js ==== */
 /* SCENE — runs whichever room the player is in: room switching behind a fade, the follow camera on its rail, input
@@ -54352,7 +54429,7 @@ SCENE.update = function (dt) {
     m.el.classList.toggle('show', show && !(SCENE.bubble && SCENE.near === m.it)); m.el.classList.toggle('near', SCENE.near === m.it); m.el.style.left = m.pos.x + 'px'; m.el.style.top = m.pos.y + 'px'; }
   const B = SCENE.bubble;
   if (B) { B.t -= dt; if (B.t <= 0 || (!B.wait && Math.abs(B.actor.v) > 0.6)) SCENE.bubbleOff(); }
-  if (SCENE.bubble) { const a = SCENE.bubble.actor, b = $('bubble'), bp = R.toView(Actor._c.set(a.x, a.y + (a.spec.headY || 2.12) + (a.crownMesh && a.crownMesh.visible ? 0.1 : 0), a.z), {});
+  if (SCENE.bubble) { const a = SCENE.bubble.actor, b = $('bubble'), bp = R.toView(a.speakAt ? a.speakAt(Actor._c) : Actor._c.set(a.x, a.y + (a.spec.headY || 2.12), a.z), {});
     const bw = b.offsetWidth || 240, bw2 = bw / 2 + 10, bl = clamp(bp.x, bw2, R.vw - bw2);
     b.style.left = bl + 'px'; b.style.top = Math.max(bp.y - 6, b.offsetHeight + 6) + 'px'; b.style.setProperty('--tail', clamp(bp.x - bl + bw / 2, 14, bw - 14) + 'px'); }
 };
@@ -54370,6 +54447,7 @@ SCENE.step = function (n, dir) {
   SCENE.dir = d0; SCENE.render(); const P = SCENE.player;
   return { room: SCENE.room.id, x: +P.x.toFixed(2), yaw: +P.yaw.toFixed(2), v: +P.v.toFixed(2), crown: P.crownMesh.visible, near: SCENE.near && SCENE.near.id, sit: !!P.sitting };
 };
+
 
 /* ==== engine/e07_audio.js ==== */
 /* AUDIO — music, ambience and sound effects.
@@ -54543,6 +54621,14 @@ AUDIO.sfx = function (name, o) {
   else if (name === 'drum') { const os = c.createOscillator(), g = c.createGain(); os.frequency.setValueAtTime(120, t); os.frequency.exponentialRampToValueAtTime(48, t + 0.25); g.gain.setValueAtTime(0.9 * gain, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.5); os.connect(g); g.connect(out); os.start(t); os.stop(t + 0.55); AUDIO.burst(out, t, 0.08, 'lowpass', 900, 1, 0.4 * gain, AUDIO.N.pink); }
   else if (name === 'whoosh') { const s = c.createBufferSource(); s.buffer = AUDIO.N.pink; const f = AUDIO.filt('bandpass', 400, 1.2), g = c.createGain(); f.frequency.setValueAtTime(300, t); f.frequency.exponentialRampToValueAtTime(2400, t + 0.5);
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.5 * gain, t + 0.3); g.gain.linearRampToValueAtTime(0, t + 0.7); AUDIO.chain(s, f, g, out); s.start(t, 0, 0.8); }
+  // the bedchamber at night: linen, breath, the old bed frame
+  else if (name === 'sheets') { const d = 0.35 + Math.random() * 0.4; AUDIO.burst(out, t, d, 'bandpass', 1800 + Math.random() * 1400, 0.6, 0.22 * gain, AUDIO.N.pink); AUDIO.burst(out, t + d * 0.4, d * 0.7, 'bandpass', 3800, 0.8, 0.1 * gain, AUDIO.N.pink); }
+  else if (name === 'breath') { const s = c.createBufferSource(); s.buffer = AUDIO.N.pink; const f = AUDIO.filt('bandpass', o.pitch || 900, 1.6), g = c.createGain(), d = o.dur || 0.7;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.3 * gain, t + d * 0.25); g.gain.exponentialRampToValueAtTime(0.0001, t + d); AUDIO.chain(s, f, g, out); s.start(t, Math.random() * 2, d + 0.05); }
+  else if (name === 'creak') { const os = c.createOscillator(), bp = AUDIO.filt('bandpass', 520 + Math.random() * 160, 9), g = c.createGain(), d = 0.22 + Math.random() * 0.12; os.type = 'sawtooth'; os.frequency.setValueAtTime(38 + Math.random() * 10, t); os.frequency.linearRampToValueAtTime(30 + Math.random() * 14, t + d);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.16 * gain, t + 0.04); g.gain.linearRampToValueAtTime(0, t + d); AUDIO.chain(os, bp, g, out); os.start(t); os.stop(t + d + 0.05); }
+  else if (name === 'kiss') { AUDIO.burst(out, t, 0.035, 'bandpass', 2600, 2, 0.3 * gain); AUDIO.burst(out, t + 0.05, 0.05, 'bandpass', 1700, 1.5, 0.18 * gain, AUDIO.N.pink); }
+  else if (name === 'skin') { AUDIO.burst(out, t, 0.05, 'lowpass', 700 + Math.random() * 300, 1, 0.4 * gain, AUDIO.N.pink); AUDIO.burst(out, t, 0.03, 'bandpass', 2400, 1.2, 0.08 * gain); }
   else if (name === 'coin') { const a = new Audio(AUDIO.base + 'coin.mp3'); a.volume = clamp(0.8 * gain * AUDIO.vol.sfx, 0, 1); a.play().catch(() => {}); }
 };
 /* footsteps: called by actors on each foot contact; quieter and panned with distance from the frame's centre */
@@ -54550,6 +54636,7 @@ AUDIO.step = function (surface, x, z) {
   if (!AUDIO.ready) return; const dx = x - R.cam.position.x, k = clamp(1 - Math.abs(dx) / 14, 0, 1) * clamp(1 - Math.abs(z - (SCENE.room ? SCENE.room.KZ : 0)) / 8, 0.4, 1);
   if (k > 0.05) AUDIO.sfx('step', { surface, gain: 0.55 * k, pan: clamp(dx / 10, -0.8, 0.8) });
 };
+
 
 /* ==== engine/e08_outdoor.js ==== */
 /* OUTDOOR — what open-air rooms need: a painted sky backdrop (with drifting cloud layers), GPU rain, lightning with
@@ -55018,6 +55105,222 @@ BUILD.tower = function (x, z, y0, y1, r, f) {
   return me;
 };
 BUILD.coneRoof = function (x, z, y, r, h, R, d, o) { o = o || {}; const t = PX.coneWrap(r, h, R, d, o.seed || 7); return BUILD.cone(x, z, y, r, h, t, Object.assign({ wrap: true, seg: o.seg || 24 }, o)); };
+
+/* ==== engine/e13_body.js ==== */
+/* BODY — the bare body under the clothes (Actor.makeBare / undress). Three pieces, all built once per actor:
+     Actor.bareMarks(actor, geo)  anatomical anchor points found on the actual mesh (nipples, mons, crotch), body space
+     Actor.bareTex(actor, geo)    the base body's colour map with the painted underwear turned back into skin, areolae,
+                                  pubic hair and (women) the vulva painted on — painted in 3D: every triangle is rasterised
+                                  in UV space and each texel is coloured by where it lands on the body, so the marks sit
+                                  where they belong whatever the UV layout is
+     Actor.genitals(actor, marks) the men's penis and scrotum: small procedural meshes riding the pelvis bone; the shaft's
+                                  angle and length follow actor.setArousal(0..1)
+   At the sprites' 32 px/m these are a handful of pixels each — enough to read, in keeping with the art. */
+Actor.bareMarks = function (a, g) {
+  const P = g.attributes.position, n = P.count, F = a.sex === 'female';
+  const best = (test) => { let b = null, bz = -9; for (let i = 0; i < n; i++) { const x = P.getX(i), y = P.getY(i), z = P.getZ(i); if (test(x, y, z) && z > bz) { bz = z; b = [x, y, z]; } } return b; };
+  const nipL = F ? best((x, y) => y > 1.18 && y < 1.38 && x > 0.04 && x < 0.16) : best((x, y) => y > 1.27 && y < 1.40 && x > 0.07 && x < 0.13);
+  const nipR = nipL && [-nipL[0], nipL[1], nipL[2]];
+  // the midline front profile (both base bodies): the mons at ~0.91 m, the vulva / root of the penis at ~0.85, the
+  // perineum at ~0.80 where the thighs part
+  const mid = (y0, y1) => best((x, y) => Math.abs(x) < 0.02 && y > y0 && y < y1);
+  const mons = mid(0.895, 0.93) || [0, 0.91, 0.05], crotch = mid(0.835, 0.87) || [0, 0.85, 0.01];
+  return { nipL, nipR, mons, crotch, perineum: [0, crotch[1] - 0.05, crotch[2] - 0.035] };
+};
+Actor.bareTex = async function (a, g) {
+  const src = await QA.tex(a.sex + '_col'), img = src.image, W = img.width, H = img.height, F = a.sex === 'female';
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const cx = cv.getContext('2d'); cx.drawImage(img, 0, 0);
+  const id = cx.getImageData(0, 0, W, H), d = id.data;
+  // 1. the skin's own average colour, then the grey underwear repainted with it (a little texel noise keeps it from looking flat)
+  let sr = 0, sg = 0, sb = 0, sn = 0;
+  for (let i = 0; i < d.length; i += 4) if (d[i] > 120 && d[i] > d[i + 1] && d[i + 1] > d[i + 2]) { sr += d[i]; sg += d[i + 1]; sb += d[i + 2]; sn++; }
+  const skin = [sr / sn, sg / sn, sb / sn];
+  for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+    const mx = Math.max(d[i], d[i + 1], d[i + 2]), mn = Math.min(d[i], d[i + 1], d[i + 2]);
+    if (mx < 125 && mx - mn < 30) { const k = 0.95 + hash(p, 71) * 0.08; d[i] = skin[0] * k; d[i + 1] = skin[1] * k; d[i + 2] = skin[2] * k; }
+  }
+  // 2. anatomy, painted in body space. Colours are given as they should look lit, then divided by the material tint.
+  const M = Actor.bareMarks(a, g), tint = a.skinT, inv = (c) => [c[0] / tint.r, c[1] / tint.g, c[2] / tint.b].map((v) => clamp(v, 0, 255));
+  const hc = new THREE.Color(a.spec.brows || 0x2a1a12), hair = inv([hc.r * 255 * 1.3, hc.g * 255 * 1.3, hc.b * 255 * 1.3]);
+  const areola = inv(F ? [168, 96, 84] : [150, 92, 76]), nipple = inv(F ? [140, 70, 62] : [128, 74, 60]), lips = inv([120, 56, 58]), inner = inv([170, 82, 86]);
+  const rA = F ? 0.026 : 0.017, rN = F ? 0.009 : 0.006;
+  const mark = (x, y, z, px) => {
+    for (const q of [M.nipL, M.nipR]) { if (!q) continue; const dd = Math.hypot(x - q[0], y - q[1], z - q[2]);
+      if (dd < rN) return [nipple, 1]; if (dd < rA) return [areola, 0.85 * (1 - smooth(rA * 0.75, rA, dd))]; }
+    const m = M.mons, c = M.crotch; if (z < -0.075) return null;
+    // pubic hair: a soft triangle over the mons (a fuller, higher patch for the men), ragged at the edge
+    const top = m[1] + (F ? 0.05 : 0.075), bot = c[1] + (F ? 0.035 : 0.01), t = (top - y) / (top - bot);
+    if (t > 0 && t < 1 && z > m[2] - 0.07) { const half = F ? lerp(0.07, 0.012, t) : lerp(0.05, 0.075, Math.min(1, t * 1.6)) * (1 - smooth(0.7, 1, t) * 0.6), e = Math.abs(x) / half;
+      if (e < 1 && hash(px, 13) < 0.92 - e * e * 0.55) return [hair, 0.75 + hash(px, 5) * 0.25]; }
+    if (F && Math.abs(x) < 0.016 && y < m[1] - 0.012 && y > c[1] - 0.06) {   // the vulva: outer lips and the darker cleft between
+      if (Math.abs(x) < 0.0045) return [lips, 1]; return [inner, 0.45 * (1 - Math.abs(x) / 0.016)]; }
+    return null;
+  };
+  const Pp = g.attributes.position, U = g.attributes.uv, Ix = g.index.array, anchors = [M.nipL, M.nipR, M.mons].filter(Boolean);
+  const pa = new THREE.Vector3(), pb = new THREE.Vector3(), pc = new THREE.Vector3();
+  for (let t = 0; t < Ix.length; t += 3) {
+    const i0 = Ix[t], i1 = Ix[t + 1], i2 = Ix[t + 2];
+    pa.fromBufferAttribute(Pp, i0); pb.fromBufferAttribute(Pp, i1); pc.fromBufferAttribute(Pp, i2);
+    if (!anchors.some((q) => Math.hypot(pa.x - q[0], pa.y - q[1], pa.z - q[2]) < 0.2)) continue;
+    const u0 = U.getX(i0) * W, v0 = U.getY(i0) * H, u1 = U.getX(i1) * W, v1 = U.getY(i1) * H, u2 = U.getX(i2) * W, v2 = U.getY(i2) * H;
+    const den = (v1 - v2) * (u0 - u2) + (u2 - u1) * (v0 - v2); if (Math.abs(den) < 1e-9) continue;
+    const xa = Math.max(0, Math.floor(Math.min(u0, u1, u2))), xb = Math.min(W - 1, Math.ceil(Math.max(u0, u1, u2)));
+    const ya = Math.max(0, Math.floor(Math.min(v0, v1, v2))), yb = Math.min(H - 1, Math.ceil(Math.max(v0, v1, v2)));
+    for (let py = ya; py <= yb; py++) for (let px = xa; px <= xb; px++) {
+      const X = px + 0.5, Y = py + 0.5, w0 = ((v1 - v2) * (X - u2) + (u2 - u1) * (Y - v2)) / den, w1 = ((v2 - v0) * (X - u2) + (u0 - u2) * (Y - v2)) / den, w2 = 1 - w0 - w1;
+      if (w0 < -0.02 || w1 < -0.02 || w2 < -0.02) continue;
+      const r = mark(pa.x * w0 + pb.x * w1 + pc.x * w2, pa.y * w0 + pb.y * w1 + pc.y * w2, pa.z * w0 + pb.z * w1 + pc.z * w2, py * W + px);
+      if (!r) continue; const [c, al] = r, o = (py * W + px) * 4;
+      for (let k = 0; k < 3; k++) d[o + k] = lerp(d[o + k], c[k], al);
+    }
+  }
+  cx.putImageData(id, 0, 0);
+  const t = new THREE.CanvasTexture(cv); t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; t.needsUpdate = true; return t;
+};
+Actor.genitals = function (a, M) {
+  const base = [0, lerp(M.crotch[1], M.mons[1], 0.5), lerp(M.crotch[2], M.mons[2], 0.5) - 0.006];   // just above the crotch, on the skin
+  const col = new THREE.Color(a.skinT).multiply(new THREE.Color(0xf0c8b8)).multiplyScalar(0.95);
+  const mat = new THREE.MeshStandardMaterial({ color: col, roughness: 0.6 }), tip = new THREE.MeshStandardMaterial({ color: col.clone().multiply(new THREE.Color(0xe09088)), roughness: 0.45 });
+  const g = new THREE.Group(); a.attachBody(g, 'pelvis', base);
+  const shaft = new THREE.Group(); g.add(shaft); g.userData.shaft = shaft;          // pivots at the root; +y runs along the shaft
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.0165, 0.019, 0.135, 10, 1), mat); body.position.y = 0.0675; shaft.add(body);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.019, 10, 8), tip); head.scale.set(1, 1.25, 1); head.position.y = 0.137; shaft.add(head);
+  const sac = new THREE.Mesh(new THREE.SphereGeometry(0.03, 10, 8), mat); sac.scale.set(1.25, 1.1, 0.85); sac.position.set(0, -0.032, -0.012); g.add(sac);
+  g.traverse((o) => { o.layers.mask = a.root.layers.mask; o.castShadow = false; o.receiveShadow = true; });
+  return g;
+};
+
+/* ==== engine/e14_pose.js ==== */
+/* POSE — procedural poses for when there's no mocap clip for what a scene needs (lying down, kneeling on a bed, two
+   bodies together). A pose is plain data, written in the actor's BODY frame (x = their left, y = toward the head,
+   z = their front), plus where the pelvis goes in the world and which way the body faces there:
+     { at: [x, y, z]           world position of the pelvis joint
+       up: [..], fwd: [..]     world directions of the body's up (pelvis -> head) and front (belly)
+       hips:  [dir, front]     optional pelvis tilt
+       spine: [dir, front]     the chest (spine_03); spine_01/02 share the bend
+       neck:  dir              head: [dir, face]   (dir = up through the crown, face = where the face points)
+       armL / armR: [upper, fore, front?, hand?]      legL / legR: [thigh, calf, knee?, foot?]
+         … or { ik: [x,y,z], pole, end }       two-bone IK: wrist / ankle on a world point, elbow / knee toward pole
+         … or { aimAt: [x,y,z], lower, pole, end }   knee / elbow put down at that point's height, on its bearing (kneeling)
+       world: true             optional: all the directions above are world directions (up / fwd / at always are)
+       pin: (actor) => Vector3 optional: after posing, slide the body by this much (how two bodies are made to meet) }
+   Each named bone is aimed from its bind direction. `front` / `knee` fixes the twist (which way the inner elbow / the
+   kneecap faces); forearms, calves, hands and feet swing from their parent, so elbows and knees act as hinges. Bones
+   that aren't named ride their parent (clavicles, fingers; hands and feet if not given).
+     POSE.solve(actor, pose, Dout)   fill Dout with world-space deltas, the same form a clip sample has
+     POSE.drive(actor, fn, dur, o)   actor.puppet: blend from whatever the body is doing now into fn(t, actor) over dur s
+                                     (o.lift: arc the pelvis up by this much mid-blend — climbing onto something)
+     POSE.release(actor)             hand the body back to the clips */
+const POSE = { _q: new THREE.Quaternion(), _m: new THREE.Matrix4(), _v: new THREE.Vector3(), _w: new THREE.Vector3(), Y: new THREE.Vector3(0, 1, 0), Z: new THREE.Vector3(0, 0, 1) };
+POSE.CHILD = { pelvis: 'spine_01', spine_01: 'spine_02', spine_02: 'spine_03', spine_03: 'neck_01', neck_01: 'Head', upperarm_l: 'lowerarm_l', lowerarm_l: 'hand_l',
+  upperarm_r: 'lowerarm_r', lowerarm_r: 'hand_r', thigh_l: 'calf_l', calf_l: 'foot_l', thigh_r: 'calf_r', calf_r: 'foot_r', foot_l: 'ball_l', foot_r: 'ball_r', hand_l: 'middle_01_l', hand_r: 'middle_01_r' };
+POSE.v = (a) => new THREE.Vector3(a[0], a[1], a[2]).normalize();
+/* the rotation taking the body/bind frame (+y, +z) to (dir, front); front is made perpendicular to dir */
+POSE.frame = function (dir, front, out) {
+  const e1 = dir.clone().normalize(), e2 = front.clone().addScaledVector(e1, -front.dot(e1));
+  if (e2.lengthSq() < 1e-6) { e2.set(0, 0, 1).addScaledVector(e1, -e1.z); if (e2.lengthSq() < 1e-6) e2.set(0, 1, 0).addScaledVector(e1, -e1.y); }
+  e2.normalize(); const e3 = new THREE.Vector3().crossVectors(e1, e2);
+  // columns: where body +y, +z, +x go  (x = y cross z)
+  return out.setFromRotationMatrix(POSE._m.makeBasis(e3, e1, e2));
+};
+POSE.bind = function (a) {   // the body's bind directions, cached per actor
+  if (a._pb) return a._pb; const I = QA.idx, wt = a.wt, b = {};
+  for (const n in POSE.CHILD) { const i = I[n], c = I[POSE.CHILD[n]]; b[n] = new THREE.Vector3(wt[c][0] - wt[i][0], wt[c][1] - wt[i][1], wt[c][2] - wt[i][2]).normalize(); }
+  b.Head = new THREE.Vector3(0, 1, 0); return (a._pb = b);
+};
+POSE.solve = function (a, P, D) {
+  const par = QA.M.skel.parents, names = QA.M.skel.names, B = POSE.bind(a), Z = POSE.Z, Y = POSE.Y;
+  const L = a._pl || (a._pl = names.map(() => new THREE.Quaternion()));
+  const Qb = POSE.frame(POSE.v(P.up), POSE.v(P.fwd), new THREE.Quaternion());   // body -> world
+  // P.world: the limb directions are given in world terms (easier when staging bodies on furniture) -> into body terms
+  const Qi = Qb.clone().invert(), aim = {}, swing = {}, v = P.world ? (d) => POSE.v(d).applyQuaternion(Qi) : POSE.v;
+  const F0 = P.world ? P.fwd : [0, 0, 1];   // default fronts: the body's own
+  if (P.hips) aim.pelvis = [v(P.hips[0]), v(P.hips[1] || F0)];
+  if (P.spine) { const t = v(P.spine[0]), f = v(P.spine[1] || F0);
+    aim.spine_01 = [Y.clone().lerp(t, 0.35).normalize(), Z.clone().lerp(f, 0.35).normalize()];
+    aim.spine_02 = [Y.clone().lerp(t, 0.7).normalize(), Z.clone().lerp(f, 0.7).normalize()]; aim.spine_03 = [t, f]; }
+  const face = P.head ? v(P.head[1] || F0) : null;
+  if (P.neck) aim.neck_01 = [v(P.neck), face || v(P.spine ? P.spine[1] || F0 : F0)];
+  if (P.head) aim.Head = [v(P.head[0]), face];
+  // limbs: [upper, lower, front?, end?] directions, or { ik: [x, y, z] world target for the wrist / ankle, pole: world
+  // direction the elbow / knee points, end: hand / foot direction } — a two-bone chain solved once the shoulder / hip is placed
+  const ik = {}, LIMB = [['armL', 'l', 'upperarm_', 'lowerarm_', 'hand_', 1], ['armR', 'r', 'upperarm_', 'lowerarm_', 'hand_', 1], ['legL', 'l', 'thigh_', 'calf_', 'foot_', -1], ['legR', 'r', 'thigh_', 'calf_', 'foot_', -1]];
+  for (const [k, sd, u, l, e, sg] of LIMB) { const A = P[k]; if (!A) continue;
+    if (Array.isArray(A)) { aim[u + sd] = [v(A[0]), v(A[2] || F0)]; if (A[1]) swing[l + sd] = v(A[1]); if (A[3]) swing[e + sd] = v(A[3]); }
+    else { ik[u + sd] = { T: new THREE.Vector3().fromArray(A.ik || A.aimAt), aimAt: !!A.aimAt, lower: A.lower && v(A.lower), pole: new THREE.Vector3().fromArray(A.pole || [0, 0, 1]), lo: l + sd, sg };
+      if (A.end) swing[e + sd] = v(A.end); }
+  }
+  const q0 = POSE._q, fb = new THREE.Quaternion(), bd = new THREE.Vector3(), sc = a.spec.s || 1, I = QA.idx, wt = a.wt;
+  const pos = a._pj || (a._pj = names.map(() => new THREE.Vector3())), off = new THREE.Vector3(), Dq = new THREE.Quaternion();
+  const len = (i, j) => sc * Math.hypot(wt[j][0] - wt[i][0], wt[j][1] - wt[i][1], wt[j][2] - wt[i][2]);
+  pos[1].fromArray(P.at);
+  for (let i = 1; i < names.length; i++) {
+    const n = names[i], p = par[i];
+    if (i > 1) { off.set(wt[i][0] - wt[p][0], wt[i][1] - wt[p][1], wt[i][2] - wt[p][2]).multiplyScalar(sc).applyQuaternion(Dq.copy(Qb).multiply(L[p])); pos[i].copy(pos[p]).add(off); }
+    if (ik[n] && ik[n].aimAt) {   // aim the upper bone at a world point (a knee onto the quilt), the lower bone along `lower`
+      // the knee keeps the target's height and bearing and lands one thigh-length from the hip
+      const c = ik[n], S = pos[i], la = len(i, I[c.lo]), dy = c.T.y - S.y, h = new THREE.Vector3(c.T.x - S.x, 0, c.T.z - S.z);
+      const dirW = Math.abs(dy) < la * 0.999 && h.lengthSq() > 1e-8 ? h.normalize().multiplyScalar(Math.sqrt(la * la - dy * dy)).setY(dy).normalize() : c.T.clone().sub(S).normalize();
+      const nrm = c.pole.clone().addScaledVector(dirW, -c.pole.dot(dirW)).normalize();
+      aim[n] = [dirW.applyQuaternion(Qi), nrm.multiplyScalar(-c.sg).applyQuaternion(Qi)]; if (c.lower) swing[c.lo] = c.lower;
+    } else if (ik[n]) {   // two-bone IK: the elbow / knee goes toward the pole, the upper bone aims at it, the lower at the target
+      const c = ik[n], j = I[c.lo], la = len(i, j), lb = len(j, I[POSE.CHILD[c.lo]]), S = pos[i];
+      const u = c.T.clone().sub(S); const d = clamp(u.length(), Math.abs(la - lb) + 1e-3, (la + lb) * 0.999); u.normalize();
+      const ca = (la * la + d * d - lb * lb) / (2 * la * d), sa = Math.sqrt(Math.max(0, 1 - ca * ca));
+      const nrm = c.pole.clone().addScaledVector(u, -c.pole.dot(u)); if (nrm.lengthSq() < 1e-6) nrm.set(0, 1, 0).addScaledVector(u, -u.y); nrm.normalize();
+      const E = S.clone().addScaledVector(u, la * ca).addScaledVector(nrm, la * sa), Tt = S.clone().addScaledVector(u, d);
+      // the inner elbow faces away from the pole; the kneecap faces toward it
+      aim[n] = [E.clone().sub(S).normalize().applyQuaternion(Qi), nrm.clone().multiplyScalar(-c.sg).applyQuaternion(Qi)];
+      swing[c.lo] = Tt.sub(E).normalize().applyQuaternion(Qi);
+    }
+    if (aim[n]) {   // frame(target) * frame(bind)^-1, bind front = body +z
+      POSE.frame(aim[n][0], aim[n][1], L[i]); POSE.frame(B[n], Z, fb); L[i].multiply(fb.invert());
+    } else if (swing[n]) {   // hinge: the parent's rotation, then the shortest swing onto the target
+      bd.copy(B[n]).applyQuaternion(L[p]); q0.setFromUnitVectors(bd, swing[n]); L[i].copy(q0).multiply(L[p]);
+    } else if (i === 1) L[i].identity(); else L[i].copy(L[p]);
+    D[i].copy(Qb).multiply(L[i]);
+  }
+  D[0].identity();
+  return P.at;
+};
+POSE.drive = function (a, fn, dur, o) {
+  o = o || {}; dur = dur === undefined ? 0.8 : dur;
+  const yaw = new THREE.Quaternion().setFromAxisAngle(POSE.Y, a.puppet ? 0 : a.yaw), s = a.spec.s || 1;
+  const st = { fn, t: 0, dur, k: dur > 0 ? 0 : 1, lift: o.lift || 0, D: a.D.map(() => new THREE.Quaternion()),
+    from: a.D.map((q) => yaw.clone().multiply(q)),
+    fromP: new THREE.Vector3().fromArray(a.wt[1]).add(a.pel).multiplyScalar(s).applyQuaternion(yaw).add(POSE._v.set(a.x, a.y, a.z)) };
+  if (a.puppet && a.pose_ && a.pose_.k < 1) st.from = a.D.map((q) => q.clone());   // mid-blend: start from what's on screen
+  a.pose_ = st; a.puppet = POSE.tick; a.target = null; a.path = null; a.sitting = null; a.pel.set(0, 0, 0);
+  return new Promise((r) => { st.done = r; if (st.k >= 1) r(); });
+};
+POSE.tick = function (a, dt) {
+  const st = a.pose_, s = a.spec.s || 1, n = a.D.length; st.t += dt;
+  const P = st.fn(st.t, a); POSE.solve(a, P, st.D);
+  const at = POSE._w.fromArray(P.at);
+  if (st.k < 1) {
+    st.k = Math.min(1, st.k + dt / st.dur); const k = smooth(0, 1, st.k);
+    for (let i = 0; i < n; i++) a.D[i].slerpQuaternions(st.from[i], st.D[i], k);
+    at.lerpVectors(st.fromP, at.clone(), k); at.y += Math.sin(Math.PI * k) * st.lift;
+    if (st.k >= 1 && st.done) st.done();
+  } else for (let i = 0; i < n; i++) a.D[i].copy(st.D[i]);
+  a.pel.set(0, 0, 0); a.yaw = 0;
+  a.x = at.x - s * a.wt[1][0]; a.y = at.y - s * a.wt[1][1]; a.z = at.z - s * a.wt[1][2];
+  if (P.pin) {   // P.pin(a) -> how far the posed body is from where it must touch. Slide the pelvis by that much (eased in
+    // while blending) and solve again from there, so planted hands and knees (IK targets) stay where they were asked to be
+    a.compose(); a.root.position.set(a.x, a.y, a.z); a.root.rotation.y = 0; a.root.updateMatrixWorld(true);
+    const d = P.pin(a);
+    if (d) { const k = st.k < 1 ? smooth(0, 1, st.k) : 1; at.addScaledVector(d, k); P.at = at.toArray(); POSE.solve(a, P, st.D);
+      if (st.k < 1) for (let i = 0; i < n; i++) a.D[i].slerpQuaternions(st.from[i], st.D[i], smooth(0, 1, st.k)); else for (let i = 0; i < n; i++) a.D[i].copy(st.D[i]);
+      a.x = at.x - s * a.wt[1][0]; a.y = at.y - s * a.wt[1][1]; a.z = at.z - s * a.wt[1][2]; }
+  }
+};
+/* a point given in body space, carried by one bone, in the world right now (the bones' matrices must be current) */
+POSE.point = function (a, bone, p, out) {
+  const i = QA.idx[bone], c = a._pp || (a._pp = {}), key = bone + p.join(',');
+  if (!c[key]) { const Bm = new THREE.Matrix4().compose(new THREE.Vector3().fromArray(a.wt[i]), a.wr[i], new THREE.Vector3(1, 1, 1)).invert(); c[key] = new THREE.Vector3(p[0], p[1], p[2]).applyMatrix4(Bm); }
+  return a.bones[i].localToWorld(out.copy(c[key]));
+};
+POSE.release = function (a) { a.puppet = null; a.pose_ = null; a.pel.set(0, 0, 0); };
 
 /* ==== game/g10_paint_bedroom.js ==== */
 /* BEDROOM TEXTURES — the bedchamber's own pixel art (generic painters live in engine/e02_pixel.js). */
@@ -56272,14 +56575,16 @@ BEDROOM.build = function () {
   BUILD.box(B0 + 0.12, B0 + 0.62, 0.8, 1.0, BZ0 + 0.15, BZ0 + 0.85, T.linen); BUILD.box(B0 + 0.12, B0 + 0.62, 0.8, 1.0, BZ0 + 0.95, BZ1 - 0.15, T.linen);
   BUILD.box(B0 - 0.06, B0 + 0.04, 0.4, 1.7, BZ0, BZ1, T.woodRed);
   BUILD.box(B0 - 0.1, B1 + 0.1, 0.9, BT, 0.03, 0.08, T.teal, { col: 0x7ab0aa, cast: false });
-  BUILD.card(T.goldCurtain, B0 + 0.28, 0, BZ1 + 0.04, { h: BT - 0.05, w: 0.7 });
-  BUILD.card(T.goldCurtain, B1 - 0.28, 0, BZ1 + 0.04, { h: BT - 0.05, w: 0.7 });
+  // the two front curtains can be tied back to the posts (BEDROOM.tieBack), so they're kept out of the static batch
+  room.bedCurtains = [[BUILD.card(T.goldCurtain, B0 + 0.28, 0, BZ1 + 0.04, { h: BT - 0.05, w: 0.7, dyn: true }), B0 + 0.28, -1], [BUILD.card(T.goldCurtain, B1 - 0.28, 0, BZ1 + 0.04, { h: BT - 0.05, w: 0.7, dyn: true }), B1 - 0.28, 1]];
   BUILD.card(T.goldCurtain, B1 + 0.05, 0, BZ0 + 0.35, { h: BT - 0.05, w: 0.6, ry: Math.PI / 2 });
-  room.interact('bed', -7.0, 1.5, room.KZ, 1.1, () => { if (!SCENE.player.crownMesh.visible) NIGHT.show(); else say('bed'); }).label = 'Retire for the night (18+)';
+  room.interact('bed', -7.0, 1.5, room.KZ, 1.1, () => { if (!SCENE.player.crownMesh.visible) NIGHT.start(); else say('bed'); }).label = 'Retire for the night (18+)';
+  // night only: a candle on the bedside chest, lit when the queen comes to bed
+  room.lights.bedside = BUILD.light(new THREE.PointLight(0xffa050, 0, 0, 2), -5.55, 1.35, 2.25, { flicker: 8.1 }); room.lights.bedside.userData.night = 6.5;
 
   /* window by the bed head, with the evening sun */
-  BUILD.card(T.window, -10.55, 0.9, 0.04, { basic: true, k: 1.55, cast: false });
-  BUILD.glow(-10.55, 2.4, 0.3, 2.6, 0xffc070, 0.22);
+  room.windowCard = BUILD.card(T.window, -10.55, 0.9, 0.04, { basic: true, k: 1.55, cast: false, dyn: true });
+  room.windowGlow = BUILD.glow(-10.55, 2.4, 0.3, 2.6, 0xffc070, 0.22);
   room.lights.sun = BUILD.shadow(BUILD.light(new THREE.SpotLight(0xffc27a, 210, 0, 0.75, 0.75, 2), -10.6, 3.4, 0.35), R.q === 'low' ? 512 : 1024);
   room.lights.sun.target.position.set(-7.6, 0.3, 2.2);
   for (const [o, w, a] of [[0, 1.3, 0.34], [0.55, 0.8, 0.22], [-0.4, 0.55, 0.18]]) BUILD.shaft(-10.55 + o, 3.2, 0.5 + o * 0.5, w, 5.4, a, [-0.35, 0.15, 0.62]);
@@ -56359,12 +56664,17 @@ BEDROOM.build = function () {
   /* rugs (no reflection on them, they stay matte) */
   BUILD.rug(T.rugA, -2.2, 3.8, 1.6, 3.85); BUILD.rug(T.rugB, 4.9, 7.9, 1.45, 2.7);
 
-  /* foreground: posts and a candle table close to the lens, for the depth of field to chew on */
-  BUILD.box(-7.7, -7.42, 0, CE, 6.2, 6.48, T.woodPost, { cast: false });
-  BUILD.box(10.6, 10.88, 0, CE, 6.0, 6.28, T.woodPost, { cast: false });
-  BUILD.box(-11.2, -8.6, 0.45, 0.55, 6.8, 7.8, T.woodRed, { cast: false });
-  BUILD.card(T.candles, -9.6, 0.55, 7.2, { s: 1.6, cast: false }); BUILD.flame(-9.76, 1.07, 7.21, 0.6); BUILD.flame(-9.48, 1.2, 7.21, 0.6);
-  BUILD.glow(-9.6, 1.3, 7.25, 1.0, 0xffa050, 0.6);
+  /* foreground: posts and a candle table close to the lens, for the depth of field to chew on. The left post sits
+     dead centre of the bed once the camera pushes in on it, so these all keep their own material and fade out through
+     BEDROOM.lens(k) while the night scene eases in (see g26). */
+  const lens = room.lensProps = [];
+  const fg = (m) => { m.userData.dyn = true; if (m.material) { m.material = m.material.clone(); m.material.transparent = true; } lens.push(m); return m; };
+  fg(BUILD.box(-7.7, -7.42, 0, CE, 6.2, 6.48, T.woodPost, { cast: false, dyn: true }));
+  fg(BUILD.box(10.6, 10.88, 0, CE, 6.0, 6.28, T.woodPost, { cast: false, dyn: true }));
+  fg(BUILD.box(-11.2, -8.6, 0.45, 0.55, 6.8, 7.8, T.woodRed, { cast: false, dyn: true }));
+  fg(BUILD.card(T.candles, -9.6, 0.55, 7.2, { s: 1.6, cast: false, dyn: true }));
+  fg(BUILD.flame(-9.76, 1.07, 7.21, 0.6)); fg(BUILD.flame(-9.48, 1.2, 7.21, 0.6));
+  fg(BUILD.glow(-9.6, 1.3, 7.25, 1.0, 0xffa050, 0.6));
 
   /* light, dust */
   BUILD.light(new THREE.HemisphereLight(0x7a6068, 0x3a2418, 2.3), 0, 4, 0);
@@ -56373,10 +56683,40 @@ BEDROOM.build = function () {
   room.update(0, 0);
   return BUILD.end();
 };
+/* night in the bedchamber: moonlight at the window instead of the evening sun, the room dimmed to the hearth, a candle by
+   the bed. Lights keep their built intensity in userData.base, so this can be undone exactly. */
+BEDROOM.setNight = function (on) {
+  const room = this; if (!room.built) return; room.night = on;
+  room.group.traverse((o) => { if (!o.isLight || o.userData.base === undefined) return;
+    let k = 1; if (on) { if (o === room.lights.fire) k = 1.1; else if (o === room.lights.sun) k = 0.3; else if (o.isHemisphereLight) k = 0.42; else if (o.isDirectionalLight) k = 0.38; else k = 0.8; }
+    o.intensity = o === room.lights.bedside ? (on ? o.userData.night : 0) : o.userData.base * k; });
+  for (const f of room.flick) f.base = f.L === room.lights.bedside ? (on ? f.L.userData.night : 0) : f.L.userData.base * (on && f.L === room.lights.fire ? 1.1 : 1);
+  room.lights.sun.color.set(on ? 0x8aa6ff : 0xffc27a);
+  for (const s of room.shafts) { const m = s.me.material; if (!m.userData.c0) m.userData.c0 = m.color.clone(); m.color.copy(m.userData.c0).multiply(on ? new THREE.Color(0x5070c0).multiplyScalar(0.6) : new THREE.Color(1, 1, 1)); }
+  const wm = room.windowCard.material; if (!wm.userData.c0) wm.userData.c0 = wm.color.clone(); wm.color.copy(wm.userData.c0).multiply(on ? new THREE.Color(0x4a5a98) : new THREE.Color(1, 1, 1));
+  const gm = room.windowGlow.material; if (!gm.userData.c0) gm.userData.c0 = gm.color.clone(); gm.color.copy(on ? new THREE.Color(0x6a88ff).multiplyScalar(0.12) : gm.userData.c0);
+  R.mat.final.uniforms.uExpo.value = room.exposure * (on ? 0.92 : 1);
+  R.r.shadowMap.needsUpdate = true;
+};
+/* the front bed curtains: 0 = hanging closed over the bed's ends, 1 = tied back to the posts */
+BEDROOM.tieBack = function (k) {
+  for (const [c, x, sd] of this.bedCurtains || []) { const s = lerp(1, 0.36, k); c.scale.x = s; c.position.x = x + sd * 0.7 * (1 - s) / 2; }
+};
+/* the near-lens props (the two posts and the candle table): 0 = solid, 1 = gone. They are what the room's depth of
+   field eats on a wide shot, but the left post lands exactly on the bed's centre line, so the night scene clears them
+   before the camera pushes in rather than have a pillar through the middle of the bed. */
+BEDROOM.lens = function (k) {
+  k = clamp(k, 0, 1); this.lensK = k;
+  for (const m of this.lensProps || []) {
+    const o = 1 - k; m.visible = o > 0.02;
+    if (m.material) m.material.opacity = o;
+  }
+};
 BEDROOM.onEnter = function () {
   const worn = SCENE.player.crownMesh.visible; this.crownCard.visible = this.crownGlow.visible = !worn;   // the crown is on his head or on its cushion
   if (!CUT.playing) SCENE.caption(...this.caption);
 };
+
 
 /* ==== game/g21_exterior.js ==== */
 /* THE SWAN FORTRESS FROM THE HILL — the title screen and the opening cutscene's stage. One room, four moods:
@@ -57109,11 +57449,18 @@ YARD.onUpdate = function (dt) {
 };
 
 /* ==== game/g26_night.js ==== */
-/* THE NIGHT SCENE — an adult scene between the king and queen (both adults, married), drawn live as pixel art on a
-   small canvas and shown over the game. 18+ only: the player confirms their age once (kept in this browser).
-   The scene is a candlelit cutaway of the bed; the pair move in a loop whose pace the player sets (slow / steady /
-   fast), with a close-up toggle. Drawn with rectangles and ellipses on a 256 × 144 grid, shaded in 5-step skin ramps. */
-const NIGHT = { open: false, t: 0, speed: 1, zoom: false, AGE: 'grace.age18' };
+/* THE NIGHT — an adult scene between King Radomir and Queen Halina (38 and 36, married thirteen years), played in the
+   bedchamber itself with the engine's own actors: no overlay, no cut. 18+ only: the player confirms their age once
+   (kept in this browser).
+   The beats: night falls on the room → Halina is by the hearth → he goes to her and they talk (her brother's League,
+   the rain he flinches at) → the player chooses to take her to bed or not → they walk to the bed together → she has
+   him unlace her, then undresses him → she ties the bed curtains back → they climb in → kissing, then whichever
+   positions the player picks, at the pace the player picks → finish → afterglow → morning.
+   Bodies: Actor.undress / makeBare (engine/e05 + e13), positions from LOVERS (g27) driven by POSE (engine/e14). In bed
+   both bodies are drawn in ONE sprite (the queen is hosted in the king's), so where they touch they overlap correctly;
+   that sprite's box is widened to the whole bed and its card slid forward of the pillows. The room camera eases in
+   toward the bed (the player can pull it back out), it never leaves the room. */
+const NIGHT = { AGE: 'swan.age18', on: false, pace: 1, ph: 0, k: 0, pos: null, closer: true, finishing: false };
 NIGHT.aged = () => { try { return localStorage.getItem(NIGHT.AGE) === '1'; } catch (e) { return false; } };
 NIGHT.confirm = function (then) {
   if (NIGHT.aged()) { then(); return; }
@@ -57121,65 +57468,305 @@ NIGHT.confirm = function (then) {
   $('ageYes').onclick = () => { try { localStorage.setItem(NIGHT.AGE, '1'); } catch (e) { /* */ } g.hidden = true; SCENE.modal = false; then(); };
   $('ageNo').onclick = () => { g.hidden = true; SCENE.modal = false; };
 };
+NIGHT.PACE = { nSlow: 0.6, nMid: 1, nFast: 1.7 };
 NIGHT.init = function () {
-  const cv = $('nightCv'); cv.width = 256; cv.height = 144; NIGHT.g = cv.getContext('2d');
-  $('nightClose').onclick = () => NIGHT.hide();
-  for (const [id, k] of [['nSlow', 0.55], ['nMid', 1], ['nFast', 1.7]]) $(id).onclick = () => { NIGHT.speed = k; };
-  $('nZoom').onclick = () => { NIGHT.zoom = !NIGHT.zoom; };
-  window.addEventListener('keydown', (e) => { if (NIGHT.open && e.code === 'Escape') { NIGHT.hide(); e.stopImmediatePropagation(); e.preventDefault(); } }, true);
-  setInterval(() => { if (NIGHT.open) { NIGHT.t += 0.05 * NIGHT.speed; NIGHT.draw(); } }, 50);
+  for (const id in NIGHT.PACE) $(id).onclick = () => NIGHT.setPace(NIGHT.PACE[id]);
+  $('nView').onclick = () => { NIGHT.closer = !NIGHT.closer; $('nView').textContent = NIGHT.closer ? 'Wider' : 'Closer'; };
+  $('nFinish').onclick = () => NIGHT.finish();
 };
-NIGHT.show = function () { NIGHT.confirm(() => { SCENE.modal = true; NIGHT.open = true; $('night').hidden = false; AUDIO.sfx('page', { gain: 0.4 }); AUDIO.playMusic('castle', 2); NIGHT.draw(); $('nMid').focus(); }); };
-NIGHT.hide = function () { NIGHT.open = false; SCENE.modal = false; $('night').hidden = true; $('cv').focus(); };
-const SK = { q: [0x6a3e32, 0x8e5a46, 0xb07a60, 0xd09a7c, 0xe8b898], k: [0x5a3428, 0x7c4c3a, 0xa06a50, 0xc08a6c, 0xdcaa88] };
-NIGHT.draw = function () {
-  const c = NIGHT.g, t = NIGHT.t, z = NIGHT.zoom ? 1.35 : 1;
-  const R = (x, y, w, h, col) => { c.fillStyle = '#' + col.toString(16).padStart(6, '0'); c.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
-  const E = (x, y, rx, ry, col) => { c.fillStyle = '#' + col.toString(16).padStart(6, '0'); c.beginPath(); c.ellipse(Math.round(x), Math.round(y), rx, ry, 0, 0, 6.283); c.fill(); };
-  const shadeE = (x, y, rx, ry, ramp) => { E(x, y, rx, ry, ramp[1]); E(x - rx * 0.12, y - ry * 0.14, rx * 0.84, ry * 0.8, ramp[2]); E(x - rx * 0.25, y - ry * 0.3, rx * 0.5, ry * 0.45, ramp[3]); E(x - rx * 0.35, y - ry * 0.45, rx * 0.2, ry * 0.2, ramp[4]); };
-  c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, 256, 144);
-  c.translate(128, 84); c.scale(z, z); c.translate(-128, -84);
-  // the room: warm dark wall, canopy drapes, candle light pooling on the bed
-  const g = c.createLinearGradient(0, 0, 0, 144); g.addColorStop(0, '#1a0e0c'); g.addColorStop(1, '#3a1c14'); c.fillStyle = g; c.fillRect(0, 0, 256, 144);
-  for (let x = 0; x < 256; x += 16) for (let y = 0; y < 90; y += 16) if (((x + y) / 16) % 2 === 0) R(x + 6, y + 6, 4, 4, 0x2a1612);
-  R(0, 0, 40, 100, 0x4a0e14); R(216, 0, 40, 100, 0x4a0e14); for (let x = 4; x < 40; x += 8) { R(x, 0, 2, 100, 0x6a1a20); R(216 + x, 0, 2, 100, 0x6a1a20); } R(0, 0, 256, 10, 0x6a1a20);
-  const f = 0.85 + 0.15 * Math.sin(t * 7.3) * Math.sin(t * 3.1);
-  for (let r = 70; r > 0; r -= 10) { c.globalAlpha = 0.045 * f; E(214, 38, r * 1.2, r, 0xffa840); } c.globalAlpha = 1;
-  R(208, 40, 12, 3, 0x4a3a2a); R(212, 24, 4, 16, 0xe8dcc0); R(213, 20, 2, 4, 0xffd060); R(213, 18, 2, 2, 0xfff0a0);
-  // bed: frame, mattress, rumpled linen
-  R(26, 112, 204, 10, 0x3a1e12); R(26, 108, 204, 4, 0x5a3220); R(22, 104, 6, 28, 0x2a140a); R(228, 104, 6, 28, 0x2a140a);
-  R(28, 92, 200, 18, 0xd8ccb0); R(28, 92, 200, 3, 0xf0e6cc); R(28, 106, 200, 4, 0xa89a80);
-  for (let i = 0; i < 12; i++) R(40 + i * 15 + Math.sin(i * 2) * 3, 96 + (i % 3) * 3, 8, 1, 0xb8aa90);
-  R(30, 78, 34, 18, 0xe8dec4); R(30, 78, 34, 3, 0xf8f0d8); R(30, 92, 34, 3, 0xb8aa90);   // pillow
-  R(170, 90, 56, 18, 0x7a1a24); for (let i = 0; i < 5; i++) R(172 + i * 11, 90, 4, 18, 0x92242e);   // coverlet bunched at the foot
-  const col = (h) => '#' + h.toString(16).padStart(6, '0');
-  // limb: a stroked polyline with round caps, shaded dark → light toward the top-left
-  const limb = (pts, w, ramp) => { c.lineCap = 'round'; c.lineJoin = 'round';
-    for (const [k, dw, ox, oy] of [[1, 0, 0, 0], [2, 1.5, -0.5, -0.8], [3, 3.2, -1, -1.6]]) { c.strokeStyle = col(ramp[k]); c.lineWidth = Math.max(1, w - dw); c.beginPath(); pts.forEach(([x, y], i) => (i ? c.lineTo(x + ox, y + oy) : c.moveTo(x + ox, y + oy))); c.stroke(); } };
-  const sw = Math.sin(t * 6.283 * 0.9), sw2 = Math.sin(t * 6.283 * 0.9 - 0.6), P = sw * 4, Q = sw2 * 1.2;
-  // ---- the queen, on hands and knees, facing left
-  const hipX = 150 + P * 0.35, hipY = 76 + Q * 0.4, shX = 92 + P * 0.15, shY = 84 + Q;
-  limb([[hipX + 6, hipY + 8], [hipX + 14, 104]], 13, SK.q); limb([[hipX + 14, 104], [hipX + 46, 108]], 8, SK.q); E(hipX + 50, 108, 4, 3, SK.q[2]);   // far thigh and shin
-  limb([[shX - 6, shY + 4], [shX - 12, 104]], 7, SK.q); E(shX - 13, 106, 4, 2.5, SK.q[2]);   // far arm
-  c.fillStyle = col(0x4a2a18); c.beginPath(); c.moveTo(shX - 26, shY + 2); c.quadraticCurveTo(shX - 20, shY + 34, shX + 20, shY + 20); c.lineTo(shX + 8, shY - 2); c.fill();   // hair falling forward
-  limb([[shX, shY], [shX + 22, shY + 4 + Q * 0.3], [hipX - 20, hipY + 5], [hipX, hipY]], 15, SK.q);   // back, dipping, then rising to the hips
-  shadeE(hipX + 4, hipY, 14, 12.5, SK.q); shadeE(hipX + 12 + P * 0.2, hipY + 3, 11, 11, SK.q); R(hipX + 2, hipY + 12, 20, 2, SK.q[1]);   // hips and rear
-  limb([[hipX + 4, hipY + 8], [hipX + 2, 104]], 14, SK.q); limb([[hipX + 2, 104], [hipX + 38, 109]], 9, SK.q); E(hipX + 42, 109, 4.5, 3, SK.q[2]);   // near thigh and shin
-  const bx = shX - 10 + sw2 * 1.5; shadeE(bx, shY + 12, 6.5, 8, SK.q); R(bx - 1, shY + 18, 3, 3, 0x9a5a4a);   // breast, swinging
-  limb([[shX, shY + 2], [shX - 4, 96], [shX - 8, 105]], 8, SK.q); E(shX - 9, 107, 4.5, 2.8, SK.q[2]);   // near arm braced
-  E(shX - 18, shY + 10, 11, 10, 0x4a2a18); shadeE(shX - 20, shY + 14, 8.5, 9, SK.q); E(shX - 28, shY + 8, 4, 8, 0x4a2a18); R(shX - 26, shY + 16, 3, 1, 0x8a3a3a); R(shX - 25, shY + 11, 2, 1, 0x2a1810);   // head, hair, mouth, closed eye
-  // ---- the king, kneeling behind her, hands at her hips
-  const kx = 188 - P * 0.9;
-  limb([[kx - 4, 70], [kx - 16, 104]], 15, SK.k); limb([[kx - 16, 104], [kx + 26, 108]], 8, SK.k); E(kx + 30, 108, 4, 3, SK.k[2]);   // thigh and shin, kneeling
-  limb([[kx + 2, 68], [kx + 6, 48]], 32, SK.k); limb([[kx + 6, 48], [kx + 4, 36]], 30, SK.k);   // hips, belly and chest, leaning a little forward
-  for (let i = 0; i < 3; i++) R(kx - 4 + i * 5, 50 + i, 4, 1, SK.k[1]);   // ribs
-  R(kx - 5, 42, 4, 3, 0x6a3a2c); R(kx + 5, 42, 4, 3, 0x6a3a2c); limb([[kx + 4, 33], [kx + 4, 26]], 9, SK.k);
-  shadeE(kx + 3, 20, 8, 9, SK.k); c.fillStyle = col(0x1e1410); c.beginPath(); c.ellipse(kx + 3, 14, 9, 5, 0, Math.PI, 0); c.fill(); R(kx - 1, 25, 9, 3, 0x1e1410); R(kx - 3, 20, 3, 1, 0x1c1410);   // head bowed: hair, beard, closed eye
-  limb([[kx - 8, 38], [kx - 20, 54], [hipX + 18, hipY + 2]], 8, SK.k); E(hipX + 17, hipY + 3, 4.5, 3.5, SK.k[3]);   // arm to her hip
-  R(kx - 22, 82, 44, 22, 0xe0d4ba); for (let i = 0; i < 5; i++) R(kx - 20 + i * 9, 82, 3, 22, 0xc8bc9c);   // a sheet draped across his heels
-  c.globalAlpha = 0.3; E(150, 110, 62, 3.5, 0x000000); c.globalAlpha = 1;
-  for (let i = 0; i < 6; i++) { const a = (Math.sin(t * 2 + i * 1.7) + 1) / 2; c.globalAlpha = a * 0.7; R(hipX - 40 + i * 12, hipY - 12 + (i % 2) * 7, 1, 1, 0xffe8d0); } c.globalAlpha = 1;
-  c.restore();
+NIGHT.start = function () { if (NIGHT.on || SCENE.lock || CUT.playing) return; NIGHT.confirm(() => NIGHT.play().catch(fail)); };
+/* ---------------------------------------------------------------- the strip under the picture */
+NIGHT.bar = function (rows) {   // rows: which of 'ask' / 'pos' / 'pace' to show
+  const el = $('night'); el.hidden = !rows.length;
+  $('nAsk').hidden = !rows.includes('ask'); $('nPos').hidden = !rows.includes('pos'); $('nPace').hidden = !rows.includes('pace');
+};
+NIGHT.ask = function (opts) {   // a choice under the picture -> the index picked (keys 1..n work too)
+  return new Promise((res) => {
+    const row = $('nAsk'); row.innerHTML = '';
+    const pick = (i) => { window.removeEventListener('keydown', key, true); row.innerHTML = ''; NIGHT.bar([]); AUDIO.sfx('page', { gain: 0.3 }); res(i); };
+    const key = (e) => { const i = +e.key - 1; if (i >= 0 && i < opts.length) { e.preventDefault(); e.stopPropagation(); pick(i); } };
+    opts.forEach((t, i) => { const b = document.createElement('button'); b.className = 'btn' + (i === 0 ? ' gold' : ''); b.textContent = t; b.onclick = (e) => { e.stopPropagation(); pick(i); }; row.append(b); });
+    window.addEventListener('keydown', key, true); NIGHT.bar(['ask']); row.firstChild.focus();
+  });
+};
+NIGHT.setPace = function (k) { NIGHT.pace = k; for (const id in NIGHT.PACE) $(id).classList.toggle('on', NIGHT.PACE[id] === k); };
+NIGHT.posBar = function () {
+  const row = $('nPos'); row.innerHTML = '';
+  for (const n of ['kiss', 'missionary', 'ride', 'behind']) { if (n === NIGHT.pos) continue;
+    const b = document.createElement('button'); b.className = 'btn'; b.textContent = LOVERS.LABEL[n]; b.onclick = (e) => { e.stopPropagation(); NIGHT.to(n); }; row.append(b); }
+};
+/* ---------------------------------------------------------------- little helpers */
+NIGHT.walk = (a, x) => new Promise((r) => { if (Math.abs(a.x - x) < 0.07) { r(); return; } a.walkTo(x, () => r()); });
+NIGHT.tweens = [];
+NIGHT.tween = (dur, fn) => new Promise((r) => NIGHT.tweens.push({ t: 0, dur, fn, r }));
+NIGHT.beat = (ms) => SCENE.wait(ms);
+NIGHT.look = (a, at) => { a.lookYaw = typeof at === 'number' ? at : (Math.sign(at.x - a.x) || 1) * 1.12; };
+NIGHT.say = (a, t, ms) => SCENE.say(a, t).then(() => ms ? SCENE.wait(ms) : null);   // a passing remark (no tap needed)
+NIGHT.fade = async (on) => { const f = $('fade'); f.classList.toggle('off', !on); await SCENE.wait(on ? 950 : 500); };
+/* the camera: 'room' = the room's own framing, 'bed' = eased in on the bed (or only re-centred, if the player wants it wider) */
+NIGHT.CAM = { bed: { fov: 13.5, y: 2.05, look: 1.62, focus: -7.72 }, wide: { fov: 17, y: 2.3, look: 1.9, focus: -7.72 } };
+NIGHT.camTick = function (dt) {
+  const room = BEDROOM, c = room.cam, c0 = NIGHT.cam0; if (!c0) return;
+  const g = NIGHT.camMode === 'bed' ? (NIGHT.closer ? NIGHT.CAM.bed : NIGHT.CAM.wide) : { fov: c0.fov, y: c0.y, look: c0.look, focus: null };
+  c.fov = damp(c.fov, g.fov, 0.7, dt); c.y = damp(c.y, g.y, 0.7, dt); c.look = damp(c.look, g.look, 0.7, dt);
+  room.focusDz = NIGHT.camMode === 'bed' ? damp(room.focusDz || 0, room.KZ - 1.97, 0.7, dt) : damp(room.focusDz || 0, 0, 0.7, dt);   // keep the bed sharp
+  room.camFocus = g.focus === null ? (Math.abs(c.fov - c0.fov) < 0.15 ? c0.focus : room.camFocus) : g.focus;
+};
+/* ---------------------------------------------------------------- every frame while the night is on */
+NIGHT.tick = function (t, dt) {
+  for (let i = NIGHT.tweens.length - 1; i >= 0; i--) { const w = NIGHT.tweens[i]; w.t += dt; const u = clamp(w.t / w.dur, 0, 1); w.fn(smooth(0, 1, u)); if (u >= 1) { NIGHT.tweens.splice(i, 1); w.r(); } }
+  NIGHT.camTick(dt);
+  NIGHT.lensK = clamp(NIGHT.lensK + Math.sign(NIGHT.lensT - NIGHT.lensK) * dt * 1.6, 0, 1); BEDROOM.lens(NIGHT.lensK);   // the near posts clear as the camera pushes in (0.6 s)
+  if (!NIGHT.inBed) return;
+  const p = NIGHT.pos, slow = p === 'kiss' || p === 'after', K = NIGHT.A.K, Q = NIGHT.A.Q;
+  const rate = NIGHT.hold ? 0 : slow ? 1.1 : 3.4 * NIGHT.pace * (NIGHT.finishing ? 1.35 : 1);
+  const S0 = LOVERS.stroke(NIGHT.ph); NIGHT.ph += rate * dt; const S1 = LOVERS.stroke(NIGHT.ph);
+  if (!slow && !NIGHT.finishing) NIGHT.k = Math.min(1, NIGHT.k + dt * 0.012 * NIGHT.pace);
+  const ag = p === 'after' ? 0.1 : p === 'kiss' ? 0.75 : 1, ar = K.arousal || 0; K.setArousal(ar + clamp(ag - ar, -dt * 0.08, dt * 0.4));
+  const pan = clamp((K.x - R.cam.position.x) / 10, -0.8, 0.8), k = NIGHT.k;
+  if (!slow && S0 < 0.9 && S1 >= 0.9) {   // the deep end of every stroke
+    AUDIO.sfx('skin', { gain: 0.22 + 0.3 * k * Math.min(1.4, NIGHT.pace), pan });
+    if (Math.random() < 0.35 + 0.3 * k) AUDIO.sfx('creak', { gain: 0.5 + 0.4 * NIGHT.pace, pan, delay: 0.04 });
+  }
+  NIGHT.brT -= dt;
+  if (NIGHT.brT <= 0) { const her = Math.random() < 0.65; NIGHT.brT = lerp(slow ? 3.2 : 2.2, 0.75, k) / Math.sqrt(slow ? 1 : NIGHT.pace) * (0.8 + Math.random() * 0.4);
+    AUDIO.sfx('breath', { gain: (her ? 0.34 : 0.24) + 0.36 * k, pitch: her ? 1150 + Math.random() * 450 : 640 + Math.random() * 200, dur: slow ? 1.1 : lerp(0.75, 0.45, k), pan });
+    if (p === 'kiss' && Math.random() < 0.5) AUDIO.sfx('kiss', { gain: 0.35, pan, delay: 0.2 }); }
+  NIGHT.lineT -= dt;
+  if (NIGHT.lineT <= 0 && !SCENE.bubble && !NIGHT.scripted) { const L = NIGHT.LINES[p]; if (L) { const band = k < 0.35 ? 0 : k < 0.7 ? 1 : 2, set = L[Math.min(band, L.length - 1)];
+    const [who, text] = SCENE.cycle('night_' + p + band, set); SCENE.say(who === 'K' ? K : Q, text); }
+    NIGHT.lineT = lerp(7.5, 4.2, k) * (0.8 + Math.random() * 0.5); }
+};
+/* ---------------------------------------------------------------- positions */
+NIGHT.drive = function (name, dur, lift) {
+  const A = NIGHT.A; NIGHT.pos = name;
+  const fK = () => LOVERS.pose(NIGHT.pos, NIGHT.ph, NIGHT.k, A).king, fQ = () => LOVERS.pose(NIGHT.pos, NIGHT.ph, NIGHT.k, A).queen;
+  return Promise.all([POSE.drive(A.K, fK, dur, { lift }), POSE.drive(A.Q, fQ, dur, { lift })]);
+};
+NIGHT.to = async function (name) {
+  if (NIGHT.busy || name === NIGHT.pos || NIGHT.finishing) return; NIGHT.busy = true;
+  AUDIO.sfx('sheets', { gain: 0.8 }); NIGHT.posBar(); $('nPos').querySelectorAll('button').forEach((b) => b.disabled = true);
+  await NIGHT.drive(name, name === 'behind' || NIGHT.pos === 'behind' ? 2.0 : 1.6, 0.12);
+  NIGHT.posBar(); NIGHT.busy = false;
+  const L = NIGHT.ENTER[name]; if (L) { NIGHT.scripted = true; for (const [w, t] of L) await NIGHT.say(w === 'K' ? NIGHT.A.K : NIGHT.A.Q, t, 150); NIGHT.scripted = false; NIGHT.lineT = 3; }
+};
+/* ---------------------------------------------------------------- the scene */
+NIGHT.play = async function (o) {
+  o = o || {};
+  const room = BEDROOM, K = SCENE.player, Q = CAST.A.queen; if (SCENE.room !== room || NIGHT.on) return;
+  NIGHT.on = true; NIGHT.A = { K, Q }; NIGHT.lensK = 0; NIGHT.lensT = 0; NIGHT.pos = null; NIGHT.k = 0; NIGHT.ph = 0; NIGHT.inBed = false; NIGHT.finishing = false; NIGHT.hold = false; NIGHT.brT = 1; NIGHT.lineT = 5;
+  SCENE.lock++; NIGHT.tweens = []; room.tick.push(NIGHT.tick); NIGHT.camMode = 'room';
+  NIGHT.cam0 = { fov: room.cam.fov, y: room.cam.y, look: room.cam.look, focus: room.camFocus };
+  NIGHT.keep = { idle: Q.spec.idle, home: Q.curHome, baseY: Q.baseY };
+  NIGHT.done = new Promise((r) => { NIGHT.resolve = r; });
+  await NIGHT.fade(true);
+  // nightfall: moonlight, the hearth, a candle by the bed. Halina warming her hands at the fire, the king across the room
+  room.setNight(true); await Promise.all([K.makeBare(), Q.makeBare()]);
+  K.stand(); K.target = null; K.x = o.fast ? -6.4 : -2.6; K.z = room.KZ; K.face = 1; K.lookYaw = null; K.yaw = 0.42;
+  Q.spec.idle = 'Idle_Loop'; Q.curHome = { idle: 'Idle_Loop' }; Q.stand(); Q.baseY = Q.y = 0; Q.dress();
+  Q.x = o.fast ? -7.0 : 1.0; Q.z = room.KZ - 0.12; Q.face = -1; Q.lookYaw = Math.PI * 0.93; Q.yaw = Q.lookYaw; Q.setVisible(true);
+  SCENE.camX = SCENE.camGoal(); SCENE.render();
+  if (!o.fast) SCENE.caption('That night', 'The storm has blown itself out. The castle sleeps; the queen does not.');
+  await NIGHT.fade(false);
+  if (!o.fast) {
+    await NIGHT.beat(700);
+    await NIGHT.walk(K, 0.15); NIGHT.look(K, Q);
+    await SCENE.talk([[Q, "You're late again. The candles in your study burn faster than the ones in here."]]);
+    NIGHT.look(Q, K); await NIGHT.beat(450);
+    await SCENE.talk([
+      [K, "Petitions. Grain. The Margrave's riders on the east road."],
+      [Q, "And my brother's letter. Jarek is still waiting for an answer."],
+      [K, "The League wants the river tolls for ten years. That isn't an alliance, Halina. It's a leash."],
+      [Q, "A leash with grain on the end of it. Think about it tomorrow."],
+      [Q, "You flinched at supper when the rain started. You always do."],
+      [K, "An old habit. From the siege."],
+      [Q, "One day you'll tell me the rest of it."]]);
+    await NIGHT.walk(Q, 0.6); NIGHT.look(Q, K); Q.act('Interact');
+    await SCENE.talk([[Q, "Not tonight, though. Tonight you look like a man who needs taking to bed."]]);
+    if (await NIGHT.ask(['Take her hand', 'Not tonight']) === 1) {
+      await SCENE.talk([[K, "I'd only keep you awake. Go to bed, love. I'll sit by the fire a while."], [Q, "Don't sit there until dawn."]]);
+      Q.act('Interact'); await NIGHT.beat(900); return NIGHT.end(false);
+    }
+    await SCENE.talk([[K, "Then take me."], [Q, "Come here."]]);
+    AUDIO.sfx('kiss', { gain: 0.3 }); await NIGHT.beat(300);
+    // she leads him by the hand to the bed
+    const toBed = NIGHT.walk(Q, -8.0); await NIGHT.beat(380); const him = NIGHT.walk(K, -7.4);
+    await NIGHT.beat(2200); NIGHT.say(Q, "Leave the kingdom outside the door. One hour.");
+    await Promise.all([toBed, him]);
+  }
+  NIGHT.look(Q, K); NIGHT.look(K, Q); await NIGHT.beat(400);
+  // undressing, a layer at a time: he unlaces her gown, she takes off his robe, then the rest
+  await SCENE.talk([[Q, "Help me with these laces. My maids tie them like they're guarding a gate."]]);
+  Q.lookYaw = -1.3; await NIGHT.beat(500); K.act('Interact'); AUDIO.sfx('sheets', { gain: 0.45 }); await NIGHT.beat(1100);
+  await Q.undress('outer'); AUDIO.sfx('sheets', { gain: 0.8 }); await NIGHT.beat(500);
+  NIGHT.look(Q, K); await NIGHT.beat(350);
+  await SCENE.talk([[Q, "Your turn."]]);
+  Q.act('Interact'); await NIGHT.beat(800); await K.undress('outer'); AUDIO.sfx('sheets', { gain: 0.8 }); await NIGHT.beat(400);
+  await SCENE.talk([[K, "Your hands are cold."], [Q, "Then warm them."]]);
+  K.act('Interact'); Q.act('Interact'); await NIGHT.beat(700);
+  await Q.undress('all'); await K.undress('all'); K.setArousal(0.25); AUDIO.sfx('sheets', { gain: 1 }); await NIGHT.beat(700);
+  await SCENE.talk([[K, "Gods, Halina."], [Q, "Thirteen years, and you still look at me like that."], [K, "Thirteen years, and you still let me."]]);
+  // she ties the bed curtains back to the posts, he takes the other side
+  const qc = NIGHT.walk(Q, -8.72), kc = NIGHT.walk(K, -6.62); await Promise.all([qc, kc]);
+  Q.lookYaw = Math.PI * 0.9; K.lookYaw = Math.PI * 0.9; Q.act('Interact'); K.act('Interact');
+  NIGHT.say(Q, "Leave them open. I want the firelight."); AUDIO.sfx('sheets', { gain: 0.6 });
+  await NIGHT.tween(1.3, (u) => BEDROOM.tieBack(u)); await NIGHT.beat(500);
+  await Promise.all([NIGHT.walk(Q, -8.0), NIGHT.walk(K, -7.4)]); NIGHT.look(Q, K); NIGHT.look(K, Q); await NIGHT.beat(300);
+  // into bed: one sprite for both bodies from here on, box widened to the whole bed, card slid forward of the pillows
+  K.reframe(3.9, 2.5); K.frame = new THREE.Vector3(-7.7, 1.5, LOVERS.BED.zc); K.cardDz = 1.6; Q.hostInto(K);
+  NIGHT.camMode = 'bed'; NIGHT.lensT = 1; AUDIO.sfx('sheets', { gain: 1 }); AUDIO.sfx('creak', { gain: 0.6, delay: 0.6 });
+  NIGHT.tween(2.2, (u) => { K.cardDz = lerp(1.6, LOVERS.BED.zc + 0.82 - LOVERS.BED.zc, u); });
+  await NIGHT.drive('kiss', 2.1, 0.34);
+  NIGHT.inBed = true; NIGHT.lineT = 5;
+  NIGHT.scripted = true; for (const [w, t] of NIGHT.ENTER.kiss) await NIGHT.say(w === 'K' ? K : Q, t, 200); NIGHT.scripted = false;
+  NIGHT.setPace(1); NIGHT.posBar(); $('nView').textContent = NIGHT.closer ? 'Wider' : 'Closer'; NIGHT.bar(['pos', 'pace']);
+  if (o.pos) NIGHT.to(o.pos);
+  await NIGHT.done;
+};
+NIGHT.finish = async function () {
+  if (NIGHT.finishing || NIGHT.busy || !NIGHT.inBed) return;
+  const K = NIGHT.A.K, Q = NIGHT.A.Q; NIGHT.bar([]); NIGHT.scripted = true;
+  if (NIGHT.pos !== 'kiss') {   // the end of it: faster, then held deep, then still
+    NIGHT.finishing = true; NIGHT.k = Math.max(NIGHT.k, 0.85); NIGHT.pace = Math.max(NIGHT.pace, 1.5);
+    await NIGHT.say(Q, "Don't stop. Don't you dare stop.", 900); await NIGHT.say(K, "Halina—", 700);
+    NIGHT.hold = true; NIGHT.ph = Math.ceil(NIGHT.ph / (Math.PI * 2)) * Math.PI * 2 + 0.38 * Math.PI * 2;
+    AUDIO.sfx('breath', { gain: 0.9, pitch: 1500, dur: 1.4 }); AUDIO.sfx('breath', { gain: 0.6, pitch: 620, dur: 1.2, delay: 0.3 });
+    await NIGHT.say(Q, "Oh— gods, yes—", 1400); await NIGHT.beat(1200);
+    NIGHT.hold = false; NIGHT.finishing = false;
+  } else await NIGHT.say(Q, "Just hold me, then.", 300);
+  AUDIO.sfx('sheets', { gain: 0.9 }); await NIGHT.drive('after', 2.4, 0.08); NIGHT.k = 0.2;
+  await SCENE.talk([[Q, "Mm. Now you can tell me about the rain."], [K, "Tomorrow."], [Q, "You always say tomorrow."], [K, "And you always ask. Stay."], [Q, "Where else would I go? Sleep, my king."]]);
+  await NIGHT.beat(1200); NIGHT.scripted = false; await NIGHT.end(true);
+};
+NIGHT.end = async function (slept) {
+  const room = BEDROOM, K = NIGHT.A.K, Q = NIGHT.A.Q, c0 = NIGHT.cam0;
+  NIGHT.bar([]); await NIGHT.fade(true);
+  NIGHT.lensT = 0; NIGHT.lensK = 0; BEDROOM.lens(0);   // behind the fade: the foreground props are back
+  NIGHT.inBed = false; NIGHT.camMode = 'room'; Object.assign(room.cam, { fov: c0.fov, y: c0.y, look: c0.look }); room.camFocus = c0.focus; room.focusDz = 0;
+  POSE.release(K); POSE.release(Q); Q.hostInto(null); K.frame = null; K.reframe(); K.cardDz = 0;
+  K.dress(); Q.dress(); K.setArousal(0); BEDROOM.tieBack(0); room.setNight(false);
+  Q.setVisible(false); Q.spec.idle = NIGHT.keep.idle; Q.curHome = NIGHT.keep.home; Q.baseY = Q.y = NIGHT.keep.baseY;
+  K.stand(); K.x = -6.4; K.z = room.KZ; K.y = 0; K.face = 1; K.yaw = 0.42; K.lookYaw = null;
+  const i = room.tick.indexOf(NIGHT.tick); if (i >= 0) room.tick.splice(i, 1);
+  NIGHT.tweens = []; NIGHT.on = false; SCENE.camX = SCENE.camGoal(); SCENE.lock--;
+  if (slept) SCENE.caption('Morning', 'Halina rose before you. Her side of the bed is still warm.');
+  await NIGHT.fade(false); if (NIGHT.resolve) NIGHT.resolve();
+};
+/* ---------------------------------------------------------------- what they say in bed: lines on entering a position,
+   then passing remarks by how far gone they are (k < 0.35, < 0.7, beyond) */
+NIGHT.ENTER = {
+  kiss: [['Q', "Slowly. We have all night for once."]],
+  missionary: [['Q', "Lie on me. I want your weight."], ['K', "Like this?"], ['Q', "Exactly like this."]],
+  ride: [['Q', "On your back, my king. Tonight I rule."], ['K', "Gods help the realm."]],
+  behind: [['Q', "Like the night after the coronation. Remember?"], ['K', "I've never forgotten."]]
+};
+NIGHT.LINES = {
+  kiss: [[['Q', "Mm."], ['K', "You taste of wine."], ['Q', "Touch me."]], [['Q', "Your hands... yes, there."], ['K', "You're shaking."]], [['Q', "I can't wait any more."], ['K', "Then don't."]]],
+  missionary: [[['Q', "Slow... like that."], ['K', "Look at me."], ['Q', "Deeper."]], [['Q', "Oh— yes."], ['K', "Halina..."], ['Q', "Harder. Please."]], [['Q', "Don't stop— don't stop—"], ['K', "Gods, you feel—"], ['Q', "Fill me."]]],
+  ride: [[['Q', "Hold still. Let me."], ['K', "You're beautiful like this."]], [['Q', "Mm— there— right there."], ['K', "Ride me, love."]], [['Q', "I'm close— I'm so close—"], ['K', "Take it. All of it."]]],
+  behind: [[['Q', "Hold my hips."], ['K', "Like this?"]], [['Q', "Harder— yes—"], ['K', "That's it."]], [['Q', "Oh gods— don't stop—"], ['K', "Halina—"]]],
+  after: [[['Q', "Mm."]]]
+};
+
+
+/* ==== game/g27_lovers.js ==== */
+/* LOVERS — the night scene's body positions on the royal bed, as POSE data (engine/e14_pose.js).
+   LOVERS.pose(name, ph, k, A) -> { king, queen }   A = { K: king actor, Q: queen actor }
+     ph  the rhythm phase in radians (the scene advances it at the pace the player picks)
+     k   0..1, how worked-up they are: deepens the motion, tips heads back, raises her legs
+   Directions are world directions (world: true): +x runs from the pillows toward the foot of the bed, +y up, +z toward
+   the lens. Everything is staged in profile so the room camera reads both bodies. Where the bodies join, one body is
+   pinned to the other: LOVERS.entry() is her opening (a point on her pelvis), LOVERS.rod() a point along his shaft, and
+   the pin slides the pinned body so they meet at the depth the rhythm asks for. Hands reach for the other body's bones
+   with two-bone IK, knees are planted on the quilt. Checked headlessly with tools/posecheck.js. */
+const LOVERS = { BED: { x0: -9.4, x1: -6.0, z0: 0.25, z1: 2.05, top: 0.80, zc: 1.15, pillow: -9.03 }, _a: new THREE.Vector3(), _b: new THREE.Vector3() };
+LOVERS.NAMES = ['kiss', 'missionary', 'ride', 'behind', 'after'];
+LOVERS.LABEL = { kiss: 'Kiss her', missionary: 'Lay her down', ride: 'Let her ride', behind: 'From behind', after: 'Hold her' };
+/* her opening, in the world now (body-space point between the vulva and the perineum, carried by the pelvis) */
+LOVERS.entry = function (Q, out) {
+  const M = Q.marks; if (!Q._eB) Q._eB = [0, lerp(M.crotch[1], M.perineum[1], 0.4), lerp(M.crotch[2], M.perineum[2], 0.4)];
+  return POSE.point(Q, 'pelvis', Q._eB, out);
+};
+/* a point d metres up his shaft from the root */
+LOVERS.rod = (K, d, out) => K.sexGroup.userData.shaft.localToWorld(out.set(0, d, 0));
+LOVERS.bone = (a, n, out) => a.bones[QA.idx[n]].getWorldPosition(out || new THREE.Vector3());
+LOVERS.at = (a, bone, p) => POSE.point(a, bone, p, new THREE.Vector3()).toArray();   // a body-space point riding one bone
+/* the in-out curve: 1 = all the way in. A quick push and a slower draw back reads better than a sine */
+LOVERS.stroke = (ph) => { const u = ((ph / (Math.PI * 2)) % 1 + 1) % 1; return u < 0.38 ? smooth(0, 0.38, u) : 1 - smooth(0.38, 1, u); };
+LOVERS.pose = function (name, ph, k, A) {
+  const S = LOVERS.stroke(ph), sw = Math.sin(ph * 0.5), B = LOVERS.BED, zc = B.zc, W = (o) => Object.assign({ world: true }, o);
+  const K = A.K, Q = A.Q, depth = lerp(0.035, 0.118, S) * (0.85 + 0.15 * k);
+  const pinK = (a) => LOVERS.entry(Q, LOVERS._a).sub(LOVERS.rod(a, depth, LOVERS._b));   // move him onto her
+  const pinQ = (a) => LOVERS.rod(K, depth, LOVERS._a).sub(LOVERS.entry(a, LOVERS._b));   // move her onto him
+  const hand = (a, n, p) => LOVERS.at(a, n, p);
+  switch (name) {
+    case 'kiss': {   // kneeling up on the quilt, face to face, kissing; his hands on her waist, her arms round his neck
+      const q = 0.012 * sw, lean = 0.04 * k;
+      return {
+        queen: W({ at: [-7.88 + q, 1.28, zc], up: [0.02 + lean, 1, 0], fwd: [1, -0.02, 0], spine: [[0.08 + lean, 1, 0]], head: [[0.12 + 0.1 * k, 1, 0], [1, 0.25 + 0.1 * k, 0]],
+          armL: [[0.5, 0.65, -0.4], [0.3, 0.25, 0.9]], armR: [[0.5, 0.65, 0.4], [0.3, 0.25, -0.9]],
+          legL: [[0.05, -1, -0.12], [-1, -0.06, 0], null, [-1, -0.08, 0]], legR: [[0.05, -1, 0.12], [-1, -0.06, 0], null, [-1, -0.08, 0]] }),
+        king: W({ at: [-7.52 + q, 1.31, zc], up: [-0.02 - lean, 1, 0], fwd: [-1, -0.02, 0], spine: [[-0.06 - lean, 1, 0]], head: [[-0.08, 1, 0], [-1, -0.08, 0]],
+          armL: [[-0.35, -0.85, 0.4], [-0.8, -0.35 + 0.2 * sw, -0.45]], armR: [[-0.35, -0.85, -0.4], [-0.8, -0.35 - 0.2 * sw, 0.45]],
+          legL: [[-0.05, -1, 0.12], [1, -0.06, 0], null, [1, -0.08, 0]], legR: [[-0.05, -1, -0.12], [1, -0.06, 0], null, [1, -0.08, 0]] }) };
+    }
+    case 'missionary': {   // her on her back, head on the pillow, knees up and apart (drawn up higher as k rises);
+      // him kneeling between her thighs, up on his hands. Pinned: he moves onto her at the stroke's depth, she rocks with it
+      const push = -0.016 * S, lift = smooth(0.35, 1, k);
+      const tL = [lerp(0.35, 0.22, lift), lerp(0.65, 0.84, lift), lerp(-0.68, -0.5, lift)], tR = [tL[0], tL[1], -tL[2]];
+      const cL = [lerp(0.8, 0.95, lift), lerp(-0.55, 0.05, lift), lerp(-0.15, 0.2, lift)], cR = [cL[0], cL[1], -cL[2]];
+      const sh = (n) => LOVERS.bone(K, n).toArray();
+      return {
+        queen: W({ at: [-8.3 + push, 0.92, zc], up: [-1, 0, 0], fwd: [0, 1, 0], spine: [[-1, 0.2, 0], [0.2, 1, 0]],
+          head: [[-1, 0.35 - 0.2 * k * S, 0], [0.35 - 0.25 * k, 1, 0]],
+          armL: { ik: sh('upperarm_r'), pole: [0.2, -0.4, -1] }, armR: { ik: sh('upperarm_l'), pole: [0.2, -0.4, 1] },
+          legL: [tL, cL], legR: [tR, cR] }),
+        king: W({ at: [-8.12, 1.12, zc], up: [-0.95, 0.3, 0], fwd: [-0.3, -0.95, 0],
+          spine: [[-0.85, 0.53, 0], [-0.53, -0.85, 0]], head: [[-0.8, 0.6 - 0.1 * k, 0], [-0.6, -0.8, 0]],
+          armL: { ik: [-8.66, 0.87, zc + 0.25], pole: [0.4, 0.2, 0.6], end: [-1, -0.08, 0.1] }, armR: { ik: [-8.66, 0.87, zc - 0.25], pole: [0.4, 0.2, -0.6], end: [-1, -0.08, -0.1] },
+          legL: { aimAt: [-7.72, 0.87, zc + 0.15], lower: [1, -0.03, 0.03], pole: [-1, -0.4, 0], end: [1, -0.08, 0] },
+          legR: { aimAt: [-7.72, 0.87, zc - 0.15], lower: [1, -0.03, -0.03], pole: [-1, -0.4, 0], end: [1, -0.08, 0] }, pin: pinK }) };
+    }
+    case 'ride': {   // him on his back, head and shoulders on the pillow, hands on her hips; her kneeling astride him,
+      // knees either side of his hips, hands on his chest, riding: pinned onto him at the stroke's depth, rocking her hips
+      const rock = 0.14 * Math.sin(ph) * (0.6 + 0.4 * k), hip = (sd) => LOVERS.at(Q, 'pelvis', [sd * 0.15, 0.95, -0.01]);
+      const chest = (sd) => LOVERS.at(K, 'spine_03', [sd * 0.09, 1.3, 0.12]);
+      return {
+        king: W({ at: [-8.2, 0.92, zc], up: [-1, 0.12, 0], fwd: [0.12, 1, 0], spine: [[-1, 0.32, 0], [0.32, 1, 0]], head: [[-1, 0.5, 0], [0.5, 1, 0]],
+          armL: { ik: hip(-1), pole: [0.3, -0.2, -1] }, armR: { ik: hip(1), pole: [0.3, -0.2, 1] },
+          legL: [[1, -0.04, -0.07], [1, -0.02, 0], null, [0.35, 0.9, -0.1]], legR: [[1, -0.04, 0.07], [1, -0.02, 0], null, [0.35, 0.9, 0.1]] }),
+        queen: W({ at: [-8.16, 1.2, zc], up: [-0.12 - rock * 0.5, 1, 0], fwd: [-1, -0.12 - rock * 0.5, 0], hips: [[rock, 1, 0], [-1, rock, 0]],
+          spine: [[-0.1 + rock * 0.4 - 0.1 * k, 1, 0], [-1, 0, 0]], head: [[0.05 + 0.25 * k * S, 1, 0], [-1, -0.2 + 0.5 * k * S, 0]],
+          armL: { ik: chest(-1), pole: [0.3, 0, 1] }, armR: { ik: chest(1), pole: [0.3, 0, -1] },
+          legL: { aimAt: [-8.06, 0.87, zc + 0.25], lower: [1, -0.03, 0.03], pole: [-1, -0.3, 0.2], end: [1, -0.08, 0] },
+          legR: { aimAt: [-8.06, 0.87, zc - 0.25], lower: [1, -0.03, -0.03], pole: [-1, -0.3, -0.2], end: [1, -0.08, 0] }, pin: pinQ }) };
+    }
+    case 'behind': {   // her on hands and knees facing the pillows, back dipped, head up; him kneeling up behind her, hands
+      // on her hips. Pinned: he moves into her at the stroke's depth; she is pushed forward a little on every stroke
+      const push = -0.022 * S, hip = (sd) => LOVERS.at(Q, 'pelvis', [sd * 0.15, 0.97, -0.03]);
+      return {
+        queen: W({ at: [-7.86 + push, 1.25, zc], up: [-0.996, 0.08, 0], fwd: [-0.08, -0.996, 0], spine: [[-1, -0.06 - 0.05 * k, 0], [-0.06, -1, 0]],
+          head: [[-0.8, 0.6 + 0.15 * k * S, 0], [-1, -0.1 + 0.3 * k * S, 0]],
+          armL: { ik: [-8.42 + push * 0.3, 0.885, zc + 0.16], pole: [1, 0, 0.2], end: [-1, -0.02, 0] }, armR: { ik: [-8.42 + push * 0.3, 0.885, zc - 0.16], pole: [1, 0, -0.2], end: [-1, -0.02, 0] },
+          legL: { aimAt: [-7.8, 0.87, zc + 0.13], lower: [1, -0.04, 0], pole: [-1, -0.2, 0], end: [1, -0.08, 0] },
+          legR: { aimAt: [-7.8, 0.87, zc - 0.13], lower: [1, -0.04, 0], pole: [-1, -0.2, 0], end: [1, -0.08, 0] } }),
+        king: W({ at: [-7.55, 1.27, zc], up: [-0.12, 1, 0], fwd: [-1, -0.12, 0], spine: [[-0.05 - 0.1 * k, 1, 0], [-1, -0.1, 0]], head: [[-0.15, 1, 0], [-1, -0.45, 0]],
+          armL: { ik: hip(1), pole: [0.3, 0, 1] }, armR: { ik: hip(-1), pole: [0.3, 0, -1] },
+          legL: { aimAt: [-7.45, 0.87, zc + 0.16], lower: [1, -0.04, 0], pole: [-1, -0.2, 0], end: [1, -0.08, 0] },
+          legR: { aimAt: [-7.45, 0.87, zc - 0.16], lower: [1, -0.04, 0], pole: [-1, -0.2, 0], end: [1, -0.08, 0] }, pin: pinK }) };
+    }
+    case 'after': default: {   // afterwards: him on his back, her curled on her side against him, head on his chest,
+      // an arm and a leg over him; his arm round her. Slow breathing (ph still turns, slowly)
+      const br = 0.006 * Math.sin(ph);
+      return {
+        king: W({ at: [-8.2, 0.92 + br, zc], up: [-1, 0.12, 0], fwd: [0.12, 1, 0], spine: [[-1, 0.3, 0], [0.3, 1, 0]], head: [[-1, 0.5, 0.1], [0.5, 1, 0.25]],
+          armL: [[-0.3, -0.25, -0.9], [0.5, 0.1, -0.85]], armR: { ik: LOVERS.at(Q, 'spine_03', [0, 1.3, -0.13]), pole: [0, -1, 0.3] },
+          legL: [[1, -0.04, -0.07], [1, -0.02, 0], null, [0.35, 0.9, -0.1]], legR: [[1, -0.04, 0.05], [1, -0.02, 0], null, [0.35, 0.9, 0.1]] }),
+        queen: W({ at: [-8.12, 0.98, zc + 0.36], up: [-1, 0.05, -0.15], fwd: [0, -0.35, -1], spine: [[-0.9, 0.2, -0.35], [0, -0.4, -1]], head: [[-0.85, 0.15, -0.5], [0.2, -0.6, -1]],
+          armR: { ik: LOVERS.at(K, 'spine_03', [-0.1, 1.28, 0.1]), pole: [0.2, 1, 0] }, armL: [[-0.5, -0.2, -0.3], [-0.8, 0.1, -0.2]],
+          legR: [[0.65, 0.1, -0.75], [0.75, -0.3, -0.2]], legL: [[1, 0.02, 0.08], [0.9, 0.06, 0.3], null, [1, 0.1, 0.1]] }) };
+    }
+  }
 };
 
 /* ==== game/g30_throne.js ==== */
@@ -57736,10 +58323,11 @@ async function boot() {
     if (G.fpsEl) { acc += ms; n++; if (acc > 500) { G.fpsEl.textContent = (1000 * n / acc).toFixed(0) + ' fps · ' + R.bw + '×' + R.bh + ' · ' + R.q; acc = 0; n = 0; } }
   };
   requestAnimationFrame(loop);
+  // ?room=bedroom&night (or &night=ride|missionary|behind) jumps straight into the night scene, for testing
+  if (SCENE.room === BEDROOM) setTimeout(() => NIGHT.play({ fast: true, pos: LOVERS.NAMES.includes(f.night) ? f.night : null }).catch(fail), 400);
   setTimeout(() => { window.__ready = true; }, 300);
 }
 boot().catch(fail);
-
 </script>
 </body>
 </html>

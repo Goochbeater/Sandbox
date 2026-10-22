@@ -36,11 +36,12 @@ class Actor {
     const skinT = new THREE.Color(S.skin || 0xd8b096).multiplyScalar(S.skinK || 0.92);
     const headTex = await QA.tex(sex + '_col'), handTex = await QA.tex(bindKey + '_col');
     const skin = new THREE.MeshStandardMaterial({ map: headTex, color: skinT, roughness: 0.62 }), hands = new THREE.MeshStandardMaterial({ map: handTex, color: skinT, roughness: 0.62 });
+    this.skinT = skinT; this.clothes = [];   // everything undress() hides: outfit pieces (and the Regular hands they come with), gown, collar, tabard
     for (const [mesh, prim, dye] of S.parts || []) {
       const g = QA.geometry(mesh, (p) => p.name === prim && (dye === 'skin' ? p.mat.startsWith('MI_Regular') : !p.mat.startsWith('MI_Regular')));
       if (!g.index.count) { console.warn('no part', mesh, prim); continue; }
       const tex = await QA.tex(mesh.includes('ranger') ? 'ranger_col' : 'peasant_col');
-      this.add(g, dye === 'skin' ? hands : Actor.dye(tex, dye));
+      this.clothes.push(this.add(g, dye === 'skin' ? hands : Actor.dye(tex, dye)));
     }
     // head, eyes and brows from the base body; hair refit from the hair library when it was modelled for the other head
     const H = this.wt[I.Head], ny = this.wt[I.neck_01][1];
@@ -50,9 +51,11 @@ class Actor {
     const browTex = sex === 'female' ? 'hair2_col' : 'hair1_col';
     this.add(QA.geometry(sex, (p) => p.mat.startsWith('MI_Hair')), hairMat(await QA.tex(browTex), S.brows || 0x1a1512));
     for (const [h, col] of S.hair || []) { const g = QA.refit(QA.geometry(h), QA.HAIR_SRC[h] || 'male', sex); this.add(g, hairMat(await QA.tex(M.meshes[h].prims[0].mat === 'MI_Hair_2' ? 'hair2_col' : 'hair1_col'), col)); }
+    const n0 = inner.children.length;
     if (S.robe) this.robe(S.robe);
     if (S.collar) this.collar(S.collar);
     if (S.tabard) this.tabard(S.tabard);
+    this.outer = inner.children.slice(n0); this.clothes.push(...this.outer);
     this.crownMesh = Actor.crown(S.crown && S.crown.k || 1); this.attachHead(this.crownMesh, S.crown && S.crown.y || 0.135); this.crownMesh.visible = !!(S.crown && S.crown.worn);
     if (S.helmet) { const hm = Actor.helmet(S.helmet.col); this.attachHead(hm, 0.11); }
     if (S.prop) this.prop(S.prop);
@@ -70,6 +73,44 @@ class Actor {
     const at = new THREE.Matrix4().makeTranslation(0, this.wt[I.Head][1] + up, this.wt[I.Head][2] + 0.017);
     Hb.clone().invert().multiply(at).decompose(obj.position, obj.quaternion, obj.scale); this.bones[I.Head].add(obj);
   }
+  /* a rigid object riding any bone, placed at `p` (bind / body space: x = the actor's left, y up, z toward his front) and
+     oriented in body space, so its children can be posed in body terms whatever the bone's own axes are */
+  attachBody(obj, bone, p) {
+    const i = QA.idx[bone], Bm = new THREE.Matrix4().compose(new THREE.Vector3().fromArray(this.wt[i]), this.wr[i], new THREE.Vector3(1, 1, 1));
+    Bm.invert().multiply(new THREE.Matrix4().makeTranslation(p[0], p[1], p[2])).decompose(obj.position, obj.quaternion, obj.scale); this.bones[i].add(obj);
+  }
+  /* ---------------------------------------------------------------- undressing
+     The outfits are cut from the Regular bodies, which have nothing under them; the bare body is the full Superhero base
+     body of the same sex (it shares the Regular skeleton: identical joints for the women, within 2 cm for the men), with
+     its painted underwear repainted to skin and the anatomy painted on (Actor.bareTex). Built on first use, so only the
+     actors that ever undress pay for it. */
+  async makeBare() {
+    if (this.bare) return this.bare;
+    const I = QA.idx, H = this.wt[I.Head], ny = this.wt[I.neck_01][1], inHead = (x, y, z) => y > ny - 0.035 && Math.abs(x) < 0.11 && z > H[2] - 0.16;
+    const g = QA.geometry(this.sex, (p) => p.mat.startsWith('MI_Superhero')), P = g.attributes.position, Ix = g.index.array, keep = [];
+    for (let t = 0; t < Ix.length; t += 3) if (![Ix[t], Ix[t + 1], Ix[t + 2]].every((i) => inHead(P.getX(i), P.getY(i), P.getZ(i)))) keep.push(Ix[t], Ix[t + 1], Ix[t + 2]);
+    g.setIndex(keep);
+    const tex = await Actor.bareTex(this, g);
+    this.bare = this.add(g, new THREE.MeshStandardMaterial({ map: tex, color: this.skinT, roughness: 0.55 }));
+    this.bare.traverse((o) => o.layers.mask = this.root.layers.mask); this.bare.visible = false;
+    this.marks = Actor.bareMarks(this, g);
+    if (this.sex === 'male') { this.sexGroup = Actor.genitals(this, this.marks); this.sexGroup.visible = false; this.setArousal(0); }
+    return this.bare;
+  }
+  /* 'outer' = gown / robe, collar, tabard and crown; 'all' = down to the skin */
+  async undress(level) {
+    this.crownMesh.visible = false;
+    for (const m of this.outer) m.visible = false;
+    if (level !== 'all') return;
+    await this.makeBare();
+    for (const m of this.clothes) m.visible = false;
+    this.bare.visible = true; if (this.sexGroup) this.sexGroup.visible = true; this.nude = true;
+  }
+  dress() { for (const m of this.clothes) m.visible = true; if (this.bare) this.bare.visible = false; if (this.sexGroup) this.sexGroup.visible = false; this.nude = false; }
+  /* 0 = soft, 1 = fully hard (men only; a no-op otherwise) */
+  setArousal(k) { const s = this.sexGroup && this.sexGroup.userData.shaft; if (!s) return; this.arousal = k;
+    const a = lerp(Math.PI - 0.32, Math.PI / 2 - 0.55, smooth(0, 1, k)); s.rotation.set(a, 0, 0);
+    s.scale.set(lerp(1, 1.18, k), lerp(0.62, 1, k), lerp(1, 1.18, k)); }
   /* ---------------------------------------------------------------- procedural garments */
   /* long skirt / gown: a flared tube from the waist down, weighted to the pelvis and, lower down, to the thighs */
   robe(o) {
@@ -161,6 +202,8 @@ class Actor {
     this.path = { x0: this.x, y0: this.y, z0: this.z, x1: p.x, y1: p.y || 0, z1: p.z, t: 0, dur: len / (p.speed || 0.85), yaw: Math.atan2(dx, dz), cb }; this.target = null; this.sitting = null; this.sitK = 0; }
   setVisible(on) { this.visible = on; this.card.visible = on; this.blob.visible = on; this.shadow.visible = on; if (this.propObj) this.propObj.visible = on; }
   update(dt) {
+    if (this.puppet) {   // a procedural controller owns the body (POSE / the night scene): it fills D and pel and places the root
+      this.puppet(this, dt); this.compose(); this.root.position.set(this.x, this.y, this.z); this.root.rotation.y = this.yaw; return; }
     const S0 = this.spec, H = this.curHome || S0;
     if (H.wander && this.target === null && !this.path && !this.sitting && !this.talking && !this.dir) { this.wanderT -= dt;
       if (this.wanderT <= 0) { const w = H.wander; this.walkTo(lerp(w.x0, w.x1, Math.random())); this.wanderT = lerp(w.pause[0], w.pause[1], Math.random()); } }
@@ -208,7 +251,11 @@ class Actor {
     for (const [name, t, w] of layers) { if (w <= 0.001) continue; const c = QA.clips[name];
       if (first) { QA.sample(c, t, D, pel, this.pelvisH); first = false; wsum = w; continue; }
       QA.sample(c, t, B, pb, this.pelvisH); wsum += w; const k = w / wsum; for (let i = 0; i < D.length; i++) D[i].slerp(B[i], k); pel.lerp(pb, k); }
-    const bones = this.bones, P = QA.M.skel.parents, Wq = this.W;
+    this.compose();
+  }
+  /* D (each bone's world-space rotation away from the bind pose) and pel (the pelvis offset, body space) -> the bones */
+  compose() {
+    const D = this.D, pel = this.pel, bones = this.bones, P = QA.M.skel.parents, Wq = this.W;
     for (let i = 0; i < bones.length; i++) { if (i === 0) D[0].identity(); Wq[i].copy(D[i]).multiply(this.wr[i]); bones[i].quaternion.copy(P[i] < 0 ? Wq[i] : QA._a.copy(Wq[P[i]]).invert().multiply(Wq[i])); }
     bones[1].position.fromArray(this.wt[1]).add(pel).applyQuaternion(this.rootInv);
   }
@@ -227,9 +274,32 @@ class Actor {
     this.shadow = new THREE.Mesh(sg, this.shadowMat); this.shadow.frustumCulled = false; this.shadow.layers.set(2); R.scene.add(this.shadow);
     Actor.lights();
   }
+  /* a different sprite box (w x h metres) — e.g. a body lying down, or two bodies in one frame */
+  reframe(w, h) {
+    if (!this.box0) this.box0 = [this.VW, this.VH];
+    if (w === undefined) [w, h] = this.box0;
+    if (w === this.VW && h === this.VH) return;
+    this.VW = w; this.VH = h; const SW = Math.round(w * PX.D), SH = Math.round(h * PX.D);
+    this.rt.setSize(SW, SH); this.rt2.setSize(SW, SH);
+    Object.assign(this.cam, { left: -w / 2, right: w / 2, top: h / 2, bottom: -h / 2 }); this.cam.updateProjectionMatrix();
+    this.fxU.texel.set(1 / SW, 1 / SH);
+    this.card.geometry.dispose(); this.card.geometry = new THREE.PlaneGeometry(w, h);
+    this.shadowMat.dispose(); this.shadowMat = this.shadow.material = Actor.shadowMat(this.rt.texture, SW, SH);
+  }
+  /* draw this actor inside another actor's sprite (one camera, one depth buffer: bodies that touch overlap correctly);
+     hostInto(null) gives it its own sprite back */
+  hostInto(host) {
+    this.hostedBy = host || null; const layer = host ? host.layer : this.layer;
+    this.root.traverse((o) => o.layers.set(layer));
+    this.card.visible = this.blob.visible = this.shadow.visible = !host && this.visible;
+  }
+  /* where speech bubbles anchor: the head, wherever the pose has put it */
+  speakAt(out) { if (!this.puppet) return out.set(this.x, this.y + (this.spec.headY || 2.12) + (this.crownMesh && this.crownMesh.visible ? 0.1 : 0), this.z);
+    this.bones[QA.idx.Head].getWorldPosition(out); out.y += 0.32; return out; }
   render(room) {
-    if (!this.visible) return;
-    const r = R.r, cy = this.VH / 2 - 0.05, c = Actor._c.set(this.x, this.y + cy, this.z), cam = this.cam;
+    if (!this.visible || this.hostedBy) return;
+    const r = R.r, cy = this.VH / 2 - 0.05, c = this.frame ? Actor._c.copy(this.frame) : Actor._c.set(this.x, this.y + cy, this.z), cam = this.cam;
+    this.blob.visible = !this.puppet;
     const sx = R.toView(c, Actor._sv).x; if (sx < -R.vw * 0.25 || sx > R.vw * 1.25) return;   // off-screen: keep the last sprite
     const d = Actor._d.copy(c).sub(R.cam.position).normalize();
     cam.position.copy(c).addScaledVector(d, -7); cam.lookAt(c); cam.updateMatrixWorld();
@@ -246,7 +316,7 @@ class Actor {
     // floor shadows: a soft contact blob, and the sprite's silhouette projected from the room's main low light
     this.blob.position.set(this.x, this.y + 0.008, this.z + 0.02);
     const ss = room && room.shadowSrc;
-    if (!ss || this.sitting) { this.shadowMat.uniforms.uK.value = 0; return; }
+    if (!ss || this.sitting || this.puppet) { this.shadowMat.uniforms.uK.value = 0; return; }
     const L = Actor._L.set(ss[0], ss[1], ss[2]), right = Actor._r.set(1, 0, 0).applyQuaternion(cam.quaternion), up = Actor._u.set(0, 1, 0).applyQuaternion(cam.quaternion);
     const base = c.clone().addScaledVector(up, -this.VH / 2), corners = [base.clone().addScaledVector(right, -this.VW / 2), base.clone().addScaledVector(right, this.VW / 2)];
     for (const b of corners.slice()) { const tp = b.clone().addScaledVector(up, this.VH); const k = L.y / Math.max(L.y - tp.y, 0.35); corners.push(new THREE.Vector3(L.x + (tp.x - L.x) * k, 0.01, L.z + (tp.z - L.z) * k)); }
@@ -321,3 +391,4 @@ Actor.helmet = function (col) {
   const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.2, 0.02, 16), steel); brim.position.y = -0.005; grp.add(brim);
   return grp;
 };
+

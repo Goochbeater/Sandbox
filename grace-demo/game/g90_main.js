@@ -34,6 +34,8 @@ async function boot() {
     if (G.fpsEl) { acc += ms; n++; if (acc > 500) { G.fpsEl.textContent = (1000 * n / acc).toFixed(0) + ' fps · ' + R.bw + '×' + R.bh + ' · ' + R.q; acc = 0; n = 0; } }
   };
   requestAnimationFrame(loop);
+  // ?room=bedroom&night (or &night=ride|missionary|behind) jumps straight into the night scene, for testing
+  if (SCENE.room === BEDROOM) setTimeout(() => NIGHT.play({ fast: true, pos: LOVERS.NAMES.includes(f.night) ? f.night : null }).catch(fail), 400);
   setTimeout(() => { window.__ready = true; }, 300);
 }
 boot().catch(fail);

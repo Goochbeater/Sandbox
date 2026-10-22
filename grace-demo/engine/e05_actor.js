@@ -17,6 +17,7 @@ class Actor {
     this.idleT = hash(this.layer, 3) * 10; this.phase = 0; this.talk = 0; this.talking = false; this.actClip = null; this.actT = 0; this.actEv = null;
     this.sitting = null; this.sitK = 0; this.path = null; this.visible = true; this.home = spec.home || null; this.cardDz = 0; this.baseY = spec.y || 0; this.y = this.baseY;
     [this.VW, this.VH] = spec.box || [1.5, 2.4];
+    this.homes = spec.homes || null; this.wanderT = 1 + hash(this.layer, 9) * 3; this.routineT = 1 + hash(this.layer, 11) * 2; this.stepN = 0; this.name = spec.name || spec.id;
   }
   get I() { return QA.idx; }
   async build() {
@@ -55,6 +56,7 @@ class Actor {
     this.crownMesh = Actor.crown(S.crown && S.crown.k || 1); this.attachHead(this.crownMesh, S.crown && S.crown.y || 0.135); this.crownMesh.visible = !!(S.crown && S.crown.worn);
     if (S.helmet) { const hm = Actor.helmet(S.helmet.col); this.attachHead(hm, 0.11); }
     if (S.prop) this.prop(S.prop);
+    if (S.child) { bones[I.Head].scale.setScalar(S.child.head || 1.2); if (S.child.neck) bones[I.neck_01].scale.setScalar(S.child.neck); }   // children: a bigger head on a smaller body
     root.traverse((o) => o.layers.set(this.layer)); if (this.propObj) this.propObj.traverse((o) => o.layers.set(this.layer));
     this.sitDrop = (() => { const c = QA.clips.Sitting_Idle_Loop; if (!c) return 0.45; QA.sample(c, 0, this.D, this.pel, this.pelvisH); return this.pelvisH + this.pel.y; })();
     this.sprite();
@@ -122,16 +124,33 @@ class Actor {
   }
   /* a held object: a spear stays upright in the right hand, a scroll rides the left */
   prop(kind) {
-    const g = new THREE.Group(), wood = new THREE.MeshStandardMaterial({ color: 0x4a2c18, roughness: 0.7 }), steel = new THREE.MeshStandardMaterial({ color: 0xb8c0cc, roughness: 0.3, metalness: 0.8 });
+    const g = new THREE.Group(), wood = new THREE.MeshStandardMaterial({ color: 0x4a2c18, roughness: 0.7 }), wood_ = wood, steel = new THREE.MeshStandardMaterial({ color: 0xb8c0cc, roughness: 0.3, metalness: 0.8 });
     if (kind === 'spear') { const sh = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.02, 2.5, 6), wood); sh.position.y = 0.3; g.add(sh);
       const bl = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.28, 4), steel); bl.position.y = 1.68; g.add(bl);
       const tas = new THREE.Mesh(new THREE.SphereGeometry(0.045, 6, 4), new THREE.MeshStandardMaterial({ color: 0xa82020, roughness: 0.9 })); tas.position.y = 1.48; g.add(tas); }
     if (kind === 'scroll') { const sc = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.3, 8), new THREE.MeshStandardMaterial({ color: 0xe8dcc0, roughness: 0.9 })); sc.rotation.z = Math.PI / 2; g.add(sc);
       for (const s of [-1, 1]) { const k = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.036, 0.02, 8), new THREE.MeshStandardMaterial({ color: 0xa8302a })); k.rotation.z = Math.PI / 2; k.position.x = s * 0.16; g.add(k); } }
+    if (kind === 'sword' || kind === 'woodsword') {   // gripped: rides the hand bone, so sword clips swing it
+      const wood = kind === 'woodsword', L = wood ? 0.6 : 0.8, bm = wood ? new THREE.MeshStandardMaterial({ color: 0x9a7448, roughness: 0.8 }) : steel;
+      const bl = new THREE.Mesh(new THREE.BoxGeometry(0.045, L, 0.012), bm); bl.position.y = 0.1 + L / 2; g.add(bl);
+      const gd = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.03, 0.035), wood ? wood_ : new THREE.MeshStandardMaterial({ color: 0xb8902e, roughness: 0.4, metalness: 0.7 })); gd.position.y = 0.09; g.add(gd);
+      const gr = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.16, 6), wood_); gr.position.y = 0.0; g.add(gr);
+      g.userData.kind = kind; this.attachBone(g, 'hand_r', [-0.085, -0.02, 0], new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2)); this.grip = g; return;
+    }
     g.userData.kind = kind; R.scene.add(g); this.propObj = g; this.propBone = this.bones[QA.idx[kind === 'spear' ? 'hand_r' : 'hand_l']];
+  }
+  /* a rigid object riding a bone, placed in bind space: `off` from the joint (m), `rot` its orientation in bind space */
+  attachBone(obj, bone, off, rot) {
+    const i = QA.idx[bone], Bm = new THREE.Matrix4().compose(new THREE.Vector3().fromArray(this.wt[i]), this.wr[i], new THREE.Vector3(1, 1, 1));
+    const at = new THREE.Matrix4().compose(new THREE.Vector3().fromArray(this.wt[i]).add(new THREE.Vector3(...off)), rot || new THREE.Quaternion(), new THREE.Vector3(1, 1, 1));
+    Bm.invert().multiply(at).decompose(obj.position, obj.quaternion, obj.scale); this.bones[i].add(obj);
   }
   /* ---------------------------------------------------------------- behaviour */
   walkTo(x, cb) { this.target = x; this.onArrive = cb || null; this.sitting = null; }
+  /* where this actor stands in a room (spec.homes: { roomId: { x, z, y, face, idle } }) */
+  placeIn(id) { const h = this.homes && this.homes[id]; if (!h) return false; this.stand(); this.x = h.x; this.z = h.z === undefined ? this.z : h.z; this.baseY = this.y = h.y || 0; this.face = h.face || this.face;
+    this.yaw = this.face * 0.42; this.target = null; this.v = 0; if (h.idle) this.spec.idle = h.idle; this.curHome = h; if (h.sit) this.sit(Object.assign({}, h.sit)); return true; }
+  livesIn(id) { return this.home === id || !!(this.homes && this.homes[id]); }
   faceTo(x) { this.face = Math.sign(x - this.x) || this.face; }
   act(clip, at, ev) { this.actClip = clip; this.actT = 0; this.actEv = ev ? { at, fn: ev } : null; }
   /* sit on a seat { x, y (seat top), z, yaw, cardDz (how far to slide the sprite toward the lens so the seat doesn't hide the legs) } */
@@ -142,6 +161,12 @@ class Actor {
     this.path = { x0: this.x, y0: this.y, z0: this.z, x1: p.x, y1: p.y || 0, z1: p.z, t: 0, dur: len / (p.speed || 0.85), yaw: Math.atan2(dx, dz), cb }; this.target = null; this.sitting = null; this.sitK = 0; }
   setVisible(on) { this.visible = on; this.card.visible = on; this.blob.visible = on; this.shadow.visible = on; if (this.propObj) this.propObj.visible = on; }
   update(dt) {
+    const S0 = this.spec, H = this.curHome || S0;
+    if (H.wander && this.target === null && !this.path && !this.sitting && !this.talking && !this.dir) { this.wanderT -= dt;
+      if (this.wanderT <= 0) { const w = H.wander; this.walkTo(lerp(w.x0, w.x1, Math.random())); this.wanderT = lerp(w.pause[0], w.pause[1], Math.random()); } }
+    if (H.routine && !this.actClip && !this.talking && Math.abs(this.v) < 0.05) { this.routineT -= dt;
+      if (this.routineT <= 0) { const r = H.routine, clip = r.clips[Math.floor(Math.random() * r.clips.length)]; this.routineT = lerp(r.every[0], r.every[1], Math.random());
+        this.act(clip, r.at || 0.4, () => { if (r.sound && this.visible) AUDIO.sfx(r.sound, { gain: r.gain || 0.35, pan: clamp((this.x - R.cam.position.x) / 10, -0.8, 0.8) }); }); } }
     let dir = this.dir;
     if (!dir && this.target !== null) { const d = this.target - this.x;
       if (Math.abs(d) < 0.06) { this.target = null; const cb = this.onArrive; this.onArrive = null; if (cb) cb(this); }
@@ -161,6 +186,7 @@ class Actor {
     // clips: idle (or seated), talking while a bubble is up, the walk with its playback matched to ground speed, one-shot acts
     this.idleT += dt; this.talk = damp(this.talk, this.talking && sp < 0.1 ? 1 : 0, 3, dt);
     const S = this.spec, walk = S.walk || 'Walk_Loop'; this.phase += dt * sp / QA.speed(walk);
+    { const n = Math.floor(this.phase / (QA.clips[walk].dur / 2)); if (n !== this.stepN) { this.stepN = n; if (sp > 0.25 && Actor.onStep && this.visible) Actor.onStep(this); } }
     this.sitK = damp(this.sitK, this.sitting ? 1 : 0, 5, dt);
     const L = [[S.idle || 'Idle_Loop', this.idleT, 1], ['Sitting_Idle_Loop', this.idleT, this.sitK], ['Idle_Talking_Loop', this.idleT * 0.9, this.talk * 0.85 * (1 - this.sitK)], [walk, this.phase, smooth(0.04, 0.55, sp)]];
     if (this.actClip) { this.actT += dt; const c = QA.clips[this.actClip], w = smooth(0, 0.25, this.actT) * smooth(c.dur, c.dur - 0.35, this.actT);
@@ -202,6 +228,7 @@ class Actor {
   render(room) {
     if (!this.visible) return;
     const r = R.r, cy = this.VH / 2 - 0.05, c = Actor._c.set(this.x, this.y + cy, this.z), cam = this.cam;
+    const sx = R.toView(c, Actor._sv).x; if (sx < -R.vw * 0.25 || sx > R.vw * 1.25) return;   // off-screen: keep the last sprite
     const d = Actor._d.copy(c).sub(R.cam.position).normalize();
     cam.position.copy(c).addScaledVector(d, -7); cam.lookAt(c); cam.updateMatrixWorld();
     this.card.position.copy(c).addScaledVector(d, -this.cardDz); this.card.quaternion.copy(cam.quaternion);
@@ -226,7 +253,7 @@ class Actor {
     this.shadowMat.uniforms.uK.value = 0.55 * smooth(ss[3], 1.0, Math.abs(this.x - ss[0]));
   }
 }
-Actor.nextLayer = 3;
+Actor.nextLayer = 3; Actor._sv = {}; Actor.onStep = null;
 Actor._c = new THREE.Vector3(); Actor._d = new THREE.Vector3(); Actor._L = new THREE.Vector3(); Actor._r = new THREE.Vector3(); Actor._u = new THREE.Vector3();
 /* the sprite pass: a 1 px dark rim round the silhouette, and colours posterised to 24 levels (in a tone-mapped space) */
 Actor.fxMat = function () {

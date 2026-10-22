@@ -1,7 +1,7 @@
-<title>The King's Bedchamber</title>
+<title>The Swan Throne</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400;0,500;1,400&family=Alegreya+SC:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400;0,500;1,400&family=Alegreya+SC:wght@500&family=Cinzel+Decorative:wght@700;900&display=swap">
 <style>
   /* One fixed dark world: a letterboxed 2.96:1 film frame, the ruler's UI in a medieval book face. */
   :root { color-scheme: dark; --ink: #000; --paper: #f2e6cf; --bubble: rgba(14, 10, 9, 0.88); --gold: #e3b75a; --dim: #9b8b78;
@@ -95,6 +95,52 @@
   #bubble.wait::before { content: ""; position: absolute; right: 7px; bottom: 5px; width: 6px; height: 6px; border-right: 2px solid var(--gold); border-bottom: 2px solid var(--gold); transform: rotate(45deg); animation: nudge 0.9s ease-in-out infinite alternate; }
   #bubble.wait { padding-right: 1.6em; }
   @keyframes nudge { from { opacity: 0.3; } to { opacity: 1; } }
+  /* title screen, panels, the map, cutscenes */
+  /* the title sits inside the picture (#view is a size container), so it scales with the letterboxed frame on any screen */
+  #view { container-type: size; }
+  #title { position: absolute; inset: 0; pointer-events: none; }
+  #title .col { position: absolute; left: 5cqw; top: 8cqh; display: flex; flex-direction: column; align-items: center; }
+  #title .logo { display: flex; flex-direction: column; align-items: center; color: #fbf3e4; text-shadow: 0 3px 18px rgba(0,0,0,0.75), 0 0 2px #000; transition: opacity 1.4s; }
+  #title .l1 { font-family: "Cinzel Decorative", var(--caps); font-weight: 700; font-size: min(2.4cqw, 6.6cqh); letter-spacing: 0.12em; margin-bottom: -0.25em; }
+  #title .l2 { font-family: "Cinzel Decorative", var(--caps); font-weight: 900; font-size: min(5.4cqw, 15cqh); line-height: 0.95; letter-spacing: 0.02em; }
+  #title .l3 { font-family: var(--caps); font-size: min(1.45cqw, 3.9cqh); letter-spacing: 0.5em; margin-top: 0.5em; padding-left: 0.5em; color: #e9dcc4; }
+  #title .menu { margin-top: 5cqh; display: flex; flex-direction: column; align-items: center; gap: 0.15em; pointer-events: auto; transition: opacity 1s; }
+  #title .menu button { font: inherit; font-size: min(2.3cqw, 5.8cqh); color: #f2e6cf; background: none; border: 0; padding: 0.12em 0.6em; cursor: pointer; text-shadow: 0 2px 10px #000; letter-spacing: 0.03em; }
+  #title .menu button:hover, #title .menu button:focus-visible { color: #fff; outline: none; text-shadow: 0 0 12px rgba(227,183,90,0.9), 0 2px 10px #000; }
+  #title .menu button:first-child { color: #fff; background: rgba(40, 110, 70, 0.75); border: 1px solid #7ad0a0; box-shadow: inset 0 0 0 2px rgba(0,0,0,0.25); }
+  #tapStart { position: absolute; left: 0; right: 0; bottom: 12cqh; text-align: center; font-family: var(--caps); letter-spacing: 0.3em; color: #f2e6cf; text-shadow: 0 2px 8px #000; font-size: max(14px, min(2cqw, 4.6cqh)); animation: nudge 1.2s ease-in-out infinite alternate; pointer-events: none; }
+  #title.leaving .logo, #title.leaving .menu { opacity: 0; pointer-events: none; }
+  .mapTitle { margin: 0; font-family: "Cinzel Decorative", var(--caps); font-weight: 700; letter-spacing: 0.08em; color: var(--paper); font-size: clamp(16px, 2.4vw, 26px); text-shadow: 0 2px 8px #000; }
+  #title.ready #tapStart { display: none; } #title:not(.ready) .menu { opacity: 0; pointer-events: none; }
+  .panel { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 8; width: min(92vw, 520px); max-height: 86vh; overflow: auto; background: rgba(16, 11, 9, 0.95); border: 1px solid rgba(227, 183, 90, 0.55);
+           padding: clamp(14px, 2.4vw, 26px); display: flex; flex-direction: column; gap: 14px; box-shadow: 0 0 0 4px rgba(16, 11, 9, 0.7), 0 12px 40px rgba(0,0,0,0.6); }
+  .panel h2 { margin: 0; font-family: var(--caps); font-weight: 500; letter-spacing: 0.16em; color: var(--gold); font-size: clamp(18px, 2.6vw, 26px); }
+  .slider { display: grid; grid-template-columns: 5em 1fr; align-items: center; gap: 12px; font-size: clamp(14px, 1.8vw, 18px); }
+  .slider input { width: 100%; accent-color: #e3b75a; min-height: 32px; }
+  .panel .row .btn { min-width: 9em; }
+  .scroll { max-height: 52vh; overflow: auto; color: var(--paper); font-size: clamp(13px, 1.6vw, 15px); line-height: 1.45; padding-right: 6px; }
+  .scroll h4 { margin: 0.9em 0 0.2em; font-family: var(--caps); font-weight: 500; letter-spacing: 0.08em; color: var(--gold); }
+  .scroll p { margin: 0.15em 0; color: #d8cbb4; } .scroll a { color: #e8c26a; }
+  #mapBtn { pointer-events: auto; width: 44px; height: 44px; border: 0; padding: 0; margin-left: 10px; cursor: pointer; background: transparent; position: relative; }
+  #mapBtn::before { content: ""; position: absolute; left: 9px; top: 10px; width: 26px; height: 22px; border: 2px solid #fff; border-radius: 2px; background:
+    linear-gradient(90deg, transparent 31%, #fff 31%, #fff 36%, transparent 36%, transparent 64%, #fff 64%, #fff 69%, transparent 69%); }
+  #mapBtn:focus-visible, #pauseBtn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  .bar .grow { flex: 1; }
+  #skipBtn { display: none; pointer-events: auto; margin-right: 3%; padding: 0.25em 1em; font-size: clamp(13px, 1.7vw, 17px); min-width: 0; }
+  body.cine #skipBtn { display: inline-block; } body.cine #pauseBtn, body.cine #mapBtn, body.cine #hint, body.cine .mk, body.intitle #pauseBtn, body.intitle #mapBtn, body.intitle #hint, body.intitle .mk { visibility: hidden; }
+  #cutCap { position: absolute; left: 6%; right: 6%; bottom: 7%; text-align: center; font-size: clamp(15px, 2.4vw, 28px); color: #fbf3e4; text-shadow: 0 2px 10px #000, 0 0 3px #000; opacity: 0; transition: opacity 0.9s; pointer-events: none; text-wrap: balance; }
+  #cutCap.on { opacity: 1; }
+  #map { position: absolute; inset: 0; z-index: 7; background: rgba(6, 4, 3, 0.86); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 12px; }
+  .sheetWrap { position: relative; height: min(78vh, calc(92vw * 0.62)); aspect-ratio: 16 / 10; max-width: 94vw; }
+  #mapCanvas { width: 100%; height: 100%; image-rendering: pixelated; display: block; box-shadow: 0 10px 40px rgba(0,0,0,0.7); }
+  #mapPins { position: absolute; inset: 0; }
+  .pin { position: absolute; transform: translate(-50%, -100%); background: none; border: 0; padding: 0; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; color: #2a1a0e; font: inherit; }
+  .pin i { width: 18px; height: 18px; background: #a8302a; border: 2px solid #2a1a0e; transform: rotate(45deg); box-shadow: 0 2px 4px rgba(0,0,0,0.4); order: 2; }
+  .pin span { order: 1; background: rgba(242, 230, 207, 0.94); padding: 0.1em 0.5em; border: 1px solid #6a4a2a; font-family: var(--caps); font-size: clamp(12px, 1.6vw, 16px); white-space: nowrap; text-align: center; }
+  .pin small { display: block; font-family: var(--serif); font-style: italic; font-size: 0.78em; color: #6a4a2a; }
+  .pin.here i { background: var(--gold); } .pin.here span { background: #fff4d8; }
+  .pin:disabled { cursor: default; opacity: 0.55; } .pin:disabled i { background: #6a5a4a; }
+  .pin:not(:disabled):hover span, .pin:focus-visible span { outline: 2px solid #a8302a; }
   @media (max-aspect-ratio: 3/4) { #rotate.can { display: flex; } }   /* phones held upright; a Fold's near-square inner screen plays either way */
   @media (prefers-reduced-motion: reduce) { #caption, #fade, .mk, #bubble, #toast { transition: none; } .mk.pulse, #bubble.wait::before { animation: none; } }
 </style>
@@ -102,10 +148,16 @@
   <div id="view">
     <canvas id="cv" tabindex="0" aria-label="The king's bedchamber. Walk with the arrow keys or by holding either side of the screen."></canvas>
     <div id="ui"><div id="bubble" role="status" aria-live="polite"></div></div>
-    <div id="caption">The King's Bedchamber<small>An evening in late autumn</small></div>
+    <div id="caption"></div>
+    <div id="cutCap" aria-live="polite"></div>
+    <div id="title" hidden>
+      <div class="col"><div class="logo"><span class="l1">The</span><span class="l2">Swan Throne</span><span class="l3">A tale of Lodmir</span></div>
+        <nav class="menu" aria-label="Main menu"><button id="tNew">New Game</button><button id="tCont" hidden>Continue</button><button id="tSet">Settings</button><button id="tCred">Credits</button></nav></div>
+      <div id="tapStart">Tap to begin</div>
+    </div>
     <div id="fade"></div>
   </div>
-  <div class="bar" id="topbar"><button id="pauseBtn" aria-label="Pause"></button></div>
+  <div class="bar" id="topbar"><button id="pauseBtn" aria-label="Pause"></button><button id="mapBtn" aria-label="Open the map"></button><span class="grow"></span><button id="skipBtn" class="btn">Skip ›</button></div>
   <div class="bar" id="botbar"><div id="hint"></div></div>
   <div id="toast" role="status" aria-live="polite"></div>
   <div class="sheet" id="court" hidden role="dialog" aria-labelledby="cpWho">
@@ -122,13 +174,30 @@
       <footer><span></span><button class="btn gold" id="wkSeal">Seal the week</button></footer></div>
     <div id="wkResult" hidden><div class="sub" id="wkStats"></div><div id="wkNotes"></div><footer><span></span><button class="btn gold" id="wkDone">Close the ledger</button></footer></div>
   </div>
+  <div class="panel" id="settings" hidden role="dialog" aria-labelledby="setTitle">
+    <h2 id="setTitle">Settings</h2>
+    <label class="slider">Music <input type="range" id="volMusic" min="0" max="100" step="5"></label>
+    <label class="slider">Sound <input type="range" id="volSfx" min="0" max="100" step="5"></label>
+    <div class="row"><button class="btn" id="qualBtn">Quality: High</button><button class="btn" id="fxBtn">Effects: On</button></div>
+    <div class="row"><button class="btn gold" id="setBack">Back</button></div>
+  </div>
+  <div class="panel" id="credits" hidden role="dialog" aria-labelledby="credTitle">
+    <h2 id="credTitle">Credits</h2>
+    <div class="scroll" id="credText"></div>
+    <div class="row"><button class="btn gold" id="credBack">Back</button></div>
+  </div>
+  <div id="map" hidden role="dialog" aria-label="Map of the Swan Fortress">
+    <h2 class="mapTitle">The Swan Fortress</h2>
+    <div class="sheetWrap"><canvas id="mapCanvas"></canvas><div id="mapPins"></div></div>
+    <button class="btn" id="mapClose">Close map</button>
+  </div>
   <div id="pause" hidden>
     <h2>Paused</h2>
     <p id="helpTxt"></p>
     <div class="row"><button class="btn" id="resumeBtn">Resume</button></div>
-    <div class="row"><button class="btn" id="qualBtn">Quality: High</button><button class="btn" id="fxBtn">Effects: On</button></div>
+    <div class="row"><button class="btn" id="pSetBtn">Settings</button><button class="btn" id="pTitleBtn">Return to title</button></div>
   </div>
-  <div id="boot"><h1>The King's Bedchamber</h1><div id="ldTrack"><div id="ldBar"></div></div><div id="ldMsg">Lighting the hearth…</div></div>
+  <div id="boot"><h1>The Swan Throne</h1><div id="ldTrack"><div id="ldBar"></div></div><div id="ldMsg">Lighting the hearth…</div></div>
   <div id="rotate" class="can">Turn your phone sideways to enter the bedchamber.</div>
   <div id="err" hidden></div>
 </div>

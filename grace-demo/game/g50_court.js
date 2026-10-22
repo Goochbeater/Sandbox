@@ -9,6 +9,8 @@
 const COURT = { done: false, greeted: false, busy: false, prosperity: 0, ledger: [], stats: { gold: 12, stores: 9, mood: 7 },
   agents: [{ id: 'commander', name: 'Ser Bogdan', title: 'Commander', ap: 3, max: 3, wound: 0 }, { id: 'spymaster', name: 'Ilka', title: 'Spymaster', ap: 3, max: 3, wound: 0 }],
   items: [{ id: 'grain', name: 'Seed grain', pts: 2, n: 1 }, { id: 'brooch', name: 'Silver brooch', pts: 2, n: 1 }, { id: 'ledger', name: 'Old toll ledger', pts: 3, n: 1 }] };
+COURT.init0 = JSON.stringify({ done: COURT.done, greeted: COURT.greeted, prosperity: COURT.prosperity, ledger: COURT.ledger, stats: COURT.stats, agents: COURT.agents, items: COURT.items });
+COURT.reset = function () { Object.assign(COURT, JSON.parse(COURT.init0)); };   // a new game
 COURT.PETS = [
   { who: 'marta', name: "Marta, a miller's widow", ask: 'Clear the bandits off the old mill road.', need: 4, cells: 8, fit: { commander: 2, spymaster: 1 }, effects: { 5: 'wound', 7: 'bonus' },
     stewardIn: 'Marta, of the lower mill.',

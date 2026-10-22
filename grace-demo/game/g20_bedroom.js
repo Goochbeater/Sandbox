@@ -1,6 +1,7 @@
 /* THE BEDCHAMBER — laid out from the reference frame. The king starts here; the crown waits on its cushion beside the
    standing mirror, and the door at the far right leads to the throne room once he's wearing it. */
 const BEDROOM = SCENE.addRoom(new Room('bedroom', { X0: -11.6, X1: 11.8, CEIL: 4.7, KZ: 2.6, cam: { y: 2.45, look: 2.18, dist: 19.4, fov: 19 }, exposure: 1.0, reflK: 0.6,
+  music: 'castle', ambience: { fire: 0.55, tone: 0.25 }, acoustics: { size: 1.3, wet: 0.16 }, surface: 'wood',
   caption: ["The King's Bedchamber", 'An evening in late autumn'] }));
 BEDROOM.LINES = {
   fire: ['The hearth keeps the frost out. Mostly.', 'Grandfather said a king may be cold anywhere but in front of his people.'],
@@ -165,4 +166,7 @@ BEDROOM.build = function () {
   room.update(0, 0);
   return BUILD.end();
 };
-BEDROOM.onEnter = function () { SCENE.caption(...this.caption); };
+BEDROOM.onEnter = function () {
+  const worn = SCENE.player.crownMesh.visible; this.crownCard.visible = this.crownGlow.visible = !worn;   // the crown is on his head or on its cushion
+  if (!CUT.playing) SCENE.caption(...this.caption);
+};

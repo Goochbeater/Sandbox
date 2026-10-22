@@ -4,7 +4,7 @@
      D the throne bay: three-step dais, throne, royal banner, blue banners, candle stands · E stained window, council table
      F the great doors.   Chandeliers hang over the walk line; foreground columns and a brazier frame the lens. */
 const THRONE = SCENE.addRoom(new Room('throne', { X0: -13.5, X1: 13.5, CEIL: 6.4, KZ: 3.25, cam: { y: 2.95, look: 2.62, dist: 19.4, fov: 19 }, exposure: 0.92, reflK: 0.85,
-  caption: ['The Throne Room', 'Court is in session'] }));
+  caption: ['The Throne Room', 'Court is in session'], music: 'throne', ambience: { crowd: 0.35, fire: 0.25 }, acoustics: { size: 3.2, wet: 0.4 }, surface: 'stone' }));
 THRONE.ENTRY = -12.2; THRONE.TX = 1.5; THRONE.DOORX = 11.9; THRONE.SPOT = 4.55;   // arch, throne, great doors, where petitioners stand
 THRONE.LINES = {
   arch: ['Back to the bedchamber.'], window: ['The lamps are lit in the lower town. Everyone who came tonight walked up that hill.', 'Dusk already. Court always runs long.'],
@@ -83,8 +83,8 @@ THRONE.build = function () {
   BUILD.card(T.chair, 8.2, 0, 0.25); BUILD.light(new THREE.PointLight(0xffa860, 1.6, 0, 2), 7.3, 1.35, 1.5);
   room.interact('map', 8.2, 1.8, KZ, 1.0, () => say('map'));
   /* F — the great doors (they open for petitioners) */
-  room.doorClosed = BUILD.card(T.doorDouble, room.DOORX, 0, 0.02, { cast: false });
-  room.doorOpen = BUILD.card(T.arch, room.DOORX, 0, 0.015, { basic: true, k: 1.2, cast: false, w: 2.06, h: 3.62 }); room.doorOpen.visible = false;
+  room.doorClosed = BUILD.card(T.doorDouble, room.DOORX, 0, 0.02, { cast: false, dyn: true });
+  room.doorOpen = BUILD.card(T.arch, room.DOORX, 0, 0.015, { basic: true, k: 1.2, cast: false, w: 2.06, h: 3.62, dyn: true }); room.doorOpen.visible = false;
   room.doorLight = BUILD.light(new THREE.PointLight(0xffb070, 0, 0, 2), room.DOORX, 1.6, 0.9);
   BUILD.card(T.shieldDisplay, 12.95, 2.6, 0.03, { cast: false }); BUILD.card(T.halberds, 13.0, 0, 0.12, { s: 0.9 });
   room.interact('doors', room.DOORX, 4.0, KZ, 1.0, () => say('doors'));
@@ -115,5 +115,15 @@ THRONE.build = function () {
   room.update(0, 0);
   return BUILD.end();
 };
-THRONE.onEnter = function () { SCENE.caption(...this.caption); COURT.enterHall(); };
+THRONE.onEnter = function () { if (CUT.playing) return; SCENE.caption(...this.caption); COURT.enterHall(); };
+/* the hall twelve years ago, the night the old king died: torches burnt low, moonlight through the glass, no one in it */
+THRONE.night = function (on) {
+  const room = THRONE; room.nightOn = on;
+  room.group.traverse((o) => { if (!o.isLight || o.userData.base === undefined) return;
+    const k = !on ? 1 : o === room.lights.throne ? 0.12 : o.isSpotLight ? 1.7 : o.isPointLight ? 0.18 : o.isHemisphereLight ? 0.5 : 0.7; o.intensity = o.userData.base * k; });
+  for (const f of room.flick) f.base = f.L.userData.base * (on ? 0.18 : 1);
+  for (const g of room.glows) g.s.material.opacity = on ? 0.35 : 1;
+  R.mat.final.uniforms.uExpo.value = on ? 1.1 : room.exposure;
+  for (const a of SCENE.actors) a.setVisible(!on && (a === SCENE.player ? true : a.livesIn('throne') && !a.offstage));
+};
 THRONE.onUpdate = function (dt) { COURT.update(dt); };

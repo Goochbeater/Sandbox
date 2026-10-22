@@ -2,6 +2,7 @@
 # Builds the demo as ONE self-contained page (three.js r160 + engine/*.js + game/*.js + the baked CC0 character assets):
 #   build/index.html     full document — open it straight from disk
 #   build/artifact.html  the same page without the <html>/<head>/<body> wrapper, for publishing as a claude.ai artifact
+#   build/audio/         the music and the coin (published next to the page as artifact files)
 set -e
 cd "$(dirname "$0")"
 mkdir -p build
@@ -24,5 +25,6 @@ BODY=$(mktemp)
 cp "$BODY" build/artifact.html
 { printf '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n</head>\n<body>\n'; cat "$BODY"; printf '</body>\n</html>\n'; } > build/index.html
 rm -f "$JS" "$BODY"
-chmod 644 build/*.html
+mkdir -p build/audio && cp audio/*.mp3 build/audio/   # music is streamed beside the page, not embedded
+chmod 644 build/*.html build/audio/*
 ls -la build | tail -n +2

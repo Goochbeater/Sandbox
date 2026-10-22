@@ -122,10 +122,10 @@ R.updateReflection = function () {
   R.texMat.set(0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 0.5, 0.5, 0, 0, 0, 1).multiply(rc.projectionMatrix).multiply(rc.matrixWorldInverse);
 };
 R.frame = function (t) {
-  const r = R.r, m = R.mat, rt = R.rt;
+  const r = R.r, m = R.mat, rt = R.rt; R.timeU.value = t;
   R.updateReflection();
   R.reflU.tRefl.value = null;
-  r.setRenderTarget(rt.refl); r.clear(); r.render(R.scene, R.reflCam);
+  r.setRenderTarget(rt.refl); r.clear(); if (R.reflU.uReflK.value > 0) r.render(R.scene, R.reflCam);   // dry rooms skip the mirror pass
   R.reflU.tRefl.value = rt.refl.texture;
   r.setRenderTarget(rt.scene); r.clear(); r.render(R.scene, R.cam);
   const fx = R.fx;

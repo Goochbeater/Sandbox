@@ -22,7 +22,34 @@ class Room {
 }
 const BUILD = { room: null, mats: {} };
 BUILD.begin = function (room) { BUILD.room = room; return room; };
-BUILD.end = function () { const r = BUILD.room; BUILD.room = null; return r; };
+BUILD.end = function () { const r = BUILD.room; if (!r.noMerge) BUILD.merge(r); r.built = true; BUILD.room = null; return r; };
+/* static batching: every plain mesh in the room that shares a material, layer and shadow flags is merged into one
+   geometry, so a room of a few hundred boxes and cards draws in a few dozen calls. Things marked { dyn: true } (and
+   anything animated, toggled or multi-material) stay separate. */
+BUILD.merge = function (room) {
+  room.group.updateMatrixWorld(true);
+  const groups = new Map();
+  for (const o of room.group.children) {
+    if (!o.isMesh || o.isSkinnedMesh || o.userData.dyn || Array.isArray(o.material)) continue;
+    const g = o.geometry; if (!g.attributes.position || !g.attributes.normal || !g.attributes.uv) continue;
+    const key = o.material.uuid + '|' + o.layers.mask + '|' + o.castShadow + '|' + o.receiveShadow + '|' + o.renderOrder;
+    if (!groups.has(key)) groups.set(key, []); groups.get(key).push(o);
+  }
+  let before = 0, after = 0;
+  for (const list of groups.values()) {
+    before += list.length; if (list.length < 2) { after++; continue; }
+    let nv = 0, ni = 0; for (const o of list) { nv += o.geometry.attributes.position.count; ni += o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count; }
+    const P = new Float32Array(nv * 3), N = new Float32Array(nv * 3), U = new Float32Array(nv * 2), I = new Uint32Array(ni); let vo = 0, io = 0;
+    for (const o of list) { const g = o.geometry.clone(); g.applyMatrix4(o.matrixWorld); const c = g.attributes.position.count;
+      P.set(g.attributes.position.array, vo * 3); N.set(g.attributes.normal.array, vo * 3); U.set(g.attributes.uv.array, vo * 2);
+      if (g.index) { const s = g.index.array; for (let k = 0; k < s.length; k++) I[io + k] = s[k] + vo; io += s.length; } else { for (let k = 0; k < c; k++) I[io + k] = vo + k; io += c; }
+      vo += c; g.dispose(); o.geometry.dispose(); room.group.remove(o); }
+    const mg = new THREE.BufferGeometry(); mg.setAttribute('position', new THREE.BufferAttribute(P, 3)); mg.setAttribute('normal', new THREE.BufferAttribute(N, 3)); mg.setAttribute('uv', new THREE.BufferAttribute(U, 2)); mg.setIndex(new THREE.BufferAttribute(I, 1)); mg.computeBoundingSphere();
+    const m = new THREE.Mesh(mg, list[0].material); m.layers.mask = list[0].layers.mask; m.castShadow = list[0].castShadow; m.receiveShadow = list[0].receiveShadow; m.renderOrder = list[0].renderOrder; m.userData.merged = list.length;
+    room.group.add(m); after++;
+  }
+  room.batch = { before, after };
+};
 BUILD.std = function (tex, o) {
   o = o || {};
   const key = (tex ? tex.uuid : 'none') + JSON.stringify(o); if (BUILD.mats[key]) return BUILD.mats[key];
@@ -44,6 +71,7 @@ BUILD.add = function (obj, o) {
   o = o || {};
   if (obj.isMesh) { obj.castShadow = o.cast !== false; obj.receiveShadow = o.recv !== false; }
   if (o.layer !== undefined) obj.layers.set(o.layer);
+  if (o.dyn) obj.userData.dyn = true;
   (o.parent || BUILD.room.group).add(obj); return obj;
 };
 /* box spanning x0..x1, y0..y1, z0..z1. o: { taper: [kx, kz] (narrow the top), front: material for the +z face, col, rough, cast } */
@@ -76,7 +104,7 @@ BUILD.card = function (tex, x, y, z, o) {
   const m = o.mat || (o.basic ? new THREE.MeshBasicMaterial({ map: tex, color: new THREE.Color(o.col || 0xffffff).multiplyScalar(o.k || 1), alphaTest: 0.5, side: THREE.DoubleSide })
     : BUILD.std(tex, { alpha: true, side: THREE.DoubleSide, rough: o.rough, col: o.col }));
   const me = new THREE.Mesh(g, m); me.position.set(x, y, z); if (o.ry) me.rotation.y = o.ry; if (o.rx) me.rotation.x = o.rx;
-  return BUILD.add(me, { cast: o.cast !== undefined ? o.cast : true, recv: true, layer: o.layer, parent: o.parent });
+  return BUILD.add(me, { cast: o.cast !== undefined ? o.cast : true, recv: true, layer: o.layer, parent: o.parent, dyn: o.dyn || !!o.mat });
 };
 /* animated flame card (k = HDR brightness so it blooms) */
 BUILD.flame = function (x, y, z, s, big, o) {
@@ -103,7 +131,7 @@ BUILD.shadow = function (L, size) { L.castShadow = true; L.shadow.mapSize.set(si
 BUILD.shaft = function (x, y, z, w, len, alpha, rot, col) {
   const g = new THREE.PlaneGeometry(w, len); g.translate(0, -len / 2, 0);
   const m = new THREE.MeshBasicMaterial({ map: PX.T.shaft, color: new THREE.Color(col || 0xffc887).multiplyScalar(alpha), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, side: THREE.DoubleSide });
-  const me = new THREE.Mesh(g, m); me.position.set(x, y, z); me.rotation.set(rot[0], rot[1], rot[2]); BUILD.add(me, { cast: false });
+  const me = new THREE.Mesh(g, m); me.position.set(x, y, z); me.rotation.set(rot[0], rot[1], rot[2]); BUILD.add(me, { cast: false, dyn: true });
   BUILD.room.shafts.push({ me, ph: x * 9 }); return me;
 };
 /* a rug or runner lying on the floor; o.ru / o.rv repeat the texture (a runner tiles along its length), o.y lifts it (onto a step) */

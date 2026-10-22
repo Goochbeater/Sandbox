@@ -2,20 +2,24 @@
    (keys, hold-to-walk, tap-to-walk, tap a marker), the ◇ markers over things worth a closer look, speech bubbles and
    conversations, the pause menu. Game code talks to it through:
      SCENE.addRoom(room)  SCENE.addActor(actor)  SCENE.go(id, { x, face })  SCENE.say(actor, text)
-     SCENE.talk([[actor, text], …])  SCENE.cycle(key, lines)  SCENE.caption(title, sub)  SCENE.lock / SCENE.modal */
+     SCENE.talk([[actor, text], …])  SCENE.cycle(key, lines)  SCENE.caption(title, sub)  SCENE.lock / SCENE.modal / SCENE.menu */
 const SCENE = { rooms: {}, room: null, actors: [], player: null, lock: 0, modal: false, near: null, marks: [], camX: 0, dir: 0, bubble: null, lineIdx: {}, touch: false, moved: false, ft: [], autoQ: false };
+SCENE.DOF0 = { uNear0: 0.8, uNearR: 3.2, uFar0: 3.0, uFarR: 10 };   // depth-of-field ramps (m) every room starts from; room.dof overrides
 SCENE.addRoom = function (room) { SCENE.rooms[room.id] = room; return room; };
 SCENE.addActor = function (a) { SCENE.actors.push(a); return a; };
 /* switch rooms at once (used at boot and behind the fade) */
 SCENE.enter = function (id, at) {
   at = at || {};
   if (SCENE.room) R.scene.remove(SCENE.room.group);
-  const room = SCENE.rooms[id]; SCENE.room = room; R.scene.add(room.group);
+  const room = SCENE.rooms[id]; if (!room.built) room.build();   // rooms are built the first time they're entered
+  SCENE.room = room; R.scene.add(room.group);
+  if (!CUT.playing || at.sound) { if (room.music !== undefined) AUDIO.playMusic(room.music); AUDIO.ambience(room.ambience || {}); AUDIO.acoustics(room.acoustics || { size: 1.4, wet: 0.2 }); }
   R.reflU.uReflK.value = room.reflK; R.mat.final.uniforms.uExpo.value = room.exposure;
+  R.cam.near = room.near || 1; R.cam.far = room.far || 70; R.dofU.uCNear.value = R.cam.near; R.dofU.uCFar.value = R.cam.far;   // outdoor rooms see much further
   R.baseFov = room.cam.fov; R.cam.fov = room.cam.fov * R.fovK; R.cam.updateProjectionMatrix();
-  for (const k in room.dof || {}) R.dofU[k].value = room.dof[k];
+  for (const k in SCENE.DOF0) R.dofU[k].value = SCENE.DOF0[k]; for (const k in room.dof || {}) R.dofU[k].value = room.dof[k];
   const P = SCENE.player; if (P) { P.stand(); P.x = at.x !== undefined ? at.x : P.x; P.z = room.KZ; P.face = at.face || P.face; P.yaw = P.face * 1.0; P.target = null; P.v = 0; }
-  for (const a of SCENE.actors) a.setVisible(a === P || (a.home === id && !a.offstage));
+  for (const a of SCENE.actors) { if (a !== P) a.placeIn(id); a.setVisible(a === P ? !room.noPlayer : a.livesIn(id) && !a.offstage); }
   SCENE.buildMarks(); SCENE.bubbleOff();
   R.r.shadowMap.needsUpdate = true;
   SCENE.camX = SCENE.camGoal(true);
@@ -65,6 +69,8 @@ SCENE.initInput = function () {
   const dirFromKeys = () => (keys.ArrowRight || keys.KeyD ? 1 : 0) - (keys.ArrowLeft || keys.KeyA ? 1 : 0);
   window.addEventListener('keydown', (e) => {
     if (e.repeat) return;
+    if (CUT.playing) { if (e.code === 'Escape' || e.code === 'KeyE' || e.code === 'Space' || e.code === 'Enter') { CUT.skip = true; e.preventDefault(); } return; }
+    if (SCENE.menu) return;   // a title screen or other full-screen menu owns the keys
     if (e.code === 'Escape' || e.code === 'KeyP') { if (!SCENE.modal) SCENE.pause(!G.paused); e.preventDefault(); return; }
     if (G.paused) return;
     keys[e.code] = true;
@@ -77,7 +83,7 @@ SCENE.initInput = function () {
   // touch / mouse: hold to walk toward the pointer, a quick tap walks to the spot (or to the nearest marker)
   const view = $('view'); let hold = null;
   view.addEventListener('pointerdown', (e) => {
-    if (G.paused || SCENE.modal) return; if (e.pointerType === 'touch') SCENE.touch = true; SCENE.hint();
+    if (G.paused || SCENE.modal || SCENE.menu) return; if (e.pointerType === 'touch') SCENE.touch = true; SCENE.hint();
     if (SCENE.advance()) return;
     if (SCENE.lock) return;
     hold = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(), held: false };
@@ -91,7 +97,9 @@ SCENE.initInput = function () {
   SCENE.holdTick = () => { if (!hold) return; if (SCENE.lock || SCENE.modal) { hold = null; SCENE.dir = 0; return; }
     if (!hold.held && performance.now() - hold.t > 170) { hold.held = true; SCENE.player.target = null; SCENE.player.onArrive = null; }
     if (hold.held) { const r = view.getBoundingClientRect(), P = SCENE.player, k = R.toView(new THREE.Vector3(P.x, 1 + P.y, P.z), {}); const dx = hold.x - r.left - k.x; SCENE.dir = Math.abs(dx) < 14 ? 0 : Math.sign(dx); if (SCENE.dir) SCENE.onMove(); } };
-  $('pauseBtn').addEventListener('click', () => { if (!SCENE.modal) SCENE.pause(true); });
+  $('pauseBtn').addEventListener('click', () => { if (!SCENE.modal && !CUT.playing) SCENE.pause(true); });
+  $('skipBtn').addEventListener('click', () => { CUT.skip = true; });
+  Actor.onStep = (a) => { const rm = SCENE.room; AUDIO.step(rm.surfaceAt ? rm.surfaceAt(a.x, a.z) : rm.surface || 'stone', a.x, a.z); };
   $('resumeBtn').addEventListener('click', () => SCENE.pause(false));
   $('qualBtn').addEventListener('click', () => { R.q = R.q === 'high' ? 'low' : 'high'; R.resize(); SCENE.labels(); });
   $('fxBtn').addEventListener('click', () => { R.fx = !R.fx; SCENE.labels(); });
@@ -126,14 +134,17 @@ SCENE.update = function (dt) {
   const x0 = room.X0 + 1.0, x1 = room.X1 - 0.9; if (!P.sitting && (P.x < x0 || P.x > x1)) { P.x = clamp(P.x, x0, x1); P.v = 0; }
   if (room.onUpdate) room.onUpdate(dt);
   // camera on a rail
-  SCENE.camX = damp(SCENE.camX, SCENE.camGoal(), 2.2, dt);
-  const cam = room.cam; R.cam.position.set(SCENE.camX, cam.y, room.KZ + cam.dist); R.cam.lookAt(SCENE.camX, cam.look, room.KZ);
-  R.dofU.uFocus.value = cam.dist + (room.focusDz || 0);
+  if (!CUT.apply(dt)) {
+    SCENE.camX = damp(SCENE.camX, SCENE.camGoal(), 2.2, dt);
+    const cam = room.cam; R.cam.position.set(SCENE.camX, cam.y, room.KZ + cam.dist); R.cam.lookAt(SCENE.camX, cam.look, room.KZ);
+    if (Math.abs(R.cam.fov - cam.fov * R.fovK) > 1e-3) { R.cam.fov = cam.fov * R.fovK; R.cam.updateProjectionMatrix(); }
+    R.dofU.uFocus.value = cam.dist + (room.focusDz || 0);
+  }
   // markers, the bubble
   SCENE.near = null; let nd = 9;
   if (!SCENE.lock && !SCENE.modal) for (const m of SCENE.marks) { const it = m.it; if (it.hidden || !!it.seated !== !!P.sitting) continue;
     if (P.sitting) { SCENE.near = it; break; } const d = Math.abs(P.x - it.x); if (d < it.r && d < nd) { nd = d; SCENE.near = it; } }
-  const quiet = SCENE.lock || SCENE.modal || G.t < (SCENE.markDelay || 0);
+  const quiet = SCENE.lock || SCENE.modal || CUT.playing || G.t < (SCENE.markDelay || 0);
   for (const m of SCENE.marks) { R.toView(m.it.p, m.pos); const show = !quiet && !m.it.hidden && !!m.it.seated === !!P.sitting && (P.sitting || Math.abs(P.x - m.it.x) < (m.it.far || 4.2)) && m.pos.x > 0 && m.pos.x < R.vw;
     m.el.classList.toggle('show', show && !(SCENE.bubble && SCENE.near === m.it)); m.el.classList.toggle('near', SCENE.near === m.it); m.el.style.left = m.pos.x + 'px'; m.el.style.top = m.pos.y + 'px'; }
   const B = SCENE.bubble;

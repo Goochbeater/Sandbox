@@ -741,7 +741,12 @@ function render(rdt) {
           if (o.spr.tree) { const d = Math.hypot(P.x - o.x, (P.y - 20 - (o.y + o.spr.cy)) * 1.25); if (d < o.spr.canopy * .85) ta = lerp(.22, 1, clamp((d - o.spr.canopy * .45) / (o.spr.canopy * .4), 0, 1)); }
           else { const top = o.y + o.spr.oy; if (P.y < o.y - 2 && P.y > top + 20 && Math.abs(P.x - o.x) < o.spr.wu * .4) ta = o.big ? .3 : .5; }
           if (o.ring) ta = Math.min(ta, .9);
-          if (o.spr.warp) { ta = Math.max(ta, .3); o.fade = lerp(o.fade || 1, ta, .14); const sway = Math.sin(G.t * .55 + o.x * .013) * 5 + Math.sin(G.t * 1.3 + o.y * .02) * 2; drawSprWarp(o.spr, o.x, o.y, o.fade, sway); if (o.spr.e) EMISQ.push({ s: o.spr, x: o.x, y: o.y, a: o.fade, sway }); }
+          if (o.spr.warp) {
+            const sp = o.spr, occ = P && o.y > P.y - 6 && P.x > o.x + sp.ox - 30 && P.x < o.x + sp.ox + sp.wu + 30 && P.y - 30 > o.y + sp.oy - 30;
+            if (occ) ta = 1; else ta = Math.max(ta, .3);
+            o.fade = lerp(o.fade || 1, ta, .14); const sway = Math.sin(G.t * .55 + o.x * .013) * 5 + Math.sin(G.t * 1.3 + o.y * .02) * 2;
+            if (occ) drawTreeCut(o, o.fade, sway); else drawSprWarp(sp, o.x, o.y, o.fade, sway);
+            if (sp.e) EMISQ.push({ s: sp, x: o.x, y: o.y, a: o.fade * (occ ? .35 : 1), sway }); }
           else { o.fade = lerp(o.fade || 1, ta, .14); drawSpr(o.spr, o.x, o.y, o.fade); }
           if (o.spr.glowy) { const ly = o.spr.warp ? o.spr.cy * .5 : -40; G.lights.push({ x: o.x, y: o.y + ly, r: o.spr.warp ? 300 : 190, i: .6, col: '#ff7a2a' }); if (!o.spr.warp) glowPost(o.x, o.y - 40, 46, '#ff6a1a', .25); }
         } else if (o.kind) drawHubObst(o);

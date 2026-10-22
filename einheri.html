@@ -2326,14 +2326,31 @@ function pCrate(seed) {
   ] });
 }
 /* draw a sprite bent by wind: horizontal strips slid sideways, more toward the top */
-function drawSprWarp(s, x, y, a, sway, src = s.c, add = false) {
-  if (a < 1) ctx.globalAlpha = a;
+function drawSprWarp(s, x, y, a, sway, src = s.c, add = false, g = ctx) {
+  if (a < 1) g.globalAlpha = a;
   const n = 18, sh = src.height / n, dh = s.hu / n, baseY = -s.oy; // anchor row in units from the sprite top
   for (let i = 0; i < n; i++) {
     const yu = i * dh, h = Math.max(0, (baseY - yu) / baseY), off = sway * h * h;
-    ctx.drawImage(src, 0, i * sh, src.width, add ? sh : sh + 1, x + s.ox + off, y + s.oy + yu, s.wu, add ? dh : dh + s.hu / src.height);
+    g.drawImage(src, 0, i * sh, src.width, add ? sh : sh + 1, x + s.ox + off, y + s.oy + yu, s.wu, add ? dh : dh + s.hu / src.height);
   }
-  if (a < 1) ctx.globalAlpha = 1;
+  if (a < 1) g.globalAlpha = 1;
+}
+/* a tree standing between the camera and the hero: drawn with a soft hole cut around him, so the fight stays readable */
+const OCC = { c: null, g: null };
+function drawTreeCut(o, a, sway) {
+  const s = o.spr, cw = cv.width, ch = cv.height;
+  if (!OCC.c || OCC.c.width !== cw || OCC.c.height !== ch) { OCC.c = mkCanvas(cw, ch); OCC.g = OCC.c.getContext('2d'); }
+  const g = OCC.g, T = ctx.getTransform();
+  const x0 = T.a * (o.x + s.ox - 40) + T.e, y0 = T.d * (o.y + s.oy) + T.f, x1 = T.a * (o.x + s.ox + s.wu + 40) + T.e, y1 = T.d * (o.y + s.oy + s.hu) + T.f;
+  const bx = Math.max(0, x0 | 0), by = Math.max(0, y0 | 0), bw = Math.min(cw, Math.ceil(x1)) - bx, bh = Math.min(ch, Math.ceil(y1)) - by;
+  if (bw <= 0 || bh <= 0) return;
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; g.clearRect(bx, by, bw, bh);
+  g.setTransform(T); drawSprWarp(s, o.x, o.y, 1, sway, s.c, false, g);
+  g.globalCompositeOperation = 'destination-out';
+  const px = P.x, py = P.y - 30, R = 170, gr = g.createRadialGradient(px, py, R * .3, px, py, R);
+  gr.addColorStop(0, 'rgba(0,0,0,.94)'); gr.addColorStop(.6, 'rgba(0,0,0,.6)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = gr; g.beginPath(); g.arc(px, py, R, 0, TAU); g.fill(); g.globalCompositeOperation = 'source-over';
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = a; ctx.drawImage(OCC.c, bx, by, bw, bh, bx, by, bw, bh); ctx.restore();
 }
 /* emissive overlays queued during the sort pass, drawn additively after the light map */
 const EMISQ = [];
@@ -7961,7 +7978,12 @@ function render(rdt) {
           if (o.spr.tree) { const d = Math.hypot(P.x - o.x, (P.y - 20 - (o.y + o.spr.cy)) * 1.25); if (d < o.spr.canopy * .85) ta = lerp(.22, 1, clamp((d - o.spr.canopy * .45) / (o.spr.canopy * .4), 0, 1)); }
           else { const top = o.y + o.spr.oy; if (P.y < o.y - 2 && P.y > top + 20 && Math.abs(P.x - o.x) < o.spr.wu * .4) ta = o.big ? .3 : .5; }
           if (o.ring) ta = Math.min(ta, .9);
-          if (o.spr.warp) { ta = Math.max(ta, .3); o.fade = lerp(o.fade || 1, ta, .14); const sway = Math.sin(G.t * .55 + o.x * .013) * 5 + Math.sin(G.t * 1.3 + o.y * .02) * 2; drawSprWarp(o.spr, o.x, o.y, o.fade, sway); if (o.spr.e) EMISQ.push({ s: o.spr, x: o.x, y: o.y, a: o.fade, sway }); }
+          if (o.spr.warp) {
+            const sp = o.spr, occ = P && o.y > P.y - 6 && P.x > o.x + sp.ox - 30 && P.x < o.x + sp.ox + sp.wu + 30 && P.y - 30 > o.y + sp.oy - 30;
+            if (occ) ta = 1; else ta = Math.max(ta, .3);
+            o.fade = lerp(o.fade || 1, ta, .14); const sway = Math.sin(G.t * .55 + o.x * .013) * 5 + Math.sin(G.t * 1.3 + o.y * .02) * 2;
+            if (occ) drawTreeCut(o, o.fade, sway); else drawSprWarp(sp, o.x, o.y, o.fade, sway);
+            if (sp.e) EMISQ.push({ s: sp, x: o.x, y: o.y, a: o.fade * (occ ? .35 : 1), sway }); }
           else { o.fade = lerp(o.fade || 1, ta, .14); drawSpr(o.spr, o.x, o.y, o.fade); }
           if (o.spr.glowy) { const ly = o.spr.warp ? o.spr.cy * .5 : -40; G.lights.push({ x: o.x, y: o.y + ly, r: o.spr.warp ? 300 : 190, i: .6, col: '#ff7a2a' }); if (!o.spr.warp) glowPost(o.x, o.y - 40, 46, '#ff6a1a', .25); }
         } else if (o.kind) drawHubObst(o);

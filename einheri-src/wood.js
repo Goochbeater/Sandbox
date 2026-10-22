@@ -94,14 +94,31 @@ function pCrate(seed) {
   ] });
 }
 /* draw a sprite bent by wind: horizontal strips slid sideways, more toward the top */
-function drawSprWarp(s, x, y, a, sway, src = s.c, add = false) {
-  if (a < 1) ctx.globalAlpha = a;
+function drawSprWarp(s, x, y, a, sway, src = s.c, add = false, g = ctx) {
+  if (a < 1) g.globalAlpha = a;
   const n = 18, sh = src.height / n, dh = s.hu / n, baseY = -s.oy; // anchor row in units from the sprite top
   for (let i = 0; i < n; i++) {
     const yu = i * dh, h = Math.max(0, (baseY - yu) / baseY), off = sway * h * h;
-    ctx.drawImage(src, 0, i * sh, src.width, add ? sh : sh + 1, x + s.ox + off, y + s.oy + yu, s.wu, add ? dh : dh + s.hu / src.height);
+    g.drawImage(src, 0, i * sh, src.width, add ? sh : sh + 1, x + s.ox + off, y + s.oy + yu, s.wu, add ? dh : dh + s.hu / src.height);
   }
-  if (a < 1) ctx.globalAlpha = 1;
+  if (a < 1) g.globalAlpha = 1;
+}
+/* a tree standing between the camera and the hero: drawn with a soft hole cut around him, so the fight stays readable */
+const OCC = { c: null, g: null };
+function drawTreeCut(o, a, sway) {
+  const s = o.spr, cw = cv.width, ch = cv.height;
+  if (!OCC.c || OCC.c.width !== cw || OCC.c.height !== ch) { OCC.c = mkCanvas(cw, ch); OCC.g = OCC.c.getContext('2d'); }
+  const g = OCC.g, T = ctx.getTransform();
+  const x0 = T.a * (o.x + s.ox - 40) + T.e, y0 = T.d * (o.y + s.oy) + T.f, x1 = T.a * (o.x + s.ox + s.wu + 40) + T.e, y1 = T.d * (o.y + s.oy + s.hu) + T.f;
+  const bx = Math.max(0, x0 | 0), by = Math.max(0, y0 | 0), bw = Math.min(cw, Math.ceil(x1)) - bx, bh = Math.min(ch, Math.ceil(y1)) - by;
+  if (bw <= 0 || bh <= 0) return;
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; g.clearRect(bx, by, bw, bh);
+  g.setTransform(T); drawSprWarp(s, o.x, o.y, 1, sway, s.c, false, g);
+  g.globalCompositeOperation = 'destination-out';
+  const px = P.x, py = P.y - 30, R = 170, gr = g.createRadialGradient(px, py, R * .3, px, py, R);
+  gr.addColorStop(0, 'rgba(0,0,0,.94)'); gr.addColorStop(.6, 'rgba(0,0,0,.6)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = gr; g.beginPath(); g.arc(px, py, R, 0, TAU); g.fill(); g.globalCompositeOperation = 'source-over';
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = a; ctx.drawImage(OCC.c, bx, by, bw, bh, bx, by, bw, bh); ctx.restore();
 }
 /* emissive overlays queued during the sort pass, drawn additively after the light map */
 const EMISQ = [];

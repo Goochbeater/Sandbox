@@ -129,6 +129,40 @@ Painting tips that held up: shade with 4–6 step ramps; light comes from the to
 darker rim (`outline(null, 0.6–0.7)`); add `jitter(0.02–0.05)` to big surfaces so they don't look vector-flat; keep
 saturated colours for small accents (flowers, gems, banners) and let walls stay muted.
 
+### The pixel-scale rule (read this before building anything outdoors)
+
+The rooms look right because **one texel lands on about 3 screen pixels**: 32 texels/m seen from 19.4 m at fov 19.
+The first title-screen fortress broke that rule (14 texels/m seen from 100+ m, so texels shrank below 1.5 px). It
+also tiled one noise texture over everything, and it looked like grey mush. The fix was to build it the way the rooms
+are built:
+
+1. **Match the density to the camera.** `BUILD.density(distance, fov)` gives the texels/m that match the rooms at
+   that distance (≈ 5.5 for the title view). Put it on the texture (`texture.userData.d`); `planarUV`, cards and the
+   architecture painters all respect it.
+2. **Paint each face to its size, the way furniture is painted.** No tiled noise: `PX.facade`, `PX.towerWrap` and
+   `PX.coneWrap` (in `engine/e12_arch.js`) paint each wall, drum and roof as one pixel-art picture: a 6-colour
+   ramp, top-edge highlights, dark mortar, grime from the foot, rain streaks, ivy, and windows with a separate glow mask.
+3. **Compose in three layers**: a dark foreground (the hill, blurred by the depth of field), the sharp subject, and a
+   backdrop painted once (the sky, two mountain ridges). Keep the subject's value clear of the sky behind it.
+4. **Design the light**: one cool key with shadows from the front, a rim from behind for the silhouette, and warm
+   pools (torches, windows) where you want the eye to go. Lights that simply get dimmer don't read as night;
+   switch lights off instead (see `THRONE.night`).
+
+A close shot inside an outdoor room (the clearing in the Wood) needs its own 32 texels/m ground, because the title's
+coarse textures fall apart at 10 m.
+
+### Architecture painters (`engine/e12_arch.js`)
+
+`BUILD.facade(x0, x1, y0, y1, z0, z1, f)` builds a box whose +z face is painted to size; `BUILD.tower(x, z, y0, y1, r, f)`
+builds a drum with a texture that goes once round (u = 0 faces the camera); `BUILD.coneRoof(x, z, y, r, h, ramp, d)` adds
+a tiled cone (seg 4 makes a pyramid). `f = { ramp, d, seed, tile, win: [[x, y, kind, lit]], arch: [x, w, h], crest: [x, y],
+bands: [y], ivy: [[x, w, h]], grime, streaks }`. Window kinds: slit, lancet, tall, square, rose; lit windows get glow sprites.
+`PX.stoneTile` / `PX.tileRoof` make repeatable courses for the faces nobody looks at straight on. Ramps live in
+`RAMP` in `game/g15_paint_exterior.js`.
+
+`build.sh` refuses to build if any `PX.x =`, `BUILD.x =`, … is defined twice. A game painter named `PX.window` once
+silently replaced the engine's window painter, which is why the fortress's windows didn't appear.
+
 ## 5. Rooms: the builder API (`engine/e03_build.js`)
 
 A `Room` is a `THREE.Group` plus what the scene needs to run it:

@@ -188,7 +188,8 @@ class Actor {
     const S = this.spec, walk = S.walk || 'Walk_Loop'; this.phase += dt * sp / QA.speed(walk);
     { const n = Math.floor(this.phase / (QA.clips[walk].dur / 2)); if (n !== this.stepN) { this.stepN = n; if (sp > 0.25 && Actor.onStep && this.visible) Actor.onStep(this); } }
     this.sitK = damp(this.sitK, this.sitting ? 1 : 0, 5, dt);
-    const L = [[S.idle || 'Idle_Loop', this.idleT, 1], ['Sitting_Idle_Loop', this.idleT, this.sitK], ['Idle_Talking_Loop', this.idleT * 0.9, this.talk * 0.85 * (1 - this.sitK)], [walk, this.phase, smooth(0.04, 0.55, sp)]];
+    const H2 = this.curHome || {}, ir = H2.idleRange || S.idleRange, it = ir ? ir[0] + this.idleT % (ir[1] - ir[0]) : this.idleT;   // idleRange: loop only part of a clip (hold a kneel)
+    const L = [[S.idle || 'Idle_Loop', it, 1], ['Sitting_Idle_Loop', this.idleT, this.sitK], ['Idle_Talking_Loop', this.idleT * 0.9, this.talk * 0.85 * (1 - this.sitK)], [walk, this.phase, smooth(0.04, 0.55, sp)]];
     if (this.actClip) { this.actT += dt; const c = QA.clips[this.actClip], w = smooth(0, 0.25, this.actT) * smooth(c.dur, c.dur - 0.35, this.actT);
       L.push([this.actClip, Math.min(this.actT, c.dur - 0.02), w * 0.9]);
       if (this.actEv && this.actT >= this.actEv.at) { const f = this.actEv.fn; this.actEv = null; f(this); }
@@ -236,11 +237,11 @@ class Actor {
     K.position.set(this.x - 2.5, 4 + this.y, this.z + 6); K.target.position.set(this.x, 1.2 + this.y, this.z); K.intensity = room && room.keyK !== undefined ? room.keyK : 1.1;
     if (rs) { RM.position.set(rs[0], rs[1], rs[2]); RM.target.position.set(this.x, 1.2 + this.y, this.z); RM.color.set(rs[5] || 0xffa860);
       RM.intensity = rs[3] * smooth(rs[4], 1, Math.abs(this.x - rs[0])) * (rs[6] ? rs[6].intensity / rs[6].userData.base : 1); } else RM.intensity = 0;
-    const bg = R.scene.background; R.scene.background = null; r.setClearColor(0x000000, 0);
+    const bg = R.scene.background, fog = R.scene.fog; R.scene.background = null; R.scene.fog = null; r.setClearColor(0x000000, 0);   // the sprite is lit, not fogged; its card is
     r.setRenderTarget(this.rt); r.clear(); r.render(R.scene, cam);
     this.fx.uniforms.t.value = this.fxU.t; this.fx.uniforms.uTexel.value.copy(this.fxU.texel);
     R.quad.material = this.fx; r.setRenderTarget(this.rt2); r.clear(); r.render(R.quadScene, R.quadCam);
-    R.scene.background = bg;
+    R.scene.background = bg; R.scene.fog = fog;
     // floor shadows: a soft contact blob, and the sprite's silhouette projected from the room's main low light
     this.blob.position.set(this.x, this.y + 0.008, this.z + 0.02);
     const ss = room && room.shadowSrc;

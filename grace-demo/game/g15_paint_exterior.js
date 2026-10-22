@@ -96,3 +96,87 @@ PX.def('tent', () => { const W = 48, H = 30, p = new Pix(W, H); for (let y = 0; 
   p.set(x, y, Math.abs(x + 0.5 - 24) < 2 && y > 14 ? 0x1a1410 : C.mix(0xb8ae98, 0x6a6258, Math.abs(x - 24) / 24 + (x % 7 === 0 ? 0.1 : 0))); } p.vl(24, 0, 2, 0x3a2a1a); return p.outline(null, 0.7).tex(); });
 PX.def('smokeSoft', () => { const cv = document.createElement('canvas'), s = 64; cv.width = cv.height = s; const g = cv.getContext('2d'), r = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
   r.addColorStop(0, 'rgba(255,255,255,0.8)'); r.addColorStop(0.5, 'rgba(255,255,255,0.35)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, s, s); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; });
+/* ---------------------------------------------------------------- the fortress as a diorama: palettes for the
+   architecture painters (engine/e12_arch.js), and the land, sky and ridges painted at the title view's pixel scale */
+const RAMP = {
+  stone: [0x2a2430, 0x4a4048, 0x6a5e60, 0x8a7c76, 0xa8988a, 0xc4b4a0],     // the curtain wall: warm grey, moonlit
+  inner: [0x26222c, 0x403a44, 0x5a5258, 0x766c6c, 0x908478, 0xa89a8a],     // buildings inside the walls
+  keep: [0x2e2834, 0x4e4650, 0x726868, 0x948a82, 0xb2a696, 0xccc0aa],      // the keep, paler and newer
+  red: [0x2a0e14, 0x4a1418, 0x6e1e1c, 0x922c22, 0xb2402c, 0xcc5a3a],       // clay roofs
+  slate: [0x14161e, 0x22283a, 0x323a52, 0x46506a, 0x5c6884, 0x7480a0],     // slate roofs
+  rock: [0x16141c, 0x24202a, 0x352f38, 0x48404a, 0x5c525a, 0x726668],
+};
+const dens = (t, d, tint) => { t.userData.d = d; if (tint !== undefined) t.userData.tint = tint; return t; };
+PX.def('cragPix', () => {   // the crag as pixel-art rock: boulder cells with a lit upper-left rim, a shadowed lower-right, dark cracks between, moss on top
+  const W = 64, H = 64, p = new Pix(W, H), R = RAMP.rock, seeds = [];
+  for (let i = 0; i < 16; i++) seeds.push([hash(i, 1, 260) * W, hash(i, 2, 260) * H * 1.0, Math.floor(hash(i, 3, 260) * 2)]);
+  const near = (x, y) => { let a = 1e9, b = 1e9, ai = 0; for (let i = 0; i < seeds.length; i++) for (const ox of [-W, 0, W]) for (const oy of [-H, 0, H]) {
+    const dx = (x - seeds[i][0] - ox) * 1.0, dy = (y - seeds[i][1] - oy) * 1.5, d = Math.hypot(dx, dy); if (d < a) { b = a; a = d; ai = i; } else if (d < b) b = d; } return { a, b, i: ai }; };
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const n = near(x + 0.5, y + 0.5), s0 = seeds[n.i], edge = n.b - n.a;
+    let c = 2 + s0[2]; const up = near(x + 0.5, y - 1.5).i !== n.i, left = near(x - 1.5, y + 0.5).i !== n.i, down = near(x + 0.5, y + 2.5).i !== n.i, right = near(x + 2.5, y + 0.5).i !== n.i;
+    if (up || left) c = 4 + (up && hash(x, y, 261) < 0.3 ? 1 : 0); else if (down || right) c = 1;
+    if (edge < 1.1) c = 0; else if (!up && !left && PX.dith(x, y) < 0.25 && c > 1) c -= 1;
+    p.set(x, y, PX.ramp(R, c)); if (up && hash(x, y, 262) < 0.35) p.set(x, y, hash(x, y, 263) < 0.5 ? 0x34462a : 0x26341e); }
+  return dens(p.tex({ repeat: true, aniso: 4 }), 5); });
+PX.def('turfPix', () => { const p = new Pix(32, 32), G = [0x101a14, 0x18261a, 0x203222, 0x2c402a, 0x3a5034];   // wet turf: dark field, lighter blades in little clusters
+  for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) { const n = noise1(x * 0.2 + y * 0.13, 265); let c = n > 0.6 ? 2 : 1; if (PX.dith(x, y) < (n - 0.4) * 0.8) c++;
+    if (hash(x, y, 266) < 0.06) c = 3; if (hash(x, y, 267) < 0.015) c = 4; p.set(x, y, G[c]); }
+  return dens(p.tex({ repeat: true, aniso: 4 }), 5); });
+PX.def('meadowPix', () => { const p = new Pix(64, 64), G = [0x0e1610, 0x162218, 0x1e2e1e, 0x283c26, 0x34482e];   // the meadow under the rain: grass with puddles holding the sky
+  for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) { const n = noise1(x * 0.11 + y * 0.07, 268), pud = noise1(x * 0.13 + 3, 269) * noise1(y * 0.21 + 7, 270);
+    let c = G[n > 0.55 ? 2 : 1]; if (PX.dith(x, y) < (n - 0.35) * 0.7) c = G[3]; if (hash(x, y, 271) < 0.03) c = G[4];
+    p.set(x, y, c); }
+  return dens(p.tex({ repeat: true, aniso: 4 }), 5); });
+PX.def('roadPix', () => { const p = new Pix(24, 24), M = [0x1e1814, 0x2a2018, 0x382a20, 0x46362a];
+  for (let y = 0; y < 24; y++) for (let x = 0; x < 24; x++) { const n = noise1(x * 0.3 + y * 0.25, 272), rut = (x % 12 === 3 || x % 12 === 8); let c = M[1 + (PX.dith(x, y) < n * 0.8 ? 1 : 0)];
+    if (rut) c = M[0]; if (n > 0.84) c = 0x5a6278; if (hash(x, y, 273) < 0.04) c = M[3]; p.set(x, y, c); }
+  return dens(p.tex({ repeat: true }), 5); });
+/* the night sky, painted once (not tiled): bands dithered into each other, a moon behind thinning cloud, storm cloud
+   masses with moonlit rims; brighter low down so the fortress stands out against it */
+PX.def('skyNight', () => {
+  const W = 512, H = 220, p = new Pix(W, H), S = [0x0a0c16, 0x10141f, 0x161c2c, 0x1e2639, 0x283248, 0x343f58, 0x434e68, 0x56607a, 0x6a7088], mx = W * 0.64, my = H * 0.26;
+  const cloud = (x, y) => { const n = noise1(x * 0.011 + noise1(y * 0.03, 274) * 1.5, 275) * 0.65 + noise1(x * 0.04 + y * 0.06, 276) * 0.35; return n - (0.62 - 0.3 * Math.pow(Math.abs(y / H - 0.42) * 2, 2)); };
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const t = Math.pow(y / H, 1.3) * (S.length - 1.01), md = Math.hypot((x - mx) * 0.8, y - my), halo = Math.max(0, 1 - md / 70) * 3.2, f = t + halo;
+    let c = S[clamp(Math.floor(f) + (PX.dith(x, y) < f % 1 ? 1 : 0), 0, S.length - 1)];
+    const cl = cloud(x, y); if (cl > 0) { const above = cloud(x, y - 2) <= 0, lit = Math.max(0, 1 - md / 150);
+      const C2 = [0x0e1220, 0x161c2c, 0x202940, 0x2e3a56, 0x4a5878, 0x7a88a8]; let i = cl > 0.12 ? 0 : cl > 0.05 ? 1 : 2; if (y > H * 0.55) i++; if (above) i = 3 + (lit > 0.4 ? 2 : lit > 0.1 ? 1 : 0);
+      else if (cloud(x, y - 4) <= 0 && PX.dith(x, y) < 0.5 + lit) i = Math.max(i, 3); c = C2[i]; }
+    if (md < 9) c = md < 7.5 ? (hash(x >> 1, y >> 1, 277) < 0.15 ? 0xb8c0cc : 0xe4e8ee) : 0xa8b0c4;   // the moon
+    p.set(x, y, c); }
+  return p.tex({ mip: false }); });
+PX.def('cloudBand', () => {   // a drifting strip of ragged low cloud, transparent between the rags
+  const W = 256, H = 36, p = new Pix(W, H), C2 = [0x161c2c, 0x202940, 0x2e3a56, 0x46547a];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const u = x / W * Math.PI * 2, n = noise1(Math.cos(u) * 2 + 9 + y * 0.06, 278) * 0.6 + noise1(Math.sin(u) * 5 + y * 0.15, 279) * 0.4 - Math.abs(y / H - 0.5) * 0.9;
+    if (n < 0.25) continue; const top = (noise1(Math.cos(u) * 2 + 9 + (y - 2) * 0.06, 278) * 0.6 + noise1(Math.sin(u) * 5 + (y - 2) * 0.15, 279) * 0.4 - Math.abs((y - 2) / H - 0.5) * 0.9) < 0.25;
+    p.set(x, y, C2[top ? 3 : n > 0.4 ? 0 : n > 0.32 ? 1 : 2]); }
+  return p.tex({ repeat: true, mip: false }); });
+PX.ridge = (W, H, seed, base, top, lit, trees) => { const p = new Pix(W, H);   // a mountain ridge: moonlit on the slopes facing left, a band of forest along the foot
+  for (let x = 0; x < W; x++) { const r = H * (0.15 + 0.55 * (noise1(x * 0.012, seed) * 0.7 + noise1(x * 0.05, seed + 1) * 0.3)), rn = H * (0.15 + 0.55 * (noise1((x + 1) * 0.012, seed) * 0.7 + noise1((x + 1) * 0.05, seed + 1) * 0.3));
+    for (let y = Math.floor(r); y < H; y++) { const face = rn < r && y < r + (H - r) * 0.5; p.set(x, y, y < r + 1 ? top : face && PX.dith(x, y) < 0.6 ? lit : C.mix(base, C.mul(base, 0.7), (y - r) / (H - r))); } }
+  if (trees) for (let x = 0; x < W; x += 2 + Math.floor(hash(x, 1, seed) * 3)) { const h = 3 + Math.floor(hash(x, 2, seed) * 4), y0 = H - 6 - Math.floor(hash(x, 3, seed) * 4); for (let j = 0; j < h; j++) for (let i = -Math.floor(j / 2); i <= Math.floor(j / 2); i++) p.set(x + i, y0 - h + j, trees); for (let y = y0; y < H; y++) p.set(x, y, trees); }
+  return p.tex({ mip: false }); };
+PX.def('ridgeFar', () => PX.ridge(512, 64, 280, 0x2e3850, 0x4e5a74, 0x3e4862, 0));
+PX.def('ridgeNear', () => PX.ridge(512, 72, 283, 0x1a2030, 0x323c54, 0x262e42, 0x111620));
+PX.def('forestFloor', () => { const p = new Pix(64, 64), G = [0x0e0e0a, 0x16160e, 0x1e1c12, 0x262418, 0x2e2a1c];   // the Wood at close range: needles, leaf litter, moss, a few stones
+  for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) { const n = noise1(x * 0.09 + y * 0.07, 290); let c = G[1 + (PX.dith(x, y) < n ? 1 : 0)]; if (noise1(x * 0.05 + 4, 291) * noise1(y * 0.06 + 2, 292) > 0.42) c = PX.dith(x, y) < 0.6 ? 0x1e2a16 : 0x26341c; p.set(x, y, c); }
+  for (let i = 0; i < 140; i++) { const x = hash(i, 1, 293) * 64, y = hash(i, 2, 293) * 64, a = hash(i, 3, 293) * 3.14, l = 2 + hash(i, 4, 293) * 3; for (let k = 0; k < l; k++) p.wset(Math.round(x + Math.cos(a) * k), Math.round(y + Math.sin(a) * k), hash(i, 5, 293) < 0.5 ? 0x4a3a22 : 0x3a2e1a); }
+  for (let i = 0; i < 12; i++) { const x = hash(i, 6, 293) * 64, y = hash(i, 7, 293) * 64; p.wset(x, y, 0x4a4644); p.wset(x + 1, y, 0x3a3634); p.wset(x, y - 1, 0x5a5654); }
+  return p.tex({ repeat: true, aniso: 4 }); });
+PX.def('slit', () => { const p = new Pix(3, 9); for (let y = 0; y < 9; y++) for (let x = 0; x < 3; x++) p.set(x, y, x === 1 && y > 0 && y < 8 ? 0x0a0808 : 0x4a4642); return dens(p.tex(), 6); });
+PX.def('winCastle', () => { const p = new Pix(6, 10);   // a lit lancet window, warm glass in a dark reveal
+  for (let y = 0; y < 10; y++) for (let x = 0; x < 6; x++) { if (y < 2 && Math.hypot(x - 2.5, y - 2.5) > 2.9) continue; const edge = x === 0 || x === 5 || y === 9;
+    p.set(x, y, edge ? 0x1e1a18 : x === 2 || x === 3 ? (y === 5 ? 0x5a3a1a : C.mix(0xffe0a0, 0xffa040, y / 10)) : y === 5 ? 0x5a3a1a : C.mix(0xffd890, 0xff9030, y / 10)); }
+  return dens(p.tex(), 5); });
+PX.def('gateDeep', () => { const W = 16, H = 22, p = new Pix(W, H);   // the gate passage: portcullis half raised, torchlight beyond
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { if (y < 8 && Math.hypot(x - 7.5, y - 8) > 8) continue; const edge = y < 8 ? Math.hypot(x - 7.5, y - 8) > 6.6 : x < 2 || x > 13;
+    let c = edge ? C.mul(0x6e6a66, 0.8 + 0.3 * hash(x >> 1, y >> 1, 248)) : C.mix(0x0c0806, 0x6a3a14, smooth(4, 22, y) * 0.8);
+    if (!edge && y < 13 && (x % 3 === 0 || y % 3 === 0)) c = 0x1a1612; p.set(x, y, c); }
+  return dens(p.tex(), 4); });
+PX.def('hoarding', () => { const p = new Pix(32, 16); for (let y = 0; y < 16; y++) for (let x = 0; x < 32; x++) { const pl = Math.floor(x / 4); p.set(x, y, x % 4 === 0 ? 0x1a0e08 : C.mul(0x4a2e1c, 0.8 + 0.3 * noise1(y * 0.4 + pl * 7, 249))); }
+  return dens(p.tex({ repeat: true }), 10); });
+PX.def('swanBanner', () => { const W = 10, H = 26, p = new Pix(W, H);   // a long hanging banner: blue field, white swan, gold edge, swallowtail foot
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { if (y > H - 4 && Math.abs(x - 4.5) < (y - (H - 4)) * 1.3) continue; p.set(x, y, x === 0 || x === W - 1 ? 0xc8962e : C.mix(0x2a3a7a, 0x1a2450, x / W)); }
+  p.ell(4.5, 11, 2.5, 1.5, 0xe8e8f0); p.vl(6, 6, 10, 0xe8e8f0); p.set(5, 6, 0xe8e8f0); p.set(4, 6, 0xe0902a); p.hl(1, 8, 1, 0xc8962e);
+  return dens(p.tex(), 6); });

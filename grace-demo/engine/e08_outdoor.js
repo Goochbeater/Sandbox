@@ -98,3 +98,77 @@ BUILD.water = function (tex, x, y, z, o) {
   BUILD.room.flames.push({ t, n: tex.userData.n, ph: Math.random() * 4, rate: o.rate || 7 });
   return me;
 };
+/* ---------------------------------------------------------------- architecture at a distance and the land under it */
+/* scale a generated geometry's UVs so its texture keeps its painted density (userData.d texels/m) over u × v metres */
+BUILD.uvScale = function (g, tex, um, vm) { const D = tex.userData.d || PX.D, uv = g.attributes.uv, su = um * D / tex.userData.w, sv = vm * D / tex.userData.h;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * su, uv.getY(i) * sv); return g; };
+/* a round tower or column standing at (x, z) from y0 to y1; o.top narrows the top (a batter), o.seg facets */
+BUILD.cyl = function (x, z, y0, y1, r, tex, o) {
+  o = o || {}; const g = new THREE.CylinderGeometry(r * (o.top || 1), r, y1 - y0, o.seg || 20, 1, !!o.open); g.translate(x, (y0 + y1) / 2, z);
+  if (!o.wrap) BUILD.uvScale(g, tex, Math.PI * 2 * r, y1 - y0);   // o.wrap: the texture was painted to go once round (PX.towerWrap)
+  return BUILD.add(new THREE.Mesh(g, o.mat || BUILD.std(tex, { col: o.col !== undefined ? o.col : tex.userData.tint, rough: o.rough })), o);
+};
+/* a cone roof (o.seg 4 = a pyramid, turned square to the walls) with its tiles running down the slope */
+BUILD.cone = function (x, z, y, r, h, tex, o) {
+  o = o || {}; const seg = o.seg || 16, g = new THREE.ConeGeometry(r, h, seg, 1, true); if (seg === 4) g.rotateY(Math.PI / 4); g.translate(x, y + h / 2, z);
+  if (!o.wrap) BUILD.uvScale(g, tex, Math.PI * 2 * r, Math.hypot(r, h));
+  return BUILD.add(new THREE.Mesh(g, BUILD.std(tex, { col: o.col !== undefined ? o.col : tex.userData.tint, rough: o.rough === undefined ? 0.7 : o.rough, side: THREE.DoubleSide })), o);
+};
+/* a pitched roof over x0..x1 × z0..z1 at eave height y, ridge h higher (along x, or along z with o.alongZ), o.over eaves;
+   the two gable ends are walled in o.gable (a stone texture) */
+BUILD.roof = function (x0, x1, z0, z1, y, h, tex, o) {
+  o = o || {}; const ov = o.over === undefined ? 0.5 : o.over, D = tex.userData.d || PX.D, W = tex.userData.w, H = tex.userData.h;
+  const sw = (a, b, c) => (o.alongZ ? [c, b, a] : [a, b, c]);   // build along x, swap axes for a ridge along z
+  let [a0, a1, b0, b1] = o.alongZ ? [z0, z1, x0, x1] : [x0, x1, z0, z1]; const bc = (b0 + b1) / 2, half = (b1 - b0) / 2 + ov, slope = Math.hypot(half, h);
+  a0 -= ov; a1 += ov;
+  const pos = [], uv = [];
+  for (const side of [-1, 1]) { const be = bc + side * half, q = [[a0, y, be], [a1, y, be], [a1, y + h, bc], [a0, y + h, bc]];
+    const tri = side < 0 ? [0, 2, 1, 0, 3, 2] : [0, 1, 2, 0, 2, 3];
+    for (const k of tri) { const [a, yy, b] = q[k]; pos.push(...sw(a, yy, b)); uv.push((a - a0) * D / W, (k < 2 ? 0 : slope) * D / H); } }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.computeVertexNormals();
+  const me = BUILD.add(new THREE.Mesh(g, BUILD.std(tex, { col: o.col !== undefined ? o.col : tex.userData.tint, rough: 0.7, side: THREE.DoubleSide })), o);
+  if (o.gable) { const gp = [], wa = o.alongZ ? [z0, z1] : [x0, x1];
+    for (const a of wa) gp.push(...sw(a, y, b0), ...sw(a, y, b1), ...sw(a, y + h, bc));
+    const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.Float32BufferAttribute(gp, 3)); gg.computeVertexNormals(); BUILD.planarUV(gg, o.gable);
+    BUILD.add(new THREE.Mesh(gg, BUILD.std(o.gable, { col: o.gable.userData.tint, side: THREE.DoubleSide })), o); }
+  return me;
+};
+/* merlons: a run of teeth along a straight wall top (from [x0, z0] to [x1, z1]) or round a tower (o.ring = radius) */
+BUILD.crenels = function (x0, z0, x1, z1, y, tex, o) {
+  o = o || {}; const w = o.w || 0.9, gap = o.gap || 0.75, hgt = o.h || 1.1, th = o.t || 0.55;
+  if (o.ring) { const n = Math.max(6, Math.floor(Math.PI * 2 * o.ring / (w + gap)));
+    for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2, g = new THREE.BoxGeometry(w, hgt, th); g.translate(0, hgt / 2, 0); BUILD.planarUV(g, tex); g.rotateY(-a); g.translate(x0 + Math.sin(a) * (o.ring - th / 2), y, z0 + Math.cos(a) * (o.ring - th / 2));
+      BUILD.add(new THREE.Mesh(g, BUILD.std(tex, { col: tex.userData.tint })), o); } return; }
+  const len = Math.hypot(x1 - x0, z1 - z0), n = Math.floor((len + gap) / (w + gap)), ux = (x1 - x0) / len, uz = (z1 - z0) / len, ang = Math.atan2(uz, ux);
+  for (let i = 0; i < n; i++) { const d = (len - (n * (w + gap) - gap)) / 2 + i * (w + gap) + w / 2, g = new THREE.BoxGeometry(w, hgt, th); g.translate(0, hgt / 2, 0); BUILD.planarUV(g, tex); g.rotateY(-ang); g.translate(x0 + ux * d, y, z0 + uz * d);
+    BUILD.add(new THREE.Mesh(g, BUILD.std(tex, { col: tex.userData.tint })), o); }
+};
+/* the land: a height field h(x, z) over a grid, each triangle sorted by cls(x, z, slope) into a texture
+   (grass on the flats, rock on the cliffs, a road…), with smooth normals and texel-true planar UVs.
+   o: { x0, x1, z0, z1, step, h, cls, tex: { key: texture }, side: { key: true } (map it on the vertical), facet: { key: true }, mats, layers } */
+BUILD.terrain = function (o) {
+  const st = o.step || 1.5, nx = Math.ceil((o.x1 - o.x0) / st), nz = Math.ceil((o.z1 - o.z0) / st), Hh = new Float32Array((nx + 1) * (nz + 1));
+  const X = (i) => o.x0 + i * st, Z = (j) => o.z0 + j * st, at = (i, j) => Hh[j * (nx + 1) + i];
+  for (let j = 0; j <= nz; j++) for (let i = 0; i <= nx; i++) Hh[j * (nx + 1) + i] = o.h(X(i), Z(j));
+  const nrm = (i, j) => { const l = at(Math.max(0, i - 1), j), r = at(Math.min(nx, i + 1), j), d = at(i, Math.max(0, j - 1)), u = at(i, Math.min(nz, j + 1));
+    return new THREE.Vector3(l - r, 2 * st, d - u).normalize(); };
+  const bins = {}, tn = new THREE.Vector3(), e1 = new THREE.Vector3(), e2 = new THREE.Vector3();
+  for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) for (const tri of [[[i, j], [i, j + 1], [i + 1, j]], [[i + 1, j], [i, j + 1], [i + 1, j + 1]]]) {
+    const P = tri.map(([a, b]) => new THREE.Vector3(X(a), at(a, b), Z(b)));
+    e1.subVectors(P[1], P[0]); e2.subVectors(P[2], P[0]); tn.crossVectors(e1, e2).normalize();
+    const cx = (P[0].x + P[1].x + P[2].x) / 3, cz = (P[0].z + P[1].z + P[2].z) / 3, key = o.cls(cx, cz, tn.y);
+    const B = bins[key] || (bins[key] = { p: [], n: [], u: [] }), tex = o.tex[key], D = tex.userData.d || PX.D, W = tex.userData.w, Ht = tex.userData.h;
+    const ax = Math.abs(tn.x), ay = Math.abs(tn.y), az = Math.abs(tn.z);
+    const facet = o.facet && o.facet[key];   // faceted classes keep each triangle's own normal: chunky, cut-stone rock faces
+    tri.forEach(([a, b], k) => { const p = P[k], n = facet ? tn : nrm(a, b); B.p.push(p.x, p.y, p.z); B.n.push(n.x, n.y, n.z);
+      const side = o.side && o.side[key];   // cliff textures are hung on the wall-like plane, so strata stay level
+      if (!side && ay >= ax && ay >= az) B.u.push(p.x * D / W, -p.z * D / Ht); else if (az >= ax) B.u.push(p.x * D / W, p.y * D / Ht); else B.u.push(p.z * D / W, p.y * D / Ht); });
+  }
+  const out = {};
+  for (const key in bins) { const B = bins[key], g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(B.p, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(B.n, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(B.u, 2)); g.computeBoundingSphere();
+    const m = (o.mats && o.mats[key]) || BUILD.std(o.tex[key], { col: o.tex[key].userData.tint, rough: 0.95 });
+    out[key] = BUILD.add(new THREE.Mesh(g, m), { cast: o.cast !== undefined ? o.cast : true, layer: o.layers && o.layers[key], dyn: !!(o.mats && o.mats[key]) }); }
+  out.height = (x, z) => { const i = clamp((x - o.x0) / st, 0, nx), j = clamp((z - o.z0) / st, 0, nz), i0 = Math.min(nx - 1, Math.floor(i)), j0 = Math.min(nz - 1, Math.floor(j)), fi = i - i0, fj = j - j0;
+    return lerp(lerp(at(i0, j0), at(i0 + 1, j0), fi), lerp(at(i0, j0 + 1), at(i0 + 1, j0 + 1), fi), fj); };
+  return out;
+};

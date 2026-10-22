@@ -15,6 +15,7 @@ SCENE.enter = function (id, at) {
   SCENE.room = room; R.scene.add(room.group);
   if (!CUT.playing || at.sound) { if (room.music !== undefined) AUDIO.playMusic(room.music); AUDIO.ambience(room.ambience || {}); AUDIO.acoustics(room.acoustics || { size: 1.4, wet: 0.2 }); }
   R.reflU.uReflK.value = room.reflK; R.mat.final.uniforms.uExpo.value = room.exposure;
+  R.scene.fog = room.fog ? new THREE.FogExp2(room.fog[0], room.fog[1]) : null;   // room.fog: [colour, density] — distance haze outdoors
   R.cam.near = room.near || 1; R.cam.far = room.far || 70; R.dofU.uCNear.value = R.cam.near; R.dofU.uCFar.value = R.cam.far;   // outdoor rooms see much further
   R.baseFov = room.cam.fov; R.cam.fov = room.cam.fov * R.fovK; R.cam.updateProjectionMatrix();
   for (const k in SCENE.DOF0) R.dofU[k].value = SCENE.DOF0[k]; for (const k in room.dof || {}) R.dofU[k].value = room.dof[k];

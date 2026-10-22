@@ -13,6 +13,9 @@ for f in $(ls engine/*.js | sort) $(ls game/*.js | sort); do
   printf '\n/* ==== %s ==== */\n' "$f" >> "$JS"; cat "$f" >> "$JS"
 done
 node --check "$JS" 2>/dev/null || cp "$JS" "$JS.js"
+# one name, one definition: a game file redefining an engine function (PX.window did) silently replaces it
+DUP=$(grep -ohE '^(PX|BUILD|SCENE|R|AUDIO|CUT|MAP|SAVE|QA|Actor)\.[A-Za-z0-9_]+ = ' engine/*.js game/*.js | sort | uniq -d)
+if [ -n "$DUP" ]; then echo "defined twice:"; echo "$DUP"; exit 1; fi
 BODY=$(mktemp)
 {
   cat head.html

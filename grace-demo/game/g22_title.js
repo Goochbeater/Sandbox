@@ -1,8 +1,8 @@
 /* TITLE, OPENING, SAVE — the title screen over the fortress in the storm, the opening cutscene (STORY.md §3), the
    settings and credits panels, and what goes in the save slot. */
 const TITLE = { on: false };
-TITLE.CAM = [[-11, 5.5, 82, -10, 15.5, -12, 22], [-8, 6.5, 76, -7, 16, -12, 21]];   // the fortress on the right, the name on the hillside at left
-TITLE.CAM_N = [[-17, 6, 92, -15, 16.5, -12, 25], [-14, 7, 86, -12, 17, -12, 24]];   // the same on a near-square frame (a Fold's inner screen)
+TITLE.CAM = [[-18, 21, 74, -12, 18.5, -24, 22], [-14, 22, 70, -10, 19, -24, 21.5]];   // the fortress on the right, the name over the near hill at left
+TITLE.CAM_N = [[-26, 24, 112, -17, 19.5, -24, 23], [-22, 25, 106, -15, 20, -24, 22.5]];   // the same on a near-square frame (a Fold's inner screen)
 TITLE.show = function () {
   TITLE.on = true; document.body.classList.add('intitle'); $('title').hidden = false;
   EXTERIOR.modeName = 'title'; SCENE.enter('exterior', {}); EXTERIOR.mode('title');
@@ -43,19 +43,19 @@ TITLE.cont = function () {
 };
 /* ---------------------------------------------------------------- the opening (see STORY.md §3) */
 const INTRO = [
-  { room: 'exterior', setup: () => EXTERIOR.mode('title'), music: 'intro', musicFade: 2, cam: { from: [6, 5, 48, 12, 12, -12, 22], to: [9, 7, 34, 13, 14, -12, 20] }, dur: 8,
+  { room: 'exterior', setup: () => EXTERIOR.mode('title'), music: 'intro', musicFade: 2, cam: { from: [-20, 22, 92, -6, 17, -24, 22], to: [-12, 20, 70, 0, 16, -24, 20] }, dur: 8,
     caption: 'Twelve years ago, the rain fell on Lodmir for forty days.', sfx: [['thunder', 1.6, { gain: 0.9 }]] },
-  { room: 'exterior', setup: () => EXTERIOR.mode('siege'), cam: { from: [-3, 2.4, 22, 5, 6, -8, 24], to: [7, 3.2, 17, 11, 7, -8, 22] }, dur: 8.5,
+  { room: 'exterior', setup: () => EXTERIOR.mode('siege'), cam: { from: [-16, 5, 44, -2, 10, -12, 26], to: [2, 6, 36, 8, 11, -12, 24] }, dur: 8.5,
     caption: 'Under it came the Margrave of Hal, to the walls of the Swan Fortress.',
     sfx: [['drum', 0.2, { gain: 0.8 }], ['drum', 0.9, { gain: 0.6 }], ['drum', 1.6, { gain: 0.8 }], ['clang', 2.2, { gain: 0.5, pan: -0.4 }], ['drum', 2.4, { gain: 0.6 }], ['clang', 3.3, { gain: 0.4, pan: 0.5 }], ['drum', 3.1, { gain: 0.8 }], ['clang', 4.6, { gain: 0.5 }], ['thunder', 5.5, { gain: 0.7 }]] },
-  { room: 'throne', setup: () => THRONE.night(true), cam: { from: [1.5, 2.7, 17, 1.5, 1.9, 1.0, 19], to: [1.5, 2.3, 11, 1.5, 1.7, 1.0, 19] }, dur: 8.5,
+  { room: 'throne', setup: () => THRONE.night(true), cam: { from: [1.5, 2.95, 22.6, 1.5, 2.6, 3.2, 19], to: [1.5, 2.55, 15.2, 1.5, 1.85, 0.9, 17] }, dur: 8.5,
     caption: 'King Bolesław held the gate for nineteen days. He did not see the twentieth.', ambience: { rainGlass: 0.8, tone: 0.4 }, acoustics: { size: 3.2, wet: 0.45 } },
   { room: 'exterior', setup: () => { THRONE.night(false); EXTERIOR.mode('wood'); },
-    cam: { from: [-50, 1.7, 13, -50, 1.25, 2, 22], to: [-50, 1.45, 9.5, -50, 1.1, 2, 20] }, dur: 9,
+    cam: { from: [-62, 1.7, 13, -62, 1.25, 2, 22], to: [-62, 1.45, 9.5, -62, 1.1, 2, 20] }, dur: 9,
     caption: 'On the twentieth night, his son rode out alone to the Woman in the Wood.' },
-  { room: 'exterior', setup: () => EXTERIOR.mode('dawn'), cam: { from: [4, 4, 42, 10, 9.5, -10, 22], to: [7, 5, 36, 11, 10.5, -10, 21] }, dur: 8,
+  { room: 'exterior', setup: () => EXTERIOR.mode('dawn'), cam: { from: [-18, 16, 86, 0, 14, -20, 22], to: [-10, 17, 78, 2, 14.5, -20, 21] }, dur: 8,
     caption: 'By morning the Margrave’s army was gone. No one has ever said where.' },
-  { room: 'exterior', setup: () => EXTERIOR.mode('present'), cam: { from: [12, 8, 32, 15, 16, -14, 18], to: [14, 10, 25, 15, 18.5, -14, 16] }, dur: 7.5,
+  { room: 'exterior', setup: () => EXTERIOR.mode('present'), cam: { from: [6, 11, 56, 14, 24, -33, 20], to: [10, 13, 46, 14.5, 27, -33, 17] }, dur: 7.5,
     caption: 'Twelve years later, the rain has come back.', sfx: [['thunder', 2.4, { gain: 1 }]] },
 ];
 /* ---------------------------------------------------------------- the save slot */

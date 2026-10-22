@@ -52,14 +52,15 @@ BUILD.merge = function (room) {
 };
 BUILD.std = function (tex, o) {
   o = o || {};
-  const key = (tex ? tex.uuid : 'none') + JSON.stringify(o); if (BUILD.mats[key]) return BUILD.mats[key];
+  const key = (tex ? tex.uuid : 'none') + JSON.stringify(Object.assign({}, o, { emap: o.emap && o.emap.uuid })); if (BUILD.mats[key]) return BUILD.mats[key];
   const m = new THREE.MeshStandardMaterial({ map: tex || null, color: o.col === undefined ? 0xffffff : o.col, roughness: o.rough === undefined ? 0.88 : o.rough, metalness: o.metal || 0,
-    alphaTest: o.alpha ? 0.5 : 0, side: o.side || THREE.FrontSide, emissive: o.emis || 0x000000, emissiveMap: o.emis ? tex : null, emissiveIntensity: o.ei || 1 });
+    alphaTest: o.alpha ? 0.5 : 0, side: o.side || THREE.FrontSide, emissive: o.emis || 0x000000, emissiveMap: o.emis ? o.emap || tex : null, emissiveIntensity: o.ei || 1 });   // o.emap: a separate glow mask (lit windows)
   return (BUILD.mats[key] = m);
 };
-/* project world coords onto the face's dominant plane → texel-true UVs, so neighbouring pieces share one grid */
+/* project world coords onto the face's dominant plane → texel-true UVs, so neighbouring pieces share one grid.
+   A texture can carry its own density (userData.d texels/m) — distant architecture uses coarser stone. */
 BUILD.planarUV = function (geo, tex) {
-  const P = geo.attributes.position, N = geo.attributes.normal, uv = new Float32Array(P.count * 2), w = tex.userData.w || 32, h = tex.userData.h || 32, D = PX.D;
+  const P = geo.attributes.position, N = geo.attributes.normal, uv = new Float32Array(P.count * 2), w = tex.userData.w || 32, h = tex.userData.h || 32, D = tex.userData.d || PX.D;
   for (let i = 0; i < P.count; i++) {
     const nx = Math.abs(N.getX(i)), ny = Math.abs(N.getY(i)), nz = Math.abs(N.getZ(i)); let a, b;
     if (nz >= nx && nz >= ny) { a = P.getX(i); b = P.getY(i); } else if (nx >= ny) { a = P.getZ(i); b = P.getY(i); } else { a = P.getX(i); b = -P.getZ(i); }
@@ -98,7 +99,7 @@ BUILD.plane = function (axis, a0, a1, b0, b1, at, tex, o) {
 /* a pixel card: bottom-centre at (x, y, z), sized from its texture at 32 texels/m (or o.w / o.h metres, o.s scale) */
 BUILD.card = function (tex, x, y, z, o) {
   o = o || {};
-  const w = o.w || (tex.userData.w / (tex.userData.n || 1)) / PX.D * (o.s || 1), h = o.h || tex.userData.h / PX.D * (o.s || 1);
+  const D = tex.userData.d || PX.D, w = o.w || (tex.userData.w / (tex.userData.n || 1)) / D * (o.s || 1), h = o.h || tex.userData.h / D * (o.s || 1);
   const g = new THREE.PlaneGeometry(w, h); g.translate(0, h / 2, 0);
   if (o.ru) { const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setX(i, uv.getX(i) * o.ru); }
   const m = o.mat || (o.basic ? new THREE.MeshBasicMaterial({ map: tex, color: new THREE.Color(o.col || 0xffffff).multiplyScalar(o.k || 1), alphaTest: 0.5, side: THREE.DoubleSide })
@@ -112,7 +113,7 @@ BUILD.flame = function (x, y, z, s, big, o) {
   const base = big ? PX.T.fire : PX.T.flame, t = base.clone(); t.needsUpdate = true; t.repeat.x = 1 / base.userData.n; t.userData = Object.assign({}, base.userData);
   const m = new THREE.MeshBasicMaterial({ map: t, color: new THREE.Color(o.col || 0xffffff).multiplyScalar(o.k || (big ? 3.2 : 2.6)), alphaTest: 0.5, side: THREE.DoubleSide });
   const me = BUILD.card(t, x, y, z, { mat: m, s, cast: false, parent: o.parent });
-  BUILD.room.flames.push({ t, n: base.userData.n, ph: hash(x * 10, z * 10, 7) * 8, rate: big ? 11 : 9 });
+  BUILD.room.flames.push({ t, n: base.userData.n, ph: hash(x * 10, z * 10, 7) * 8, rate: big ? 11 : 9, me });
   return me;
 };
 BUILD.glow = function (x, y, z, size, col, k, o) {

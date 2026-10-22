@@ -43,16 +43,17 @@ WORLD.paint = function (p) {
 };
 const inPoly = (x, y, pts) => { let c = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; };
 WORLD.places = [
-  { id: 'bedroom', name: 'Bedchamber', sub: 'the keep', x: 136, y: 34, room: 'bedroom', at: { x: 9.7, face: -1 } },
-  { id: 'study', name: 'Study', sub: 'the keep', x: 128, y: 56, room: 'study', at: { x: -8.6, face: 1 } },
-  { id: 'throne', name: 'Throne Room', sub: 'the great hall', x: 95, y: 44, room: 'throne', at: { x: -12.2, face: 1 } },
+  { id: 'bedroom', name: 'Bedchamber', sub: 'the keep', x: 140, y: 33, room: 'bedroom', at: { x: 9.7, face: -1 } },
+  { id: 'study', name: 'Study', sub: 'the keep', x: 124, y: 56, room: 'study', at: { x: -8.6, face: 1 } },
+  { id: 'throne', name: 'Throne Room', sub: 'the great hall', x: 95, y: 50, room: 'throne', at: { x: -12.2, face: 1 } },
   { id: 'garden', name: 'Gardens', sub: 'Halina and the children', x: 72, y: 62, room: 'garden', at: { x: -11.4, face: 1 } },
   { id: 'yard', name: 'Training Yard', sub: 'Ser Bogdan', x: 126, y: 80, room: 'yard', at: { x: -10.2, face: 1 } },
-  { id: 'chapel', name: 'Chapel', sub: 'not yet', x: 87, y: 26, locked: true },
+  { id: 'chapel', name: 'Chapel', sub: 'not yet', x: 70, y: 30, locked: true },
   { id: 'town', name: 'Lower Town', sub: 'not yet', x: 164, y: 100, locked: true },
   { id: 'wood', name: 'The Wood', sub: 'not yet', x: 26, y: 58, locked: true },
 ];
 WORLD.init = function () {
+  for (const pl of WORLD.places) if (pl.room && !SCENE.rooms[pl.room]) { pl.locked = true; pl.sub = 'being built'; }   // rooms not in this build yet
   MAP.setup(WORLD.paint, 192, 120, WORLD.places); MAP.music = 'map';
   MAP.onPick = (pl) => {
     const K = SCENE.player;

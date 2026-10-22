@@ -101,11 +101,11 @@
   #title { position: absolute; inset: 0; pointer-events: none; }
   #title .col { position: absolute; left: 5cqw; top: 8cqh; display: flex; flex-direction: column; align-items: center; }
   #title .logo { display: flex; flex-direction: column; align-items: center; color: #fbf3e4; text-shadow: 0 3px 18px rgba(0,0,0,0.75), 0 0 2px #000; transition: opacity 1.4s; }
-  #title .l1 { font-family: "Cinzel Decorative", var(--caps); font-weight: 700; font-size: min(3.3cqw, 7cqh); letter-spacing: 0.12em; margin-bottom: -0.25em; }
-  #title .l2 { font-family: "Cinzel Decorative", var(--caps); font-weight: 900; font-size: min(7.6cqw, 16cqh); line-height: 0.95; letter-spacing: 0.02em; }
-  #title .l3 { font-family: var(--caps); font-size: min(1.9cqw, 4.2cqh); letter-spacing: 0.5em; margin-top: 0.5em; padding-left: 0.5em; color: #e9dcc4; }
+  #title .l1 { font-family: "Cinzel Decorative", var(--caps); font-weight: 700; font-size: min(2.4cqw, 6.6cqh); letter-spacing: 0.12em; margin-bottom: -0.25em; }
+  #title .l2 { font-family: "Cinzel Decorative", var(--caps); font-weight: 900; font-size: min(5.4cqw, 15cqh); line-height: 0.95; letter-spacing: 0.02em; }
+  #title .l3 { font-family: var(--caps); font-size: min(1.45cqw, 3.9cqh); letter-spacing: 0.5em; margin-top: 0.5em; padding-left: 0.5em; color: #e9dcc4; }
   #title .menu { margin-top: 5cqh; display: flex; flex-direction: column; align-items: center; gap: 0.15em; pointer-events: auto; transition: opacity 1s; }
-  #title .menu button { font: inherit; font-size: min(2.7cqw, 6.2cqh); color: #f2e6cf; background: none; border: 0; padding: 0.12em 0.6em; cursor: pointer; text-shadow: 0 2px 10px #000; letter-spacing: 0.03em; }
+  #title .menu button { font: inherit; font-size: min(2.3cqw, 5.8cqh); color: #f2e6cf; background: none; border: 0; padding: 0.12em 0.6em; cursor: pointer; text-shadow: 0 2px 10px #000; letter-spacing: 0.03em; }
   #title .menu button:hover, #title .menu button:focus-visible { color: #fff; outline: none; text-shadow: 0 0 12px rgba(227,183,90,0.9), 0 2px 10px #000; }
   #title .menu button:first-child { color: #fff; background: rgba(40, 110, 70, 0.75); border: 1px solid #7ad0a0; box-shadow: inset 0 0 0 2px rgba(0,0,0,0.25); }
   #tapStart { position: absolute; left: 0; right: 0; bottom: 12cqh; text-align: center; font-family: var(--caps); letter-spacing: 0.3em; color: #f2e6cf; text-shadow: 0 2px 8px #000; font-size: max(14px, min(2cqw, 4.6cqh)); animation: nudge 1.2s ease-in-out infinite alternate; pointer-events: none; }
@@ -136,10 +136,10 @@
   #mapPins { position: absolute; inset: 0; }
   .pin { position: absolute; transform: translate(-50%, -100%); background: none; border: 0; padding: 0; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; color: #2a1a0e; font: inherit; }
   .pin i { width: 18px; height: 18px; background: #a8302a; border: 2px solid #2a1a0e; transform: rotate(45deg); box-shadow: 0 2px 4px rgba(0,0,0,0.4); order: 2; }
-  .pin span { order: 1; background: rgba(242, 230, 207, 0.94); padding: 0.1em 0.5em; border: 1px solid #6a4a2a; font-family: var(--caps); font-size: clamp(12px, 1.6vw, 16px); white-space: nowrap; text-align: center; }
+  .pin span { order: 1; background: rgba(242, 230, 207, 0.94); padding: 0.05em 0.45em; border: 1px solid #6a4a2a; font-family: var(--caps); font-size: clamp(11px, 1.4vw, 15px); line-height: 1.15; white-space: nowrap; text-align: center; }
   .pin small { display: block; font-family: var(--serif); font-style: italic; font-size: 0.78em; color: #6a4a2a; }
   .pin.here i { background: var(--gold); } .pin.here span { background: #fff4d8; }
-  .pin:disabled { cursor: default; opacity: 0.55; } .pin:disabled i { background: #6a5a4a; }
+  .pin:disabled { cursor: default; opacity: 0.6; } .pin:disabled i { background: #6a5a4a; width: 12px; height: 12px; } .pin:disabled span { font-size: clamp(10px, 1.2vw, 13px); } .pin:disabled small { display: none; }
   .pin:not(:disabled):hover span, .pin:focus-visible span { outline: 2px solid #a8302a; }
   @media (max-aspect-ratio: 3/4) { #rotate.can { display: flex; } }   /* phones held upright; a Fold's near-square inner screen plays either way */
   @media (prefers-reduced-motion: reduce) { #caption, #fade, .mk, #bubble, #toast { transition: none; } .mk.pulse, #bubble.wait::before { animation: none; } }
@@ -53642,14 +53642,15 @@ BUILD.merge = function (room) {
 };
 BUILD.std = function (tex, o) {
   o = o || {};
-  const key = (tex ? tex.uuid : 'none') + JSON.stringify(o); if (BUILD.mats[key]) return BUILD.mats[key];
+  const key = (tex ? tex.uuid : 'none') + JSON.stringify(Object.assign({}, o, { emap: o.emap && o.emap.uuid })); if (BUILD.mats[key]) return BUILD.mats[key];
   const m = new THREE.MeshStandardMaterial({ map: tex || null, color: o.col === undefined ? 0xffffff : o.col, roughness: o.rough === undefined ? 0.88 : o.rough, metalness: o.metal || 0,
-    alphaTest: o.alpha ? 0.5 : 0, side: o.side || THREE.FrontSide, emissive: o.emis || 0x000000, emissiveMap: o.emis ? tex : null, emissiveIntensity: o.ei || 1 });
+    alphaTest: o.alpha ? 0.5 : 0, side: o.side || THREE.FrontSide, emissive: o.emis || 0x000000, emissiveMap: o.emis ? o.emap || tex : null, emissiveIntensity: o.ei || 1 });   // o.emap: a separate glow mask (lit windows)
   return (BUILD.mats[key] = m);
 };
-/* project world coords onto the face's dominant plane → texel-true UVs, so neighbouring pieces share one grid */
+/* project world coords onto the face's dominant plane → texel-true UVs, so neighbouring pieces share one grid.
+   A texture can carry its own density (userData.d texels/m) — distant architecture uses coarser stone. */
 BUILD.planarUV = function (geo, tex) {
-  const P = geo.attributes.position, N = geo.attributes.normal, uv = new Float32Array(P.count * 2), w = tex.userData.w || 32, h = tex.userData.h || 32, D = PX.D;
+  const P = geo.attributes.position, N = geo.attributes.normal, uv = new Float32Array(P.count * 2), w = tex.userData.w || 32, h = tex.userData.h || 32, D = tex.userData.d || PX.D;
   for (let i = 0; i < P.count; i++) {
     const nx = Math.abs(N.getX(i)), ny = Math.abs(N.getY(i)), nz = Math.abs(N.getZ(i)); let a, b;
     if (nz >= nx && nz >= ny) { a = P.getX(i); b = P.getY(i); } else if (nx >= ny) { a = P.getZ(i); b = P.getY(i); } else { a = P.getX(i); b = -P.getZ(i); }
@@ -53688,7 +53689,7 @@ BUILD.plane = function (axis, a0, a1, b0, b1, at, tex, o) {
 /* a pixel card: bottom-centre at (x, y, z), sized from its texture at 32 texels/m (or o.w / o.h metres, o.s scale) */
 BUILD.card = function (tex, x, y, z, o) {
   o = o || {};
-  const w = o.w || (tex.userData.w / (tex.userData.n || 1)) / PX.D * (o.s || 1), h = o.h || tex.userData.h / PX.D * (o.s || 1);
+  const D = tex.userData.d || PX.D, w = o.w || (tex.userData.w / (tex.userData.n || 1)) / D * (o.s || 1), h = o.h || tex.userData.h / D * (o.s || 1);
   const g = new THREE.PlaneGeometry(w, h); g.translate(0, h / 2, 0);
   if (o.ru) { const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setX(i, uv.getX(i) * o.ru); }
   const m = o.mat || (o.basic ? new THREE.MeshBasicMaterial({ map: tex, color: new THREE.Color(o.col || 0xffffff).multiplyScalar(o.k || 1), alphaTest: 0.5, side: THREE.DoubleSide })
@@ -53702,7 +53703,7 @@ BUILD.flame = function (x, y, z, s, big, o) {
   const base = big ? PX.T.fire : PX.T.flame, t = base.clone(); t.needsUpdate = true; t.repeat.x = 1 / base.userData.n; t.userData = Object.assign({}, base.userData);
   const m = new THREE.MeshBasicMaterial({ map: t, color: new THREE.Color(o.col || 0xffffff).multiplyScalar(o.k || (big ? 3.2 : 2.6)), alphaTest: 0.5, side: THREE.DoubleSide });
   const me = BUILD.card(t, x, y, z, { mat: m, s, cast: false, parent: o.parent });
-  BUILD.room.flames.push({ t, n: base.userData.n, ph: hash(x * 10, z * 10, 7) * 8, rate: big ? 11 : 9 });
+  BUILD.room.flames.push({ t, n: base.userData.n, ph: hash(x * 10, z * 10, 7) * 8, rate: big ? 11 : 9, me });
   return me;
 };
 BUILD.glow = function (x, y, z, size, col, k, o) {
@@ -54040,7 +54041,8 @@ class Actor {
     const S = this.spec, walk = S.walk || 'Walk_Loop'; this.phase += dt * sp / QA.speed(walk);
     { const n = Math.floor(this.phase / (QA.clips[walk].dur / 2)); if (n !== this.stepN) { this.stepN = n; if (sp > 0.25 && Actor.onStep && this.visible) Actor.onStep(this); } }
     this.sitK = damp(this.sitK, this.sitting ? 1 : 0, 5, dt);
-    const L = [[S.idle || 'Idle_Loop', this.idleT, 1], ['Sitting_Idle_Loop', this.idleT, this.sitK], ['Idle_Talking_Loop', this.idleT * 0.9, this.talk * 0.85 * (1 - this.sitK)], [walk, this.phase, smooth(0.04, 0.55, sp)]];
+    const H2 = this.curHome || {}, ir = H2.idleRange || S.idleRange, it = ir ? ir[0] + this.idleT % (ir[1] - ir[0]) : this.idleT;   // idleRange: loop only part of a clip (hold a kneel)
+    const L = [[S.idle || 'Idle_Loop', it, 1], ['Sitting_Idle_Loop', this.idleT, this.sitK], ['Idle_Talking_Loop', this.idleT * 0.9, this.talk * 0.85 * (1 - this.sitK)], [walk, this.phase, smooth(0.04, 0.55, sp)]];
     if (this.actClip) { this.actT += dt; const c = QA.clips[this.actClip], w = smooth(0, 0.25, this.actT) * smooth(c.dur, c.dur - 0.35, this.actT);
       L.push([this.actClip, Math.min(this.actT, c.dur - 0.02), w * 0.9]);
       if (this.actEv && this.actT >= this.actEv.at) { const f = this.actEv.fn; this.actEv = null; f(this); }
@@ -54088,11 +54090,11 @@ class Actor {
     K.position.set(this.x - 2.5, 4 + this.y, this.z + 6); K.target.position.set(this.x, 1.2 + this.y, this.z); K.intensity = room && room.keyK !== undefined ? room.keyK : 1.1;
     if (rs) { RM.position.set(rs[0], rs[1], rs[2]); RM.target.position.set(this.x, 1.2 + this.y, this.z); RM.color.set(rs[5] || 0xffa860);
       RM.intensity = rs[3] * smooth(rs[4], 1, Math.abs(this.x - rs[0])) * (rs[6] ? rs[6].intensity / rs[6].userData.base : 1); } else RM.intensity = 0;
-    const bg = R.scene.background; R.scene.background = null; r.setClearColor(0x000000, 0);
+    const bg = R.scene.background, fog = R.scene.fog; R.scene.background = null; R.scene.fog = null; r.setClearColor(0x000000, 0);   // the sprite is lit, not fogged; its card is
     r.setRenderTarget(this.rt); r.clear(); r.render(R.scene, cam);
     this.fx.uniforms.t.value = this.fxU.t; this.fx.uniforms.uTexel.value.copy(this.fxU.texel);
     R.quad.material = this.fx; r.setRenderTarget(this.rt2); r.clear(); r.render(R.quadScene, R.quadCam);
-    R.scene.background = bg;
+    R.scene.background = bg; R.scene.fog = fog;
     // floor shadows: a soft contact blob, and the sprite's silhouette projected from the room's main low light
     this.blob.position.set(this.x, this.y + 0.008, this.z + 0.02);
     const ss = room && room.shadowSrc;
@@ -54190,6 +54192,7 @@ SCENE.enter = function (id, at) {
   SCENE.room = room; R.scene.add(room.group);
   if (!CUT.playing || at.sound) { if (room.music !== undefined) AUDIO.playMusic(room.music); AUDIO.ambience(room.ambience || {}); AUDIO.acoustics(room.acoustics || { size: 1.4, wet: 0.2 }); }
   R.reflU.uReflK.value = room.reflK; R.mat.final.uniforms.uExpo.value = room.exposure;
+  R.scene.fog = room.fog ? new THREE.FogExp2(room.fog[0], room.fog[1]) : null;   // room.fog: [colour, density] — distance haze outdoors
   R.cam.near = room.near || 1; R.cam.far = room.far || 70; R.dofU.uCNear.value = R.cam.near; R.dofU.uCFar.value = R.cam.far;   // outdoor rooms see much further
   R.baseFov = room.cam.fov; R.cam.fov = room.cam.fov * R.fovK; R.cam.updateProjectionMatrix();
   for (const k in SCENE.DOF0) R.dofU[k].value = SCENE.DOF0[k]; for (const k in room.dof || {}) R.dofU[k].value = room.dof[k];
@@ -54620,6 +54623,80 @@ BUILD.water = function (tex, x, y, z, o) {
   BUILD.room.flames.push({ t, n: tex.userData.n, ph: Math.random() * 4, rate: o.rate || 7 });
   return me;
 };
+/* ---------------------------------------------------------------- architecture at a distance and the land under it */
+/* scale a generated geometry's UVs so its texture keeps its painted density (userData.d texels/m) over u × v metres */
+BUILD.uvScale = function (g, tex, um, vm) { const D = tex.userData.d || PX.D, uv = g.attributes.uv, su = um * D / tex.userData.w, sv = vm * D / tex.userData.h;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * su, uv.getY(i) * sv); return g; };
+/* a round tower or column standing at (x, z) from y0 to y1; o.top narrows the top (a batter), o.seg facets */
+BUILD.cyl = function (x, z, y0, y1, r, tex, o) {
+  o = o || {}; const g = new THREE.CylinderGeometry(r * (o.top || 1), r, y1 - y0, o.seg || 20, 1, !!o.open); g.translate(x, (y0 + y1) / 2, z);
+  if (!o.wrap) BUILD.uvScale(g, tex, Math.PI * 2 * r, y1 - y0);   // o.wrap: the texture was painted to go once round (PX.towerWrap)
+  return BUILD.add(new THREE.Mesh(g, o.mat || BUILD.std(tex, { col: o.col !== undefined ? o.col : tex.userData.tint, rough: o.rough })), o);
+};
+/* a cone roof (o.seg 4 = a pyramid, turned square to the walls) with its tiles running down the slope */
+BUILD.cone = function (x, z, y, r, h, tex, o) {
+  o = o || {}; const seg = o.seg || 16, g = new THREE.ConeGeometry(r, h, seg, 1, true); if (seg === 4) g.rotateY(Math.PI / 4); g.translate(x, y + h / 2, z);
+  if (!o.wrap) BUILD.uvScale(g, tex, Math.PI * 2 * r, Math.hypot(r, h));
+  return BUILD.add(new THREE.Mesh(g, BUILD.std(tex, { col: o.col !== undefined ? o.col : tex.userData.tint, rough: o.rough === undefined ? 0.7 : o.rough, side: THREE.DoubleSide })), o);
+};
+/* a pitched roof over x0..x1 × z0..z1 at eave height y, ridge h higher (along x, or along z with o.alongZ), o.over eaves;
+   the two gable ends are walled in o.gable (a stone texture) */
+BUILD.roof = function (x0, x1, z0, z1, y, h, tex, o) {
+  o = o || {}; const ov = o.over === undefined ? 0.5 : o.over, D = tex.userData.d || PX.D, W = tex.userData.w, H = tex.userData.h;
+  const sw = (a, b, c) => (o.alongZ ? [c, b, a] : [a, b, c]);   // build along x, swap axes for a ridge along z
+  let [a0, a1, b0, b1] = o.alongZ ? [z0, z1, x0, x1] : [x0, x1, z0, z1]; const bc = (b0 + b1) / 2, half = (b1 - b0) / 2 + ov, slope = Math.hypot(half, h);
+  a0 -= ov; a1 += ov;
+  const pos = [], uv = [];
+  for (const side of [-1, 1]) { const be = bc + side * half, q = [[a0, y, be], [a1, y, be], [a1, y + h, bc], [a0, y + h, bc]];
+    const tri = side < 0 ? [0, 2, 1, 0, 3, 2] : [0, 1, 2, 0, 2, 3];
+    for (const k of tri) { const [a, yy, b] = q[k]; pos.push(...sw(a, yy, b)); uv.push((a - a0) * D / W, (k < 2 ? 0 : slope) * D / H); } }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.computeVertexNormals();
+  const me = BUILD.add(new THREE.Mesh(g, BUILD.std(tex, { col: o.col !== undefined ? o.col : tex.userData.tint, rough: 0.7, side: THREE.DoubleSide })), o);
+  if (o.gable) { const gp = [], wa = o.alongZ ? [z0, z1] : [x0, x1];
+    for (const a of wa) gp.push(...sw(a, y, b0), ...sw(a, y, b1), ...sw(a, y + h, bc));
+    const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.Float32BufferAttribute(gp, 3)); gg.computeVertexNormals(); BUILD.planarUV(gg, o.gable);
+    BUILD.add(new THREE.Mesh(gg, BUILD.std(o.gable, { col: o.gable.userData.tint, side: THREE.DoubleSide })), o); }
+  return me;
+};
+/* merlons: a run of teeth along a straight wall top (from [x0, z0] to [x1, z1]) or round a tower (o.ring = radius) */
+BUILD.crenels = function (x0, z0, x1, z1, y, tex, o) {
+  o = o || {}; const w = o.w || 0.9, gap = o.gap || 0.75, hgt = o.h || 1.1, th = o.t || 0.55;
+  if (o.ring) { const n = Math.max(6, Math.floor(Math.PI * 2 * o.ring / (w + gap)));
+    for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2, g = new THREE.BoxGeometry(w, hgt, th); g.translate(0, hgt / 2, 0); BUILD.planarUV(g, tex); g.rotateY(-a); g.translate(x0 + Math.sin(a) * (o.ring - th / 2), y, z0 + Math.cos(a) * (o.ring - th / 2));
+      BUILD.add(new THREE.Mesh(g, BUILD.std(tex, { col: tex.userData.tint })), o); } return; }
+  const len = Math.hypot(x1 - x0, z1 - z0), n = Math.floor((len + gap) / (w + gap)), ux = (x1 - x0) / len, uz = (z1 - z0) / len, ang = Math.atan2(uz, ux);
+  for (let i = 0; i < n; i++) { const d = (len - (n * (w + gap) - gap)) / 2 + i * (w + gap) + w / 2, g = new THREE.BoxGeometry(w, hgt, th); g.translate(0, hgt / 2, 0); BUILD.planarUV(g, tex); g.rotateY(-ang); g.translate(x0 + ux * d, y, z0 + uz * d);
+    BUILD.add(new THREE.Mesh(g, BUILD.std(tex, { col: tex.userData.tint })), o); }
+};
+/* the land: a height field h(x, z) over a grid, each triangle sorted by cls(x, z, slope) into a texture
+   (grass on the flats, rock on the cliffs, a road…), with smooth normals and texel-true planar UVs.
+   o: { x0, x1, z0, z1, step, h, cls, tex: { key: texture }, side: { key: true } (map it on the vertical), facet: { key: true }, mats, layers } */
+BUILD.terrain = function (o) {
+  const st = o.step || 1.5, nx = Math.ceil((o.x1 - o.x0) / st), nz = Math.ceil((o.z1 - o.z0) / st), Hh = new Float32Array((nx + 1) * (nz + 1));
+  const X = (i) => o.x0 + i * st, Z = (j) => o.z0 + j * st, at = (i, j) => Hh[j * (nx + 1) + i];
+  for (let j = 0; j <= nz; j++) for (let i = 0; i <= nx; i++) Hh[j * (nx + 1) + i] = o.h(X(i), Z(j));
+  const nrm = (i, j) => { const l = at(Math.max(0, i - 1), j), r = at(Math.min(nx, i + 1), j), d = at(i, Math.max(0, j - 1)), u = at(i, Math.min(nz, j + 1));
+    return new THREE.Vector3(l - r, 2 * st, d - u).normalize(); };
+  const bins = {}, tn = new THREE.Vector3(), e1 = new THREE.Vector3(), e2 = new THREE.Vector3();
+  for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) for (const tri of [[[i, j], [i, j + 1], [i + 1, j]], [[i + 1, j], [i, j + 1], [i + 1, j + 1]]]) {
+    const P = tri.map(([a, b]) => new THREE.Vector3(X(a), at(a, b), Z(b)));
+    e1.subVectors(P[1], P[0]); e2.subVectors(P[2], P[0]); tn.crossVectors(e1, e2).normalize();
+    const cx = (P[0].x + P[1].x + P[2].x) / 3, cz = (P[0].z + P[1].z + P[2].z) / 3, key = o.cls(cx, cz, tn.y);
+    const B = bins[key] || (bins[key] = { p: [], n: [], u: [] }), tex = o.tex[key], D = tex.userData.d || PX.D, W = tex.userData.w, Ht = tex.userData.h;
+    const ax = Math.abs(tn.x), ay = Math.abs(tn.y), az = Math.abs(tn.z);
+    const facet = o.facet && o.facet[key];   // faceted classes keep each triangle's own normal: chunky, cut-stone rock faces
+    tri.forEach(([a, b], k) => { const p = P[k], n = facet ? tn : nrm(a, b); B.p.push(p.x, p.y, p.z); B.n.push(n.x, n.y, n.z);
+      const side = o.side && o.side[key];   // cliff textures are hung on the wall-like plane, so strata stay level
+      if (!side && ay >= ax && ay >= az) B.u.push(p.x * D / W, -p.z * D / Ht); else if (az >= ax) B.u.push(p.x * D / W, p.y * D / Ht); else B.u.push(p.z * D / W, p.y * D / Ht); });
+  }
+  const out = {};
+  for (const key in bins) { const B = bins[key], g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(B.p, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(B.n, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(B.u, 2)); g.computeBoundingSphere();
+    const m = (o.mats && o.mats[key]) || BUILD.std(o.tex[key], { col: o.tex[key].userData.tint, rough: 0.95 });
+    out[key] = BUILD.add(new THREE.Mesh(g, m), { cast: o.cast !== undefined ? o.cast : true, layer: o.layers && o.layers[key], dyn: !!(o.mats && o.mats[key]) }); }
+  out.height = (x, z) => { const i = clamp((x - o.x0) / st, 0, nx), j = clamp((z - o.z0) / st, 0, nz), i0 = Math.min(nx - 1, Math.floor(i)), j0 = Math.min(nz - 1, Math.floor(j)), fi = i - i0, fj = j - j0;
+    return lerp(lerp(at(i0, j0), at(i0 + 1, j0), fi), lerp(at(i0, j0 + 1), at(i0 + 1, j0 + 1), fi), fj); };
+  return out;
+};
 
 /* ==== engine/e09_cutscene.js ==== */
 /* CUTSCENE — plays a list of shots in the engine itself: each shot picks a room, arranges it (setup), flies the camera
@@ -54705,6 +54782,133 @@ MAP.pick = function (pl) {
 };
 window.addEventListener('keydown', (e) => { if (e.code === 'KeyM' && !e.repeat && !G.paused && !CUT.playing && !SCENE.menu) { if (MAP.open_) MAP.close(); else if (!SCENE.lock && !SCENE.modal) MAP.open(); }
   if (e.code === 'Escape' && MAP.open_) { MAP.close(); e.stopImmediatePropagation(); } }, true);
+
+/* ==== engine/e12_arch.js ==== */
+/* ARCHITECTURE — buildings seen from a distance, made the way the rooms' furniture is: every face painted to its own
+   size as pixel art (a limited palette ramp, highlights on top edges, dark mortar, grime low down, rain streaks,
+   windows with a separate glow mask), then wrapped on real 3D boxes, drum towers and cone roofs.
+
+   The pixel-scale rule (why the rooms look right): one texel should land on about 3 screen pixels. The rooms get that
+   from 32 texels/m seen from 19 m. Anything further away needs proportionally coarser textures:
+     BUILD.density(dist, fov) → texels per metre that match the rooms at that viewing distance.
+   Painters take a ramp: 6 colours from darkest (mortar, deep shadow) to lightest (top-edge highlight).
+     PX.facade(wm, hm, f)        → { map, emap, lits }  a wall face painted to wm × hm metres
+     PX.towerWrap(r, hm, f)      → { map, emap, lits }  goes once round a drum tower
+     PX.coneWrap(r, h, ramp, d)  → a cone roof's tiles     PX.stoneTile(ramp, d, seed) / PX.tileRoof(ramp, d, seed) repeatable
+     BUILD.facade(x0, x1, y0, y1, z0, z1, f)  BUILD.tower(x, z, y0, y1, r, f)  build and light them
+   f: { ramp, d, seed, win: [[x, y, kind, lit]], arch: [x, w, h], bands: [y], crest: [x, y], grime, streaks, tile } */
+BUILD.density = (dist, fov) => Math.round(32 * 19.4 * Math.tan(THREE.MathUtils.degToRad(19) / 2) / (dist * Math.tan(THREE.MathUtils.degToRad(fov || 19) / 2)) * 10) / 10;
+PX.BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+PX.dith = (x, y) => (PX.BAYER[(y & 3) * 4 + (x & 3)] + 0.5) / 16;
+PX.ramp = (R, i) => R[clamp(Math.round(i), 0, R.length - 1)];
+/* courses of stone blocks into a Pix (wrapping in x when tile): 3-4 px courses, 4-8 px blocks, a highlight row on top,
+   a mortar row under, the odd chipped or darker block */
+PX.stones = function (p, R, seed, x0, y0, w, h, wrapX) {
+  let y = y0, row = 0;
+  while (y < y0 + h) {
+    const ch = Math.min(y0 + h - y, 3 + (hash(row, 1, seed) < 0.35 ? 1 : 0)); let x = -Math.floor(hash(row, 2, seed) * 6), k = 0;
+    while (x < w) {
+      const bw = 4 + Math.floor(hash(row, k, seed + 3) * 5), bi = 2 + (hash(row, k, seed + 4) < 0.3 ? 1 : 0) - (hash(row, k, seed + 5) < 0.18 ? 1 : 0);
+      for (let j = 0; j < ch; j++) for (let i = 0; i < bw; i++) {
+        const px = x + i; if (!wrapX && (px < 0 || px >= w)) continue;
+        let c = bi; if (j === 0 && hash(row, k, seed + 10) < 0.7) c = bi + 1; if (j === ch - 1) c = hash(px, y + j, seed + 6) < 0.2 ? 0 : 1; else if (i === 0) c = hash(row, k, seed + 7) < 0.7 ? 1 : bi - 1;
+        if (j > 0 && j < ch - 1 && i > 0 && hash(px, y + j, seed + 8) < 0.08) c = bi + (hash(px, y, seed + 9) < 0.5 ? -1 : 1);
+        if (wrapX) p.wset(x0 + px, y + j, PX.ramp(R, c)); else p.set(x0 + px, y + j, PX.ramp(R, c));
+      }
+      x += bw; k++;
+    }
+    y += ch; row++;
+  }
+};
+/* weathering over what's painted: grime rising from the foot (dithered), rain streaks running down, moss low down */
+PX.weather = function (p, R, f, wrapX) {
+  const W = p.w, H = p.h, seed = (f.seed || 1) + 50, idx = new Map(R.map((c, i) => [c, i]));
+  const darker = (x, y, n) => { const c = p.get(x, y), i = idx.get(c); if (i !== undefined) p.set(x, y, PX.ramp(R, i - n)); };
+  const g = f.grime === undefined ? 0.3 : f.grime;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const t = (y / H - (1 - g)) / g; if (t > PX.dith(x, y)) darker(x, y, 1); }
+  const sn = f.streaks === undefined ? Math.round(W / 6) : f.streaks;
+  for (let k = 0; k < sn; k++) { const x = Math.floor(hash(k, 1, seed) * W), len = H * (0.15 + 0.5 * hash(k, 2, seed)), y0 = Math.floor(hash(k, 3, seed) * H * 0.3);
+    for (let y = y0; y < Math.min(H, y0 + len); y++) if (hash(x, y, seed + 4) < 0.7 - 0.4 * (y - y0) / len) darker(x, y, 1); }
+  for (let x = 0; x < W; x++) for (let y = H - 3; y < H; y++) if (hash(x, y, seed + 5) < 0.35) p.set(x, y, hash(x, y, seed + 6) < 0.5 ? 0x26341e : 0x34462a);
+};
+/* ivy climbing from the foot: f.ivy = [[x (m, or radians round a tower), width (m), height (m)], …] */
+PX.ivy = function (p, f, W, H) {
+  const G = [0x101a10, 0x1a2a18, 0x26381e, 0x344826, 0x46582e];
+  for (const [xm, wm, hm] of f.ivy || []) { const cx = f.ivyAngle ? ((xm / (Math.PI * 2)) % 1 + 1) % 1 * W : xm * f.d, hw = wm * f.d / 2, top = H - hm * f.d;
+    for (let y = Math.floor(top - 4); y < H; y++) for (let x = Math.floor(cx - hw - 3); x <= cx + hw + 3; x++) {
+      const u = (x - cx) / hw, reach = top + (u * u) * (H - top) * 0.7 + noise1(x * 0.4, 290) * 5; if (y < reach || Math.abs(u) > 1.15) continue;
+      if (hash(x, y, 291) < 0.82) { const c = G[clamp(Math.floor(hash(x >> 1, y >> 1, 292) * 3) + ((x + y) % 3 === 0 ? 1 : 0) + (y < reach + 2 ? 1 : 0), 0, 4)]; p.wset(x, y, c); } } }
+};
+/* a window or opening (PX.opening) at (cx, by) = bottom centre in px. kinds: slit, lancet, tall, square, rose */
+PX.WIN = { slit: [1, 4], lancet: [2, 5], tall: [3, 8], square: [2, 2], rose: [5, 5] };
+PX.opening = function (p, e, R, cx, by, kind, lit) {
+  const [w, h] = PX.WIN[kind], x0 = Math.round(cx - w / 2), top = by - h, glass = (x, y, t) => {
+    const c = lit ? C.ramp([0xffe8a0, 0xffc050, 0xf09030, 0xc06018], clamp(t, 0, 0.999)) : C.ramp([0x2a3044, 0x141824, 0x0c0e16], clamp(t * 1.4, 0, 0.999));
+    p.set(x, y, c); if (lit) e.set(x, y, c); };
+  const inside = (x, y) => { if (kind === 'rose') return Math.hypot(x - cx + 0.5, y - (by - 2.5)) <= 2.5;
+    if (y < top || y >= by || x < x0 || x >= x0 + w) return false; if ((kind === 'lancet' || kind === 'tall') && y === top && w > 1) return x === x0 + Math.floor((w - 1) / 2) || (w === 2 && x === x0 + 1) ? true : false; return true; };
+  for (let y = top - 2; y <= by + 1; y++) for (let x = x0 - 2; x <= x0 + w + 1; x++) {
+    if (inside(x, y)) { const mull = w >= 3 && x === x0 + 1 && kind !== 'rose', tr = kind === 'tall' && y === by - 4; glass(x, y, mull || tr ? 0.9 : (y - top) / h * 0.7 + (x - x0) / w * 0.15); if ((mull || tr) && lit) { p.set(x, y, 0x5a2a10); e.set(x, y, 0x3a1a08); } continue; }
+    const near = inside(x - 1, y) || inside(x + 1, y) || inside(x, y - 1) || inside(x, y + 1);
+    if (near) p.set(x, y, y === by ? PX.ramp(R, 4) : PX.ramp(R, 1));   // a dark reveal, a pale sill
+  }
+};
+PX.tex2 = function (p, e, d) { const map = p.tex({ aniso: 4 }), emap = e.tex(); map.userData.d = emap.userData.d = d; return { map, emap }; };
+PX.facade = function (wm, hm, f) {
+  const d = f.d, W = Math.max(4, Math.round(wm * d)), H = Math.max(4, Math.round(hm * d)), p = new Pix(W, H), e = new Pix(W, H).fill(0), R = f.ramp, lits = [];
+  PX.stones(p, R, f.seed || 1, 0, 0, W, H, false);
+  for (const by of f.bands || []) { const y = H - Math.round(by * d); p.hl(0, W - 1, y, PX.ramp(R, 5)); p.hl(0, W - 1, y + 1, PX.ramp(R, 3)); p.hl(0, W - 1, y + 2, PX.ramp(R, 0)); }
+  PX.weather(p, R, f, false); PX.ivy(p, f, W, H);
+  if (f.top !== false) { p.hl(0, W - 1, 0, PX.ramp(R, 1)); }
+  if (f.arch) { const [ax, aw, ah] = f.arch, cx = ax * d, hw = aw * d / 2, top = H - ah * d, rr = hw;
+    for (let y = Math.floor(top - rr - 3); y < H; y++) for (let x = Math.floor(cx - hw - 3); x <= cx + hw + 3; x++) {
+      const dy = Math.max(0, top - y), r = Math.hypot(x + 0.5 - cx, dy), inArch = (y >= top && Math.abs(x + 0.5 - cx) < hw) || (y < top && r < rr);
+      const ring = !inArch && ((y >= top && Math.abs(x + 0.5 - cx) < hw + 2) || (y < top && r < rr + 2));
+      if (inArch) { const t = clamp((y - (top - rr)) / (H - (top - rr)), 0, 1), grate = y < top + ah * d * 0.45 && ((x & 1) === 0 || (y & 1) === 0);
+        const c = grate ? 0x1c1a20 : C.mix(0x0e0a0c, 0xb86a24, smooth(0.35, 1, t)); p.set(x, y, c); if (!grate && t > 0.4) e.set(x, y, C.mul(c, 0.6)); }
+      else if (ring) p.set(x, y, PX.ramp(R, (Math.floor(Math.atan2(top - y, x - cx) * 4) & 1) ? 4 : 2));
+    } }
+  if (f.crest) { const cx = Math.round(f.crest[0] * d), cy = H - Math.round(f.crest[1] * d);
+    for (let y = -4; y <= 4; y++) for (let x = -3; x <= 3; x++) { if (y > 1 && Math.abs(x) > 4 - y) continue; p.set(cx + x, cy + y, Math.abs(x) === 3 || y === -4 || (y > 1 && Math.abs(x) === 4 - y) ? 0xc8962e : 0x24346a); }
+    p.set(cx, cy - 1, 0xe8e8f0); p.set(cx - 1, cy, 0xe8e8f0); p.set(cx, cy, 0xe8e8f0); p.set(cx + 1, cy, 0xe8e8f0); p.set(cx + 1, cy - 2, 0xe8e8f0); }
+  for (const [x, y, kind, lit] of f.win || []) { PX.opening(p, e, R, Math.round(x * d), H - Math.round(y * d), kind, lit); if (lit) lits.push([x, y + PX.WIN[kind][1] / d / 2]); }
+  return Object.assign(PX.tex2(p, e, d), { lits });
+};
+PX.towerWrap = function (r, hm, f) {
+  const d = f.d, W = Math.max(8, Math.round(Math.PI * 2 * r * d)), H = Math.max(4, Math.round(hm * d)), p = new Pix(W, H), e = new Pix(W, H).fill(0), R = f.ramp, lits = [];
+  PX.stones(p, R, f.seed || 1, 0, 0, W, H, true);
+  for (const by of f.bands || []) { const y = H - Math.round(by * d); p.hl(0, W - 1, y, PX.ramp(R, 5)); p.hl(0, W - 1, y + 1, PX.ramp(R, 0)); }
+  PX.weather(p, R, f, true); PX.ivy(p, f, W, H);
+  for (const [a, y, kind, lit] of f.win || []) { const cx = Math.round(((a / (Math.PI * 2)) % 1 + 1) % 1 * W); PX.opening(p, e, R, cx, H - Math.round(y * d), kind, lit); if (lit) lits.push([a, y + PX.WIN[kind][1] / d / 2]); }
+  return Object.assign(PX.tex2(p, e, d), { lits });
+};
+PX.coneWrap = function (r, h, R, d, seed) {   // tile courses round a cone: ribs every 3 px, a highlight row per course, the eave in shadow
+  const W = Math.max(8, Math.round(Math.PI * 2 * r * d)), H = Math.max(6, Math.round(Math.hypot(r, h) * d)), p = new Pix(W, H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const row = y >> 1, off = row & 1, lip = (y & 1) === 1, gap = (x + off * 2) % 4 === 0;
+    let c = lip ? 2 : 3; if (lip && gap) c = 1; if (!lip && gap && hash(x, row, seed) < 0.5) c = 2; if (!lip && (x + off * 2) % 4 === 2 && hash(x, row, seed + 2) < 0.4) c = 4;
+    if (hash(x >> 2, row, seed + 1) < 0.06) c -= 1; if (y < 2) c = 2; if (y >= H - 2) c = y === H - 1 ? 0 : 1;
+    p.set(x, y, PX.ramp(R, c)); }
+  const t = p.tex({ aniso: 4 }); t.userData.d = d; return t;
+};
+PX.stoneTile = function (R, d, seed) { const p = new Pix(48, 24); PX.stones(p, R, seed, 0, 0, 48, 24, true); const t = p.tex({ repeat: true, aniso: 4 }); t.userData.d = d; return t; };
+PX.tileRoof = function (R, d, seed) { const p = new Pix(24, 24);
+  for (let y = 0; y < 24; y++) for (let x = 0; x < 24; x++) { const row = y >> 1, off = row & 1, lip = (y & 1) === 0, gap = (x + off * 2) % 4 === 0;   // v runs up the slope: the lip is the lower row
+    let c = lip ? 2 : 3; if (lip && gap) c = 1; if (!lip && (x + off * 2) % 4 === 2 && hash(x, row, seed + 2) < 0.4) c = 4; if (hash(x >> 2, row, seed) < 0.06) c -= 1; p.set(x, y, PX.ramp(R, c)); }
+  const t = p.tex({ repeat: true, aniso: 4 }); t.userData.d = d; return t; };
+/* build them: the painted face on the +z side of a box (the rest in the repeatable stone), glows on the lit windows */
+BUILD.facade = function (x0, x1, y0, y1, z0, z1, f) {
+  const F = PX.facade(x1 - x0, y1 - y0, f), m = BUILD.std(F.map, { emap: F.emap, emis: 0xffffff, ei: f.ei || 2.4, rough: 0.9 });
+  const me = BUILD.box(x0, x1, y0, y1, z0, z1, f.tile, { front: m, cast: f.cast });
+  for (const [x, y] of F.lits) BUILD.glow(x0 + x, y0 + y, z1 + 0.5, f.glow || 2.6, 0xffa850, 0.16);
+  return me;
+};
+BUILD.tower = function (x, z, y0, y1, r, f) {
+  const F = PX.towerWrap(r, y1 - y0, f), m = BUILD.std(F.map, { emap: F.emap, emis: 0xffffff, ei: f.ei || 2.4, rough: 0.9 });
+  const me = BUILD.cyl(x, z, y0, y1, r, F.map, { wrap: true, mat: m, top: f.batter, seg: f.seg || 24 });
+  for (const [a, y] of F.lits) BUILD.glow(x + Math.sin(a) * (r + 0.4), y0 + y, z + Math.cos(a) * (r + 0.4), f.glow || 2.4, 0xffa850, 0.16);
+  return me;
+};
+BUILD.coneRoof = function (x, z, y, r, h, R, d, o) { o = o || {}; const t = PX.coneWrap(r, h, R, d, o.seed || 7); return BUILD.cone(x, z, y, r, h, t, Object.assign({ wrap: true, seg: o.seg || 24 }, o)); };
 
 /* ==== game/g10_paint_bedroom.js ==== */
 /* BEDROOM TEXTURES — the bedchamber's own pixel art (generic painters live in engine/e02_pixel.js). */
@@ -55480,6 +55684,90 @@ PX.def('tent', () => { const W = 48, H = 30, p = new Pix(W, H); for (let y = 0; 
   p.set(x, y, Math.abs(x + 0.5 - 24) < 2 && y > 14 ? 0x1a1410 : C.mix(0xb8ae98, 0x6a6258, Math.abs(x - 24) / 24 + (x % 7 === 0 ? 0.1 : 0))); } p.vl(24, 0, 2, 0x3a2a1a); return p.outline(null, 0.7).tex(); });
 PX.def('smokeSoft', () => { const cv = document.createElement('canvas'), s = 64; cv.width = cv.height = s; const g = cv.getContext('2d'), r = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
   r.addColorStop(0, 'rgba(255,255,255,0.8)'); r.addColorStop(0.5, 'rgba(255,255,255,0.35)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, s, s); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; });
+/* ---------------------------------------------------------------- the fortress as a diorama: palettes for the
+   architecture painters (engine/e12_arch.js), and the land, sky and ridges painted at the title view's pixel scale */
+const RAMP = {
+  stone: [0x2a2430, 0x4a4048, 0x6a5e60, 0x8a7c76, 0xa8988a, 0xc4b4a0],     // the curtain wall: warm grey, moonlit
+  inner: [0x26222c, 0x403a44, 0x5a5258, 0x766c6c, 0x908478, 0xa89a8a],     // buildings inside the walls
+  keep: [0x2e2834, 0x4e4650, 0x726868, 0x948a82, 0xb2a696, 0xccc0aa],      // the keep, paler and newer
+  red: [0x2a0e14, 0x4a1418, 0x6e1e1c, 0x922c22, 0xb2402c, 0xcc5a3a],       // clay roofs
+  slate: [0x14161e, 0x22283a, 0x323a52, 0x46506a, 0x5c6884, 0x7480a0],     // slate roofs
+  rock: [0x16141c, 0x24202a, 0x352f38, 0x48404a, 0x5c525a, 0x726668],
+};
+const dens = (t, d, tint) => { t.userData.d = d; if (tint !== undefined) t.userData.tint = tint; return t; };
+PX.def('cragPix', () => {   // the crag as pixel-art rock: boulder cells with a lit upper-left rim, a shadowed lower-right, dark cracks between, moss on top
+  const W = 64, H = 64, p = new Pix(W, H), R = RAMP.rock, seeds = [];
+  for (let i = 0; i < 16; i++) seeds.push([hash(i, 1, 260) * W, hash(i, 2, 260) * H * 1.0, Math.floor(hash(i, 3, 260) * 2)]);
+  const near = (x, y) => { let a = 1e9, b = 1e9, ai = 0; for (let i = 0; i < seeds.length; i++) for (const ox of [-W, 0, W]) for (const oy of [-H, 0, H]) {
+    const dx = (x - seeds[i][0] - ox) * 1.0, dy = (y - seeds[i][1] - oy) * 1.5, d = Math.hypot(dx, dy); if (d < a) { b = a; a = d; ai = i; } else if (d < b) b = d; } return { a, b, i: ai }; };
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const n = near(x + 0.5, y + 0.5), s0 = seeds[n.i], edge = n.b - n.a;
+    let c = 2 + s0[2]; const up = near(x + 0.5, y - 1.5).i !== n.i, left = near(x - 1.5, y + 0.5).i !== n.i, down = near(x + 0.5, y + 2.5).i !== n.i, right = near(x + 2.5, y + 0.5).i !== n.i;
+    if (up || left) c = 4 + (up && hash(x, y, 261) < 0.3 ? 1 : 0); else if (down || right) c = 1;
+    if (edge < 1.1) c = 0; else if (!up && !left && PX.dith(x, y) < 0.25 && c > 1) c -= 1;
+    p.set(x, y, PX.ramp(R, c)); if (up && hash(x, y, 262) < 0.35) p.set(x, y, hash(x, y, 263) < 0.5 ? 0x34462a : 0x26341e); }
+  return dens(p.tex({ repeat: true, aniso: 4 }), 5); });
+PX.def('turfPix', () => { const p = new Pix(32, 32), G = [0x101a14, 0x18261a, 0x203222, 0x2c402a, 0x3a5034];   // wet turf: dark field, lighter blades in little clusters
+  for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) { const n = noise1(x * 0.2 + y * 0.13, 265); let c = n > 0.6 ? 2 : 1; if (PX.dith(x, y) < (n - 0.4) * 0.8) c++;
+    if (hash(x, y, 266) < 0.06) c = 3; if (hash(x, y, 267) < 0.015) c = 4; p.set(x, y, G[c]); }
+  return dens(p.tex({ repeat: true, aniso: 4 }), 5); });
+PX.def('meadowPix', () => { const p = new Pix(64, 64), G = [0x0e1610, 0x162218, 0x1e2e1e, 0x283c26, 0x34482e];   // the meadow under the rain: grass with puddles holding the sky
+  for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) { const n = noise1(x * 0.11 + y * 0.07, 268), pud = noise1(x * 0.13 + 3, 269) * noise1(y * 0.21 + 7, 270);
+    let c = G[n > 0.55 ? 2 : 1]; if (PX.dith(x, y) < (n - 0.35) * 0.7) c = G[3]; if (hash(x, y, 271) < 0.03) c = G[4];
+    p.set(x, y, c); }
+  return dens(p.tex({ repeat: true, aniso: 4 }), 5); });
+PX.def('roadPix', () => { const p = new Pix(24, 24), M = [0x1e1814, 0x2a2018, 0x382a20, 0x46362a];
+  for (let y = 0; y < 24; y++) for (let x = 0; x < 24; x++) { const n = noise1(x * 0.3 + y * 0.25, 272), rut = (x % 12 === 3 || x % 12 === 8); let c = M[1 + (PX.dith(x, y) < n * 0.8 ? 1 : 0)];
+    if (rut) c = M[0]; if (n > 0.84) c = 0x5a6278; if (hash(x, y, 273) < 0.04) c = M[3]; p.set(x, y, c); }
+  return dens(p.tex({ repeat: true }), 5); });
+/* the night sky, painted once (not tiled): bands dithered into each other, a moon behind thinning cloud, storm cloud
+   masses with moonlit rims; brighter low down so the fortress stands out against it */
+PX.def('skyNight', () => {
+  const W = 512, H = 220, p = new Pix(W, H), S = [0x0a0c16, 0x10141f, 0x161c2c, 0x1e2639, 0x283248, 0x343f58, 0x434e68, 0x56607a, 0x6a7088], mx = W * 0.64, my = H * 0.26;
+  const cloud = (x, y) => { const n = noise1(x * 0.011 + noise1(y * 0.03, 274) * 1.5, 275) * 0.65 + noise1(x * 0.04 + y * 0.06, 276) * 0.35; return n - (0.62 - 0.3 * Math.pow(Math.abs(y / H - 0.42) * 2, 2)); };
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const t = Math.pow(y / H, 1.3) * (S.length - 1.01), md = Math.hypot((x - mx) * 0.8, y - my), halo = Math.max(0, 1 - md / 70) * 3.2, f = t + halo;
+    let c = S[clamp(Math.floor(f) + (PX.dith(x, y) < f % 1 ? 1 : 0), 0, S.length - 1)];
+    const cl = cloud(x, y); if (cl > 0) { const above = cloud(x, y - 2) <= 0, lit = Math.max(0, 1 - md / 150);
+      const C2 = [0x0e1220, 0x161c2c, 0x202940, 0x2e3a56, 0x4a5878, 0x7a88a8]; let i = cl > 0.12 ? 0 : cl > 0.05 ? 1 : 2; if (y > H * 0.55) i++; if (above) i = 3 + (lit > 0.4 ? 2 : lit > 0.1 ? 1 : 0);
+      else if (cloud(x, y - 4) <= 0 && PX.dith(x, y) < 0.5 + lit) i = Math.max(i, 3); c = C2[i]; }
+    if (md < 9) c = md < 7.5 ? (hash(x >> 1, y >> 1, 277) < 0.15 ? 0xb8c0cc : 0xe4e8ee) : 0xa8b0c4;   // the moon
+    p.set(x, y, c); }
+  return p.tex({ mip: false }); });
+PX.def('cloudBand', () => {   // a drifting strip of ragged low cloud, transparent between the rags
+  const W = 256, H = 36, p = new Pix(W, H), C2 = [0x161c2c, 0x202940, 0x2e3a56, 0x46547a];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const u = x / W * Math.PI * 2, n = noise1(Math.cos(u) * 2 + 9 + y * 0.06, 278) * 0.6 + noise1(Math.sin(u) * 5 + y * 0.15, 279) * 0.4 - Math.abs(y / H - 0.5) * 0.9;
+    if (n < 0.25) continue; const top = (noise1(Math.cos(u) * 2 + 9 + (y - 2) * 0.06, 278) * 0.6 + noise1(Math.sin(u) * 5 + (y - 2) * 0.15, 279) * 0.4 - Math.abs((y - 2) / H - 0.5) * 0.9) < 0.25;
+    p.set(x, y, C2[top ? 3 : n > 0.4 ? 0 : n > 0.32 ? 1 : 2]); }
+  return p.tex({ repeat: true, mip: false }); });
+PX.ridge = (W, H, seed, base, top, lit, trees) => { const p = new Pix(W, H);   // a mountain ridge: moonlit on the slopes facing left, a band of forest along the foot
+  for (let x = 0; x < W; x++) { const r = H * (0.15 + 0.55 * (noise1(x * 0.012, seed) * 0.7 + noise1(x * 0.05, seed + 1) * 0.3)), rn = H * (0.15 + 0.55 * (noise1((x + 1) * 0.012, seed) * 0.7 + noise1((x + 1) * 0.05, seed + 1) * 0.3));
+    for (let y = Math.floor(r); y < H; y++) { const face = rn < r && y < r + (H - r) * 0.5; p.set(x, y, y < r + 1 ? top : face && PX.dith(x, y) < 0.6 ? lit : C.mix(base, C.mul(base, 0.7), (y - r) / (H - r))); } }
+  if (trees) for (let x = 0; x < W; x += 2 + Math.floor(hash(x, 1, seed) * 3)) { const h = 3 + Math.floor(hash(x, 2, seed) * 4), y0 = H - 6 - Math.floor(hash(x, 3, seed) * 4); for (let j = 0; j < h; j++) for (let i = -Math.floor(j / 2); i <= Math.floor(j / 2); i++) p.set(x + i, y0 - h + j, trees); for (let y = y0; y < H; y++) p.set(x, y, trees); }
+  return p.tex({ mip: false }); };
+PX.def('ridgeFar', () => PX.ridge(512, 64, 280, 0x2e3850, 0x4e5a74, 0x3e4862, 0));
+PX.def('ridgeNear', () => PX.ridge(512, 72, 283, 0x1a2030, 0x323c54, 0x262e42, 0x111620));
+PX.def('forestFloor', () => { const p = new Pix(64, 64), G = [0x0e0e0a, 0x16160e, 0x1e1c12, 0x262418, 0x2e2a1c];   // the Wood at close range: needles, leaf litter, moss, a few stones
+  for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) { const n = noise1(x * 0.09 + y * 0.07, 290); let c = G[1 + (PX.dith(x, y) < n ? 1 : 0)]; if (noise1(x * 0.05 + 4, 291) * noise1(y * 0.06 + 2, 292) > 0.42) c = PX.dith(x, y) < 0.6 ? 0x1e2a16 : 0x26341c; p.set(x, y, c); }
+  for (let i = 0; i < 140; i++) { const x = hash(i, 1, 293) * 64, y = hash(i, 2, 293) * 64, a = hash(i, 3, 293) * 3.14, l = 2 + hash(i, 4, 293) * 3; for (let k = 0; k < l; k++) p.wset(Math.round(x + Math.cos(a) * k), Math.round(y + Math.sin(a) * k), hash(i, 5, 293) < 0.5 ? 0x4a3a22 : 0x3a2e1a); }
+  for (let i = 0; i < 12; i++) { const x = hash(i, 6, 293) * 64, y = hash(i, 7, 293) * 64; p.wset(x, y, 0x4a4644); p.wset(x + 1, y, 0x3a3634); p.wset(x, y - 1, 0x5a5654); }
+  return p.tex({ repeat: true, aniso: 4 }); });
+PX.def('slit', () => { const p = new Pix(3, 9); for (let y = 0; y < 9; y++) for (let x = 0; x < 3; x++) p.set(x, y, x === 1 && y > 0 && y < 8 ? 0x0a0808 : 0x4a4642); return dens(p.tex(), 6); });
+PX.def('winCastle', () => { const p = new Pix(6, 10);   // a lit lancet window, warm glass in a dark reveal
+  for (let y = 0; y < 10; y++) for (let x = 0; x < 6; x++) { if (y < 2 && Math.hypot(x - 2.5, y - 2.5) > 2.9) continue; const edge = x === 0 || x === 5 || y === 9;
+    p.set(x, y, edge ? 0x1e1a18 : x === 2 || x === 3 ? (y === 5 ? 0x5a3a1a : C.mix(0xffe0a0, 0xffa040, y / 10)) : y === 5 ? 0x5a3a1a : C.mix(0xffd890, 0xff9030, y / 10)); }
+  return dens(p.tex(), 5); });
+PX.def('gateDeep', () => { const W = 16, H = 22, p = new Pix(W, H);   // the gate passage: portcullis half raised, torchlight beyond
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { if (y < 8 && Math.hypot(x - 7.5, y - 8) > 8) continue; const edge = y < 8 ? Math.hypot(x - 7.5, y - 8) > 6.6 : x < 2 || x > 13;
+    let c = edge ? C.mul(0x6e6a66, 0.8 + 0.3 * hash(x >> 1, y >> 1, 248)) : C.mix(0x0c0806, 0x6a3a14, smooth(4, 22, y) * 0.8);
+    if (!edge && y < 13 && (x % 3 === 0 || y % 3 === 0)) c = 0x1a1612; p.set(x, y, c); }
+  return dens(p.tex(), 4); });
+PX.def('hoarding', () => { const p = new Pix(32, 16); for (let y = 0; y < 16; y++) for (let x = 0; x < 32; x++) { const pl = Math.floor(x / 4); p.set(x, y, x % 4 === 0 ? 0x1a0e08 : C.mul(0x4a2e1c, 0.8 + 0.3 * noise1(y * 0.4 + pl * 7, 249))); }
+  return dens(p.tex({ repeat: true }), 10); });
+PX.def('swanBanner', () => { const W = 10, H = 26, p = new Pix(W, H);   // a long hanging banner: blue field, white swan, gold edge, swallowtail foot
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { if (y > H - 4 && Math.abs(x - 4.5) < (y - (H - 4)) * 1.3) continue; p.set(x, y, x === 0 || x === W - 1 ? 0xc8962e : C.mix(0x2a3a7a, 0x1a2450, x / W)); }
+  p.ell(4.5, 11, 2.5, 1.5, 0xe8e8f0); p.vl(6, 6, 10, 0xe8e8f0); p.set(5, 6, 0xe8e8f0); p.set(4, 6, 0xe0902a); p.hl(1, 8, 1, 0xc8962e);
+  return dens(p.tex(), 6); });
 
 /* ==== game/g20_bedroom.js ==== */
 /* THE BEDCHAMBER — laid out from the reference frame. The king starts here; the crown waits on its cushion beside the
@@ -55663,75 +55951,142 @@ BEDROOM.onEnter = function () {
      present  the storm starting again
      wood     out of sight to the west (x ≈ −50): the clearing in the Wood where the bargain was made, with the witch
               and the young prince in it */
-const EXTERIOR = SCENE.addRoom(new Room('exterior', { X0: -80, X1: 60, CEIL: 60, KZ: 0, cam: { y: 6, look: 9, dist: 40, fov: 19 }, exposure: 1.3, reflK: 0.55, noPlayer: true, far: 420,
-  dof: { uNear0: 12, uNearR: 18, uFar0: 30, uFarR: 120 },
+const EXTERIOR = SCENE.addRoom(new Room('exterior', { X0: -80, X1: 60, CEIL: 60, KZ: 0, cam: { y: 6, look: 9, dist: 40, fov: 19 }, exposure: 1.25, reflK: 0.3, noPlayer: true, near: 2, far: 600,
+  dof: { uNear0: 20, uNearR: 30, uFar0: 60, uFarR: 200 }, fog: [0x1e2638, 0.0035],
   music: 'title', ambience: { rain: 0.9, wind: 0.5 }, acoustics: { size: 2.6, wet: 0.18 }, surface: 'grass' }));
+EXTERIOR.P = 7;   // the crag's top: everything inside the walls stands on it
+EXTERIOR.D = 5.5;  // texels per metre for everything seen from the title's distance (BUILD.density(95, 22)): the rooms' pixel size
+/* the land: a crag with a plateau for the fortress, a road climbing its face to the gate, a meadow, hills behind */
+EXTERIOR.ground = function () {
+  const P = EXTERIOR.P, A = [38, 5], B = [9, -11];
+  const road = (x, z) => { const dx = B[0] - A[0], dz = B[1] - A[1], t = clamp(((x - A[0]) * dx + (z - A[1]) * dz) / (dx * dx + dz * dz), 0, 1);
+    return { d: Math.hypot(x - (A[0] + dx * t), z - (A[1] + dz * t)), y: P * t }; };
+  const h = (x, z) => {
+    const ox = x < -31 ? -31 - x : x > 35 ? x - 35 : 0, oz = z > -10 ? z + 10 : z < -52 ? -52 - z : 0, d = Math.hypot(ox, oz);
+    const wf = oz > 0 && z > -10 ? 8 + noise1(x * 0.15, 250) * 3 : 12 + noise1(z * 0.1 + x * 0.05, 251) * 4, t = clamp(d / wf, 0, 1);
+    const cliff = 1 - smooth(0.05, 0.55, t + (noise1(x * 0.21 + z * 0.13, 253) - 0.5) * 0.25);   // a steep face, then a skirt of scree
+    let y = d === 0 ? P + (noise1(x * 0.2 + z * 0.17, 252) - 0.5) * 0.3 : P * (cliff * 0.85 + 0.15 * Math.pow(1 - t, 2));
+    if (z < -58) y = Math.max(y, (noise1(x * 0.025, 254) * 14 + noise1(x * 0.08 + z * 0.05, 255) * 4 - 3) * smooth(-58, -100, z));   // hills behind
+    const r = road(x, z); if (r.d < 2.4) y = r.y; else if (r.d < 8) y = Math.max(y, r.y - (r.d - 2.4) * 1.3);
+    return y < 0.02 ? -0.3 : y;   // the meadow itself is the flat reflective plane
+  };
+  const cls = (x, z, ny) => { if (road(x, z).d < 2.2 || (z > -12.8 && z < -9.4 && x > 0.6 && x < 10)) return 'road'; return ny > 0.72 ? 'turf' : 'rock'; };
+  return BUILD.terrain({ x0: -110, x1: 120, z0: -124, z1: 16, step: 1.6, h, cls, tex: { turf: PX.T.turfPix, rock: PX.T.cragPix, road: PX.T.roadPix }, side: { rock: true }, facet: { rock: true } });
+};
+/* the hill the view is taken from: a dark shoulder of land in the lower left, under the title */
+EXTERIOR.hill = function () {
+  const h = (x, z) => { const d = Math.hypot((x + 38) / 1.5, z - 46); return Math.max(-0.3, 19 * Math.pow(Math.max(0, 1 - d / 30), 1.3) + (noise1(x * 0.12 + z * 0.1, 256) - 0.5) * 2.2 * smooth(30, 8, d)); };
+  return BUILD.terrain({ x0: -140, x1: 10, z0: 24, z1: 96, step: 2.2, h, cls: (x, z, ny) => (ny > 0.6 ? 'turf' : 'rock'), tex: { turf: PX.T.turfPix, rock: PX.T.cragPix }, side: { rock: true }, facet: { rock: true }, cast: false });
+};
 EXTERIOR.build = function () {
-  const room = BUILD.begin(this), T = PX.T, G0 = 2.4;
-  /* ground, the rock the fortress stands on, the road to the gate */
-  room.floorMat = BUILD.reflective(T.grassWet, { k: 0.8, rough: 0.6 }); BUILD.plane('y+', -90, 70, -8.4, 44, 0, T.grassWet, { mat: room.floorMat, layer: 2 });
-  BUILD.box(-28, 34, 0, G0, -34, -8.5, T.rockFace, { cast: false });
-  BUILD.rug(T.mud, 1.2, 4.8, -8.4, 44, { rv: 52 / 1, ru: 3.6 });
-  /* the curtain wall, merlons, corner towers with red caps */
-  BUILD.box(-22, 28, G0, 11, -12, -9.5, T.stoneWet);
-  for (let x = -21.5; x <= 27.6; x += 1.25) BUILD.box(x - 0.35, x + 0.35, 11, 11.9, -10.1, -9.5, T.stoneWet);
-  for (const x of [-22, 28]) { const g = new THREE.CylinderGeometry(2.7, 2.9, 12.6, 14); g.translate(x, G0 + 6.3, -11); BUILD.planarUV(g, T.stoneWet); BUILD.add(new THREE.Mesh(g, BUILD.std(T.stoneWet)));
-    const r = new THREE.ConeGeometry(3.2, 5.2, 12); r.translate(x, G0 + 12.6 + 2.6, -11); BUILD.planarUV(r, T.roofTile); BUILD.add(new THREE.Mesh(r, BUILD.std(T.roofTile))); }
-  /* the gatehouse */
-  BUILD.box(0.2, 5.8, G0, 14.5, -13, -8.6, T.stoneWet);
-  for (let x = 0.6; x <= 5.5; x += 1.22) BUILD.box(x - 0.35, x + 0.35, 14.5, 15.4, -9.2, -8.6, T.stoneWet);
-  BUILD.card(T.gateArch, 3, G0, -8.55, { basic: true, k: 1.1, cast: false });
-  for (const x of [1.6, 4.4]) { BUILD.card(T.windowLit, x, 10.2, -8.55, { basic: true, k: 2.2, cast: false, s: 1.4 }); BUILD.glow(x, 10.6, -8.3, 1.4, 0xffb060, 0.25); }
-  /* the keep: windows lit all the way up, a red pyramid roof, the swan flag */
-  BUILD.box(12, 18, G0, 26, -19, -13, T.stoneWet);
-  for (let x = 12.25; x <= 17.8; x += 1.1) BUILD.box(x - 0.32, x + 0.32, 26, 26.9, -13.6, -13, T.stoneWet);
-  for (const [x, y] of [[13.6, 9], [16.4, 9], [15, 13.5], [13.6, 18], [16.4, 18], [15, 22]]) { BUILD.card(T.windowLit, x, y, -12.95, { basic: true, k: 2.2, cast: false, s: 1.6 }); BUILD.glow(x, y + 0.5, -12.7, 1.6, 0xffb060, 0.22); }
-  { const r = new THREE.ConeGeometry(4.7, 7.5, 4); r.rotateY(Math.PI / 4); r.translate(15, 26.9 + 3.75, -16); BUILD.planarUV(r, T.roofTile); BUILD.add(new THREE.Mesh(r, BUILD.std(T.roofTile))); }
-  BUILD.box(14.95, 15.05, 33.5, 38, -16.05, -15.95, T.woodPost, { cast: false });
-  BUILD.windCard(T.flag, 15.0 + 0.94 * 1.6 / 2, 36.4, -16, 'wave', 0.12, { s: 1.6, cast: false });
-  /* rooftops and the chapel spire behind the wall */
-  for (const [x0, x1, y0, h] of [[-19, -9, 9.5, 3.6], [-7.5, -0.5, 9, 3], [7, 11.5, 9.5, 3.2], [19.5, 26, 9.2, 3.4]]) { BUILD.box(x0, x1, y0, y0 + 1.4, -22, -14, T.stoneWet, { cast: false }); BUILD.box(x0 - 0.3, x1 + 0.3, y0 + 1.4, y0 + 1.4 + h, -22.4, -13.6, T.roofTile, { taper: [1, 0.04], cast: false }); }
-  BUILD.box(-7.2, -4.8, G0, 17, -21, -19, T.stoneWet); { const r = new THREE.ConeGeometry(1.5, 9, 8); r.translate(-6, 17 + 4.5, -20); BUILD.planarUV(r, T.roofTile); BUILD.add(new THREE.Mesh(r, BUILD.std(T.roofTile))); }
-  BUILD.card(T.windowLit, -6, 12, -18.95, { basic: true, k: 2, cast: false, s: 1.3 });
-  /* torches at the gate and along the wall */
-  for (const [x, y, z] of [[0.6, 6.4, -8.45], [5.4, 6.4, -8.45], [-10, 8.8, -9.4], [21, 8.8, -9.4]]) { BUILD.flame(x, y, z, 0.9); BUILD.glow(x, y + 0.5, z + 0.2, 2.2, 0xff9040, 0.45);
-    BUILD.light(new THREE.PointLight(0xff9a48, 30, 0, 2), x, y + 0.5, z + 1.2, { flicker: 6 }); }
-  /* the sky, mountains, foreground */
-  room.skyT = { storm: T.skyStorm, dawn: T.skyDawn };
-  BUILD.sky(T.skyStorm, { z: -170, w: 700, h: 300, y: -60, k: 1.7, cloudScale: 1.8, clouds: [[T.cloudsA, -150, 18, 70, 0.004, 1.5, 1], [T.cloudsB, -130, 38, 60, 0.009, 1.4, 0.85]] });
-  room.mtn = BUILD.card(T.mountains, 0, -4, -160, { w: 420, h: 46, basic: true, k: 0.8, cast: false, dyn: true });
-  for (const [x, z, s] of [[-27, -6, 2.2], [-31, -3, 2.6], [-24, -1, 1.9], [33, -5, 2.4], [37, -2, 2.8], [30, 0, 2.0], [-40, 20, 3.6], [-34, 30, 4.2], [-46, 36, 4.8], [26, 34, 4.4]]) BUILD.windCard(T.pine, x, 0, z, 'sway', 0.04, { s, cast: false });
-  for (let x = -26; x < 34; x += 4.6) BUILD.card(T.rock, x + hash(x, 1, 410) * 2, 0, -8.2 + hash(x, 2, 410), { s: 2.6 + hash(x, 3, 410) * 1.6, cast: false });
-  for (const [x, z, s] of [[-8, 13, 2.4], [17, 15, 2.8], [-26, 11, 2.2], [30, 12, 2.4]]) BUILD.card(T.rock, x, 0, z, { s, cast: false });
-  for (let i = 0; i < 26; i++) { const r = rng(400 + i); BUILD.windCard(T.tuft, -34 + r() * 74, 0, 6 + r() * 14, 'sway', 0.08, { s: 1.6 + r(), cast: false }); }
-  BUILD.windCard(T.deadTree, -15, 0, 9, 'sway', 0.04, { s: 1.8, cast: false });
-  /* light */
-  BUILD.light(new THREE.HemisphereLight(0x3a4668, 0x1a1410, 1.9), 0, 40, 0);
-  room.moon = BUILD.light(new THREE.DirectionalLight(0x8090c0, 1.4), -30, 60, 20); room.moon.target.position.set(10, 0, -12);
-  room.fill = BUILD.light(new THREE.DirectionalLight(0x6a78a0, 0.35), 5, 10, 60); room.fill.target.position.set(10, 8, -10);
-  BUILD.lightning({ x: 20, z: -40, k: 5, min: 5, max: 12 });
-  BUILD.rain({ n: 2800, box: [-75, 50, 0, 42, -14, 30], speed: 16, wind: 0.22, len: 0.7, opacity: 0.4 });
-  BUILD.flock(T.crow, [[15, 30, -14, 6, 2, 0.45], [14, 28.5, -12, 8, 1.5, -0.32], [17, 32, -16, 5, 2.5, 0.52], [11, 27, -10, 9, 3, 0.36], [18, 29, -15, 7, 2, -0.42], [-20, 18, -11, 5, 1.5, 0.4]], { s: 1.7 });
-  /* the siege (hidden until the cutscene asks for it) */
+  const room = BUILD.begin(this), T = PX.T, P = this.P, D = this.D, RP = RAMP;
+  const tile = { stone: PX.stoneTile(RP.stone, D, 301), inner: PX.stoneTile(RP.inner, D, 302), keep: PX.stoneTile(RP.keep, D, 303), red: PX.tileRoof(RP.red, D, 304), slate: PX.tileRoof(RP.slate, D, 305) };
+  const F = (ramp, tl, seed, more) => Object.assign({ ramp, d: D, seed, tile: tl }, more || {});
+  /* the meadow (wet, mirror-bright), the crag, the hill in front */
+  room.floorMat = BUILD.reflective(T.meadowPix, { k: 0.55, rough: 0.7 }); BUILD.plane('y+', -170, 150, -124, 200, 0, T.meadowPix, { mat: room.floorMat, layer: 2 });
+  room.land = EXTERIOR.ground(); room.hill = EXTERIOR.hill();
+  /* the curtain wall: each run painted to its size, merlons along the outer edge, the side and back walls in plain courses */
+  BUILD.facade(-24, -1, P - 1.5, P + 8, -15.5, -13, F(RP.stone, tile.stone, 311, { win: [[4, 4.5, 'slit'], [10, 4.5, 'slit'], [16, 4.5, 'slit'], [21, 4.5, 'slit']], ivy: [[1.5, 3, 6.5], [13, 2.2, 4]], bands: [7.2] }));
+  BUILD.facade(7, 28, P - 1.5, P + 8, -15.5, -13, F(RP.stone, tile.stone, 312, { win: [[3.5, 4.5, 'slit'], [15, 4.5, 'slit'], [19, 4.5, 'slit']], ivy: [[9, 2.6, 5]], bands: [7.2] }));
+  for (const [x, seed] of [[-17, 313], [-8.5, 314], [11.5, 315], [23.5, 316]]) BUILD.facade(x - 0.75, x + 0.75, P - 1.5, P + 5.5, -13.2, -12.1, F(RP.stone, tile.stone, seed, { grime: 0.5, streaks: 2 }));   // buttresses
+  BUILD.box(-27, -24.5, P - 1.5, P + 8, -45, -14, tile.stone); BUILD.box(28.5, 31, P - 1.5, P + 8, -45, -14, tile.stone); BUILD.box(-25, 29, P - 1.5, P + 8, -47.5, -45, tile.inner);
+  BUILD.crenels(-21, -13.28, -3.6, -13.28, P + 8, tile.stone); BUILD.crenels(9.6, -13.28, 25, -13.28, P + 8, tile.stone);
+  BUILD.crenels(-26.72, -17.5, -26.72, -41.5, P + 8, tile.stone); BUILD.crenels(30.72, -17.5, 30.72, -41.5, P + 8, tile.stone); BUILD.crenels(-21, -45.3, 25, -45.3, P + 8, tile.inner);
+  /* a timber hoarding on the east wall, where the siege came hardest */
+  { const ht = PX.T.hoarding; ht.userData.d = D * 1.6; BUILD.box(12.4, 20.6, P + 6.4, P + 8.0, -13.2, -12.1, ht); BUILD.roof(12.4, 20.6, -13.6, -12.0, P + 8.0, 0.8, tile.red, { over: 0.25 });
+    for (let x = 13; x <= 20.2; x += 1.2) BUILD.box(x - 0.08, x + 0.08, P + 5.5, P + 6.4, -13.1, -12.5, T.woodPost, { cast: false }); }
+  /* the corner towers: painted drums, a corbelled ring, tall red cones */
+  for (const [x, z, front, seed] of [[-25.5, -14.2, 1, 321], [29.5, -14.2, 1, 322], [-25.5, -45.5, 0, 323], [29.5, -45.5, 0, 324]]) {
+    const turn = x < 0 ? 0.35 : -0.35;   // windows turned a little toward the view
+    BUILD.tower(x, z, P - 2, P + 11.4, 3.8, F(RP.stone, tile.stone, seed, { batter: 0.92, bands: [9.2], ivyAngle: true, ivy: front ? [[x < 0 ? 1.1 : -1.3, 4, 7]] : [], win: front ? [[turn, 4.5, 'slit'], [turn, 9, 'lancet', 1], [turn + 0.9, 7, 'slit'], [turn - 0.9, 7, 'slit']] : [[0, 9, 'lancet', seed & 1]] }));
+    BUILD.cyl(x, z, P + 11.2, P + 12.4, 3.98, tile.stone, { seg: 24 });
+    BUILD.coneRoof(x, z, P + 12.4, 4.45, 7.4, RP.red, D, { seed });
+    BUILD.box(x - 0.06, x + 0.06, P + 19.6, P + 21.2, z - 0.06, z + 0.06, T.woodPost, { cast: false }); }
+  /* the gatehouse: a deep block painted with its arch, portcullis, the swan shield and a lit window; drum towers either side */
+  BUILD.facade(-1, 7, P - 1.5, P + 11, -18, -12.2, F(RP.stone, tile.stone, 331, { arch: [4, 3.4, 4.6], crest: [4, 8.2], win: [[4, 10.4, 'lancet', 1], [1.4, 8.6, 'slit'], [6.6, 8.6, 'slit']], bands: [7.2] }));
+  BUILD.crenels(-0.6, -12.48, 6.6, -12.48, P + 11, tile.stone); BUILD.crenels(-0.6, -17.7, 6.6, -17.7, P + 11, tile.stone);
+  for (const [x, seed] of [[-1.7, 332], [7.7, 333]]) { BUILD.tower(x, -12.9, P - 1.5, P + 13, 2.5, F(RP.stone, tile.stone, seed, { batter: 0.93, bands: [11.2], win: [[x < 3 ? -0.3 : 0.3, 5, 'slit'], [x < 3 ? -0.3 : 0.3, 10, 'slit'], [0, 12.2, 'lancet', 1]] }));
+    BUILD.cyl(x, -12.9, P + 12.6, P + 13.6, 2.66, tile.stone, { seg: 20 }); BUILD.coneRoof(x, -12.9, P + 13.6, 3.0, 5.6, RP.slate, D, { seed }); }
+  for (const x of [1.2, 6.8]) BUILD.windCard(T.swanBanner, x, P + 4.6, -12.1, 'sway', 0.08, { cast: false });
+  /* inside the walls: houses whose roofs show over the battlements */
+  for (const [x0, x1, z0, z1, hh, rh, along, seed] of [[-21, -12, -23, -17.5, 9, 4, 0, 341], [9, 15.5, -24, -18.5, 8.2, 3.4, 0, 342], [20, 26.5, -27, -17.5, 9.6, 3.6, 1, 343], [-10, -3, -22, -17.8, 7.6, 3.2, 0, 344]]) {
+    const w = x1 - x0; BUILD.facade(x0, x1, P, P + hh, z0, z1, F(RP.inner, tile.inner, seed, { win: [[w * 0.3, hh - 2.6, 'square', seed & 1], [w * 0.7, hh - 2.6, 'square', 1 - (seed & 1)]], grime: 0.4 }));
+    BUILD.roof(x0, x1, z0, z1, P + hh, rh, tile.red, { alongZ: !!along, gable: tile.inner, over: 0.45 }); }
+  /* the great hall (the throne room): its tall windows lit, a slate roof, two chimneys */
+  BUILD.facade(-16, 5, P, P + 10.5, -36, -26, F(RP.inner, tile.inner, 351, { bands: [8.6], win: [2.6, 5.6, 8.6, 12.4, 15.4, 18.4].map((x) => [x, 3.2, 'tall', 1]) }));
+  BUILD.roof(-16, 5, -36, -26, P + 10.5, 5.6, tile.slate, { gable: tile.inner, over: 0.6 });
+  for (const x of [-11, 0]) BUILD.box(x - 0.7, x + 0.7, P + 12, P + 18.6, -31.7, -30.3, tile.inner);
+  /* the chapel, its tower and spire */
+  BUILD.box(-24, -18.5, P, P + 8, -43, -35, tile.inner); BUILD.roof(-24, -18.5, -43, -35, P + 8, 3.8, tile.red, { alongZ: true, gable: tile.inner, over: 0.4 });
+  BUILD.facade(-22.8, -19.6, P, P + 14, -35, -31.6, F(RP.inner, tile.inner, 361, { win: [[1.6, 9.2, 'rose', 1], [1.6, 4, 'slit']], bands: [12.6] }));
+  BUILD.crenels(-22.8, -31.85, -19.6, -31.85, P + 14, tile.inner, { w: 0.7, gap: 0.5 });
+  BUILD.coneRoof(-21.2, -33.3, P + 14, 2.3, 8.5, RP.slate, D, { seg: 8, seed: 362 });
+  /* the keep: painted face with its lit windows, corbelled top, bartizans, a slate pyramid, the swan flag */
+  const KX0 = 10, KX1 = 19, KZ0 = -38, KZ1 = -29.5, KH = 19;
+  BUILD.facade(KX0, KX1, P, P + KH, KZ0, KZ1, F(RP.keep, tile.keep, 371, { bands: [7.4, 13.6], win: [[2.3, 3.2, 'tall', 1], [6.7, 3.2, 'tall', 0], [4.5, 9, 'lancet', 1], [2.3, 15.2, 'lancet', 1], [6.7, 15.2, 'lancet', 1]] }));
+  BUILD.box(KX0 - 0.4, KX1 + 0.4, P + KH - 1.2, P + KH + 0.4, KZ0 - 0.4, KZ1 + 0.4, tile.keep);
+  BUILD.crenels(KX0 - 0.2, KZ1 + 0.17, KX1 + 0.2, KZ1 + 0.17, P + KH + 0.4, tile.keep); BUILD.crenels(KX0 - 0.2, KZ0 - 0.17, KX1 + 0.2, KZ0 - 0.17, P + KH + 0.4, tile.keep);
+  BUILD.crenels(KX0 - 0.17, KZ0, KX0 - 0.17, KZ1, P + KH + 0.4, tile.keep); BUILD.crenels(KX1 + 0.17, KZ0, KX1 + 0.17, KZ1, P + KH + 0.4, tile.keep);
+  BUILD.coneRoof((KX0 + KX1) / 2, (KZ0 + KZ1) / 2, P + KH + 0.4, 6.2, 8.6, RP.slate, D, { seg: 4, seed: 372 });
+  for (const [x, z, s2] of [[KX0, KZ1, 373], [KX1, KZ1, 374], [KX0, KZ0, 375], [KX1, KZ0, 376]]) { BUILD.tower(x, z, P + KH - 4, P + KH + 2, 1.2, F(RP.keep, tile.keep, s2, { seg: 12, grime: 0.15, streaks: 3, win: [[0, 2.4, 'slit']] })); BUILD.coneRoof(x, z, P + KH + 2, 1.45, 3.2, RP.slate, D, { seg: 12, seed: s2 }); }
+  const FY = P + KH + 0.4 + 8.6;
+  BUILD.box(14.42, 14.58, FY - 0.6, FY + 4.4, -33.83, -33.67, T.woodPost, { cast: false });
+  BUILD.windCard(T.flag, 14.5 + 1.4, FY + 2.4, -33.75, 'wave', 0.22, { s: 3, cast: false });
+  /* torches: either side of the gate, along the wall-walk */
+  for (const [x, y, z, k] of [[1.6, P + 2.6, -12.05, 1], [6.4, P + 2.6, -12.05, 1], [-12, P + 8.6, -13.1, 0.7], [-4, P + 8.6, -13.1, 0.7], [22, P + 8.6, -13.1, 0.7]]) {
+    BUILD.flame(x, y, z, 1.0 * k + 0.4); BUILD.glow(x, y + 0.6, z + 0.3, 3.0 * k + 1, 0xff9040, 0.45);
+    BUILD.light(new THREE.PointLight(0xff9a48, 50 * k, 0, 2), x, y + 0.8, z + 1.6, { flicker: 6 + x * 0.05 }); }
+  /* the sky (painted once), cloud bands drifting across it, two ridges of mountains, forest on the hills */
+  room.skyT = { storm: T.skyNight, dawn: T.skyDawn };
+  BUILD.sky(T.skyNight, { z: -300, w: 640, h: 275, y: -30, k: 1.0, cloudScale: 1.4, clouds: [[T.cloudBand, -260, 44, 34, 0.0025, 1.0, 0.95], [T.cloudBand, -215, 64, 28, -0.004, 1.15, 0.8]] });
+  room.mtn = BUILD.card(T.ridgeFar, 0, -6, -250, { w: 640, h: 80, basic: true, k: 1.0, cast: false, dyn: true });
+  BUILD.card(T.ridgeNear, 20, -8, -180, { w: 520, h: 73, basic: true, k: 1.0, cast: false });
+  const pine = (x, z, s) => BUILD.windCard(T.pine, x, room.land.height(x, z) - 0.3, z, 'sway', 0.04, { s, cast: false });
+  for (let i = 0; i < 90; i++) { const r = rng(700 + i), x = -110 + r() * 230, z = -62 - r() * 55; if (room.land.height(x, z) > 1) pine(x, z, 2.2 + r() * 1.6); }   // forest on the hills
+  for (let i = 0; i < 30; i++) { const r = rng(800 + i), side = i % 2 ? 1 : -1, x = side > 0 ? 40 + r() * 26 : -36 - r() * 26, z = -50 + r() * 50; pine(x, z, 2.4 + r() * 1.8); }   // round the foot of the crag
+  for (let i = 0; i < 30; i++) { const r = rng(900 + i), x = -36 + r() * 76, z = -9 + r() * 9, y = room.land.height(x, z);   // outcrops and scrub on the crag's face
+    if (y < 0.5 || y > P - 0.5 || Math.abs(x - 22) < 3) continue; if (r() < 0.5) BUILD.card(T.rock, x, y - 0.6, z + 0.6, { s: 2.2 + r() * 2 }); else BUILD.windCard(T.tuft, x, y - 0.2, z + 0.3, 'sway', 0.08, { s: 2 + r(), cast: false }); }
+  /* on the near hill: a dead oak, rocks, grass bending in the wind */
+  const hy = (x, z) => room.hill.height(x, z) - 0.3;
+  BUILD.windCard(T.deadTree, -27, hy(-27, 42), 42, 'sway', 0.03, { s: 3.2, cast: false });
+  for (const [x, z, s] of [[-46, 38, 6], [-54, 50, 7.5], [-40, 56, 6.5]]) BUILD.windCard(T.pine, x, hy(x, z), z, 'sway', 0.03, { s, cast: false });
+  for (let i = 0; i < 46; i++) { const r = rng(1000 + i), x = -64 + r() * 56, z = 22 + r() * 44, y = hy(x, z); if (y < 0) continue; BUILD.windCard(T.tuft, x, y, z, 'sway', 0.1, { s: 2.2 + r() * 1.4, cast: false }); }
+  for (const [x, z, s] of [[-31, 34, 3], [-20, 38, 2.2], [-38, 30, 3.4]]) BUILD.card(T.rock, x, hy(x, z) - 0.4, z, { s });
+  for (const [x, z, s] of [[-8, 13, 2.4], [17, 15, 2.8], [44, 12, 2.4]]) BUILD.card(T.rock, x, 0, z, { s, cast: false });
+  /* light: a cold moon from the front left (with shadows), a rim from behind the fortress, warm torches and windows */
+  BUILD.light(new THREE.HemisphereLight(0x56648a, 0x18141a, 1.3), 0, 40, 0);
+  room.moon = BUILD.shadow(BUILD.light(new THREE.DirectionalLight(0xa8b8e8, 2.0), -80, 70, 90), R.q === 'low' ? 1024 : 2048); room.moon.target.position.set(4, 10, -28);
+  Object.assign(room.moon.shadow.camera, { left: -60, right: 60, top: 50, bottom: -50, near: 20, far: 260 }); room.moon.shadow.bias = -0.0006; room.moon.shadow.normalBias = 0.06; room.moon.shadow.camera.updateProjectionMatrix();
+  room.fill = BUILD.light(new THREE.DirectionalLight(0x8aa0e0, 1.5), 60, 50, -150); room.fill.target.position.set(4, 10, -28);   // the rim
+  BUILD.lightning({ x: 40, z: -90, k: 6, min: 5, max: 12 });
+  BUILD.rain({ n: 3000, box: [-80, 60, 0, 50, -40, 30], speed: 17, wind: 0.22, len: 0.9, opacity: 0.38 });
+  BUILD.rain({ n: 1400, box: [-70, 40, 0, 40, 30, 80], speed: 18, wind: 0.22, len: 1.0, opacity: 0.24 });   // a nearer curtain, for the long views
+  BUILD.flock(T.crow, [[14.5, FY + 2, -33, 7, 2, 0.45], [13, FY, -31, 9, 1.5, -0.32], [16, FY + 4, -35, 6, 2.5, 0.52], [10, FY - 2, -29, 10, 3, 0.36], [18, FY + 1, -34, 8, 2, -0.42], [-21, P + 24, -33, 5, 1.5, 0.4]], { s: 2.4 });
+  /* the siege (hidden until the cutscene asks for it): the host on the meadow and the road, ladders up from the ledge */
   room.siege = new THREE.Group(); room.group.add(room.siege); room.siege.visible = false;
-  const S = { parent: room.siege };
-  for (const [z, x0, x1, k] of [[-6.2, -16, 26, 0.75], [-3.4, -20, 30, 0.85], [-0.4, -24, 32, 0.95], [2.6, -26, 34, 1.0]]) for (let x = x0; x <= x1; x += 6.0) BUILD.water(T.army, x + (z * 1.7) % 3, 0, z, Object.assign({ k: k * 0.9, rate: 2.2, s: 1.15 }, S));
-  for (const x of [-13, -3.5, 9, 22, 25.5]) { const l = BUILD.card(T.ladder, x, 0, -6.2, Object.assign({ s: 2.63, cast: false, dyn: true }, S)); l.rotation.x = -0.307; }
-  for (const [x, y, z, s] of [[-8, 0, -4, 1.6], [12.5, 0, -1.5, 1.9], [22, 0, -5, 1.4], [-12, 11.2, -9.8, 1.0], [26, 11.2, -9.8, 0.9]]) { BUILD.flame(x, y, z, s, true, S); BUILD.glow(x, y + 1, z + 0.4, 4.5 * s, 0xff7a2a, 0.5, S);
-    const L = BUILD.light(new THREE.PointLight(0xff7a30, 0, 0, 2), x, y + 1.4, z + 1.5, { flicker: 7 }); room.siegeLights = (room.siegeLights || []).concat([[L, 60 * s]]); }
+  const SG = { parent: room.siege };
+  for (const [z, x0, x1, k] of [[3, -30, 30, 0.8], [7, -36, 34, 0.9], [11, -40, 40, 1.0], [16, -44, 46, 1.05]]) for (let x = x0; x <= x1; x += 6.5) BUILD.water(T.army, x + (z * 1.7) % 3, 0, z, Object.assign({ k: k * 0.9, rate: 2.2, s: 1.3 }, SG));
+  for (let t = 0.15; t < 0.95; t += 0.16) { const x = lerp(38, 9, t), z = lerp(5, -11, t); BUILD.water(T.army, x, P * t - 0.2, z + 1.2, Object.assign({ k: 0.85, rate: 2.2, s: 0.9 }, SG)); }
+  for (const x of [-17, -8, 13.5, 23]) { BUILD.water(T.army, x, P, -10.4, Object.assign({ k: 0.8, rate: 2.6, s: 0.8 }, SG));
+    const l = BUILD.card(T.ladder, x, P, -10.9, Object.assign({ s: 1.9, cast: false, dyn: true }, SG)); l.rotation.x = -0.26; }
+  for (const [x, y, z, s] of [[-12, 0, 6, 2.0], [15, 0, 9, 2.3], [32, 0, 5, 1.8], [-16, P, -11, 1.2], [21, P, -11.2, 1.1], [16.5, P + 8.2, -12.6, 1.0]]) { BUILD.flame(x, y, z, s, true, SG); BUILD.glow(x, y + 1, z + 0.4, 4.5 * s, 0xff7a2a, 0.5, SG);
+    const L = BUILD.light(new THREE.PointLight(0xff7a30, 0, 0, 2), x, y + 1.4, z + 1.5, { flicker: 7 }); room.siegeLights = (room.siegeLights || []).concat([[L, 80 * s]]); }
   room.smoke = [];
-  for (let i = 0; i < 14; i++) { const m = new THREE.SpriteMaterial({ map: T.smokeSoft, color: 0x2a2624, transparent: true, opacity: 0, depthWrite: false }); const sp = new THREE.Sprite(m); room.siege.add(sp); room.smoke.push({ sp, ph: i / 14, src: [[-8, -4], [12.5, -1.5], [22, -5]][i % 3] }); }
-  room.tick.push((t) => { if (!room.siege.visible && !room.dawn.visible) return; for (const s of room.smoke) { const u = (t * 0.07 + s.ph) % 1; s.sp.position.set(s.src[0] + u * 6, 1 + u * 16, s.src[1] - u * 3); s.sp.scale.setScalar(3 + u * 10); s.sp.material.opacity = 0.55 * Math.sin(u * Math.PI); } });
+  for (let i = 0; i < 18; i++) { const m = new THREE.SpriteMaterial({ map: T.smokeSoft, color: 0x2a2624, transparent: true, opacity: 0, depthWrite: false }); const sp = new THREE.Sprite(m); room.siege.add(sp);
+    room.smoke.push({ sp, ph: i / 18, src: [[-12, 0, 6], [15, 0, 9], [32, 0, 5], [16.5, P + 8, -12.6]][i % 4] }); }
+  room.tick.push((t) => { if (!room.siege.visible && !room.dawn.visible) return; for (const s of room.smoke) { const u = (t * 0.07 + s.ph) % 1; s.sp.position.set(s.src[0] + u * 8, s.src[1] + 1 + u * 20, s.src[2] - u * 4); s.sp.scale.setScalar(4 + u * 14); s.sp.material.opacity = 0.55 * Math.sin(u * Math.PI); } });
   /* the morning after */
   room.dawn = new THREE.Group(); room.group.add(room.dawn); room.dawn.visible = false;
-  for (const [x, z, s] of [[-14, 3, 2.2], [-4, 6, 2.6], [8, 2, 2.4], [20, 5, 2.8], [29, 1, 2.0]]) BUILD.card(T.tent, x, 0, z, { s, cast: false, dyn: true, parent: room.dawn });
-  for (const s of room.smoke.slice(0, 6)) { const sp = s.sp.clone(); sp.material = s.sp.material.clone(); room.dawn.add(sp); room.smoke.push({ sp, ph: s.ph + 0.5, src: [[-4, 6], [20, 5]][room.smoke.length % 2] }); }
+  for (const [x, z, s] of [[-22, 6, 3.0], [-8, 10, 3.4], [6, 5, 3.2], [24, 9, 3.6], [38, 4, 2.8], [-34, 12, 3.0]]) BUILD.card(T.tent, x, 0, z, { s, cast: false, dyn: true, parent: room.dawn });
+  for (const s of room.smoke.slice(0, 6)) { const sp = s.sp.clone(); sp.material = s.sp.material.clone(); room.dawn.add(sp); room.smoke.push({ sp, ph: s.ph + 0.5, src: [[-8, 0, 10], [24, 0, 9]][room.smoke.length % 2] }); }
   /* the clearing in the Wood, far to the west */
-  const WX = -50;
+  const WX = -62;
   for (let i = 0; i < 22; i++) { const r = rng(500 + i), back = i < 15; BUILD.windCard(T.pine, WX - 16 + r() * 32, 0, back ? -7 - r() * 6 : 9 + r() * 5, 'sway', 0.05, { s: 1.6 + r() * 1.2, cast: false }); }
   room.woodGrp = new THREE.Group(); room.group.add(room.woodGrp); const WG = { parent: room.woodGrp };   // the fire only burns on the night of the bargain
-  BUILD.card(PX.T.logs, WX, 0, 2, Object.assign({ s: 1.3, cast: false, dyn: true }, WG)); BUILD.flame(WX, 0.14, 2.02, 1.0, true, WG); BUILD.glow(WX, 0.8, 2.3, 3.2, 0xff8a3a, 0.5, WG);
-  room.woodFire = BUILD.light(new THREE.PointLight(0xff8a3c, 22, 0, 2), WX, 1.0, 3.0, { flicker: 7 });
+  { const fl = BUILD.rug(T.forestFloor, WX - 40, WX + 30, -70, 18, { ru: 70 * 32 / 64, rv: 88 * 32 / 64, y: 0.02 }); room.woodGrp.add(fl);
+    for (let i = 0; i < 16; i++) { const r = rng(1100 + i); room.woodGrp.add(BUILD.windCard(T.pine, WX - 4 + r() * 26, 0, -16 - r() * 12, 'sway', 0.05, { s: 1.8 + r() * 1.2, cast: false })); } }   // a forest floor at the close-up's own pixel scale
+  BUILD.card(PX.T.logs, WX, 0, 2, Object.assign({ s: 1.0, cast: false, dyn: true }, WG)); BUILD.flame(WX, 0.1, 2.02, 0.62, true, WG); BUILD.glow(WX, 0.55, 2.3, 2.0, 0xff8a3a, 0.4, WG);
+  room.woodFire = BUILD.light(new THREE.PointLight(0xff8a3c, 14, 0, 2), WX, 0.9, 3.0, { flicker: 7 });
   room.WX = WX;
   BUILD.motes({ n: 40, boxes: [[WX - 3, WX + 3, 0.3, 3, 1, 4, 1]], embers: [WX, 0.3, 2.1], col: 0xffa860 });
   for (const o of room.group.children.slice(-2)) room.woodGrp.add(o);
@@ -55748,10 +56103,11 @@ EXTERIOR.mode = function (m) {
   room.skyMat.map = dawn ? room.skyT.dawn : room.skyT.storm; room.skyMat.needsUpdate = true;
   for (const c of room.clouds) { if (c.k0 === undefined) c.k0 = c.k; c.k = dawn ? 2.4 : c.k0; c.col.set(dawn ? 0xd8b0a8 : 0xffffff); c.m.color.copy(c.col).multiplyScalar(c.k); }
   room.noLightning = dawn; room.rainU.uOp.value = dawn ? 0.12 : m === 'present' ? 0.32 : 0.42;
-  room.moon.color.set(dawn ? 0xd8b8a8 : 0x8090c0); room.moon.intensity = dawn ? 2.0 : 1.4;
-  room.mtn.material.color.setScalar(dawn ? 1.0 : 0.8);
+  room.moon.color.set(dawn ? 0xe8c8b0 : 0xa8b8e8); room.moon.intensity = dawn ? 2.6 : m === 'wood' ? 0.5 : 2.0;   // in the Wood the fire does the lighting
+  if (R.scene.fog) R.scene.fog.color.set(dawn ? 0x8a8090 : 0x1e2638);
+  room.mtn.material.color.setScalar(dawn ? 1.3 : 1.0);
   const wood = m === 'wood'; for (const a of SCENE.actors) if (a.livesIn('exterior')) a.setVisible(wood);   // the witch and the young prince, only in the clearing
-  room.woodGrp.visible = wood; for (const f of room.flick) if (f.L === room.woodFire) f.base = wood ? 22 : 0; room.woodFire.intensity = wood ? 22 : 0;
+  room.woodGrp.visible = wood; for (const f of room.flick) if (f.L === room.woodFire) f.base = wood ? 14 : 0; room.woodFire.intensity = wood ? 14 : 0;
   room.rainU.uOp.value = wood ? 0.18 : room.rainU.uOp.value;
   AUDIO.ambience(dawn ? { rain: 0.2, wind: 0.3, birds: 0.5 } : m === 'siege' ? { rain: 0.8, wind: 0.4, fire: 0.6, crowd: 0.5 } : wood ? { fire: 0.6, wind: 0.5, rain: 0.35 } : { rain: 0.9, wind: 0.5 });
 };
@@ -55761,16 +56117,17 @@ EXTERIOR.onEnter = function () { this.mode(this.modeName || 'title'); };
 /* TITLE, OPENING, SAVE — the title screen over the fortress in the storm, the opening cutscene (STORY.md §3), the
    settings and credits panels, and what goes in the save slot. */
 const TITLE = { on: false };
-TITLE.CAM = [[-9, 5.5, 82, -8, 15.5, -12, 22], [-6, 6.5, 76, -5, 16, -12, 21]];   // the fortress on the right, the name on the hillside at left
+TITLE.CAM = [[-18, 21, 74, -12, 18.5, -24, 22], [-14, 22, 70, -10, 19, -24, 21.5]];   // the fortress on the right, the name over the near hill at left
+TITLE.CAM_N = [[-26, 24, 112, -17, 19.5, -24, 23], [-22, 25, 106, -15, 20, -24, 22.5]];   // the same on a near-square frame (a Fold's inner screen)
 TITLE.show = function () {
   TITLE.on = true; document.body.classList.add('intitle'); $('title').hidden = false;
   EXTERIOR.modeName = 'title'; SCENE.enter('exterior', {}); EXTERIOR.mode('title');
   TITLE.camSet();
   SCENE.menu = true; $('title').classList.remove('leaving'); $('tCont').hidden = !SAVE.get(); AUDIO.playMusic('title', 3);
 };
-/* on a narrower frame (a Fold's inner screen) pull the camera back, so the fortress keeps to the right of the name */
-TITLE.camSet = function () { const k = clamp(2.8 / R.A, 1, 1.6), far = (p) => { const q = CUT.pose(p); for (const a of ['x', 'y', 'z']) q[a] = q['l' + a] + (q[a] - q['l' + a]) * k; return q; };
-  const t = CUT.cam && CUT.cam.loop ? CUT.cam.t : 0; CUT.cam = { a: far(TITLE.CAM[0]), b: far(TITLE.CAM[1]), t, dur: 45, loop: true }; };
+/* two framings: wide phones, and a narrower frame (a Fold's inner screen) where the fortress has to sit further right */
+TITLE.camSet = function () { const P = R.A < 2.4 ? TITLE.CAM_N : TITLE.CAM, t = CUT.cam && CUT.cam.loop ? CUT.cam.t : 0;
+  CUT.cam = { a: CUT.pose(P[0]), b: CUT.pose(P[1]), t, dur: 45, loop: true }; };
 TITLE.hide = function () { TITLE.on = false; SCENE.menu = false; document.body.classList.remove('intitle'); $('title').hidden = true; if (!CUT.playing) CUT.cam = null; };
 TITLE.init = function () {
   const begin = () => { AUDIO.unlock(); if (!$('title').classList.contains('ready')) { $('title').classList.add('ready'); AUDIO.playMusic('title', 3); AUDIO.ambience(EXTERIOR.ambience); setTimeout(() => $('tNew').focus(), 300); } };
@@ -55802,19 +56159,19 @@ TITLE.cont = function () {
 };
 /* ---------------------------------------------------------------- the opening (see STORY.md §3) */
 const INTRO = [
-  { room: 'exterior', setup: () => EXTERIOR.mode('title'), music: 'intro', musicFade: 2, cam: { from: [6, 5, 48, 12, 12, -12, 22], to: [9, 7, 34, 13, 14, -12, 20] }, dur: 8,
+  { room: 'exterior', setup: () => EXTERIOR.mode('title'), music: 'intro', musicFade: 2, cam: { from: [-20, 22, 92, -6, 17, -24, 22], to: [-12, 20, 70, 0, 16, -24, 20] }, dur: 8,
     caption: 'Twelve years ago, the rain fell on Lodmir for forty days.', sfx: [['thunder', 1.6, { gain: 0.9 }]] },
-  { room: 'exterior', setup: () => EXTERIOR.mode('siege'), cam: { from: [-3, 2.4, 22, 5, 6, -8, 24], to: [7, 3.2, 17, 11, 7, -8, 22] }, dur: 8.5,
+  { room: 'exterior', setup: () => EXTERIOR.mode('siege'), cam: { from: [-16, 5, 44, -2, 10, -12, 26], to: [2, 6, 36, 8, 11, -12, 24] }, dur: 8.5,
     caption: 'Under it came the Margrave of Hal, to the walls of the Swan Fortress.',
     sfx: [['drum', 0.2, { gain: 0.8 }], ['drum', 0.9, { gain: 0.6 }], ['drum', 1.6, { gain: 0.8 }], ['clang', 2.2, { gain: 0.5, pan: -0.4 }], ['drum', 2.4, { gain: 0.6 }], ['clang', 3.3, { gain: 0.4, pan: 0.5 }], ['drum', 3.1, { gain: 0.8 }], ['clang', 4.6, { gain: 0.5 }], ['thunder', 5.5, { gain: 0.7 }]] },
-  { room: 'throne', setup: () => THRONE.night(true), cam: { from: [1.5, 2.7, 17, 1.5, 1.9, 1.0, 19], to: [1.5, 2.3, 11, 1.5, 1.7, 1.0, 19] }, dur: 8.5,
+  { room: 'throne', setup: () => THRONE.night(true), cam: { from: [1.5, 2.95, 22.6, 1.5, 2.6, 3.2, 19], to: [1.5, 2.55, 15.2, 1.5, 1.85, 0.9, 17] }, dur: 8.5,
     caption: 'King Bolesław held the gate for nineteen days. He did not see the twentieth.', ambience: { rainGlass: 0.8, tone: 0.4 }, acoustics: { size: 3.2, wet: 0.45 } },
   { room: 'exterior', setup: () => { THRONE.night(false); EXTERIOR.mode('wood'); },
-    cam: { from: [-50, 1.7, 13, -50, 1.25, 2, 22], to: [-50, 1.45, 9.5, -50, 1.1, 2, 20] }, dur: 9,
+    cam: { from: [-62, 1.7, 13, -62, 1.25, 2, 22], to: [-62, 1.45, 9.5, -62, 1.1, 2, 20] }, dur: 9,
     caption: 'On the twentieth night, his son rode out alone to the Woman in the Wood.' },
-  { room: 'exterior', setup: () => EXTERIOR.mode('dawn'), cam: { from: [4, 4, 42, 10, 9.5, -10, 22], to: [7, 5, 36, 11, 10.5, -10, 21] }, dur: 8,
+  { room: 'exterior', setup: () => EXTERIOR.mode('dawn'), cam: { from: [-18, 16, 86, 0, 14, -20, 22], to: [-10, 17, 78, 2, 14.5, -20, 21] }, dur: 8,
     caption: 'By morning the Margrave’s army was gone. No one has ever said where.' },
-  { room: 'exterior', setup: () => EXTERIOR.mode('present'), cam: { from: [12, 8, 32, 15, 16, -14, 18], to: [14, 10, 25, 15, 18.5, -14, 16] }, dur: 7.5,
+  { room: 'exterior', setup: () => EXTERIOR.mode('present'), cam: { from: [6, 11, 56, 14, 24, -33, 20], to: [10, 13, 46, 14.5, 27, -33, 17] }, dur: 7.5,
     caption: 'Twelve years later, the rain has come back.', sfx: [['thunder', 2.4, { gain: 1 }]] },
 ];
 /* ---------------------------------------------------------------- the save slot */
@@ -56091,17 +56448,25 @@ THRONE.build = function () {
   return BUILD.end();
 };
 THRONE.onEnter = function () { if (CUT.playing) return; SCENE.caption(...this.caption); COURT.enterHall(); };
-/* the hall twelve years ago, the night the old king died: torches burnt low, moonlight through the glass, no one in it */
+/* the hall twelve years ago, the night the old king died: every torch and chandelier out, moonlight through the glass,
+   one cold pool of light on the empty throne and his crown left on the seat; only the two candle stands still burn */
 THRONE.night = function (on) {
-  const room = THRONE; room.nightOn = on;
+  const room = THRONE, keep = (x, y) => Math.abs(x - room.TX) < 4.6 && y < 2.4;   // the candle stands beside the dais
+  if (!room.built || room.nightOn === on) return; room.nightOn = on;
+  if (!room.nightCrown) { const ct = PX.T.crownCard; room.nightCrown = BUILD.card(ct, room.TX, 1.08, 0.86, { s: 1.0, cast: false, dyn: true, parent: room.group }); room.nightCrown.visible = false; }
+  room.nightCrown.visible = on;
+  for (const f of room.flames) if (f.me) f.me.visible = !on || keep(f.me.position.x, f.me.position.y);
+  for (const g of room.glows) { g.s.visible = !on || keep(g.s.position.x, g.s.position.y); }
+  for (const s of room.shafts) s.me.material.color.copy(new THREE.Color(0x8ab4f0).multiplyScalar(on ? 0.5 : 0.2));
   room.group.traverse((o) => { if (!o.isLight || o.userData.base === undefined) return;
-    const k = !on ? 1 : o === room.lights.throne ? 0.12 : o.isSpotLight ? 1.7 : o.isPointLight ? 0.18 : o.isHemisphereLight ? 0.5 : 0.7; o.intensity = o.userData.base * k; });
-  for (const f of room.flick) f.base = f.L.userData.base * (on ? 0.18 : 1);
-  for (const g of room.glows) g.s.material.opacity = on ? 0.35 : 1;
-  R.mat.final.uniforms.uExpo.value = on ? 1.1 : room.exposure;
+    let k = 1; if (on) { if (o === room.lights.throne) k = 0.75; else if (o.isSpotLight) k = 2.4; else if (o.isPointLight) k = keep(o.position.x, o.position.y) ? 0.45 : 0; else if (o.isHemisphereLight) k = 0.35; else k = 0.5; }
+    o.intensity = o.userData.base * k; });
+  room.lights.throne.color.set(on ? 0x9ab0ff : 0xffd8a8);
+  for (const f of room.flick) f.base = f.L.userData.base * (on ? (keep(f.L.position.x, f.L.position.y) ? 0.45 : 0) : 1);
+  R.mat.final.uniforms.uExpo.value = on ? 1.0 : room.exposure;
   for (const a of SCENE.actors) a.setVisible(!on && (a === SCENE.player ? true : a.livesIn('throne') && !a.offstage));
+  R.r.shadowMap.needsUpdate = true;
 };
-THRONE.onUpdate = function (dt) { COURT.update(dt); };
 
 /* ==== game/g40_cast.js ==== */
 /* THE CAST — every character is an Actor spec: a base body (rmale / rfemale), outfit pieces with dye colours
@@ -56116,7 +56481,8 @@ CAST.specs = {
     parts: [part(P_M('Body'), { L: COAT, P: 0x34343f }), part(P_M('Arms'), { L: 0x24252e, P: COAT }), part(P_M('Arms'), 'skin'), part(P_M('Legs'), { L: 0x26252c, P: 0x26252c }), part(P_M('Feet'), { L: 0x18120e, P: 0x2a1e16, rough: 0.5 })],
     brows: 0x1a1512, hair: [['Hair_SimpleParted', 0x1e1814], ['Hair_Beard', 0x1c1612]],
     robe: { col: COAT, trim: 0xb8862e }, collar: {}, tabard: { col: 0xe8e2d6, emblem: 0x1a1a24 }, crown: { worn: false } },
-  queen: { id: 'queen', bind: 'rfemale', s: 1.0, skin: 0xe6bca2, skinK: 0.95, idle: 'Idle_FoldArms_Loop', walk: 'Walk_Formal_Loop', home: 'throne', x: 3.35, z: 1.25, y: 0.48, face: -1, headY: 2.02,
+  queen: { id: 'queen', name: 'Halina', bind: 'rfemale', s: 1.0, skin: 0xe6bca2, skinK: 0.95, idle: 'Idle_FoldArms_Loop', walk: 'Walk_Formal_Loop', x: 3.35, z: 1.25, y: 0.48, face: -1, headY: 2.02,
+    homes: { throne: { x: 3.35, z: 1.25, y: 0.48, face: -1, idle: 'Idle_FoldArms_Loop' }, garden: { x: -5.6, z: 1.45, face: 1, idle: 'Idle_Loop', sit: { x: -5.6, y: 0.5, z: 1.45, yaw: 0.25, cardDz: 0.4 } } },
     parts: [part(P_F('Body'), { L: 0x34426a, P: 0x7a88a8 }), part(P_F('Arms'), { L: 0x34426a, P: 0x5a6a8e }), part(P_F('Legs'), { L: 0x2a3048, P: 0x2a3048 }), part(P_F('Feet'), { L: 0x1a1410, P: 0x2a2018 })],
     brows: 0x3a2418, hair: [['Hair_Buns', 0x4a2c1a]],
     robe: { col: 0x3e4c78, top: 0.95, bot: 0.03, rx: [0.15, 0.36], rz: [0.12, 0.3], trim: 0xc8a040, band: 0xc8a040, leg: 0.4 },
@@ -56128,7 +56494,8 @@ CAST.specs = {
     robe: { col: 0x2e4a32, top: 1.0, bot: 0.05, rx: [0.17, 0.33], rz: [0.13, 0.28], trim: 0xb8862e, leg: 0.5 },
     tabard: { col: 0x7a5a2a, trim: 0xd8a43a, w: 0.055, top: 1.42 }, prop: 'scroll' },
   guardL: null, guardR: null,
-  commander: { id: 'commander', bind: 'rmale', s: 1.08, skin: 0xc89070, skinK: 0.88, idle: 'Idle_FoldArms_Loop', home: 'throne', x: -6.3, z: 1.9, face: 1, headY: 2.2,
+  commander: { id: 'commander', name: 'Ser Bogdan', bind: 'rmale', s: 1.08, skin: 0xc89070, skinK: 0.88, idle: 'Idle_FoldArms_Loop', x: -6.3, z: 1.9, face: 1, headY: 2.2,
+    homes: { throne: { x: -6.3, z: 1.9, face: 1 }, yard: { x: -2.4, z: 2.2, face: 1, idle: 'Idle_FoldArms_Loop' } },
     parts: [part(R_M('Body'), { G: 0x5a2a1a, L: 0x2a1e16, P: 0x8a8e98 }), part(R_M('Arms'), { G: 0x5a2a1a, L: 0x2a1e16, P: 0x8a8e98 }), part(R_M('Arms'), 'skin'), part(R_M('Legs'), { G: 0x2a2620, L: 0x2a1e16 }),
       part(R_M('Feet_Boots'), { L: 0x1a1410, G: 0x1a1410, P: 0x4a4a50 }), part(R_M('Acc_Pauldron'), { L: 0x7a7e88, G: 0x7a7e88, P: 0xb0b6c0, metal: 0.7, rough: 0.35 }), part(R_M('Body_Belt_1'), { L: 0x1e1610, P: 0xb8a060 })],
     brows: 0x2a1810, hair: [['Hair_Buzzed', 0x2a1c12], ['Hair_Beard', 0x3a2414]], collar: { pal: [0x2a2018, 0x3a2c20, 0x4a3a2a, 0x5a4a38], y: 1.46, rx: 0.21, rz: 0.15 } },
@@ -56152,11 +56519,44 @@ const guard = (id, x) => ({ id, bind: 'rmale', s: 1.02, skin: 0xc89878, skinK: 0
   tabard: { col: 0xe8e2d6, emblem: 0x24452e, top: 1.36, w: 0.08, trim: 0xd8a43a, from: R_M('Body') }, helmet: { col: 0x9aa2ae }, prop: 'spear' });
 const CAST_TX = 1.5;
 CAST.specs.guardL = guard('guardL', -2.15); CAST.specs.guardR = guard('guardR', 5.15);
+/* the training yard: two knights at the sword drill (YARD drives their bouts), a recruit hacking at a post */
+const knight = (id, col, x, face) => ({ id, bind: 'rmale', s: 1.04, skin: 0xc89878, skinK: 0.9, x, z: 2.0, face, box: [1.9, 2.6], headY: 2.25, idle: 'Sword_Idle', homes: { yard: { x, z: 2.0, face } },
+  parts: [part(R_M('Body'), { G: col, L: 0x2a1e16, P: 0x8a8e98 }), part(R_M('Arms'), { G: col, L: 0x2a1e16, P: 0x8a8e98 }), part(R_M('Arms'), 'skin'), part(R_M('Legs'), { G: 0x2a2a30, L: 0x2a1e16 }),
+    part(R_M('Feet_Boots'), { L: 0x1a1410, G: 0x1a1410, P: 0x4a4a50 }), part(R_M('Acc_Pauldron'), { L: 0x7a7e88, G: 0x7a7e88, P: 0xb0b6c0, metal: 0.7, rough: 0.35 }), part(R_M('Body_Belt_1'), { L: 0x1e1610, P: 0xb8a060 })],
+  brows: 0x2a1c12, hair: [['Hair_Beard', 0x3a2a1a]], tabard: { col: col, emblem: 0xe8e2d6, top: 1.36, w: 0.08, trim: 0xd8a43a, from: R_M('Body') }, helmet: { col: 0x9aa2ae }, prop: 'sword' });
+Object.assign(CAST.specs, {
+  knightA: knight('knightA', 0x6a1418, 2.6, 1), knightB: knight('knightB', 0x24405a, 4.2, -1),
+  recruit: { id: 'recruit', bind: 'rmale', s: 0.97, skin: 0xd8a888, skinK: 0.92, x: 8.6, z: 1.9, face: -1, headY: 2.05, idle: 'Sword_Idle', box: [1.9, 2.5], prop: 'woodsword',
+    homes: { yard: { x: 8.75, z: 1.9, face: -1, routine: { clips: ['Sword_Attack', 'Sword_Regular_Combo'], every: [1.2, 3], at: 0.45, sound: 'thud', gain: 0.4 } } },
+    parts: [part(P_M('Body'), { L: 0x6a5a3a, P: 0xc8b890 }), part(P_M('Arms'), { L: 0x6a5a3a, P: 0x6a5a3a }), part(P_M('Arms'), 'skin'), part(P_M('Legs'), { L: 0x3a2e22, P: 0x3a2e22 }), part(P_M('Feet'), { L: 0x2a1a10, P: 0x3a2a1a })],
+    brows: 0x8a6a3a, hair: [['Hair_Buzzed', 0x8a6a3a]] },
+  /* the gardens: the princess at her sword drill, her little brother running about */
+  zofia: { id: 'zofia', name: 'Zofia', bind: 'rfemale', s: 0.7, skin: 0xe8c0a6, skinK: 0.95, child: { head: 1.2 }, x: 4.4, z: 2.1, face: -1, headY: 1.55, idle: 'Sword_Idle', box: [1.3, 1.9], prop: 'woodsword',
+    homes: { garden: { x: 4.4, z: 2.1, face: -1, routine: { clips: ['Sword_Regular_Combo', 'Sword_Attack', 'Sword_Block'], every: [2.5, 5], at: 0.4, sound: 'whoosh', gain: 0.25 } } },
+    parts: [part(P_F('Body'), { L: 0x24405a, P: 0xe8dcc4 }), part(P_F('Arms'), { L: 0x24405a, P: 0x34506a }), part(P_F('Legs'), { L: 0x3a2e24, P: 0x3a2e24 }), part(P_F('Feet'), { L: 0x2a1a10, P: 0x3a2a1a })],
+    brows: 0x6a3a1e, hair: [['Hair_Long', 0x7a3a1a]], tabard: { col: 0x24405a, emblem: 0xe8e2d6, top: 0.96, w: 0.08, from: P_F('Body') } },
+  kazik: { id: 'kazik', name: 'Kazik', bind: 'rmale', s: 0.58, skin: 0xecc4aa, skinK: 0.96, child: { head: 1.26 }, x: 7.5, z: 2.9, face: -1, headY: 1.32, walk: 'Jog_Fwd_Loop', speed: 1.7, box: [1.2, 1.7],
+    homes: { garden: { x: 7.5, z: 2.9, face: -1, wander: { x0: 1.5, x1: 10.5, pause: [1.2, 3.5] } } },
+    parts: [part(P_M('Body'), { L: 0x5a1a1a, P: 0xe8dcc4 }), part(P_M('Arms'), { L: 0x5a1a1a, P: 0x5a1a1a }), part(P_M('Arms'), 'skin'), part(P_M('Legs'), { L: 0x2a2a30, P: 0x2a2a30 }), part(P_M('Feet'), { L: 0x2a1a10, P: 0x3a2a1a })],
+    brows: 0xa8803a, hair: [['Hair_SimpleParted', 0xb08a48]] },
+  /* the opening: the night of the bargain, twelve years ago */
+  witch: { id: 'witch', name: 'the Woman in the Wood', bind: 'rfemale', s: 1.0, skin: 0xd8c4b4, skinK: 0.9, x: -61.1, z: 2.5, face: -1, headY: 2.0, idle: 'Spell_Simple_Idle_Loop', offstage: true,
+    homes: { exterior: { x: -61.1, z: 2.6, face: -1 } },
+    parts: [part(P_F('Body'), { L: 0x2a2620, P: 0x3a342a }), part(P_F('Arms'), { L: 0x2a2620, P: 0x3a342a }), part(P_F('Legs'), { L: 0x1e1a16, P: 0x1e1a16 }), part(P_F('Feet'), { L: 0x141210, P: 0x1e1a16 }),
+      part(['rf_ranger', 'Female_Ranger_Head_Hood'], { G: 0x2e2c26, L: 0x2e2c26, P: 0x3a362e })],
+    brows: 0x6a6460, hair: [['Hair_Long', 0x9a948a]], robe: { col: 0x24221c, top: 0.95, bot: 0.02, rx: [0.15, 0.36], rz: [0.12, 0.32], trim: 0x4a4436, leg: 0.4 } },
+  youngKing: { id: 'youngKing', name: 'the young prince', bind: 'rmale', s: 1.0, skin: 0xd8b096, skinK: 0.92, x: -62.9, z: 2.5, face: 1, headY: 1.5, idle: 'Fixing_Kneeling', idleRange: [1.0, 4.1], offstage: true,
+    homes: { exterior: { x: -62.9, z: 2.6, face: 1 } },
+    parts: [part(R_M('Body'), { G: 0x4a1418, L: 0x2a1e16, P: 0x6a6e78 }), part(R_M('Arms'), { G: 0x4a1418, L: 0x2a1e16, P: 0x6a6e78 }), part(R_M('Arms'), 'skin'), part(R_M('Legs'), { G: 0x26252c, L: 0x2a1e16 }),
+      part(R_M('Feet_Boots'), { L: 0x1a1410, G: 0x1a1410, P: 0x3a3a40 })],
+    brows: 0x1a1512, hair: [['Hair_SimpleParted', 0x1e1814]] },
+});
 CAST.build = async function () {
   const A = {};
   for (const [k, spec] of Object.entries(CAST.specs)) { A[k] = await new Actor(spec).build(); SCENE.addActor(A[k]); setLoad(0.7 + 0.15 * Object.keys(A).length / Object.keys(CAST.specs).length); await nextFrame(); }
   CAST.A = A; SCENE.player = A.king;
-  A.marta.offstage = A.tomasz.offstage = true; A.marta.setVisible(false); A.tomasz.setVisible(false);
+  for (const a of Object.values(A)) if (a.spec.offstage) a.offstage = true;
+  A.marta.offstage = A.tomasz.offstage = true; for (const a of Object.values(A)) if (a.offstage) a.setVisible(false);
   return A;
 };
 
@@ -56380,16 +56780,17 @@ WORLD.paint = function (p) {
 };
 const inPoly = (x, y, pts) => { let c = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; };
 WORLD.places = [
-  { id: 'bedroom', name: 'Bedchamber', sub: 'the keep', x: 136, y: 34, room: 'bedroom', at: { x: 9.7, face: -1 } },
-  { id: 'study', name: 'Study', sub: 'the keep', x: 128, y: 56, room: 'study', at: { x: -8.6, face: 1 } },
-  { id: 'throne', name: 'Throne Room', sub: 'the great hall', x: 95, y: 44, room: 'throne', at: { x: -12.2, face: 1 } },
+  { id: 'bedroom', name: 'Bedchamber', sub: 'the keep', x: 140, y: 33, room: 'bedroom', at: { x: 9.7, face: -1 } },
+  { id: 'study', name: 'Study', sub: 'the keep', x: 124, y: 56, room: 'study', at: { x: -8.6, face: 1 } },
+  { id: 'throne', name: 'Throne Room', sub: 'the great hall', x: 95, y: 50, room: 'throne', at: { x: -12.2, face: 1 } },
   { id: 'garden', name: 'Gardens', sub: 'Halina and the children', x: 72, y: 62, room: 'garden', at: { x: -11.4, face: 1 } },
   { id: 'yard', name: 'Training Yard', sub: 'Ser Bogdan', x: 126, y: 80, room: 'yard', at: { x: -10.2, face: 1 } },
-  { id: 'chapel', name: 'Chapel', sub: 'not yet', x: 87, y: 26, locked: true },
+  { id: 'chapel', name: 'Chapel', sub: 'not yet', x: 70, y: 30, locked: true },
   { id: 'town', name: 'Lower Town', sub: 'not yet', x: 164, y: 100, locked: true },
   { id: 'wood', name: 'The Wood', sub: 'not yet', x: 26, y: 58, locked: true },
 ];
 WORLD.init = function () {
+  for (const pl of WORLD.places) if (pl.room && !SCENE.rooms[pl.room]) { pl.locked = true; pl.sub = 'being built'; }   // rooms not in this build yet
   MAP.setup(WORLD.paint, 192, 120, WORLD.places); MAP.music = 'map';
   MAP.onPick = (pl) => {
     const K = SCENE.player;

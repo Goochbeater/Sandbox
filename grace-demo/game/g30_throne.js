@@ -116,14 +116,22 @@ THRONE.build = function () {
   return BUILD.end();
 };
 THRONE.onEnter = function () { if (CUT.playing) return; SCENE.caption(...this.caption); COURT.enterHall(); };
-/* the hall twelve years ago, the night the old king died: torches burnt low, moonlight through the glass, no one in it */
+/* the hall twelve years ago, the night the old king died: every torch and chandelier out, moonlight through the glass,
+   one cold pool of light on the empty throne and his crown left on the seat; only the two candle stands still burn */
 THRONE.night = function (on) {
-  const room = THRONE; room.nightOn = on;
+  const room = THRONE, keep = (x, y) => Math.abs(x - room.TX) < 4.6 && y < 2.4;   // the candle stands beside the dais
+  if (!room.built || room.nightOn === on) return; room.nightOn = on;
+  if (!room.nightCrown) { const ct = PX.T.crownCard; room.nightCrown = BUILD.card(ct, room.TX, 1.08, 0.86, { s: 1.0, cast: false, dyn: true, parent: room.group }); room.nightCrown.visible = false; }
+  room.nightCrown.visible = on;
+  for (const f of room.flames) if (f.me) f.me.visible = !on || keep(f.me.position.x, f.me.position.y);
+  for (const g of room.glows) { g.s.visible = !on || keep(g.s.position.x, g.s.position.y); }
+  for (const s of room.shafts) s.me.material.color.copy(new THREE.Color(0x8ab4f0).multiplyScalar(on ? 0.5 : 0.2));
   room.group.traverse((o) => { if (!o.isLight || o.userData.base === undefined) return;
-    const k = !on ? 1 : o === room.lights.throne ? 0.12 : o.isSpotLight ? 1.7 : o.isPointLight ? 0.18 : o.isHemisphereLight ? 0.5 : 0.7; o.intensity = o.userData.base * k; });
-  for (const f of room.flick) f.base = f.L.userData.base * (on ? 0.18 : 1);
-  for (const g of room.glows) g.s.material.opacity = on ? 0.35 : 1;
-  R.mat.final.uniforms.uExpo.value = on ? 1.1 : room.exposure;
+    let k = 1; if (on) { if (o === room.lights.throne) k = 0.75; else if (o.isSpotLight) k = 2.4; else if (o.isPointLight) k = keep(o.position.x, o.position.y) ? 0.45 : 0; else if (o.isHemisphereLight) k = 0.35; else k = 0.5; }
+    o.intensity = o.userData.base * k; });
+  room.lights.throne.color.set(on ? 0x9ab0ff : 0xffd8a8);
+  for (const f of room.flick) f.base = f.L.userData.base * (on ? (keep(f.L.position.x, f.L.position.y) ? 0.45 : 0) : 1);
+  R.mat.final.uniforms.uExpo.value = on ? 1.0 : room.exposure;
   for (const a of SCENE.actors) a.setVisible(!on && (a === SCENE.player ? true : a.livesIn('throne') && !a.offstage));
+  R.r.shadowMap.needsUpdate = true;
 };
-THRONE.onUpdate = function (dt) { COURT.update(dt); };

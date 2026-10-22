@@ -118,7 +118,11 @@
   #tapStart { position: absolute; left: 0; right: 0; bottom: 12cqh; text-align: center; font-family: var(--caps); letter-spacing: 0.3em; color: #f2e6cf; text-shadow: 0 2px 8px #000; font-size: max(14px, min(2cqw, 4.6cqh)); animation: nudge 1.2s ease-in-out infinite alternate; pointer-events: none; }
   #title.leaving .logo, #title.leaving .menu { opacity: 0; pointer-events: none; }
   .mapTitle { margin: 0; font-family: "Cinzel Decorative", var(--caps); font-weight: 700; letter-spacing: 0.08em; color: var(--paper); font-size: clamp(16px, 2.4vw, 26px); text-shadow: 0 2px 8px #000; }
-  #title.ready #tapStart { display: none; } #title:not(.ready) .menu { opacity: 0; pointer-events: none; }
+  #title.ready #tapStart { display: none; }
+  #title .rating { position: absolute; right: 4cqw; bottom: 6cqh; display: flex; align-items: center; gap: 0.5em; color: #fbf3e4; text-shadow: 0 2px 8px #000; pointer-events: none; }
+  #title .rating b { font-family: "Cinzel Decorative", var(--caps); font-weight: 900; font-size: max(14px, min(2.2cqw, 5cqh)); line-height: 1; padding: 0.3em 0.4em; border: 2px solid #fbf3e4;
+    border-radius: 4px; background: rgba(140, 20, 20, 0.85); box-shadow: 0 2px 10px rgba(0,0,0,0.6); text-shadow: none; }
+  #title .rating span { font-family: var(--caps); letter-spacing: 0.12em; font-size: max(11px, min(1.2cqw, 3cqh)); } #title:not(.ready) .menu { opacity: 0; pointer-events: none; }
   .panel { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 8; width: min(92vw, 520px); max-height: 86vh; overflow: auto; background: rgba(16, 11, 9, 0.95); border: 1px solid rgba(227, 183, 90, 0.55);
            padding: clamp(14px, 2.4vw, 26px); display: flex; flex-direction: column; gap: 14px; box-shadow: 0 0 0 4px rgba(16, 11, 9, 0.7), 0 12px 40px rgba(0,0,0,0.6); }
   .panel h2 { margin: 0; font-family: var(--caps); font-weight: 500; letter-spacing: 0.16em; color: var(--gold); font-size: clamp(18px, 2.6vw, 26px); }
@@ -163,6 +167,7 @@
       <div class="col"><div class="logo"><span class="l1">The</span><span class="l2">Swan Throne</span><span class="l3">A tale of Lodmir</span></div>
         <nav class="menu" aria-label="Main menu"><button id="tNew">New Game</button><button id="tCont" hidden>Continue</button><button id="tSet">Settings</button><button id="tCred">Credits</button></nav></div>
       <div id="tapStart">Tap to begin</div>
+      <div class="rating" role="img" aria-label="For adults only: 18 and over"><b>18+</b><span>Mature content</span></div>
     </div>
     <div id="fade"></div>
   </div>

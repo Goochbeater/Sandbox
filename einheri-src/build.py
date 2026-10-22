@@ -1,7 +1,7 @@
 import os,sys
 D=os.path.dirname(os.path.abspath(__file__))
 rd=lambda f: open(os.path.join(D,f),encoding='utf-8').read()
-js='\n'.join(rd(f) for f in ['core.js','gfx.js','paint.js','world.js','env.js','actors.js','art.js','bosses.js','bossart.js','rigs.js','cel.js','giant.js','wyrm.js','foes.js','story.js','hall.js','vig.js','game.js'])
+js='\n'.join(rd(f) for f in ['core.js','gfx.js','paint.js','world.js','env.js','wood.js','actors.js','art.js','bosses.js','bossart.js','rigs.js','cel.js','giant.js','wyrm.js','foes.js','story.js','hall.js','vig.js','game.js'])
 open(os.path.join(D,'all.js'),'w',encoding='utf-8').write(js)
 head=rd('p_head.html'); body=rd('p_body.html')
 script='<script>\n'+js+'\n</script>\n'

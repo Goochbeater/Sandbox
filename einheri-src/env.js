@@ -176,10 +176,10 @@ function pBasalt(seed) {
 function realmSprites(id) {
   if (SPRC[id]) return SPRC[id];
   const s = { big: [], mid: [], small: [], deco: [] };
-  if (id === 'iron') { for (let i = 0; i < 6; i++) s.big.push(pTree(500 + i, 'iron')); for (let i = 0; i < 4; i++) s.mid.push(pRock(600 + i, PAL.iron, 20 + i * 6, i % 2 ? 'moss' : null)); for (let i = 0; i < 2; i++) s.small.push(pStump(650 + i)); for (let i = 0; i < 3; i++) s.deco.push(pReeds(700 + i, i % 2)); }
+  if (id === 'iron') { for (let i = 0; i < 6; i++) s.big.push(pIronTree(500 + i)); for (let i = 0; i < 4; i++) s.mid.push(pRock(600 + i, PAL.iron, 20 + i * 6, i % 2 ? 'moss' : null)); s.mid.push(pCrate(640)); for (let i = 0; i < 2; i++) s.small.push(pStump(650 + i)); for (let i = 0; i < 4; i++) s.deco.push(pCattails(700 + i)); }
   if (id === 'ice') { for (let i = 0; i < 5; i++) s.big.push(pPine(800 + i)); for (let i = 0; i < 4; i++) s.mid.push(pCrystals(900 + i)); for (let i = 0; i < 3; i++) s.small.push(pRock(950 + i, PAL.ice, 18 + i * 8, 'snow')); }
   if (id === 'sea') { for (let i = 0; i < 4; i++) s.big.push(pBerg(1000 + i)); s.mid.push(pRibs(1100), pRibs(1101), pWreck(1150), pWreck(1151)); for (let i = 0; i < 3; i++) s.small.push(pStone(1200 + i, i === 0)); for (let i = 0; i < 2; i++) s.deco.push(pReeds(1250 + i, 1)); }
-  if (id === 'fire') { for (let i = 0; i < 4; i++) s.big.push(pObsidian(1300 + i)); for (let i = 0; i < 3; i++) s.mid.push(pSwords(1400 + i)); for (let i = 0; i < 3; i++) s.small.push(pBasalt(1500 + i)); for (let i = 0; i < 3; i++) s.deco.push(pTree(1550 + i, 'char')); }
+  if (id === 'fire') { for (let i = 0; i < 4; i++) s.big.push(pObsidian(1300 + i)); for (let i = 0; i < 3; i++) s.mid.push(pSwords(1400 + i)); for (let i = 0; i < 3; i++) s.small.push(pBasalt(1500 + i)); for (let i = 0; i < 3; i++) s.deco.push(pIronTree(1550 + i, 'char')); }
   if (id === 'hub') { for (let i = 0; i < 4; i++) s.big.push(pTree(1600 + i, 'birch')); for (let i = 0; i < 3; i++) s.mid.push(pRock(1700 + i, PAL.hub, 20 + i * 8, 'moss')); for (let i = 0; i < 3; i++) s.small.push(pStone(1800 + i, i === 1)); }
   if (id === 'utgard') { for (let i = 0; i < 4; i++) s.big.push(pRock(1900 + i, PAL.utgard, 36 + i * 8)); }
   return SPRC[id] = s;

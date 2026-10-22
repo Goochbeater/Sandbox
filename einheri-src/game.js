@@ -84,7 +84,7 @@ function enterRealm(id, at) {
     if (Math.hypot(g.x - sx, g.y - sy) < 420) continue;
     g.list.forEach((k, i) => { const a = i / g.list.length * TAU, r = g.list.length > 1 ? 54 : 0; spawnFoe(k, g.x + Math.cos(a) * r, g.y + Math.sin(a) * r); });
   }
-  cam.x = P.x; cam.y = P.y; cam.span = 330; cam.z = zoomForSpan(cam.span);
+  cam.x = P.x; cam.y = P.y; cam.span = 470; cam.z = zoomForSpan(cam.span);
   const D = w.def; playMusic(D.music); ambience(D.amb); setWeather(D.motes);
   S.loc = id; store(); hudDirty();
   G.playing = true;
@@ -699,7 +699,7 @@ function renderLights() {
   const z = cam.z * s;
   lctx.setTransform(z, 0, 0, z, (W / 2 - (cam.x + cam.sx) * cam.z) * s, (H / 2 - (cam.y + cam.sy) * cam.z) * s);
   if (w.emis) drawEmissive(lctx, 1.3);
-  const pl = { x: P.x, y: P.y - 16, r: 210, i: G.scene.kind === 'hub' ? .25 : .32, col: '#ffe0c0' };
+  const pl = { x: P.x, y: P.y - 16, r: w.id === 'iron' ? 280 : 210, i: G.scene.kind === 'hub' ? .25 : w.id === 'iron' ? .5 : .32, col: '#ffe0c0' };
   for (const L of G.lights) { if (!inView(L.x, L.y, L.r)) continue; lctx.globalAlpha = Math.min(1, L.i); lctx.drawImage(glowSprite(L.col || '#ffb070'), L.x - L.r, L.y - L.r, L.r * 2, L.r * 2); }
   lctx.globalAlpha = pl.i; lctx.drawImage(glowSprite(pl.col), pl.x - pl.r, pl.y - pl.r, pl.r * 2, pl.r * 2);
   lctx.globalAlpha = 1; lctx.globalCompositeOperation = 'source-over'; lctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -741,8 +741,9 @@ function render(rdt) {
           if (o.spr.tree) { const d = Math.hypot(P.x - o.x, (P.y - 20 - (o.y + o.spr.cy)) * 1.25); if (d < o.spr.canopy * .85) ta = lerp(.22, 1, clamp((d - o.spr.canopy * .45) / (o.spr.canopy * .4), 0, 1)); }
           else { const top = o.y + o.spr.oy; if (P.y < o.y - 2 && P.y > top + 20 && Math.abs(P.x - o.x) < o.spr.wu * .4) ta = o.big ? .3 : .5; }
           if (o.ring) ta = Math.min(ta, .9);
-          o.fade = lerp(o.fade || 1, ta, .14); drawSpr(o.spr, o.x, o.y, o.fade);
-          if (o.spr.glowy) { G.lights.push({ x: o.x, y: o.y - 40, r: 190, i: .6, col: '#ff7a2a' }); glowPost(o.x, o.y - 40, 46, '#ff6a1a', .25); }
+          if (o.spr.warp) { ta = Math.max(ta, .3); o.fade = lerp(o.fade || 1, ta, .14); const sway = Math.sin(G.t * .55 + o.x * .013) * 5 + Math.sin(G.t * 1.3 + o.y * .02) * 2; drawSprWarp(o.spr, o.x, o.y, o.fade, sway); if (o.spr.e) EMISQ.push({ s: o.spr, x: o.x, y: o.y, a: o.fade, sway }); }
+          else { o.fade = lerp(o.fade || 1, ta, .14); drawSpr(o.spr, o.x, o.y, o.fade); }
+          if (o.spr.glowy) { const ly = o.spr.warp ? o.spr.cy * .5 : -40; G.lights.push({ x: o.x, y: o.y + ly, r: o.spr.warp ? 300 : 190, i: .6, col: '#ff7a2a' }); if (!o.spr.warp) glowPost(o.x, o.y - 40, 46, '#ff6a1a', .25); }
         } else if (o.kind) drawHubObst(o);
         break;
       case 1: drawSpr(o.spr, o.x, o.y); break;
@@ -760,7 +761,7 @@ function render(rdt) {
   renderLights();
   applyCam();
   ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .3; drawHaz(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
-  drawParts(true); flushGlowPost(); drawFx();
+  drawParts(true); flushEmis(); flushGlowPost(); drawFx();
   if (G.boss && G.boss.id === 'thrym' && P) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .55; ctx.drawImage(beamSpr(), P.x - 60, P.y - 560, 120, 590); ctx.restore(); }
   drawMotes();
   ctx.setTransform(1, 0, 0, 1, 0, 0);

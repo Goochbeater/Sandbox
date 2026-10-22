@@ -22,28 +22,25 @@ vec3 vor(vec2 x){ vec2 n=floor(x),f=fract(x),mg=vec2(0.),mr=vec2(0.); float md=8
   return vec3(md,hash12(n+mg),length(mr)); }
 
 void sIron(vec2 p, vec3 mk, out float h, out vec3 c, out vec3 e){
-  vec2 q=p*.0032; vec2 w=vec2(fbm3(q+3.1),fbm3(q+7.7));
-  float soil=fbm(q*1.6+w*1.8), det=fbm3(p*.045);
-  h=soil*.7+det*.16;
-  c=mix(vec3(.19,.16,.14),vec3(.37,.32,.28),smoothstep(.28,.8,soil));
-  c=mix(c,vec3(.22,.24,.16),smoothstep(.56,.8,fbm3(q*3.+20.))*.55);
-  vec3 pv=vor(p/13.); float peb=(1.-smoothstep(.16,.3,pv.z))*step(.9,pv.y)*(1.-mk.r*.7);
-  h+=peb*.2*(1.-pv.z*2.5); c=mix(c,vec3(.50,.46,.42)*(.85+.3*pv.y),peb*.8);
-  float lf=vn(p*.42+det*3.);
-  c=mix(c,vec3(.42,.25,.13)*(.7+.6*hash12(floor(p*.42))),smoothstep(.8,.9,lf)*.5*(1.-mk.r));
-  c=mix(c,vec3(.40,.35,.29)*(.85+.3*det),mk.r*.78); h=mix(h,.45+det*.08,mk.r*.7);
-  float cf=clamp(smoothstep(.6,.7,fbm3(p*.0011+11.))+mk.g,0.,1.)*(1.-mk.r*.85);
-  if(uArena.z>0.){ float r=length(p-uArena.xy); cf=max(cf,(1.-smoothstep(uArena.z*.15,uArena.z*1.02,r))*.9); }
+  vec2 q=p*.0022; vec2 w=vec2(fbm3(q+3.1),fbm3(q+7.7));
+  float soil=fbm(q*1.4+w*1.6), det=fbm3(p*.03);
+  h=soil*.35+det*.05;
+  c=mix(vec3(.12,.105,.095),vec3(.215,.19,.17),smoothstep(.22,.82,soil));
+  c*=.93+.12*det;
+  c=mix(c,vec3(.085,.07,.062),smoothstep(.6,.82,fbm3(q*3.+20.))*.55);
+  c=mix(c,vec3(.19,.16,.13),smoothstep(.7,.9,fbm3(p*.006+40.))*.35);
+  c=mix(c,vec3(.25,.22,.195)*(.93+.1*det),mk.r*.5); h=mix(h,.3+det*.03,mk.r*.6);
+  float cf=clamp(smoothstep(.56,.68,fbm3(p*.0011+11.))+mk.g,0.,1.)*(1.-mk.r*.55);
+  if(uArena.z>0.){ float r=length(p-uArena.xy); cf=max(cf,(1.-smoothstep(uArena.z*.15,uArena.z*1.05,r))*.9); }
   e=vec3(0.);
   if(cf>.01){
-    vec2 wp=p+(vec2(vn(p*.02),vn(p*.02+5.))-.5)*34.;
-    vec3 cv=vor(wp/50.); float b=cv.x*50.;
-    float core=1.-smoothstep(.7,2.4,b), ch=1.-smoothstep(1.8,10.,b), halo=1.-smoothstep(0.,26.,b);
-    float on=cf*(.5+.5*cv.y);
-    c=mix(c,vec3(.17,.14,.13)*(.9+.3*cv.y),cf*.6);
-    c*=1.-ch*.8*cf; h-=ch*.32*cf;
-    e=mix(vec3(1.,.42,.06),vec3(1.,.9,.55),core)*core*on*1.5+vec3(.95,.3,.04)*halo*on*.32;
-    c+=e*.22;
+    vec2 wp=p+(vec2(vn(p*.06),vn(p*.06+5.))-.5)*7.+(vec2(vn(p*.007),vn(p*.007+3.))-.5)*70.;
+    vec3 cv=vor(wp/95.); float b=cv.x*95.;
+    float on=cf*smoothstep(.2,.35,cv.y)*(.55+.45*vn(p*.015));
+    float core=1.-smoothstep(.5,2.,b), mid=1.-smoothstep(1.,6.,b), halo=1.-smoothstep(0.,26.,b);
+    c=mix(c,c*.55,halo*on*.5);
+    e=(vec3(1.,.88,.42)*core+vec3(1.,.55,.10)*mid*.8+vec3(.95,.3,.04)*halo*halo*.55)*on*1.5;
+    c+=e*.16;
   }
 }
 void sIce(vec2 p, vec3 mk, out float h, out vec3 c, out vec3 e){

@@ -713,28 +713,25 @@ vec3 vor(vec2 x){ vec2 n=floor(x),f=fract(x),mg=vec2(0.),mr=vec2(0.); float md=8
   return vec3(md,hash12(n+mg),length(mr)); }
 
 void sIron(vec2 p, vec3 mk, out float h, out vec3 c, out vec3 e){
-  vec2 q=p*.0032; vec2 w=vec2(fbm3(q+3.1),fbm3(q+7.7));
-  float soil=fbm(q*1.6+w*1.8), det=fbm3(p*.045);
-  h=soil*.7+det*.16;
-  c=mix(vec3(.19,.16,.14),vec3(.37,.32,.28),smoothstep(.28,.8,soil));
-  c=mix(c,vec3(.22,.24,.16),smoothstep(.56,.8,fbm3(q*3.+20.))*.55);
-  vec3 pv=vor(p/13.); float peb=(1.-smoothstep(.16,.3,pv.z))*step(.9,pv.y)*(1.-mk.r*.7);
-  h+=peb*.2*(1.-pv.z*2.5); c=mix(c,vec3(.50,.46,.42)*(.85+.3*pv.y),peb*.8);
-  float lf=vn(p*.42+det*3.);
-  c=mix(c,vec3(.42,.25,.13)*(.7+.6*hash12(floor(p*.42))),smoothstep(.8,.9,lf)*.5*(1.-mk.r));
-  c=mix(c,vec3(.40,.35,.29)*(.85+.3*det),mk.r*.78); h=mix(h,.45+det*.08,mk.r*.7);
-  float cf=clamp(smoothstep(.6,.7,fbm3(p*.0011+11.))+mk.g,0.,1.)*(1.-mk.r*.85);
-  if(uArena.z>0.){ float r=length(p-uArena.xy); cf=max(cf,(1.-smoothstep(uArena.z*.15,uArena.z*1.02,r))*.9); }
+  vec2 q=p*.0022; vec2 w=vec2(fbm3(q+3.1),fbm3(q+7.7));
+  float soil=fbm(q*1.4+w*1.6), det=fbm3(p*.03);
+  h=soil*.35+det*.05;
+  c=mix(vec3(.12,.105,.095),vec3(.215,.19,.17),smoothstep(.22,.82,soil));
+  c*=.93+.12*det;
+  c=mix(c,vec3(.085,.07,.062),smoothstep(.6,.82,fbm3(q*3.+20.))*.55);
+  c=mix(c,vec3(.19,.16,.13),smoothstep(.7,.9,fbm3(p*.006+40.))*.35);
+  c=mix(c,vec3(.25,.22,.195)*(.93+.1*det),mk.r*.5); h=mix(h,.3+det*.03,mk.r*.6);
+  float cf=clamp(smoothstep(.56,.68,fbm3(p*.0011+11.))+mk.g,0.,1.)*(1.-mk.r*.55);
+  if(uArena.z>0.){ float r=length(p-uArena.xy); cf=max(cf,(1.-smoothstep(uArena.z*.15,uArena.z*1.05,r))*.9); }
   e=vec3(0.);
   if(cf>.01){
-    vec2 wp=p+(vec2(vn(p*.02),vn(p*.02+5.))-.5)*34.;
-    vec3 cv=vor(wp/50.); float b=cv.x*50.;
-    float core=1.-smoothstep(.7,2.4,b), ch=1.-smoothstep(1.8,10.,b), halo=1.-smoothstep(0.,26.,b);
-    float on=cf*(.5+.5*cv.y);
-    c=mix(c,vec3(.17,.14,.13)*(.9+.3*cv.y),cf*.6);
-    c*=1.-ch*.8*cf; h-=ch*.32*cf;
-    e=mix(vec3(1.,.42,.06),vec3(1.,.9,.55),core)*core*on*1.5+vec3(.95,.3,.04)*halo*on*.32;
-    c+=e*.22;
+    vec2 wp=p+(vec2(vn(p*.06),vn(p*.06+5.))-.5)*7.+(vec2(vn(p*.007),vn(p*.007+3.))-.5)*70.;
+    vec3 cv=vor(wp/95.); float b=cv.x*95.;
+    float on=cf*smoothstep(.2,.35,cv.y)*(.55+.45*vn(p*.015));
+    float core=1.-smoothstep(.5,2.,b), mid=1.-smoothstep(1.,6.,b), halo=1.-smoothstep(0.,26.,b);
+    c=mix(c,c*.55,halo*on*.5);
+    e=(vec3(1.,.88,.42)*core+vec3(1.,.55,.10)*mid*.8+vec3(.95,.3,.04)*halo*halo*.55)*on*1.5;
+    c+=e*.16;
   }
 }
 void sIce(vec2 p, vec3 mk, out float h, out vec3 c, out vec3 e){
@@ -1319,7 +1316,7 @@ const PAL = {
 };
 /* how each place is lit: ambient multiply colour, fog colour/strength, ground mode */
 const LOOK = {
-  iron: { amb: [184, 162, 146], fog: ['#8a7a6a', .36], mode: 'iron', void: '#0a0806' },
+  iron: { amb: [176, 156, 142], fog: ['#7c7068', .34], mode: 'iron', void: '#0a0806' },
   ice: { amb: [212, 222, 238], fog: ['#eef5fc', .34], mode: 'ice', void: '#2a3440' },
   sea: { amb: [170, 184, 206], fog: ['#a2b2c2', .3], mode: 'sea', void: '#05080c' },
   fire: { amb: [172, 126, 110], fog: ['#7a3420', .26], mode: 'fire', void: '#080302' },
@@ -1801,7 +1798,7 @@ function genRealm(id) {
     if (id === 'sea') { let wt = false; for (const p of w.water) if (Math.hypot((x - p.x) / p.rx, (y - p.y) / p.ry) < 1.15) wt = true; if (wt) continue; }
     const r = R();
     if (pd < 84) continue;
-    const bigMin = id === 'iron' || id === 'hub' ? 250 : id === 'sea' ? 210 : 190;
+    const bigMin = id === 'iron' ? 330 : id === 'hub' ? 250 : id === 'sea' ? 210 : 190;
     if (pd < bigMin) {
       if (pd > 175 && r < .5 && sp.mid.length) { addObst(w, { x, y, r: 22, spr: pick2(R, sp.mid.length && R() < .6 ? sp.mid : sp.small.length ? sp.small : sp.mid), fade: 1 }); continue; }
       if (r < .3) { const small = R() < .5 && sp.small.length; addObst(w, { x, y, r: small ? 16 : 22, spr: small ? pick2(R, sp.small) : pick2(R, sp.mid), fade: 1 }); }
@@ -1809,8 +1806,10 @@ function genRealm(id) {
       continue;
     }
     if (pd > 520 && !border && r < .45) continue;
-    const big = r < (id === 'sea' ? .5 : id === 'iron' ? .5 : .62) || border;
-    if (big) addObst(w, { x, y, r: id === 'iron' ? 24 : id === 'sea' ? 50 : id === 'fire' ? 28 : 16, spr: pick2(R, sp.big), fade: 1, big: 1 });
+    let big = r < (id === 'sea' ? .5 : id === 'iron' ? .5 : .62) || border;
+    if (big && id === 'iron') { const B = w._bigs || (w._bigs = []); if (B.some(b => Math.hypot(b[0] - x, (b[1] - y) * 1.3) < 380)) { big = false; if (R() < .7) continue; } else B.push([x, y]); }
+    else if (!big && id === 'iron' && R() < .7) continue;
+    if (big) { const spr = pick2(R, sp.big); addObst(w, { x, y, r: spr.trunkR || (id === 'sea' ? 50 : id === 'fire' ? 28 : 16), spr, fade: 1, big: 1 }); }
     else addObst(w, { x, y, r: 22, spr: pick2(R, sp.mid.length && R() < .6 ? sp.mid : sp.small.length ? sp.small : sp.mid), fade: 1 });
   }
   const F = D.foes;
@@ -1941,7 +1940,7 @@ function setWeather(kind) { G.motes = []; G.weatherKind = kind; }
 function updWeather(dt) {
   const k = G.weatherKind; if (!k) return;
   const hw = W / 2 / cam.z, hh = H / 2 / cam.z;
-  const want = k === 'ember' ? 150 : k === 'snow' ? (G.boss && G.boss.blizzard ? 340 : 220) : k === 'rain' ? 360 : k === 'ash' ? 140 : k === 'hub' ? 70 : k === 'gold' ? 100 : k === 'utgard' ? 80 : 0;
+  const want = k === 'ember' ? 280 : k === 'snow' ? (G.boss && G.boss.blizzard ? 340 : 220) : k === 'rain' ? 360 : k === 'ash' ? 140 : k === 'hub' ? 70 : k === 'gold' ? 100 : k === 'utgard' ? 80 : 0;
   while (G.motes.length < want) G.motes.push(newMote(k, hw, hh, true));
   const bl = G.boss && G.boss.blizzard;
   for (let i = G.motes.length - 1; i >= 0; i--) {
@@ -1954,7 +1953,7 @@ function updWeather(dt) {
 function newMote(k, hw, hh, init) {
   const x = cam.x + rand(-hw - 140, hw + 100), y = cam.y + rand(-hh - 180, hh + 140);
   const m = { x, y, t: init ? rand(0, 6) : 0, ph: rand(0, TAU), f: rand(.5, 2), sw: 0, vx: 0, vy: 0, life: rand(4, 9), s: 1 };
-  if (k === 'ember') { m.vy = -rand(8, 26); m.vx = rand(-8, 8); m.sw = rand(10, 30); m.s = rand(1.2, 3.6); m.col = Math.random() < .25 ? '#ffd27a' : '#ff6a1a'; }
+  if (k === 'ember') { m.vy = -rand(6, 22); m.vx = rand(-8, 8); m.sw = rand(10, 30); m.s = rand(1, 2.8); m.col = Math.random() < .2 ? '#ffb347' : '#ff5a1a'; m.dark = Math.random() < .14; }
   if (k === 'snow') { m.vy = rand(40, 90); m.vx = rand(-10, 10); m.sw = rand(10, 30); m.s = rand(1, 3.4); }
   if (k === 'rain') { m.vy = rand(620, 820); m.s = rand(.8, 1.5); m.life = rand(.5, 1); }
   if (k === 'ash') { m.vy = -rand(6, 20); m.vx = rand(-12, 12); m.sw = rand(8, 20); m.s = rand(1, 2.8); m.col = Math.random() < .45 ? '#ff7a2a' : '#8a7f78'; }
@@ -1983,6 +1982,7 @@ function drawMotes() {
   for (const m of G.motes) {
     const fl = .55 + .45 * Math.sin(m.t * 6 + m.ph), a = Math.min(1, m.t * 2, (m.life - m.t)) * fl;
     if (a <= 0) continue;
+    if (m.dark) { ctx.fillStyle = hexA('#120c0a', .8 * a); ctx.beginPath(); ctx.arc(m.x, m.y, m.s * .8, 0, TAU); ctx.fill(); continue; }
     if (k === 'ash' && m.col === '#8a7f78') { ctx.fillStyle = hexA(m.col, .6 * a); ctx.fillRect(m.x, m.y, m.s * 1.6, m.s); continue; }
     glow(m.x, m.y, m.s * 5, m.col, a * .55);
     ctx.fillStyle = hexA(m.col === '#ff6a1a' ? '#ffb070' : m.col, a); ctx.beginPath(); ctx.arc(m.x, m.y, m.s * .6, 0, TAU); ctx.fill();
@@ -2170,10 +2170,10 @@ function pBasalt(seed) {
 function realmSprites(id) {
   if (SPRC[id]) return SPRC[id];
   const s = { big: [], mid: [], small: [], deco: [] };
-  if (id === 'iron') { for (let i = 0; i < 6; i++) s.big.push(pTree(500 + i, 'iron')); for (let i = 0; i < 4; i++) s.mid.push(pRock(600 + i, PAL.iron, 20 + i * 6, i % 2 ? 'moss' : null)); for (let i = 0; i < 2; i++) s.small.push(pStump(650 + i)); for (let i = 0; i < 3; i++) s.deco.push(pReeds(700 + i, i % 2)); }
+  if (id === 'iron') { for (let i = 0; i < 6; i++) s.big.push(pIronTree(500 + i)); for (let i = 0; i < 4; i++) s.mid.push(pRock(600 + i, PAL.iron, 20 + i * 6, i % 2 ? 'moss' : null)); s.mid.push(pCrate(640)); for (let i = 0; i < 2; i++) s.small.push(pStump(650 + i)); for (let i = 0; i < 4; i++) s.deco.push(pCattails(700 + i)); }
   if (id === 'ice') { for (let i = 0; i < 5; i++) s.big.push(pPine(800 + i)); for (let i = 0; i < 4; i++) s.mid.push(pCrystals(900 + i)); for (let i = 0; i < 3; i++) s.small.push(pRock(950 + i, PAL.ice, 18 + i * 8, 'snow')); }
   if (id === 'sea') { for (let i = 0; i < 4; i++) s.big.push(pBerg(1000 + i)); s.mid.push(pRibs(1100), pRibs(1101), pWreck(1150), pWreck(1151)); for (let i = 0; i < 3; i++) s.small.push(pStone(1200 + i, i === 0)); for (let i = 0; i < 2; i++) s.deco.push(pReeds(1250 + i, 1)); }
-  if (id === 'fire') { for (let i = 0; i < 4; i++) s.big.push(pObsidian(1300 + i)); for (let i = 0; i < 3; i++) s.mid.push(pSwords(1400 + i)); for (let i = 0; i < 3; i++) s.small.push(pBasalt(1500 + i)); for (let i = 0; i < 3; i++) s.deco.push(pTree(1550 + i, 'char')); }
+  if (id === 'fire') { for (let i = 0; i < 4; i++) s.big.push(pObsidian(1300 + i)); for (let i = 0; i < 3; i++) s.mid.push(pSwords(1400 + i)); for (let i = 0; i < 3; i++) s.small.push(pBasalt(1500 + i)); for (let i = 0; i < 3; i++) s.deco.push(pIronTree(1550 + i, 'char')); }
   if (id === 'hub') { for (let i = 0; i < 4; i++) s.big.push(pTree(1600 + i, 'birch')); for (let i = 0; i < 3; i++) s.mid.push(pRock(1700 + i, PAL.hub, 20 + i * 8, 'moss')); for (let i = 0; i < 3; i++) s.small.push(pStone(1800 + i, i === 1)); }
   if (id === 'utgard') { for (let i = 0; i < 4; i++) s.big.push(pRock(1900 + i, PAL.utgard, 36 + i * 8)); }
   return SPRC[id] = s;
@@ -2191,6 +2191,120 @@ function iceShards() {
       layers: pcs.map((pts, i) => ({ draw: g => { Fp(g, P => vpoly(P, pts), i % 2 ? '#e8f4fb' : '#cfe4f2'); g.fillStyle = 'rgba(120,160,200,.35)'; const P2 = new Path2D(); vpoly(P2, [pts[0], pts[1], [(pts[0][0] + pts[2][0]) / 2, (pts[0][1] + pts[2][1]) / 2 + 4]]); g.fill(P2); }, amp: .3, h: i * 2, glow: .15 })) }));
   }
   return ICESHARDS;
+}
+
+/* =====================================================================
+   WOOD — the Iron Wood after the plate: vast bare trees seen from above,
+   a trunk rising and a crown of limbs and twigs flung out over the
+   ground in every direction; some bleed lava up the bark.
+   Also: cattails, crates, and a cheap strip-warp for swaying sprites.
+   ===================================================================== */
+/* grow a tree: returns segments [x0,y0,x1,y1,w0,w1,depth,lava] */
+function growTree(R, o) {
+  const segs = [], H = o.h, W0 = o.w, crown = o.crown, sq = .78;
+  // trunk: a sinuous column with a twist of lean
+  const tp = [[0, 0]]; let x = 0;
+  for (let i = 1; i <= 6; i++) { x += (R() - .5) * W0 * .55 + o.lean * H / 6; tp.push([x, -H * i / 6]); }
+  for (let i = 0; i < 6; i++) segs.push([tp[i][0], tp[i][1], tp[i + 1][0], tp[i + 1][1], W0 * (1 - i / 6 * .55), W0 * (1 - (i + 1) / 6 * .55), 0, o.lava && i < 5]);
+  const branch = (x0, y0, a, L, w, d, lava) => {
+    let px = x0, py = y0, ca = a; const n = d < 2 ? 4 : 3;
+    for (let k = 0; k < n; k++) {
+      ca += (R() - .5) * (d < 2 ? .35 : .6);
+      const l = L / n, nx = px + Math.cos(ca) * l, ny = py + Math.sin(ca) * l * sq, w1 = w * (1 - (k + 1) / n * .45);
+      segs.push([px, py, nx, ny, w * (1 - k / n * .45), w1, d, lava && k < n - 1]);
+      // side shoots along the way
+      if (d < o.depth && k < n - 1 && R() < (d < 2 ? .7 : .5)) branch(nx, ny, ca + (R() < .5 ? 1 : -1) * (.5 + R() * .6), L * (.42 + R() * .2), w1 * .62, d + 1, false);
+      px = nx; py = ny;
+    }
+    if (d >= o.depth || w < .7) return;
+    const kids = d < 2 ? 2 + (R() < .5) : 2 + (R() < .3);
+    for (let i = 0; i < kids; i++) branch(px, py, ca + (i - (kids - 1) / 2) * (.42 + R() * .35) + (R() - .5) * .25, L * (.62 + R() * .16), w * .55 * (1 - (i === 0 ? 0 : .12)), d + 1, lava && i === 0 && d < 2);
+  };
+  // the limbs: flung out from the upper trunk in every direction, the crown seen from above
+  const nl = o.limbs;
+  for (let i = 0; i < nl; i++) {
+    const f = .5 + .5 * (i / nl) * (R() * .4 + .8), p = tp[Math.min(6, Math.round(f * 6))];
+    const a = -PI / 2 + (i / nl - .5) * TAU * .95 + (R() - .5) * .4;
+    branch(p[0], p[1], a, crown * (.55 + R() * .35), W0 * (.42 + R() * .12), 1, o.lava && i === 1);
+  }
+  // roots splaying into the mud
+  for (let i = 0; i < o.roots; i++) { const a = PI * (.05 + i / (o.roots - 1) * .9) + (R() - .5) * .2, L = W0 * (1.1 + R() * 1.1); let px = Math.cos(a) * W0 * .2, py = 0; const ex = Math.cos(a) * L, ey = Math.sin(a) * L * .32 + 4; segs.push([px, py, (px + ex) / 2 + (R() - .5) * 8, (py + ey) / 2, W0 * .5, W0 * .22, -1, false], [(px + ex) / 2, (py + ey) / 2, ex, ey, W0 * .22, 2, -1, false]); }
+  return segs;
+}
+function pIronTree(seed, kind = 'iron') {
+  const R = mulberry(seed), char = kind === 'char';
+  const o = char ? { h: 170 + R() * 80, w: 26 + R() * 8, crown: 120 + R() * 50, depth: 5, limbs: 6, roots: 5, lean: (R() - .5) * .3, lava: R() < .5 }
+    : { h: 300 + R() * 200, w: 46 + R() * 22, crown: 260 + R() * 120, depth: 7, limbs: 7 + (R() * 3 | 0), roots: 7, lean: (R() - .5) * .25, lava: R() < .34 };
+  const segs = growTree(R, o);
+  let x0 = -40, y0 = -40, x1 = 40, y1 = 30; for (const s of segs) { x0 = Math.min(x0, s[0], s[2]); x1 = Math.max(x1, s[0], s[2]); y0 = Math.min(y0, s[1], s[3]); y1 = Math.max(y1, s[1], s[3]); }
+  x0 -= 20; y0 -= 20; x1 += 20; y1 += 20;
+  const S = char ? .9 : .62, W = Math.ceil((x1 - x0) * S), Hh = Math.ceil((y1 - y0) * S);
+  const c = mkCanvas(W, Hh), g = c.getContext('2d'); g.setTransform(S, 0, 0, S, -x0 * S, -y0 * S); g.lineCap = 'round'; g.lineJoin = 'round';
+  // a soft ground shadow pooled under the crown
+  { const gr = g.createRadialGradient(0, 0, 0, 0, 0, o.crown * .9); gr.addColorStop(0, 'rgba(0,0,0,.42)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.save(); g.translate(20, -o.h * .35); g.scale(1, .55); g.fillStyle = gr; g.beginPath(); g.arc(0, 0, o.crown * .9, 0, TAU); g.fill(); g.restore(); }
+  const base = char ? ['#100a08', '#1c1210'] : ['#17110e', '#211915'], rim = char ? '#5a2a18' : '#4d4038', LX = -.62, LY = -.78;
+  const quad = (s, w0, w1, col) => { const dx = s[2] - s[0], dy = s[3] - s[1], l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l; g.fillStyle = col; g.beginPath(); g.moveTo(s[0] + nx * w0 / 2, s[1] + ny * w0 / 2); g.lineTo(s[2] + nx * w1 / 2, s[3] + ny * w1 / 2); g.lineTo(s[2] - nx * w1 / 2, s[3] - ny * w1 / 2); g.lineTo(s[0] - nx * w0 / 2, s[1] - ny * w0 / 2); g.closePath(); g.fill(); if (w1 > 1.2) { g.beginPath(); g.arc(s[2], s[3], w1 / 2, 0, TAU); g.fill(); } };
+  const order = segs.slice().sort((a, b) => (b[6] === -1 ? 99 : b[6]) - (a[6] === -1 ? 99 : a[6]));
+  // fine twigs first, back to front by depth; the trunk and limbs last
+  for (const s of order) {
+    const d = s[6], w0 = Math.max(.6, s[4]), w1 = Math.max(.5, s[5]);
+    g.globalAlpha = d >= 5 ? .82 : 1;
+    quad(s, w0, w1, d >= 4 ? base[0] : base[1]);
+    if (w0 > 3.5) { // a lit edge toward the key light, a dark core on the far side
+      const dx = s[2] - s[0], dy = s[3] - s[1], l = Math.hypot(dx, dy) || 1; let nx = -dy / l, ny = dx / l; if (nx * LX + ny * LY < 0) { nx = -nx; ny = -ny; }
+      g.globalAlpha = .75; g.strokeStyle = rim; g.lineWidth = Math.max(.8, w0 * .16); g.beginPath(); g.moveTo(s[0] + nx * w0 * .32, s[1] + ny * w0 * .32); g.lineTo(s[2] + nx * w1 * .32, s[3] + ny * w1 * .32); g.stroke();
+      g.globalAlpha = .5; g.strokeStyle = '#0a0706'; g.lineWidth = Math.max(.8, w0 * .22); g.beginPath(); g.moveTo(s[0] - nx * w0 * .28, s[1] - ny * w0 * .28); g.lineTo(s[2] - nx * w1 * .28, s[3] - ny * w1 * .28); g.stroke();
+    }
+  }
+  g.globalAlpha = 1;
+  // bark: long grooves running up the trunk
+  g.strokeStyle = 'rgba(80,66,56,.45)'; g.lineWidth = 1.6;
+  for (let i = 0; i < 9; i++) { const f = (i + .5) / 9 - .5; g.beginPath(); for (let k = 0; k <= 5; k++) { const s = segs[k] || segs[5], w = s[4], x = s[0] + f * w * .8 + Math.sin(k * 1.7 + i) * 2, y = s[1]; k ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke(); }
+  // lava welling up through the bark of some trees: an emissive overlay
+  let e = null;
+  if (o.lava) {
+    e = mkCanvas(W, Hh); const eg = e.getContext('2d'); eg.setTransform(S, 0, 0, S, -x0 * S, -y0 * S); eg.lineCap = 'round'; eg.lineJoin = 'round';
+    const veins = segs.filter(s => s[7]);
+    // sinuous, broken streams welling through the bark
+    const paths = [];
+    for (const s of veins) { if (hash2(s[0] | 0, s[3] | 0) < .25) continue; const pts = []; for (let k = 0; k <= 5; k++) { const u = k / 5, x = lerp(s[0], s[2], u), y = lerp(s[1], s[3], u), dx = s[2] - s[0], dy = s[3] - s[1], l = Math.hypot(dx, dy) || 1, j = Math.sin(u * 5.3 + s[0]) * Math.min(5, lerp(s[4], s[5], u) * .12); pts.push([x - dy / l * j, y + dx / l * j]); } paths.push([pts, 1]); }
+    for (const pass of [[9, 'rgba(255,80,16,.16)'], [3.6, 'rgba(255,130,30,.6)'], [1.5, 'rgba(255,226,140,1)']]) {
+      eg.strokeStyle = pass[1];
+      for (const [pts, w] of paths) { eg.lineWidth = w * pass[0]; eg.beginPath(); pts.forEach((p, k) => k ? eg.lineTo(p[0], p[1]) : eg.moveTo(p[0], p[1])); eg.stroke(); }
+    }
+  }
+  const spr = { c, ox: x0, oy: y0, wu: x1 - x0, hu: y1 - y0, s: S, e, tree: 1, warp: 1, cy: -o.h * .8, canopy: o.crown * .8, top: y0, trunkR: o.w * .5, glowy: !!o.lava && !char };
+  return spr;
+}
+function pCattails(seed) {
+  const R = mulberry(seed), n = 7 + (R() * 6 | 0);
+  return paintSprite({ box: [-60, -170, 60, 14], s: 1.6, soft: 1, lo: .78, shade: [.8, .78, .8], ink: '#1a1410', inkW: 1.2, under: groundShadow(46, 10, 2, 4, .4), layers: [
+    { draw: g => Fp(g, P => { for (let i = 0; i < n; i++) { const x = (R() - .5) * 40, a = -PI / 2 + (R() - .5) * 1.1, L = 70 + R() * 90; vleaf(P, x, 4, a, L, 7 + R() * 4, (R() - .5) * 30); } }, '#a8946c'), amp: .4, innerInk: true, inkW: .6 },
+    { draw: g => { for (let i = 0; i < 4; i++) { const x = (i - 1.5) * 12 + (R() - .5) * 8, top = -110 - R() * 50, lean = (R() - .5) * 20; g.strokeStyle = '#6e5e40'; g.lineWidth = 2.4; g.beginPath(); g.moveTo(x, 4); g.quadraticCurveTo(x + lean * .3, top * .5, x + lean, top); g.stroke(); Fp(g, P => vcr(P, [[x + lean - 4, top + 6], [x + lean - 4.6, top + 30], [x + lean, top + 34], [x + lean + 4.6, top + 30], [x + lean + 4, top + 6], [x + lean, top + 2]]), '#6a3e22'); } }, r: 3, h: 8, amp: .7 },
+  ] });
+}
+function pCrate(seed) {
+  return paintSprite({ box: [-30, -50, 30, 14], s: 2, soft: 1, lo: .76, ink: '#140e0a', inkW: 1.4, under: groundShadow(30, 8, 3, 4, .45), layers: [
+    { draw: g => { Fp(g, P => vpoly(P, [[-24, 6], [-24, -28], [4, -34], [26, -24], [26, 4], [0, 12]]), '#5a4430'); g.strokeStyle = '#2a1e14'; g.lineWidth = 1.4; g.beginPath(); g.moveTo(0, 12); g.lineTo(0, -22); g.moveTo(-24, -28); g.lineTo(0, -22); g.lineTo(26, -24); for (const y of [-14, -2]) { g.moveTo(-24, y); g.lineTo(0, y + 6); g.lineTo(26, y - 2); } g.moveTo(-22, 4); g.lineTo(-2, -20); g.stroke(); }, r: 2, amp: .3, flat: true },
+  ] });
+}
+/* draw a sprite bent by wind: horizontal strips slid sideways, more toward the top */
+function drawSprWarp(s, x, y, a, sway, src = s.c, add = false) {
+  if (a < 1) ctx.globalAlpha = a;
+  const n = 18, sh = src.height / n, dh = s.hu / n, baseY = -s.oy; // anchor row in units from the sprite top
+  for (let i = 0; i < n; i++) {
+    const yu = i * dh, h = Math.max(0, (baseY - yu) / baseY), off = sway * h * h;
+    ctx.drawImage(src, 0, i * sh, src.width, add ? sh : sh + 1, x + s.ox + off, y + s.oy + yu, s.wu, add ? dh : dh + s.hu / src.height);
+  }
+  if (a < 1) ctx.globalAlpha = 1;
+}
+/* emissive overlays queued during the sort pass, drawn additively after the light map */
+const EMISQ = [];
+function flushEmis() {
+  if (!EMISQ.length) return;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const q of EMISQ) { const s = q.s, f = .75 + .25 * Math.sin(G.t * 2.2 + q.x * .01) * Math.sin(G.t * 3.7 + q.y * .02); drawSprWarp(s, q.x, q.y, f * q.a, q.sway || 0, s.e, true); }
+  ctx.restore(); EMISQ.length = 0;
 }
 
 /* =====================================================================
@@ -6546,7 +6660,7 @@ function enterRealm(id, at) {
     if (Math.hypot(g.x - sx, g.y - sy) < 420) continue;
     g.list.forEach((k, i) => { const a = i / g.list.length * TAU, r = g.list.length > 1 ? 54 : 0; spawnFoe(k, g.x + Math.cos(a) * r, g.y + Math.sin(a) * r); });
   }
-  cam.x = P.x; cam.y = P.y; cam.span = 330; cam.z = zoomForSpan(cam.span);
+  cam.x = P.x; cam.y = P.y; cam.span = 470; cam.z = zoomForSpan(cam.span);
   const D = w.def; playMusic(D.music); ambience(D.amb); setWeather(D.motes);
   S.loc = id; store(); hudDirty();
   G.playing = true;
@@ -7161,7 +7275,7 @@ function renderLights() {
   const z = cam.z * s;
   lctx.setTransform(z, 0, 0, z, (W / 2 - (cam.x + cam.sx) * cam.z) * s, (H / 2 - (cam.y + cam.sy) * cam.z) * s);
   if (w.emis) drawEmissive(lctx, 1.3);
-  const pl = { x: P.x, y: P.y - 16, r: 210, i: G.scene.kind === 'hub' ? .25 : .32, col: '#ffe0c0' };
+  const pl = { x: P.x, y: P.y - 16, r: w.id === 'iron' ? 280 : 210, i: G.scene.kind === 'hub' ? .25 : w.id === 'iron' ? .5 : .32, col: '#ffe0c0' };
   for (const L of G.lights) { if (!inView(L.x, L.y, L.r)) continue; lctx.globalAlpha = Math.min(1, L.i); lctx.drawImage(glowSprite(L.col || '#ffb070'), L.x - L.r, L.y - L.r, L.r * 2, L.r * 2); }
   lctx.globalAlpha = pl.i; lctx.drawImage(glowSprite(pl.col), pl.x - pl.r, pl.y - pl.r, pl.r * 2, pl.r * 2);
   lctx.globalAlpha = 1; lctx.globalCompositeOperation = 'source-over'; lctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -7203,8 +7317,9 @@ function render(rdt) {
           if (o.spr.tree) { const d = Math.hypot(P.x - o.x, (P.y - 20 - (o.y + o.spr.cy)) * 1.25); if (d < o.spr.canopy * .85) ta = lerp(.22, 1, clamp((d - o.spr.canopy * .45) / (o.spr.canopy * .4), 0, 1)); }
           else { const top = o.y + o.spr.oy; if (P.y < o.y - 2 && P.y > top + 20 && Math.abs(P.x - o.x) < o.spr.wu * .4) ta = o.big ? .3 : .5; }
           if (o.ring) ta = Math.min(ta, .9);
-          o.fade = lerp(o.fade || 1, ta, .14); drawSpr(o.spr, o.x, o.y, o.fade);
-          if (o.spr.glowy) { G.lights.push({ x: o.x, y: o.y - 40, r: 190, i: .6, col: '#ff7a2a' }); glowPost(o.x, o.y - 40, 46, '#ff6a1a', .25); }
+          if (o.spr.warp) { ta = Math.max(ta, .3); o.fade = lerp(o.fade || 1, ta, .14); const sway = Math.sin(G.t * .55 + o.x * .013) * 5 + Math.sin(G.t * 1.3 + o.y * .02) * 2; drawSprWarp(o.spr, o.x, o.y, o.fade, sway); if (o.spr.e) EMISQ.push({ s: o.spr, x: o.x, y: o.y, a: o.fade, sway }); }
+          else { o.fade = lerp(o.fade || 1, ta, .14); drawSpr(o.spr, o.x, o.y, o.fade); }
+          if (o.spr.glowy) { const ly = o.spr.warp ? o.spr.cy * .5 : -40; G.lights.push({ x: o.x, y: o.y + ly, r: o.spr.warp ? 300 : 190, i: .6, col: '#ff7a2a' }); if (!o.spr.warp) glowPost(o.x, o.y - 40, 46, '#ff6a1a', .25); }
         } else if (o.kind) drawHubObst(o);
         break;
       case 1: drawSpr(o.spr, o.x, o.y); break;
@@ -7222,7 +7337,7 @@ function render(rdt) {
   renderLights();
   applyCam();
   ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .3; drawHaz(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
-  drawParts(true); flushGlowPost(); drawFx();
+  drawParts(true); flushEmis(); flushGlowPost(); drawFx();
   if (G.boss && G.boss.id === 'thrym' && P) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .55; ctx.drawImage(beamSpr(), P.x - 60, P.y - 560, 120, 590); ctx.restore(); }
   drawMotes();
   ctx.setTransform(1, 0, 0, 1, 0, 0);

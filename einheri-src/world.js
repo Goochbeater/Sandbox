@@ -21,7 +21,7 @@ const PAL = {
 };
 /* how each place is lit: ambient multiply colour, fog colour/strength, ground mode */
 const LOOK = {
-  iron: { amb: [184, 162, 146], fog: ['#8a7a6a', .36], mode: 'iron', void: '#0a0806' },
+  iron: { amb: [176, 156, 142], fog: ['#7c7068', .34], mode: 'iron', void: '#0a0806' },
   ice: { amb: [212, 222, 238], fog: ['#eef5fc', .34], mode: 'ice', void: '#2a3440' },
   sea: { amb: [170, 184, 206], fog: ['#a2b2c2', .3], mode: 'sea', void: '#05080c' },
   fire: { amb: [172, 126, 110], fog: ['#7a3420', .26], mode: 'fire', void: '#080302' },
@@ -503,7 +503,7 @@ function genRealm(id) {
     if (id === 'sea') { let wt = false; for (const p of w.water) if (Math.hypot((x - p.x) / p.rx, (y - p.y) / p.ry) < 1.15) wt = true; if (wt) continue; }
     const r = R();
     if (pd < 84) continue;
-    const bigMin = id === 'iron' || id === 'hub' ? 250 : id === 'sea' ? 210 : 190;
+    const bigMin = id === 'iron' ? 330 : id === 'hub' ? 250 : id === 'sea' ? 210 : 190;
     if (pd < bigMin) {
       if (pd > 175 && r < .5 && sp.mid.length) { addObst(w, { x, y, r: 22, spr: pick2(R, sp.mid.length && R() < .6 ? sp.mid : sp.small.length ? sp.small : sp.mid), fade: 1 }); continue; }
       if (r < .3) { const small = R() < .5 && sp.small.length; addObst(w, { x, y, r: small ? 16 : 22, spr: small ? pick2(R, sp.small) : pick2(R, sp.mid), fade: 1 }); }
@@ -511,8 +511,10 @@ function genRealm(id) {
       continue;
     }
     if (pd > 520 && !border && r < .45) continue;
-    const big = r < (id === 'sea' ? .5 : id === 'iron' ? .5 : .62) || border;
-    if (big) addObst(w, { x, y, r: id === 'iron' ? 24 : id === 'sea' ? 50 : id === 'fire' ? 28 : 16, spr: pick2(R, sp.big), fade: 1, big: 1 });
+    let big = r < (id === 'sea' ? .5 : id === 'iron' ? .5 : .62) || border;
+    if (big && id === 'iron') { const B = w._bigs || (w._bigs = []); if (B.some(b => Math.hypot(b[0] - x, (b[1] - y) * 1.3) < 380)) { big = false; if (R() < .7) continue; } else B.push([x, y]); }
+    else if (!big && id === 'iron' && R() < .7) continue;
+    if (big) { const spr = pick2(R, sp.big); addObst(w, { x, y, r: spr.trunkR || (id === 'sea' ? 50 : id === 'fire' ? 28 : 16), spr, fade: 1, big: 1 }); }
     else addObst(w, { x, y, r: 22, spr: pick2(R, sp.mid.length && R() < .6 ? sp.mid : sp.small.length ? sp.small : sp.mid), fade: 1 });
   }
   const F = D.foes;
@@ -643,7 +645,7 @@ function setWeather(kind) { G.motes = []; G.weatherKind = kind; }
 function updWeather(dt) {
   const k = G.weatherKind; if (!k) return;
   const hw = W / 2 / cam.z, hh = H / 2 / cam.z;
-  const want = k === 'ember' ? 150 : k === 'snow' ? (G.boss && G.boss.blizzard ? 340 : 220) : k === 'rain' ? 360 : k === 'ash' ? 140 : k === 'hub' ? 70 : k === 'gold' ? 100 : k === 'utgard' ? 80 : 0;
+  const want = k === 'ember' ? 280 : k === 'snow' ? (G.boss && G.boss.blizzard ? 340 : 220) : k === 'rain' ? 360 : k === 'ash' ? 140 : k === 'hub' ? 70 : k === 'gold' ? 100 : k === 'utgard' ? 80 : 0;
   while (G.motes.length < want) G.motes.push(newMote(k, hw, hh, true));
   const bl = G.boss && G.boss.blizzard;
   for (let i = G.motes.length - 1; i >= 0; i--) {
@@ -656,7 +658,7 @@ function updWeather(dt) {
 function newMote(k, hw, hh, init) {
   const x = cam.x + rand(-hw - 140, hw + 100), y = cam.y + rand(-hh - 180, hh + 140);
   const m = { x, y, t: init ? rand(0, 6) : 0, ph: rand(0, TAU), f: rand(.5, 2), sw: 0, vx: 0, vy: 0, life: rand(4, 9), s: 1 };
-  if (k === 'ember') { m.vy = -rand(8, 26); m.vx = rand(-8, 8); m.sw = rand(10, 30); m.s = rand(1.2, 3.6); m.col = Math.random() < .25 ? '#ffd27a' : '#ff6a1a'; }
+  if (k === 'ember') { m.vy = -rand(6, 22); m.vx = rand(-8, 8); m.sw = rand(10, 30); m.s = rand(1, 2.8); m.col = Math.random() < .2 ? '#ffb347' : '#ff5a1a'; m.dark = Math.random() < .14; }
   if (k === 'snow') { m.vy = rand(40, 90); m.vx = rand(-10, 10); m.sw = rand(10, 30); m.s = rand(1, 3.4); }
   if (k === 'rain') { m.vy = rand(620, 820); m.s = rand(.8, 1.5); m.life = rand(.5, 1); }
   if (k === 'ash') { m.vy = -rand(6, 20); m.vx = rand(-12, 12); m.sw = rand(8, 20); m.s = rand(1, 2.8); m.col = Math.random() < .45 ? '#ff7a2a' : '#8a7f78'; }
@@ -685,6 +687,7 @@ function drawMotes() {
   for (const m of G.motes) {
     const fl = .55 + .45 * Math.sin(m.t * 6 + m.ph), a = Math.min(1, m.t * 2, (m.life - m.t)) * fl;
     if (a <= 0) continue;
+    if (m.dark) { ctx.fillStyle = hexA('#120c0a', .8 * a); ctx.beginPath(); ctx.arc(m.x, m.y, m.s * .8, 0, TAU); ctx.fill(); continue; }
     if (k === 'ash' && m.col === '#8a7f78') { ctx.fillStyle = hexA(m.col, .6 * a); ctx.fillRect(m.x, m.y, m.s * 1.6, m.s); continue; }
     glow(m.x, m.y, m.s * 5, m.col, a * .55);
     ctx.fillStyle = hexA(m.col === '#ff6a1a' ? '#ffb070' : m.col, a); ctx.beginPath(); ctx.arc(m.x, m.y, m.s * .6, 0, TAU); ctx.fill();

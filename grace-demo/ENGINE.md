@@ -370,6 +370,36 @@ ranger and peasant outfits for both bodies, 8 hairstyles.
 - URL flags: `?room=throne`, `?x=3.2`, `?crown`, `?q=low`, `?nofx`, `?fps`, `?nooutline`.
 - Draw calls: `R.r.info.autoReset = false; R.r.info.reset(); SCENE.render(); R.r.info.render`.
 
+## 11b. The outdoor kit, families and the map (added with the garden and the yard)
+
+- **`engine/e08_outdoor.js`:** besides sky, rain, lightning, flocks and water, it now has these:
+  - `BUILD.leaves({ n, box, tex })` for falling leaves that tumble and drift.
+  - `BUILD.critters(tex, spots, { shy, sound })` for ground birds that idle, peck, hop and fly off when the king walks
+    through them, then come back.
+  - `BUILD.pool(tex, x, y, z, r, { seg })` for an animated round basin that lines up with an 8-sided `BUILD.cyl`.
+  - `BUILD.rainK(room, k)` sets every rain curtain in a room at once (rooms can have a far and a near one).
+- **Actors:** the animation blender normalises layer weights, so the idle now gives way as a sit comes in (before,
+  "idle 1 + sit 1" became a half-crouch; Halina on her bench and the king on his throne both sit properly now).
+  `idleRange: [t0, t1]` loops only part of a clip (the young prince holds the middle of a kneel). Homes can carry
+  `sit`, `wander` and `routine` per room (Kazik wanders by the fountain and throws crumbs; Zofia drills at her post).
+- **Moving talkers:** a room's `onUpdate` moves an interactable's `x`/`p.x` to follow its actor. Add interactables in
+  `onEnter`, then call `SCENE.buildMarks()`.
+- **Sound:** `thud` (wood on straw) joins `clang` for the yard and the garden.
+- **The map (`engine/e11_map.js`):**
+  - It is painted on first open.
+  - `MAP.snap(roomId, pose, w, h, prep)` renders any room offscreen (tone-mapped, actors hidden) and returns its
+    pixels. `prep(room, on)` switches the room into "map light" (`EXTERIOR.mapLight`: daylight, no rain or glows).
+  - `game/g60_map.js` photographs the title fortress and inks it like a hand-coloured engraving. That means
+    posterised colour on the paper, ink on every edge and hatching in the shadows.
+  - Around it is painted country: an irregular mountain range, the Wood, the river and town, fields, roads, a
+    compass and a scale.
+  - Pins for rooms anchor to 3D points in the fortress (`at3`), projected through the photo's camera; `side: 'l' | 'r'`
+    puts a label beside its pin.
+- **The rooms, as built:**
+  - Garden: `game/g13_paint_garden.js` (painters) and `g24_garden.js` (room, family talk).
+  - Yard: `g14_paint_yard.js` and `g25_yard.js` (room, sparring choreography, talk).
+  - Both sit inside the title fortress too (`g21_exterior.js`), so the map shows them where they are.
+
 ## 12. Performance budget and devices
 
 Measured at 2000×700: bedchamber ~300 draw calls per frame (sprites + reflection + scene + post), throne room ~420

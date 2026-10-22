@@ -53,7 +53,8 @@ BUILD.rain = function (o) {
         p.x += uWind * p.y; vec3 d = normalize(vec3(uWind, -1.0, 0.0)); p -= d * uLen * tip; vT = tip;
         gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.0); }`,
     fragmentShader: `uniform vec3 uCol; uniform float uOp, uFlash; varying float vT; void main(){ gl_FragColor = vec4(uCol * (1.0 + uFlash * 3.0), uOp * (1.0 - vT * 0.8)); }` });
-  const L = new THREE.LineSegments(g, m); L.frustumCulled = false; BUILD.add(L, { dyn: true }); room.rainU = U;
+  const L = new THREE.LineSegments(g, m); L.frustumCulled = false; BUILD.add(L, { dyn: true }); U.base = U.uOp.value; U.mesh = L;
+  (room.rains = room.rains || []).push(U); room.rainU = room.rainU || U;   // several curtains: set them together with BUILD.rainK(room, k)
   return L;
 };
 /* lightning: every few seconds the sky and a cold light flash (2–3 pulses), thunder follows. Indoors, pass the light
@@ -71,7 +72,7 @@ BUILD.lightning = function (o) {
     room.flash = f; L.intensity = f * st.k;
     if (room.skyMat) room.skyMat.color.setScalar(room.skyK * (1 + f * 2.2));
     for (const c of room.clouds || []) c.m.color.copy(c.col).multiplyScalar(c.k * (1 + f * 2.8));
-    if (room.rainU) room.rainU.uFlash.value = f;
+    for (const U of room.rains || []) U.uFlash.value = f;
     if (o.onFlash) o.onFlash(f);
   });
   return st;
@@ -171,4 +172,52 @@ BUILD.terrain = function (o) {
   out.height = (x, z) => { const i = clamp((x - o.x0) / st, 0, nx), j = clamp((z - o.z0) / st, 0, nz), i0 = Math.min(nx - 1, Math.floor(i)), j0 = Math.min(nz - 1, Math.floor(j)), fi = i - i0, fj = j - j0;
     return lerp(lerp(at(i0, j0), at(i0 + 1, j0), fi), lerp(at(i0, j0 + 1), at(i0 + 1, j0 + 1), fi), fj); };
   return out;
+};
+BUILD.rainK = function (room, k) { for (const U of room.rains || []) { U.uOp.value = U.base * k; U.mesh.visible = k > 0; } };
+/* falling leaves: little cards that tumble down through a box, drift with the wind and start again at the top.
+   o: { n, box: [x0, x1, y0, y1, z0, z1], tex (frames side by side: one leaf colour each), speed, wind } */
+BUILD.leaves = function (o) {
+  const room = BUILD.room, N = Math.round(o.n * (R.q === 'low' ? 0.5 : 1)), b = o.box, tex = o.tex, n = tex.userData.n || 1, leaves = [];
+  const w = tex.userData.w / n / PX.D * (o.s || 1), h = tex.userData.h / PX.D * (o.s || 1);
+  for (let i = 0; i < N; i++) { const t = tex.clone(); t.needsUpdate = true; t.repeat.x = 1 / n; t.offset.x = (i % n) / n;
+    const me = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: t, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.9 }));
+    BUILD.add(me, { cast: false, dyn: true }); const r = rng(i * 13 + 7); leaves.push({ me, x: lerp(b[0], b[1], r()), z: lerp(b[4], b[5], r()), ph: r() * 100, sp: (o.speed || 0.5) * (0.7 + r() * 0.6), spin: (r() - 0.5) * 6 }); }
+  room.tick.push((T) => { const H = b[3] - b[2];
+    for (const L of leaves) { const u = ((T * L.sp + L.ph) % H + H) % H, y = b[3] - u;
+      L.me.position.set(L.x + Math.sin(T * 1.3 + L.ph) * 0.35 + (o.wind || 0.2) * u, y, L.z + Math.cos(T * 0.9 + L.ph) * 0.2);
+      L.me.rotation.set(Math.sin(T * 2 + L.ph) * 0.9, T * L.spin, Math.cos(T * 1.7 + L.ph) * 0.8); } });
+  return leaves;
+};
+/* small creatures on the ground (crows at the fountain): each card switches between idle / peck / head-up frames,
+   hops now and then, and flaps off when the player comes within o.shy metres, coming back a while later.
+   spots: [[x, y, z, s], …]; tex frames: 0 idle, 1 peck, 2 head up, 3+ flying */
+BUILD.critters = function (tex, spots, o) {
+  o = o || {}; const room = BUILD.room, n = tex.userData.n, list = [];
+  for (const [x, y, z, s] of spots) { const t = tex.clone(); t.needsUpdate = true; t.repeat.x = 1 / n; t.userData = Object.assign({}, tex.userData);
+    const m = new THREE.MeshStandardMaterial({ map: t, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.8 });
+    const w = tex.userData.w / n / PX.D * (s || 1), h = tex.userData.h / PX.D * (s || 1), g = new THREE.PlaneGeometry(w, h); g.translate(0, h / 2, 0);
+    const me = BUILD.add(new THREE.Mesh(g, m), { cast: false, dyn: true }); me.position.set(x, y, z);
+    list.push({ me, t, x, y, z, hx: x, next: Math.random() * 2, fr: 0, hop: null, fly: 0, face: Math.random() < 0.5 ? 1 : -1 }); }
+  const frame = (c, f) => { c.fr = f; c.t.offset.x = f / n; };
+  room.tick.push((T, dt) => { const P = SCENE.player;
+    for (const c of list) {
+      if (c.fly > 0) { c.fly -= dt; const up = 1 - c.fly / 6; c.me.position.set(c.hx + c.face * up * 14, c.y + up * 9, c.z - up * 4); frame(c, 3 + (Math.floor(T * 10) % Math.max(1, n - 3)));
+        if (c.fly <= 0) { c.me.position.set(c.hx, c.y, c.z); c.x = c.hx; frame(c, 0); } continue; }
+      if (o.shy && P && P.visible && Math.abs(P.x - c.x) < o.shy && Math.abs(P.v) > 0.3) { c.fly = 6 + Math.random() * 4; c.face = Math.sign(c.x - P.x) || 1; c.me.scale.x = -c.face; if (o.sound) AUDIO.sfx(o.sound, { gain: 0.4 }); continue; }
+      c.next -= dt;
+      if (c.hop) { c.hop.t += dt; const u = Math.min(1, c.hop.t / 0.22); c.x = lerp(c.hop.x0, c.hop.x1, u); c.me.position.set(c.x, c.y + Math.sin(u * Math.PI) * 0.12, c.z); if (u >= 1) c.hop = null; }
+      else if (c.next <= 0) { const r = Math.random(); c.next = 0.3 + Math.random() * 1.2;
+        if (r < 0.2) { const dx = (Math.random() - 0.5) * 0.6, x1 = clamp(c.x + dx, c.hx - 0.8, c.hx + 0.8); c.face = Math.sign(dx) || c.face; c.me.scale.x = -c.face; c.hop = { x0: c.x, x1, t: 0 }; frame(c, 0); }
+        else frame(c, r < 0.6 ? 1 : r < 0.8 ? 2 : 0); }
+    } });
+  return list;
+};
+/* a round pool of water (a fountain basin): an animated strip cycled like the flames, on a flat disc */
+BUILD.pool = function (tex, x, y, z, r, o) {
+  o = o || {}; const t = tex.clone(); t.needsUpdate = true; t.repeat.x = 1 / tex.userData.n; t.userData = Object.assign({}, tex.userData);
+  const g = new THREE.CircleGeometry(r, o.seg || 8); g.rotateX(-Math.PI / 2); g.translate(x, y, z);   // corners line up with an 8-sided BUILD.cyl
+  const m = new THREE.MeshStandardMaterial({ map: t, roughness: 0.15, metalness: 0.1, color: new THREE.Color(o.col || 0xffffff), emissive: 0xffffff, emissiveMap: t, emissiveIntensity: o.glow || 0.25, transparent: true, opacity: o.opacity || 0.92 });
+  const me = BUILD.add(new THREE.Mesh(g, m), { cast: false, dyn: true });
+  BUILD.room.flames.push({ t, n: tex.userData.n, ph: 0, rate: o.rate || 6 });
+  return me;
 };

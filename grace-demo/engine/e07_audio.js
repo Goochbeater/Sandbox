@@ -2,7 +2,7 @@
    Music: real recordings (public-domain tracks in audio/*.mp3), streamed by <audio> elements and cross-faded, so they
    work from file:// as well as when hosted. Ambience and effects are synthesised with WebAudio, so they cost no
    download and never loop audibly: rain (hiss + drops + rumble), rain on glass, wind, fire (roar + crackle), birds,
-   a murmuring crowd, a fountain, room tone; footsteps per floor surface, thunder, door, clang, chime, page, click.
+   a murmuring crowd, a fountain, room tone; footsteps per floor surface, thunder, door, clang, thud, chime, page, click, drum, whoosh, coin.
    Everything goes through a room reverb (generated impulse) sized per room.
    Use:  AUDIO.unlock() on the first tap · AUDIO.playMusic('throne') · AUDIO.ambience({ rain: 0.8, fire: 0.4 })
          AUDIO.acoustics({ size: 2.2, wet: 0.35 }) · AUDIO.sfx('thunder', { gain: 1 }) · AUDIO.step('stone', 0.8, pan)
@@ -152,6 +152,10 @@ AUDIO.sfx = function (name, o) {
     for (const [f, d] of [[2200, 0.5], [3150, 0.35], [4700, 0.25], [1250, 0.6]]) { const os = c.createOscillator(), g = c.createGain(); os.type = 'triangle'; os.frequency.value = f * (0.97 + Math.random() * 0.06);
       g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.12 * gain, t + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t + d); os.connect(g); g.connect(out); os.start(t); os.stop(t + d + 0.05); }
     AUDIO.burst(out, t, 0.06, 'highpass', 2500, 1, 0.5 * gain);
+  } else if (name === 'thud') {   // wood on a straw-wrapped post: a dull knock and a puff of straw
+    const os = c.createOscillator(), g = c.createGain(); os.type = 'sine'; os.frequency.setValueAtTime(190 * (0.9 + Math.random() * 0.2), t); os.frequency.exponentialRampToValueAtTime(70, t + 0.12);
+    g.gain.setValueAtTime(0.7 * gain, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18); os.connect(g); g.connect(out); os.start(t); os.stop(t + 0.2);
+    AUDIO.burst(out, t, 0.09, 'bandpass', 1400, 0.8, 0.45 * gain, AUDIO.N.pink);
   } else if (name === 'chime') {
     [0, 0.09, 0.2].forEach((dt, i) => { const os = c.createOscillator(), g = c.createGain(), f = [1318, 1760, 2637][i]; os.type = 'sine'; os.frequency.value = f;
       g.gain.setValueAtTime(0.0001, t + dt); g.gain.linearRampToValueAtTime(0.16 * gain, t + dt + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + dt + 1.6); os.connect(g); g.connect(out); os.start(t + dt); os.stop(t + dt + 1.7); });

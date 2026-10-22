@@ -139,7 +139,7 @@ PX.def('skyNight', () => {
   const cloud = (x, y) => { const n = noise1(x * 0.011 + noise1(y * 0.03, 274) * 1.5, 275) * 0.65 + noise1(x * 0.04 + y * 0.06, 276) * 0.35; return n - (0.62 - 0.3 * Math.pow(Math.abs(y / H - 0.42) * 2, 2)); };
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const t = Math.pow(y / H, 1.3) * (S.length - 1.01), md = Math.hypot((x - mx) * 0.8, y - my), halo = Math.max(0, 1 - md / 70) * 3.2, f = t + halo;
-    let c = S[clamp(Math.floor(f) + (PX.dith(x, y) < f % 1 ? 1 : 0), 0, S.length - 1)];
+    let c = S[clamp(Math.floor(f + (PX.dith(x, y) - 0.5) * 0.35), 0, S.length - 1)];
     const cl = cloud(x, y); if (cl > 0) { const above = cloud(x, y - 2) <= 0, lit = Math.max(0, 1 - md / 150);
       const C2 = [0x0e1220, 0x161c2c, 0x202940, 0x2e3a56, 0x4a5878, 0x7a88a8]; let i = cl > 0.12 ? 0 : cl > 0.05 ? 1 : 2; if (y > H * 0.55) i++; if (above) i = 3 + (lit > 0.4 ? 2 : lit > 0.1 ? 1 : 0);
       else if (cloud(x, y - 4) <= 0 && PX.dith(x, y) < 0.5 + lit) i = Math.max(i, 3); c = C2[i]; }

@@ -63,9 +63,18 @@ EXTERIOR.build = function () {
     BUILD.cyl(x, -12.9, P + 12.6, P + 13.6, 2.66, tile.stone, { seg: 20 }); BUILD.coneRoof(x, -12.9, P + 13.6, 3.0, 5.6, RP.slate, D, { seed }); }
   for (const x of [1.2, 6.8]) BUILD.windCard(T.swanBanner, x, P + 4.6, -12.1, 'sway', 0.08, { cast: false });
   /* inside the walls: houses whose roofs show over the battlements */
-  for (const [x0, x1, z0, z1, hh, rh, along, seed] of [[-21, -12, -23, -17.5, 9, 4, 0, 341], [9, 15.5, -24, -18.5, 8.2, 3.4, 0, 342], [20, 26.5, -27, -17.5, 9.6, 3.6, 1, 343], [-10, -3, -22, -17.8, 7.6, 3.2, 0, 344]]) {
+  for (const [x0, x1, z0, z1, hh, rh, along, seed] of [[-21, -12, -23, -17.5, 9, 4, 0, 341], [9, 15.5, -24, -18.5, 8.2, 3.4, 0, 342], [20, 26.5, -27, -17.5, 9.6, 3.6, 1, 343]]) {
     const w = x1 - x0; BUILD.facade(x0, x1, P, P + hh, z0, z1, F(RP.inner, tile.inner, seed, { win: [[w * 0.3, hh - 2.6, 'square', seed & 1], [w * 0.7, hh - 2.6, 'square', 1 - (seed & 1)]], grime: 0.4 }));
     BUILD.roof(x0, x1, z0, z1, P + hh, rh, tile.red, { alongZ: !!along, gable: tile.inner, over: 0.45 }); }
+  /* the queen's garden on its terrace (west of the hall) and the training yard (east, behind the keep), as the map sees them */
+  BUILD.rug(T.lawn, -11.5, -1, -25.6, -17.2, { ru: 5, rv: 4, y: P + 0.02, layer: 0 }); BUILD.rug(T.gravel, -11.5, -1, -21.8, -21.0, { ru: 10, rv: 0.8, y: P + 0.03, layer: 0 });
+  for (const [x0, x1, z0, z1] of [[-11.4, -1.1, -25.5, -25.0], [-11.4, -10.9, -25.5, -17.4], [-1.6, -1.1, -25.5, -17.4]]) BUILD.box(x0, x1, P, P + 0.7, z0, z1, T.hedgeBox);
+  BUILD.cyl(-6.3, -21.4, P, P + 0.5, 1.2, PX.stoneTile(RAMP.stone, D, 345), { seg: 8 }); BUILD.pool(T.water, -6.3, P + 0.45, -21.4, 1.05, { seg: 8 });
+  for (const [x, z] of [[-9.6, -23.6], [-3, -23.8], [-9.4, -18.6]]) BUILD.card(T.appleTree, x, P, z, { s: 0.75 });
+  BUILD.rug(T.sand, 19.6, 28, -44.6, -28.4, { ru: 4, rv: 8, y: P + 0.02, layer: 0 });
+  for (const [x, z] of [[21.5, -43], [26.4, -43]]) BUILD.card(T.butt, x, P, z, { s: 1.6 });
+  for (const x of [21.6, 26]) for (const z of [-38, -32]) BUILD.box(x - 0.1, x + 0.1, P, P + 1.2, z - 0.1, z + 0.1, T.woodPost);
+  BUILD.card(T.hay, 27.2, P, -30.5, { s: 1.4 });
   /* the great hall (the throne room): its tall windows lit, a slate roof, two chimneys */
   BUILD.facade(-16, 5, P, P + 10.5, -36, -26, F(RP.inner, tile.inner, 351, { bands: [8.6], win: [2.6, 5.6, 8.6, 12.4, 15.4, 18.4].map((x) => [x, 3.2, 'tall', 1]) }));
   BUILD.roof(-16, 5, -36, -26, P + 10.5, 5.6, tile.slate, { gable: tile.inner, over: 0.6 });
@@ -108,14 +117,14 @@ EXTERIOR.build = function () {
   for (const [x, z, s] of [[-31, 34, 3], [-20, 38, 2.2], [-38, 30, 3.4]]) BUILD.card(T.rock, x, hy(x, z) - 0.4, z, { s });
   for (const [x, z, s] of [[-8, 13, 2.4], [17, 15, 2.8], [44, 12, 2.4]]) BUILD.card(T.rock, x, 0, z, { s, cast: false });
   /* light: a cold moon from the front left (with shadows), a rim from behind the fortress, warm torches and windows */
-  BUILD.light(new THREE.HemisphereLight(0x56648a, 0x18141a, 1.3), 0, 40, 0);
+  room.hemi = BUILD.light(new THREE.HemisphereLight(0x56648a, 0x18141a, 1.3), 0, 40, 0);
   room.moon = BUILD.shadow(BUILD.light(new THREE.DirectionalLight(0xa8b8e8, 2.0), -80, 70, 90), R.q === 'low' ? 1024 : 2048); room.moon.target.position.set(4, 10, -28);
   Object.assign(room.moon.shadow.camera, { left: -60, right: 60, top: 50, bottom: -50, near: 20, far: 260 }); room.moon.shadow.bias = -0.0006; room.moon.shadow.normalBias = 0.06; room.moon.shadow.camera.updateProjectionMatrix();
   room.fill = BUILD.light(new THREE.DirectionalLight(0x8aa0e0, 1.5), 60, 50, -150); room.fill.target.position.set(4, 10, -28);   // the rim
   BUILD.lightning({ x: 40, z: -90, k: 6, min: 5, max: 12 });
   BUILD.rain({ n: 3000, box: [-80, 60, 0, 50, -40, 30], speed: 17, wind: 0.22, len: 0.9, opacity: 0.38 });
   BUILD.rain({ n: 1400, box: [-70, 40, 0, 40, 30, 80], speed: 18, wind: 0.22, len: 1.0, opacity: 0.24 });   // a nearer curtain, for the long views
-  BUILD.flock(T.crow, [[14.5, FY + 2, -33, 7, 2, 0.45], [13, FY, -31, 9, 1.5, -0.32], [16, FY + 4, -35, 6, 2.5, 0.52], [10, FY - 2, -29, 10, 3, 0.36], [18, FY + 1, -34, 8, 2, -0.42], [-21, P + 24, -33, 5, 1.5, 0.4]], { s: 2.4 });
+  room.crowFlock = BUILD.flock(T.crow, [[14.5, FY + 2, -33, 7, 2, 0.45], [13, FY, -31, 9, 1.5, -0.32], [16, FY + 4, -35, 6, 2.5, 0.52], [10, FY - 2, -29, 10, 3, 0.36], [18, FY + 1, -34, 8, 2, -0.42], [-21, P + 24, -33, 5, 1.5, 0.4]], { s: 2.4 });
   /* the siege (hidden until the cutscene asks for it): the host on the meadow and the road, ladders up from the ledge */
   room.siege = new THREE.Group(); room.group.add(room.siege); room.siege.visible = false;
   const SG = { parent: room.siege };
@@ -156,13 +165,29 @@ EXTERIOR.mode = function (m) {
   const dawn = m === 'dawn';
   room.skyMat.map = dawn ? room.skyT.dawn : room.skyT.storm; room.skyMat.needsUpdate = true;
   for (const c of room.clouds) { if (c.k0 === undefined) c.k0 = c.k; c.k = dawn ? 2.4 : c.k0; c.col.set(dawn ? 0xd8b0a8 : 0xffffff); c.m.color.copy(c.col).multiplyScalar(c.k); }
-  room.noLightning = dawn; room.rainU.uOp.value = dawn ? 0.12 : m === 'present' ? 0.32 : 0.42;
+  room.noLightning = dawn;
   room.moon.color.set(dawn ? 0xe8c8b0 : 0xa8b8e8); room.moon.intensity = dawn ? 2.6 : m === 'wood' ? 0.5 : 2.0;   // in the Wood the fire does the lighting
   if (R.scene.fog) R.scene.fog.color.set(dawn ? 0x8a8090 : 0x1e2638);
   room.mtn.material.color.setScalar(dawn ? 1.3 : 1.0);
   const wood = m === 'wood'; for (const a of SCENE.actors) if (a.livesIn('exterior')) a.setVisible(wood);   // the witch and the young prince, only in the clearing
   room.woodGrp.visible = wood; for (const f of room.flick) if (f.L === room.woodFire) f.base = wood ? 14 : 0; room.woodFire.intensity = wood ? 14 : 0;
-  room.rainU.uOp.value = wood ? 0.18 : room.rainU.uOp.value;
+  BUILD.rainK(room, dawn ? 0.3 : wood ? 0.45 : m === 'present' ? 0.8 : 1);
   AUDIO.ambience(dawn ? { rain: 0.2, wind: 0.3, birds: 0.5 } : m === 'siege' ? { rain: 0.8, wind: 0.4, fire: 0.6, crowd: 0.5 } : wood ? { fire: 0.6, wind: 0.5, rain: 0.35 } : { rain: 0.9, wind: 0.5 });
 };
 EXTERIOR.onEnter = function () { this.mode(this.modeName || 'title'); };
+/* the map's photograph of the fortress: broad daylight, no rain, no glow, no night (see MAP.snap) */
+EXTERIOR.mapLight = function (room, on) {
+  const S = room.mapSave = on ? { moon: [room.moon.color.getHex(), room.moon.intensity], fill: room.fill.intensity, hemi: [room.hemi.color.getHex(), room.hemi.groundColor.getHex(), room.hemi.intensity], vis: [], ei: [], fl: [] } : room.mapSave;
+  const hide = (o) => { if (on && o) { S.vis.push([o, o.visible]); o.visible = false; } };
+  if (on) {
+    room.moon.color.set(0xfff2dc); room.moon.intensity = 3.4; room.fill.intensity = 0.3; room.hemi.color.set(0xc0d0ec); room.hemi.groundColor.set(0x6a5a40); room.hemi.intensity = 1.7;
+    for (const f of room.flames) hide(f.me); for (const g of room.glows) hide(g.s); for (const c of room.crowFlock) hide(c.me); for (const U of room.rains) hide(U.mesh);
+    for (const gname of ['siege', 'dawn', 'woodGrp']) hide(room[gname]);
+    for (const f of room.flick) { S.fl.push([f, f.base, f.L.intensity]); f.base = 0; f.L.intensity = 0; }
+    room.group.traverse((o) => { const m = o.material; if (o.isMesh && m && !Array.isArray(m) && m.emissiveMap && m !== room.floorMat) { S.ei.push([m, m.emissiveIntensity]); m.emissiveIntensity = 0.15; }
+      if (o.isMesh && Array.isArray(o.material)) for (const mm of o.material) if (mm.emissiveMap) { S.ei.push([mm, mm.emissiveIntensity]); mm.emissiveIntensity = 0.15; } });
+  } else {
+    room.moon.color.set(S.moon[0]); room.moon.intensity = S.moon[1]; room.fill.intensity = S.fill; room.hemi.color.set(S.hemi[0]); room.hemi.groundColor.set(S.hemi[1]); room.hemi.intensity = S.hemi[2];
+    for (const [o, v] of S.vis) o.visible = v; for (const [f, b, i] of S.fl) { f.base = b; f.L.intensity = i; } for (const [m, e] of S.ei) m.emissiveIntensity = e;
+  }
+};

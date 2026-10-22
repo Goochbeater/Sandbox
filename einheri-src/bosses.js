@@ -58,16 +58,16 @@ const BOSS_DEFS = {};
    I. ANGRBOÐA — the Hag of the Iron Wood, rooted, wolf-mother
    --------------------------------------------------------------- */
 BOSS_DEFS.angr = {
-  name: 'Angrboða', title: 'Hag of the Iron Wood · Mother of Wolves', hp: 900, blood: '#2a1206', roarP: .9, music: 'boss',
+  name: 'Angrboða', title: 'Hag of the Iron Wood · Mother of Wolves', hp: 900, startY: .14, playerY: .36, blood: '#2a1206', roarP: .9, music: 'boss',
   norse: 'Hon fœddi þar Fenris kindir.', tr: 'There she bred the brood of Fenrir.',
   setup(b) { b.an = anim({ armL: 0, armR: 0, sweep: 0, mouth: 0, sink: 0, lean: 0, rage: 0 }); },
-  hitboxes: b => b.an.sink.v > .5 ? [] : [{ x: b.x, y: b.y - 10, r: 112 }],
+  hitboxes: b => b.an.sink.v > .5 ? [] : [{ x: b.x, y: b.y - 30, r: 165 }],
   rest: b => b.phase > 1 ? rand(.6, 1) : rand(1.1, 1.6),
   onPhase2(b) { setA(b, 'rage', 1, 2); SFX.roar(.9, 2); shake(12); b.gen = angrScream(b); b.wait = 0; },
   choose(b) {
     const d = Math.hypot(P.x - b.x, P.y - b.y);
     const L = [[angrRoots, 3], [angrThorns, 2.5], [angrSap, 1.6]];
-    if (d < 280) L.push([angrClaw, 4]);
+    if (d < 420) L.push([angrClaw, 4]);
     if (b.phase > 1) { L.push([angrWolves, G.enemies.filter(e => !e.dead).length < 3 ? 1.6 : 0]); L.push([angrSink, 1.5]); }
     return wrand(L)(b);
   },
@@ -75,7 +75,7 @@ BOSS_DEFS.angr = {
 };
 function* angrScream(b) {
   setA(b, 'mouth', 1, 6); setA(b, 'armL', 1); setA(b, 'armR', 1);
-  for (let i = 0; i < 3; i++) { haz({ type: 'ring', x: b.x, y: b.y, r0: 90, r1: 640, w: 36, warn: .5, act: 1.1, dmg: 16, col: '#ff8a2b', style: 'dust' }); yield .9; }
+  for (let i = 0; i < 3; i++) { haz({ type: 'ring', x: b.x, y: b.y, r0: 140, r1: 780, w: 40, warn: .5, act: 1.1, dmg: 16, col: '#ff8a2b', style: 'dust' }); yield .9; }
   setA(b, 'mouth', 0); setA(b, 'armL', 0); setA(b, 'armR', 0);
   yield .6;
 }
@@ -85,7 +85,7 @@ function* angrRoots(b) {
   const lines = b.phase > 1 ? [a - .34, a, a + .34] : [a];
   for (let i = 0; i < 11; i++) {
     for (const la of lines) {
-      const d = 80 + i * 56, [x, y] = inArena(b.x + Math.cos(la) * d, b.y + Math.sin(la) * d, 20);
+      const d = 150 + i * 56, [x, y] = inArena(b.x + Math.cos(la) * d, b.y + Math.sin(la) * d, 20);
       haz({ x, y, r: 44, warn: .55, dmg: 16, col: '#ff8a2b', style: 'roots', onFire: () => { SFX.hit(1); shake(2); } });
     }
     yield .075;
@@ -95,11 +95,11 @@ function* angrRoots(b) {
 function* angrClaw(b) {
   const T = tgt(), a = Math.atan2(T.y - b.y, T.x - b.x);
   setA(b, 'armL', 1, 5); setA(b, 'sweep', -1, 4); setA(b, 'lean', Math.cos(a) * .5);
-  haz({ type: 'cone', x: b.x, y: b.y, r: 300, ang: a, arc: 2.4, warn: .75, act: .15, dmg: 22, kb: 420, col: '#ffb347', onFire: () => { SFX.swing(.5); shake(6); } });
+  haz({ type: 'cone', x: b.x, y: b.y, r: 430, ang: a, arc: 2.4, warn: .75, act: .15, dmg: 22, kb: 420, col: '#ffb347', onFire: () => { SFX.swing(.5); shake(6); } });
   yield .7; setA(b, 'sweep', 1, 14); yield .5;
   if (b.phase > 1) {
     const a2 = Math.atan2(tgt().y - b.y, tgt().x - b.x);
-    haz({ type: 'cone', x: b.x, y: b.y, r: 300, ang: a2, arc: 2.4, warn: .5, act: .15, dmg: 22, kb: 420, col: '#ffb347', onFire: () => { SFX.swing(.5); shake(6); } });
+    haz({ type: 'cone', x: b.x, y: b.y, r: 430, ang: a2, arc: 2.4, warn: .5, act: .15, dmg: 22, kb: 420, col: '#ffb347', onFire: () => { SFX.swing(.5); shake(6); } });
     setA(b, 'sweep', -1, 14); yield .7;
   }
   setA(b, 'armL', 0); setA(b, 'sweep', 0); setA(b, 'lean', 0); yield .6;
@@ -120,7 +120,7 @@ function* angrSap(b) {
   for (let i = 0; i < n; i++) {
     const T = tgt(), [x, y] = i < 2 ? [T.x + rand(-30, 30), T.y + rand(-30, 30)] : inArena(T.x + rand(-220, 220), T.y + rand(-200, 200));
     haz({ type: 'zone', x, y, r: 58, warn: 1, linger: 4.2, dmg: 7, col: '#ff6a1a', glowy: 1, onFire: h => { SFX.fire(); burst(h.x, h.y, 14, { type: 'ember', color: '#ff8a2b', add: 1, smin: 40, smax: 160 }); } });
-    shoot({ x: b.x, y: b.y - 120, vx: (x - b.x) / 1, vy: (y - b.y) / 1, kind: 'fire', dmg: 0, life: .98, r: 6, zh: 60 });
+    shoot({ x: b.x, y: b.y - 420, vx: (x - b.x) / 1, vy: (y - b.y) / 1, kind: 'fire', dmg: 0, life: .98, r: 6, zh: 60 });
     yield .14;
   }
   setA(b, 'armR', 0); yield .8;
@@ -311,15 +311,15 @@ function* nidStorm(b) {
    IV. SURTR — the Black One, at the forge of the end
    --------------------------------------------------------------- */
 BOSS_DEFS.surtr = {
-  name: 'Surtr', title: 'The Black One · Warden of Múspell', hp: 1500, blood: '#ff6a1a', roarP: .7, music: 'boss',
+  name: 'Surtr', title: 'The Black One · Warden of Múspell', hp: 1500, playerY: .12, blood: '#ff6a1a', roarP: .7, music: 'boss',
   norse: 'Surtr ferr sunnan með sviga lævi.', tr: 'Surtr comes from the south with the bane of branches.',
   setup(b) {
     b.an = anim({ ham: 0, sword: 0, crouch: 0, air: 0 });
-    const a = b.world.arena; b.anvil = { x: a.x, y: a.y - 150 }; b.x = a.x; b.y = a.y - 250;
+    const a = b.world.arena; b.anvil = { x: a.x + 30, y: a.y - 110 }; b.x = a.x; b.y = a.y - 300;
     b.swords = []; for (let i = 0; i < 14; i++) { const an = i / 14 * TAU + .1; b.swords.push({ x: a.x + Math.cos(an) * (a.R - 50), y: a.y + Math.sin(an) * (a.R - 50), live: 1, lift: 0 }); }
     b.lavaR = a.R; b.side = 1;
   },
-  hitboxes: b => b.an.air.v > .3 ? [] : [{ x: b.x, y: b.y - 8, r: 108 }],
+  hitboxes: b => b.an.air.v > .3 ? [] : [{ x: b.x, y: b.y - 20, r: 160 }],
   rest: b => b.phase > 1 ? rand(.5, .8) : rand(.9, 1.3),
   onPhase2(b) { SFX.roar(.6, 2.5); shake(14); G.flash = .5; G.flashCol = '#ffb070'; b.gen = surtrRise(b); b.wait = 0; },
   update(b, dt) {

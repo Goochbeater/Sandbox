@@ -650,10 +650,10 @@ function drawTitle(rdt) {
 function bossBox(b) { // the screen-space footprint of a jötunn, so the camera can hold all of it
   const a = G.world.arena;
   switch (b.id) {
-    case 'angr': return [b.x - 270, b.y - 600 + b.an.sink.v * 440, b.x + 270, b.y + 100];
+    case 'angr': return [b.x - 440, b.y - 1000 + b.an.sink.v * 900, b.x + 440, b.y + 90];
     case 'thrym': return [b.x - 420, b.y - 1020, b.x + 420, b.y + 40];
     case 'nidhogg': { const h = b.hole, s = P && P.x > h.x ? -1 : 1; return [h.x - (s > 0 ? 520 : 380), h.y - 900 * Math.max(.4, b.an.em.v), h.x + (s > 0 ? 380 : 520), h.y + 120]; }
-    case 'surtr': return [b.x - 320, b.y - 700 - b.an.air.v * 500, b.x + 320, b.y + 70];
+    case 'surtr': return [b.x - 440, b.y - 960 - b.an.air.v * 600, b.x + 440, b.y + 110];
     case 'utgard': return b.skry ? [a.x - 470, a.y - a.R - 560, a.x + 470, a.y + 140] : [b.x - 110, b.y - 390, b.x + 110, b.y + 30];
     case 'skogul': return [b.x - 90, b.y - 140 - Math.min(200, b.an.z.v), b.x + 90, b.y + 24];
   }
@@ -667,12 +667,12 @@ function updCam(rdt) {
   if (G.scene.kind === 'arena' && b && !b.dead) {
     const bb = bossBox(b);
     const x0 = Math.min(bb[0], P.x - 80), x1 = Math.max(bb[2], P.x + 80), y0 = Math.min(bb[1], P.y - 80), y1 = Math.max(bb[3], P.y + 60) + 40;
-    span = clamp(spanFor((x1 - x0) * 1.06, (y1 - y0) * 1.06), 560, 1420);
+    span = clamp(spanFor((x1 - x0) * 1.06, (y1 - y0) * 1.06), 560, 1560);
     cam.span = lerp(cam.span, span, 1 - Math.exp(-rdt * 1.4)); span = cam.span;
     // hold the giant whole when we can; when we can't, keep the hero in frame and show as much of him as fits
     const z = zoomForSpan(span), vh = H / z / 2, vw = W / z / 2;
     tx = (x0 + x1) / 2; ty = (y0 + y1) / 2;
-    ty = Math.max(Math.min(ty, y0 + vh * .96), P.y + 70 - vh * .94);
+    ty = Math.max(Math.min(ty, y0 + vh * .96), P.y + 40 - vh * .76); // the hero's feet stay above the boss's name bar
     tx = clamp(tx, P.x + 90 - vw * .96, P.x - 90 + vw * .96);
   }
   if (G.camLock) { tx = G.camLock.x; ty = G.camLock.y; span = G.camLock.span || span; }

@@ -10,7 +10,7 @@ const { chromium } = require('/opt/node-tools/node_modules/playwright');
   await pg.evaluate(bid => { document.getElementById('title').classList.add('off'); EIN.S.stage = 5; EIN.enterArena(bid, false, true); EIN.P.hp = 9999; }, bid);
   await pg.waitForTimeout(800);
   await pg.evaluate(js || '0');
-  await pg.waitForTimeout(3500);
+  await pg.waitForTimeout(+(process.env.WAIT || 3500));
   await pg.screenshot({ path: __dirname + '/shots/' + (name || 'x') + '.png' });
   console.log(errs.join('\n')); await b.close();
 })();

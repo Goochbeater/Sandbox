@@ -558,10 +558,10 @@ function paintGroundFallback(w) {
 
 /* ---------------- arenas ---------------- */
 const ARENAS = {
-  angr: { realm: 'iron', R: 560 },
+  angr: { realm: 'iron', R: 720 },
   thrym: { realm: 'ice', R: 640 },
   nidhogg: { realm: 'sea', R: 760 },
-  surtr: { realm: 'fire', R: 640 },
+  surtr: { realm: 'fire', R: 760 },
   utgard: { realm: 'utgard', R: 620 },
   skogul: { realm: 'sky', R: 600 },
 };
@@ -574,7 +574,7 @@ function genArena(bid) {
   w.emis = rid === 'iron' || rid === 'fire' || rid === 'utgard' || rid === 'sky';
   const R = mulberry(w.seed), cx = size / 2, cy = size / 2;
   if (rid === 'sea') { w.holes = []; for (let i = 0; i < 5; i++) { const a = i / 5 * TAU + .3, r = i === 0 ? 0 : A.R * .55; w.holes.push({ x: cx + Math.cos(a) * r, y: cy - 60 + Math.sin(a) * r * .8, r: 90 }); } }
-  if (rid === 'fire') for (let i = 0; i < 12; i++) { const a = i / 12 * TAU + R() * .3, pts = walkLine(R, cx + Math.cos(a) * (A.R + 70), cy + Math.sin(a) * (A.R + 70), a + PI / 2, 7, 60, .4); w.lava.push({ pts, w: 40 + R() * 30, deco: 1 }); }
+  if (rid === 'fire') for (let i = 0; i < 5; i++) { const a = i / 5 * TAU + R() * .4, pts = walkLine(R, cx + Math.cos(a) * (A.R + 200), cy + Math.sin(a) * (A.R + 200), a + PI / 2, 6, 60, .4); w.lava.push({ pts, w: 30 + R() * 24, deco: 1 }); }
   w.maskExtra = (rg, gg, soft, disc) => { if (rid === 'sea') disc(rg, cx, cy, A.R * 1.02, .6); };
   if (rid === 'ice' || rid === 'sea') { // open ice: only shards and wind-cut chunks, no forest
     const sp = realmSprites(rid);
@@ -585,7 +585,8 @@ function genArena(bid) {
       const a = i / 46 * TAU + R() * .08, r = A.R + 130 + R() * 280, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
       addObst(w, { x, y, r: 10, spr: R() < .6 ? pick2(R, sp.big) : pick2(R, sp.mid.length ? sp.mid : sp.big), fade: 1, noCol: 1, ring: 1 });
     }
-    if (sp.deco.length) for (let i = 0; i < 24; i++) { const a = R() * TAU, r = A.R + 10 + R() * 70; w.deco.push({ x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r, spr: pick2(R, sp.deco), noCol: 1 }); }
+    const dk = rid === 'fire' ? sp.small : sp.deco; // the smith's cave has rubble at its edge, not trees
+    if (dk.length) for (let i = 0; i < 24; i++) { const a = R() * TAU, r = A.R + 10 + R() * 70; w.deco.push({ x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r, spr: pick2(R, dk), noCol: 1 }); }
   }
   buildGround(w);
   return w;

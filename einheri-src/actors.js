@@ -868,32 +868,6 @@ function updDecoy(dt) {
 }
 /* the golden spectres, after Valhalla's own ghost-gods */
 function goldStroke(fill = .18) { ctx.strokeStyle = '#ffe08a'; ctx.lineWidth = 2.4; ctx.fillStyle = `rgba(255,150,40,${fill})`; }
-function fxThor(f) {
-  const k = f.t / f.life, a = k < .15 ? k / .15 : k > .75 ? (1 - k) / .25 : 1;
-  const swing = f.t < .55 ? -1.1 + f.t * .4 : clamp(-1.1 + (f.t - .55) * 18, -1.1, .9);
-  ctx.save(); ctx.translate(f.x - 40, f.y - 40); ctx.globalAlpha = a; ctx.globalCompositeOperation = 'lighter'; ctx.lineJoin = 'round';
-  glow(0, -120, 170, '#ff9a2a', .35);
-  goldStroke(.16);
-  // torso & belly
-  ctx.beginPath(); ctx.moveTo(-50, -150); ctx.quadraticCurveTo(-70, -90, -46, -40); ctx.quadraticCurveTo(0, -10, 46, -40); ctx.quadraticCurveTo(66, -100, 44, -150); ctx.quadraticCurveTo(0, -175, -50, -150); ctx.closePath(); ctx.fill(); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(-26, -120); ctx.quadraticCurveTo(-10, -112, -2, -124); ctx.moveTo(4, -124); ctx.quadraticCurveTo(14, -112, 30, -120); ctx.moveTo(-4, -100); ctx.lineTo(-4, -50); ctx.moveTo(-20, -84); ctx.lineTo(14, -84); ctx.moveTo(-18, -68); ctx.lineTo(12, -68); ctx.stroke();
-  // fur mantle
-  ctx.beginPath(); for (let i = 0; i <= 12; i++) { const an = PI + i / 12 * PI; ctx.lineTo(Math.cos(an) * (58 + (i % 2) * 8), -150 + Math.sin(an) * 22); } ctx.stroke();
-  // head, flowing hair, beard
-  ctx.beginPath(); ctx.arc(-6, -192, 22, 0, TAU); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = 'rgba(200,40,20,.35)'; ctx.beginPath(); ctx.moveTo(-26, -205); ctx.quadraticCurveTo(-70, -200, -90, -150 + Math.sin(G.t * 4) * 6); ctx.quadraticCurveTo(-60, -170, -30, -178); ctx.closePath(); ctx.fill(); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(-26, -184); ctx.quadraticCurveTo(-28, -140, -6, -132); ctx.quadraticCurveTo(16, -140, 14, -184); ctx.stroke();
-  ctx.fillStyle = '#ffffff'; ctx.fillRect(2, -198, 8, 3);
-  // hammer arm
-  ctx.save(); ctx.translate(40, -150); ctx.rotate(swing);
-  goldStroke(.2); ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(30, -10, 50, -50); ctx.stroke();
-  ctx.beginPath(); ctx.arc(52, -54, 12, 0, TAU); ctx.fill(); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(52, -54); ctx.lineTo(52, -110); ctx.stroke();
-  ctx.fillStyle = 'rgba(255,200,80,.45)'; ctx.fillRect(28, -138, 48, 30); ctx.strokeRect(28, -138, 48, 30);
-  ctx.beginPath(); ctx.moveTo(38, -138); ctx.lineTo(48, -108); ctx.moveTo(66, -138); ctx.lineTo(56, -108); ctx.stroke();
-  ctx.restore();
-  ctx.restore();
-}
 function fxChain(f) { drawBolt(f.x, f.y - 10, f.x2, f.y2 - 14, 1 - f.t / f.life, '#bfe3ff'); }
 function fxFrigg(f) {
   const k = f.t / f.life, a = Math.sin(k * PI);

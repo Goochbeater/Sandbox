@@ -123,6 +123,12 @@ function paintSprite(o) {
       if (L.spec) { const hk = smooth(clamp((dk - (L.hiT ?? .95)) / .02 + .5, 0, 1)) * L.spec; r = lerp(r, 1, hk); g = lerp(g, 1, hk); b = lerp(b, 1, hk); }
       if (L.glow) { const gk = L.glow * (.55 + .45 * k); r = lerp(r, 1, gk * .5); g = lerp(g, 1, gk * .5); b = lerp(b, 1, gk * .5); }
       const ao = clamp((blur[i] - hc) / (6 * s), 0, 1) * .35 * aoK; r *= 1 - ao; g *= 1 - ao; b *= 1 - ao * .8;
+      if (o.grain) { const gn = nz[((y * gs | 0) % NS) * NS + ((x * gs | 0) % NS)], gr = (L.grain ?? o.grain) * (gn - .5); r *= 1 + gr; g *= 1 + gr * .95; b *= 1 + gr * .9; }
+      if (rim && o.rimDir) { // a coloured rim from a second light (lava below, sky behind): it defines the silhouette
+        const ed = 1 - nzz, hl = Math.hypot(nx, ny) + 1e-4, tw = Math.max(0, (nx * o.rimDir[0] + ny * o.rimDir[1]) / hl);
+        const rk = smooth(clamp((ed - (o.rimT ?? .3)) / .25, 0, 1)) * tw * rimA * (L.rimA ?? 1) * (1 - smooth(clamp(dTop[i] / ((L.rimW ?? o.rimW ?? 9) * s), 0, 1)));
+        r = lerp(r, rim[0], rk); g = lerp(g, rim[1], rk); b = lerp(b, rim[2], rk);
+      }
     } else if (o.cel) { // animation-cel: one crisp shadow tone, a soft airbrushed ramp, a hard glint
       const th = L.th ?? o.th ?? .5, tc = smooth(clamp((dk - th) / (o.edge ?? .05) + .5, 0, 1)), S2 = L.shade || o.shade || [.66, .7, .88];
       const air = .92 + .14 * smooth(clamp((dk - .15) / .75, 0, 1)) + (L.lift || 0);

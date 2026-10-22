@@ -31,7 +31,16 @@ void sIron(vec2 p, vec3 mk, out float h, out vec3 c, out vec3 e){
   c=mix(c,vec3(.19,.16,.13),smoothstep(.7,.9,fbm3(p*.006+40.))*.35);
   c=mix(c,vec3(.25,.22,.195)*(.93+.1*det),mk.r*.5); h=mix(h,.3+det*.03,mk.r*.6);
   float cf=clamp(smoothstep(.56,.68,fbm3(p*.0011+11.))+mk.g,0.,1.)*(1.-mk.r*.55);
-  if(uArena.z>0.){ float r=length(p-uArena.xy); cf=max(cf,(1.-smoothstep(uArena.z*.15,uArena.z*1.05,r))*.9); }
+  float ray=0., rayh=0.;
+  if(uArena.z>0.){ // the hag's ground: dark scorched ash, a few fissures running out from her roots, a ring of fire at the edge
+    float R=uArena.z; vec2 bp=uArena.xy+vec2(0.,-R*.12), d=p-bp; float r=length(d), an=atan(d.y,d.x);
+    cf=.22*smoothstep(.6,.76,fbm3(p*.0021+5.))+smoothstep(R*.84,R*1.04,length(p-uArena.xy))*.95;
+    c=mix(c,vec3(.065,.05,.045),(1.-smoothstep(160.,620.,r))*.55);
+    for(int i=0;i<11;i++){ float fi=float(i), th=(fi+hash12(vec2(fi,7.))*.6)/11.*6.2832-3.1416, len=R*(.42+hash12(vec2(fi,3.))*.75);
+      float wob=(vn(vec2(r*.01,fi*7.3))-.5)*.5*smoothstep(0.,260.,r)*260./max(r,60.);
+      float da=abs(mod(an-th-wob+3.1416,6.2832)-3.1416), dl=r*sin(min(da,1.5)), w=mix(4.,1.,smoothstep(0.,len,r)), fade=step(da,1.)*(1.-smoothstep(len*.55,len,r))*smoothstep(150.,240.,r);
+      ray=max(ray,(1.-smoothstep(w*.5,w*2.2,dl))*fade); rayh=max(rayh,(1.-smoothstep(0.,w*9.,dl))*fade); }
+  }
   e=vec3(0.);
   if(cf>.01){
     vec2 wp=p+(vec2(vn(p*.06),vn(p*.06+5.))-.5)*7.+(vec2(vn(p*.007),vn(p*.007+3.))-.5)*70.;
@@ -42,6 +51,7 @@ void sIron(vec2 p, vec3 mk, out float h, out vec3 c, out vec3 e){
     e=(vec3(1.,.88,.42)*core+vec3(1.,.55,.10)*mid*.8+vec3(.95,.3,.04)*halo*halo*.55)*on*1.5;
     c+=e*.16;
   }
+  if(rayh>0.){ c=mix(c,c*.5,rayh*.5); vec3 re=vec3(1.,.88,.45)*ray*1.5+vec3(.95,.38,.06)*rayh*rayh*.7; e+=re; c+=re*.12; }
 }
 void sIce(vec2 p, vec3 mk, out float h, out vec3 c, out vec3 e){
   if(uArena.z>0.){ // the frost-king's field: a grey sheet of shattered ice, cracked by his tread
@@ -118,6 +128,26 @@ void sSea(vec2 p, vec3 mk, out float h, out vec3 c, out vec3 e){
   e=vec3(0.);
 }
 void sFire(vec2 p, vec3 mk, out float h, out vec3 c, out vec3 e){
+  if(uArena.z>0.){ // the smith's cave: broad slabs of dark red rock, black cracks, a hexagonal dais under the giant and his anvil
+    float R=uArena.z; vec2 cp=uArena.xy+vec2(0.,-R*.3);
+    vec3 v1=vor(p/210.), v2=vor(p/70.); float lb=v1.x*210., sb=v2.x*70.;
+    float f=fbm(p*.0018), fd=fbm3(p*.02);
+    vec3 rock=mix(vec3(.11,.06,.05),vec3(.21,.12,.10),f*.75+v1.y*.3)*(.92+.12*fd);
+    rock=mix(rock,rock*vec3(1.1,.95,.9),smoothstep(.5,.8,fbm3(p*.006+4.))*.4);
+    float crack=(1.-smoothstep(.5,2.8,lb))*(.6+.4*fd), fine=(1.-smoothstep(.2,1.,sb))*step(.6,v2.y)*.6;
+    c=mix(rock,vec3(.07,.035,.03),max(crack*.9,fine*.5)); h=f*.3+fd*.05-crack*.1;
+    vec2 q=abs(vec2((p.x-cp.x)/520.,(p.y-cp.y)/300.)); float dh=max(q.x*.866+q.y*.5,q.y);
+    float top=1.-smoothstep(.985,1.,dh), lip=smoothstep(.93,.985,dh)*top, front=step(cp.y,p.y)*smoothstep(1.,1.04,dh)*(1.-smoothstep(1.04,1.12,dh));
+    vec3 slab=mix(vec3(.10,.06,.05),vec3(.16,.095,.08),fbm3(p*.008))*(.94+.08*fd);
+    c=mix(c,slab,top); c=mix(c,c*1.35+vec3(.03,.015,.01),lip*.7); c=mix(c,vec3(.06,.03,.025),front*.9);
+    c=mix(c,c*.55,(1.-smoothstep(1.,1.25,dh))*(1.-top)*.6);
+    h=mix(h,.42+fd*.04,top);
+    float r=length(p-uArena.xy), hot=smoothstep(R*.97,R*1.03,r)*(1.-smoothstep(R*1.07,R*1.2,r))*(.6+.4*fd);
+    c*=1.-smoothstep(R*1.04,R*1.35,r)*.55;
+    float seam=(1.-smoothstep(.3,2.,lb))*smoothstep(.62,.8,fbm3(p*.004+9.))*(1.-top);
+    e=vec3(1.,.4,.08)*hot*.45+vec3(1.,.45,.1)*seam*.35+vec3(1.,.5,.15)*step(.995,hash12(floor(p/6.)))*.5*(1.-top);
+    c+=e*.12; return;
+  }
   vec3 cv=vor(p/36.); float b=cv.x*36.;
   float plate=smoothstep(.5,4.,b);
   h=plate*(.45+cv.y*.35)+fbm3(p*.04)*.06;

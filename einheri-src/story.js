@@ -28,6 +28,13 @@ function drawPortrait(id) {
   const gr = g.createRadialGradient(76, 60, 10, 76, 76, 80); gr.addColorStop(0, mix(bg, '#ffffff', .12)); gr.addColorStop(1, bg);
   g.fillStyle = gr; g.fillRect(0, 0, 152, 152);
   g.translate(76, 84); g.lineJoin = 'round'; g.lineCap = 'round';
+  // a giant whose painted rig is already built is shown as itself
+  const PR = { angr: () => RIGS.angr && [[RIGS.angr.crown, AG.crown], [RIGS.angr.head, AG.neck], [RIGS.angr.jaw, AG.jaw], [0, -850], .62],
+    surtr: () => RIGS.surtr && [[RIGS.surtr.head, SU.neck], [RIGS.surtr.beard, SU.neck], [0, -822], .62],
+    utgard: () => RIGS.utgard && [[RIGS.utgard.utHead, [0, -400]], [0, -452], 1.25],
+    skogul: () => RIGS.valk && [[RIGS.valk.head, [6, -300]], [10, -326], 1.8] };
+  const pr = PR[id] && PR[id]();
+  if (pr) { const k = pr.pop(), c = pr.pop(); for (const [spr, pv] of pr) g.drawImage(spr.c, (pv[0] + spr.ox - c[0]) * k - 0, (pv[1] + spr.oy - c[1]) * k - 8, spr.wu * k, spr.hu * k); return; }
   const ink = '#0a0706';
   const head = (col, rx = 26, ry = 31) => { g.fillStyle = col; g.strokeStyle = ink; g.lineWidth = 3; g.beginPath(); g.ellipse(0, -6, rx, ry, 0, 0, TAU); g.fill(); g.stroke(); };
   const shoulders = (col) => { g.fillStyle = col; g.strokeStyle = ink; g.lineWidth = 3; g.beginPath(); g.moveTo(-64, 80); g.quadraticCurveTo(-60, 26, 0, 22); g.quadraticCurveTo(60, 26, 64, 80); g.closePath(); g.fill(); g.stroke(); };

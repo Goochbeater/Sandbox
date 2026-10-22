@@ -3945,8 +3945,8 @@ BOSS_DEFS.utgard = {
   setup(b) { b.an = anim({ cast: 0, laugh: 0, fade: 1, rise: 0, hL: 0, hR: 0, mouth: 0 }); b.copies = []; b.hands = []; b.skry = false; b.noTouch = false; },
   hitboxes(b) {
     if (b.skry) return b.hands.filter(h => h.rest > 0).map(h => ({ x: h.x, y: h.y, r: 96 }));
-    const L = b.an.fade.v > .5 ? [{ x: b.x, y: b.y - 6, r: 46 }] : [];
-    b.copies.forEach((c, i) => { if (c.live) L.push({ x: c.x, y: c.y - 6, r: 46, copy: i }); });
+    const L = b.an.fade.v > .5 ? [{ x: b.x, y: b.y - 20, r: 66 }] : [];
+    b.copies.forEach((c, i) => { if (c.live) L.push({ x: c.x, y: c.y - 20, r: 66, copy: i }); });
     return L;
   },
   dispel(b, i) { const c = b.copies[i]; if (!c || !c.live) return; c.live = 0; SFX.trick(); burst(c.x, c.y - 40, 18, { type: 'smoke', color: '#5aff6a', smin: 30, smax: 120, lmin: .4, lmax: .9, szmin: 6, szmax: 12, grow: 20, alpha: .4 }); G.hitstop = .04; },
@@ -4091,7 +4091,7 @@ BOSS_DEFS.skogul = {
   name: 'Skögul', title: 'Chooser of the Slain · Queen of the Valkyries', hp: 1400, blood: '#c8b070', roarP: 1.6, music: 'sky',
   norse: 'Skuld helt skildi, en Skögul önnur.', tr: 'Skuld held a shield, and Skögul another.',
   setup(b) { b.an = anim({ z: 0, wing: 0, spear: 0, shield: 0 }); b.noTouch = true; b.face = PI / 2; b.vx = 0; b.vy = 0; },
-  hitboxes: b => b.an.z.v < 60 ? [{ x: b.x, y: b.y - 4, r: 40 }] : [],
+  hitboxes: b => b.an.z.v < 60 ? [{ x: b.x, y: b.y - 30, r: 72 }] : [],
   rest: b => b.phase > 1 ? rand(.35, .7) : rand(.7, 1.1),
   onPhase2(b) { SFX.roar(1.8, 1.4); G.flash = .6; G.flashCol = '#fff2d0'; shake(10); showLine('skogul', 'Sisters! To me!'); setTimeout(hideLine, 2400); },
   update(b, dt) {
@@ -4168,7 +4168,7 @@ function* skSisters(b) {
   }
   yield .8;
 }
-function fxSisterFall(f) { const k = f.t / f.life; ctx.save(); ctx.globalAlpha = .6 * k; ctx.globalCompositeOperation = 'lighter'; drawValkyrie(f.x, f.y - (1 - k) * 600 - 40, 1.4, f.t * 10, 1, false, true); ctx.restore(); }
+function fxSisterFall(f) { const k = f.t / f.life; ctx.save(); ctx.globalAlpha = .6 * k; ctx.globalCompositeOperation = 'lighter'; drawValkyrie(f.x, f.y - (1 - k) * 600 - 40, .55, f.t * 10, 1, false, true); ctx.restore(); }
 function fxSister(f) { const k = f.t / f.life; glow(f.x, f.y - 20, 120 * (1 - k * .5), '#ffe6a0', 1 - k); }
 
 /* =====================================================================
@@ -4181,107 +4181,6 @@ const FL = c => (G.boss && G.boss.flash > 0 ? '#ffffff' : c);
 
 /* ---------------- Þrymr: the frost giant, as tall as a hall ---------------- */
 /* ---------------- Níðhöggr: the wyrm under the ice ---------------- */
-/* ---------------- Útgarða-Loki, the king who is smaller than he looks ---------------- */
-function drawUtgard(b) {
-  const A = b.an, t = b.t;
-  if (A.rise.v > .01) drawSkrymir(b);
-  if (A.fade.v < .02) return;
-  const one = (x, y, alpha, real, ph) => {
-    ctx.save(); ctx.globalAlpha = alpha * A.fade.v; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; CEL_LX = 1;
-    if (real) { ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.beginPath(); ctx.ellipse(x + 10, y + 4, 66, 18, 0, 0, TAU); ctx.fill(); }
-    const sw = Math.sin(t * 2 + ph) * 8, ink = '#040804', fl = real && b.flash > 0;
-    const cloak = [fl ? '#fff' : '#22402a', '#0c1a10'];
-    bcel(P_(() => { ctx.moveTo(x - 28, y - 236); ctx.quadraticCurveTo(x - 84, y - 110, x - 98 + sw, y); for (let i = 0; i <= 9; i++) ctx.lineTo(x - 98 + sw + i * 21.8, y + (i % 2 ? -14 : 6) + Math.sin(t * 4 + i) * 4); ctx.quadraticCurveTo(x + 84, y - 110, x + 28, y - 236); ctx.closePath(); }), cloak[0], cloak[1], 8, 3.2, ink);
-    ctx.strokeStyle = '#d6b050'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x - 92 + sw, y - 6); ctx.quadraticCurveTo(x - 76, y - 110, x - 26, y - 230); ctx.moveTo(x + 92 + sw, y - 6); ctx.quadraticCurveTo(x + 76, y - 110, x + 26, y - 230); ctx.stroke();
-    bcel(poly([x - 20, y - 222, x - 30, y - 40, x + 30, y - 40, x + 20, y - 222]), fl ? '#fff' : '#3a6040', '#1a3020', 4, 2.4, ink);
-    ctx.strokeStyle = 'rgba(214,176,80,.8)'; ctx.lineWidth = 2; for (let i = 0; i < 6; i++) { ctx.beginPath(); ctx.moveTo(x - 14, y - 200 + i * 28); ctx.lineTo(x + 14, y - 196 + i * 28); ctx.stroke(); }
-    const c = A.cast.v;
-    for (const s of [-1, 1]) {
-      const hx = x + s * (66 + c * 42), hy = y - 168 - c * 70 * (s > 0 ? 1 : .6);
-      bcel(P_(() => taper(ctx, x + s * 28, y - 208, hx, hy, 18, 9)), cloak[0], cloak[1], 3, 2.6, ink);
-      ctx.strokeStyle = '#dfe6d0'; ctx.lineWidth = 2.6; for (let f = 0; f < 4; f++) { const fa = -PI / 2 + s * (.2 + f * .25); ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx + Math.cos(fa) * 24, hy + Math.sin(fa) * 24); ctx.stroke(); }
-      if (c > .2) glowPost(hx, hy - 12, 44 * c + 12, '#6aff4a', c * .85);
-    }
-    const hx = x, hy = y - 266;
-    bcel(P_(() => { ctx.moveTo(hx - 21, hy - 25); ctx.quadraticCurveTo(hx - 25, hy + 20, hx, hy + 42); ctx.quadraticCurveTo(hx + 25, hy + 20, hx + 21, hy - 25); ctx.quadraticCurveTo(hx, hy - 39, hx - 21, hy - 25); ctx.closePath(); }), fl ? '#fff' : '#d6d8c2', '#8a8e78', 4, 2.8, ink);
-    const l = A.laugh.v;
-    ctx.strokeStyle = ink; ctx.lineWidth = 2.6; ctx.beginPath(); ctx.moveTo(hx - 12, hy + 17); ctx.quadraticCurveTo(hx, hy + 25 + l * 8, hx + 14, hy + 12); ctx.stroke();
-    for (const s of [-1, 1]) { ctx.fillStyle = real ? '#e6ff8a' : '#8aff6a'; ctx.beginPath(); ctx.ellipse(hx + s * 8.5, hy - 5, 4.6, 2.6, s * .3, 0, TAU); ctx.fill(); if (real) glowPost(hx + s * 8.5, hy - 5, 14, '#e6ff8a', .9); }
-    ctx.strokeStyle = '#0a0f08'; ctx.lineWidth = 8; const crown = () => { for (const s of [-1, 1]) { ctx.beginPath(); ctx.moveTo(hx + s * 11, hy - 31); ctx.quadraticCurveTo(hx + s * 36, hy - 70, hx + s * 31, hy - 106); ctx.moveTo(hx + s * 25, hy - 62); ctx.lineTo(hx + s * 54, hy - 82); ctx.moveTo(hx + s * 31, hy - 90); ctx.lineTo(hx + s * 14, hy - 114); ctx.stroke(); } };
-    crown(); ctx.strokeStyle = '#d6b050'; ctx.lineWidth = 4.6; crown();
-    ctx.restore();
-    glowPost(x, y - 130, 160, '#5aff4a', .12 * alpha * A.fade.v);
-  };
-  for (const c of b.copies) if (c.live) one(c.x + Math.sin(t * 7 + c.ph) * 2, c.y, .7, false, c.ph);
-  one(b.x, b.y, 1, true, 0);
-  G.lights.push({ x: b.x, y: b.y - 160, r: 320, i: .7 * A.fade.v, col: '#b0ff8a' });
-}
-function drawSkrymir(b) {
-  const A = b.an, t = b.t, f = skryFace(b), r = A.rise.v, fl = b.flash > 0;
-  const x = f.x, y = f.y + (1 - r) * 500, ink = '#0a100a';
-  ctx.save(); ctx.globalAlpha = r; ctx.lineJoin = 'round'; CEL_LX = 1;
-  bcel(P_(() => { ctx.moveTo(x - 440, y - 60); ctx.quadraticCurveTo(x - 560, y + 220, x - 320, y + 440); for (let i = 0; i <= 12; i++) ctx.lineTo(x - 320 + i * 53.3, y + 440 + (i % 2) * 44 + Math.sin(t + i) * 12); ctx.quadraticCurveTo(x + 560, y + 220, x + 440, y - 60); ctx.closePath(); }), '#3e4c38', '#1e2a1c', 30, 7, ink);
-  ctx.strokeStyle = 'rgba(170,200,130,.28)'; ctx.lineWidth = 7; for (let i = 0; i < 16; i++) { const s = i / 15 - .5; ctx.beginPath(); ctx.moveTo(x + s * 640, y); ctx.quadraticCurveTo(x + s * 760, y + 220, x + s * 600, y + 450); ctx.stroke(); }
-  bcel(blob(x, y - 170, 400, 310), fl ? '#ffffff' : '#8c9278', '#4c5240', 40, 8, ink);
-  for (const s of [-1, 1]) bcel(P_(() => { ctx.moveTo(x + s * 320, y - 220); ctx.quadraticCurveTo(x + s * 160, y - 330, x + s * 20, y - 230); ctx.quadraticCurveTo(x + s * 170, y - 268, x + s * 320, y - 220); ctx.closePath(); }), '#6a705c', '#3a4030', 8, 5, ink);
-  bcel(P_(() => { ctx.moveTo(x - 46, y - 210); ctx.quadraticCurveTo(x - 80, y - 40, x, y - 18); ctx.quadraticCurveTo(x + 80, y - 40, x + 46, y - 210); ctx.closePath(); }), '#7a806a', '#40463a', 14, 6, ink);
-  for (const s of [-1, 1]) { ctx.fillStyle = '#fff09a'; ctx.beginPath(); ctx.ellipse(x + s * 160, y - 196, 50, 22, 0, 0, TAU); ctx.fill(); glowPost(x + s * 160, y - 196, 150, '#e6ff6a', .6); ctx.fillStyle = '#1a1a0a'; ctx.beginPath(); ctx.arc(x + s * 160 + Math.sin(t) * 12, y - 196, 11, 0, TAU); ctx.fill(); }
-  const m = A.mouth.v;
-  ctx.fillStyle = '#0c0f08'; ctx.beginPath(); ctx.ellipse(x, y + 44, 140, 15 + m * 66, 0, 0, TAU); ctx.fill();
-  if (m > .2) glowPost(x, y + 44, 160, '#6fb0d8', m * .4);
-  ctx.strokeStyle = '#1a2414'; ctx.lineWidth = 5; for (let i = 0; i < 20; i++) { const s = i / 19 - .5, bx = x + s * 680, by = y - 420 + Math.abs(s) * 240; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx, by - 46 - (i % 3) * 16); ctx.moveTo(bx - 12, by - 20); ctx.lineTo(bx, by - 34); ctx.lineTo(bx + 12, by - 20); ctx.stroke(); }
-  ctx.restore();
-  for (const h of b.hands) {
-    const k = h.side < 0 ? A.hL.v : A.hR.v; if (k < .02) continue;
-    const hx = h.x, hy = h.y - (1 - h.down) * 380 * (1 - k * .2) - (h.down ? 0 : 140);
-    ctx.save(); ctx.globalAlpha = Math.min(1, k * 2); CEL_LX = 1;
-    ctx.fillStyle = h.down ? 'rgba(0,0,0,.5)' : `rgba(0,0,0,${.3 * k})`; ctx.beginPath(); ctx.ellipse(h.x + 20, h.y + 8, h.down ? 170 : 120, h.down ? 52 : 36, 0, 0, TAU); ctx.fill();
-    ctx.strokeStyle = '#0a100a'; ctx.lineWidth = 210; ctx.beginPath(); ctx.moveTo(hx - h.side * 130, hy - 80); ctx.lineTo(hx - h.side * 130, hy - 480); ctx.stroke(); ctx.strokeStyle = '#6a705a'; ctx.lineWidth = 196; ctx.stroke();
-    bcel(blob(hx, hy - 50, 140, 96), fl && h.rest > 0 ? '#ffffff' : '#8c9278', '#4c5240', 14, 6, '#0a100a');
-    for (let f = 0; f < 4; f++) bcel(blob(hx - 96 + f * 64, hy + 22, 28, 50), fl && h.rest > 0 ? '#ffffff' : '#8c9278', '#4c5240', 6, 5, '#0a100a');
-    ctx.restore();
-    if (h.rest > 0) glowPost(hx, hy - 30, 160, '#e6ff8a', .25 + .15 * Math.sin(G.t * 8));
-  }
-}
-
-/* ---------------- Skögul and her sisters ---------------- */
-function drawSkogul(b) {
-  const A = b.an, z = A.z.v;
-  ctx.fillStyle = `rgba(60,40,20,${.45 * (1 - Math.min(1, z / 700) * .6)})`; ctx.beginPath(); ctx.ellipse(b.x + 8, b.y + 3, 40 + z * .03, 13 + z * .01, 0, 0, TAU); ctx.fill();
-  if (z > 650) return;
-  drawValkyrie(b.x, b.y - z, 2.5, b.t * (A.wing.v > .5 ? 14 : 5), Math.cos(b.face) < 0 ? -1 : 1, b.flash > 0, false, A.spear.v, A.shield.v);
-  G.lights.push({ x: b.x, y: b.y - z - 50, r: 260, i: .8, col: '#fff0c8' });
-}
-function drawValkyrie(x, y, sc, flap, side, fl, ghost, spear = 0, shield = 0) {
-  ctx.save(); ctx.translate(x, y); ctx.scale(sc * side, sc); ctx.lineJoin = 'round'; ctx.lineCap = 'round'; CEL_LX = side;
-  const ink = ghost ? '#ffe08a' : '#2a2016', W_ = c => fl ? '#ffffff' : ghost ? 'rgba(255,220,140,.35)' : c;
-  for (const s of [-1, 1]) {
-    const fa = Math.sin(flap) * .35;
-    for (let i = 6; i >= 0; i--) {
-      const a = -PI / 2 + s * (.35 + i * .2 + fa), L = 42 - i * 2.2;
-      cel(P_(() => { ctx.moveTo(s * 5, -26); ctx.quadraticCurveTo(s * 5 + Math.cos(a) * L * .6 + s * 6, -26 + Math.sin(a) * L * .6, s * 5 + Math.cos(a) * L, -26 + Math.sin(a) * L); ctx.quadraticCurveTo(s * 5 + Math.cos(a + s * .2) * L * .5, -26 + Math.sin(a + s * .2) * L * .5, s * 5, -22); ctx.closePath(); }), W_(i % 2 ? '#ffffff' : '#ece6da'), W_('#b8b0a2'), .6, ink, .6);
-    }
-  }
-  cel(poly([-6.5, -24, -9.5, -1, 9.5, -1, 6.5, -24]), W_('#c8d0da'), W_('#7a8696'), 1, ink, .9);
-  cel(poly([-3, -22, -4, -1, 4, -1, 3, -22]), W_('#f4f6fa'), W_('#b8c0cc'), .5, ink, 0);
-  ctx.strokeStyle = '#d6b050'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(-7.5, -12); ctx.lineTo(7.5, -12); ctx.stroke();
-  ctx.strokeStyle = ink; ctx.lineWidth = 2.6; ctx.beginPath(); ctx.moveTo(-3, -1); ctx.lineTo(-3, .5); ctx.moveTo(3, -1); ctx.lineTo(3, .5); ctx.stroke();
-  for (const s of [-1, 1]) cel(P_(() => { ctx.moveTo(s * 4, -31); ctx.quadraticCurveTo(s * 7.5, -18, s * 5, -9); ctx.lineTo(s * 3, -9); ctx.quadraticCurveTo(s * 4, -20, s * 2, -29); ctx.closePath(); }), W_('#f0c870'), W_('#b08030'), .4, ink, .5);
-  cel(blob(0, -31.5, 4.6, 4.6), W_('#f0d6bc'), W_('#b8907a'), .6, ink, .8);
-  cel(P_(() => { ctx.arc(0, -32.5, 5, PI, TAU); ctx.closePath(); }), W_('#dfe2e8'), W_('#8a909a'), .5, ink, .8);
-  for (const s of [-1, 1]) cel(P_(() => { ctx.moveTo(s * 4, -34.5); ctx.quadraticCurveTo(s * 13, -43, s * 14, -36.5); ctx.quadraticCurveTo(s * 9.5, -36.5, s * 4, -32.5); ctx.closePath(); }), W_('#ffffff'), W_('#c8c0b0'), .4, ink, .6);
-  ctx.fillStyle = '#2a4a8a'; ctx.fillRect(1, -32.5, 2.2, 1.4);
-  const sa = -PI / 2 + .3 + spear * 1.6;
-  ctx.save(); ctx.translate(6.5, -18); ctx.rotate(sa);
-  ctx.strokeStyle = ink; ctx.lineWidth = 2.6; ctx.beginPath(); ctx.moveTo(-15, 0); ctx.lineTo(31, 0); ctx.stroke(); ctx.strokeStyle = W_('#9a7444'); ctx.lineWidth = 1.4; ctx.stroke();
-  cel(poly([40, 0, 30, -2.8, 30, 2.8]), W_('#f2f6fa'), W_('#9aa2ac'), .4, ink, .7);
-  ctx.restore();
-  cel(blob(-8.5 - shield * 6, -15, 7.5, 9.5), W_('#ece4d4'), W_('#a89e8a'), .8, ink, 1);
-  ctx.fillStyle = '#d6b050'; ctx.beginPath(); ctx.arc(-8.5 - shield * 6, -15, 2.2, 0, TAU); ctx.fill();
-  CEL_LX = 1;
-  ctx.restore();
-  if (!ghost) glowPost(x, y - 30 * sc, 70 * sc / 1.9, '#ffe6a0', .35);
-}
 
 /* =====================================================================
    RIGS — the jötnar as cut-out puppets of painted parts.
@@ -5169,6 +5068,257 @@ function fxThor(f) {
 }
 
 /* =====================================================================
+   ÚTGARÐA-LOKI, the Outer King — and SKRÝMIR, what he really is.
+   The king: tall and thin as a birch, a green cloak trimmed with gold,
+   a crown of golden antlers, a sly narrow face, long fingers that throw
+   green fire. Unmasked: a giant so large that the field you fought on was
+   his palm. He looms behind the cliff at the far edge, mossy and grey as a
+   mountain, crowned with the same gold, and reaches over the edge to strike.
+   ===================================================================== */
+function rigUtgard() {
+  if (RIGS.utgard) return RIGS.utgard;
+  const cloak = '#2e4a30', cloakD = '#1e3220', robe = '#3e6040', skin = '#a8b49a', gold = '#d6b050', ink = '#0a100a';
+  const E = { s: 1.5, grain: .1, shade: [.6, .66, .62], lo: .45, edgeA: .22, edgeW: 12, inkW: 2.4, ink, rim: '#8fe36a', rimA: .5, rimDir: [-.3, 1], rimT: .25 };
+  const R = {}, P = (pv, box, layers, extra) => softPart(pv, box, layers, Object.assign({}, E, extra || {}));
+  const sk = (lines, w = 2, c = ink) => g => sketch(g, lines, w, c);
+  const trim = (g, pts, w = 4) => { g.save(); g.strokeStyle = gold; g.lineWidth = w; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.stroke(); g.restore(); };
+  R.utBody = P([0, -200], [-200, -440, 200, 30], [
+    { draw: g => Fb(g, P2 => { vcr(P2, [[-70, -416], [0, -400], [70, -416], [100, -350], [118, -260], [140, -160], [166, -60], [184, 0], [100, 12], [0, 4], [-100, 12], [-184, 0], [-166, -60], [-140, -160], [-118, -260], [-100, -350]]); fringe(P2, [[-180, 0], [-90, 10], [0, 4], [90, 10], [180, 0]], 9, 24, 22, PI / 2, .5, 3); }, cloak), amp: .45,
+      bump: g => { g.strokeStyle = '#3a3a3a'; g.lineWidth = 7; g.lineCap = 'round'; for (const x of [-120, -80, 80, 120]) { g.beginPath(); g.moveTo(x * .6, -360); g.quadraticCurveTo(x * .9, -200, x * 1.3, 0); g.stroke(); } }, bumpAmp: 12 },
+    { draw: g => Fc(g, [[-34, -360], [34, -360], [44, -200], [54, -20], [0, -6], [-54, -20], [-44, -200]], robe), amp: .4, h: 10 },
+    { draw: g => Fb(g, P2 => { vcr(P2, [[-84, -470], [-40, -400], [0, -392], [40, -400], [84, -470], [96, -400], [70, -350], [0, -336], [-70, -350], [-96, -400]]); }, cloakD), amp: .5, h: 16, inkW: 1.1 },
+  ], { over: g => { trim(g, [[-34, -356], [-44, -200], [-54, -24]]); trim(g, [[34, -356], [44, -200], [54, -24]]); trim(g, [[-96, -400], [-70, -350], [0, -336], [70, -350], [96, -400]], 3);
+    g.fillStyle = gold; for (let i = 0; i < 7; i++) { const y = -320 + i * 40; g.beginPath(); g.moveTo(-10, y); g.lineTo(0, y - 10); g.lineTo(10, y); g.lineTo(0, y + 10); g.closePath(); g.fill(); }
+    sk([[[-110, -260], [-130, -150]], [[110, -260], [130, -150]]], 1.8)(g); } });
+  R.utHead = P([0, -400], [-150, -580, 150, -360], [
+    { draw: g => Fc(g, [[-26, -470], [0, -478], [26, -470], [32, -436], [26, -400], [12, -380], [0, -376], [-12, -380], [-26, -400], [-32, -436]], skin), amp: .55,
+      bump: g => { g.fillStyle = '#333'; for (const k of [-1, 1]) { g.beginPath(); g.ellipse(k * 12, -440, 8, 5, k * .3, 0, TAU); g.fill(); g.beginPath(); g.ellipse(k * 20, -412, 6, 10, 0, 0, TAU); g.fill(); } g.fillStyle = '#ddd'; g.beginPath(); g.ellipse(0, -452, 26, 5, 0, 0, TAU); g.fill(); }, bumpAmp: 6 },
+    { draw: g => Fb(g, P2 => { for (const k of [-1, 1]) vell(P2, k * 12, -440, 5, 2.6, k * .3); }, '#e6ff8a'), r: 1, ink: false, glow: 1 },
+    { draw: g => Fb(g, P2 => { // the antler crown: a band, and tines branching up and out
+      vcr(P2, [[-30, -470], [0, -480], [30, -470], [30, -460], [0, -466], [-30, -460]]);
+      for (const k of [-1, 1]) { vlimb(P2, [[k * 20, -472], [k * 44, -510], [k * 80, -540], [k * 120, -560]], [8, 7, 5, 1.5]); vlimb(P2, [[k * 44, -510], [k * 40, -548], [k * 52, -574]], [5, 4, 1]); vlimb(P2, [[k * 80, -540], [k * 96, -520], [k * 130, -514]], [4, 3, 1]); vlimb(P2, [[k * 10, -474], [k * 16, -500]], [5, 1]); }
+    }, gold), amp: .6, h: 14, inkW: .9, spec: .6, lo: .7 },
+  ], { over: g => { g.strokeStyle = ink; g.lineWidth = 2.2; g.lineCap = 'round'; g.beginPath(); g.moveTo(-14, -398); g.quadraticCurveTo(0, -390, 16, -402); g.stroke(); sketch(g, [[[-20, -452], [-6, -448]], [[20, -452], [6, -448]]], 1.4, ink); } });
+  R.utArm = P([0, 0], [-30, -30, 200, 30], [ // a sleeve along +x, shoulder at the origin
+    { draw: g => Fb(g, P2 => vlimb(P2, [[0, 0], [80, 4], [170, 0]], [34, 40, 46]), cloak), amp: .5 },
+  ], { over: g => trim(g, [[150, -22], [174, 0], [150, 22]], 3) });
+  R.utHand = P([0, 0], [-20, -50, 90, 50], [ // long fingers fanned along +x
+    { draw: g => { Fc(g, [[0, -14], [26, -16], [34, 0], [26, 16], [0, 14]], skin); Fb(g, P2 => { for (let i = 0; i < 4; i++) { const a = (i - 1.5) * .3; vlimb(P2, [[24, 0], [24 + Math.cos(a) * 30, Math.sin(a) * 30], [24 + Math.cos(a * 1.4) * 58, Math.sin(a * 1.4) * 58]], [8, 6, 2]); } vlimb(P2, [[10, -10], [24, -30], [36, -40]], [7, 5, 2]); }, skin); }, amp: .6 },
+  ]);
+  return RIGS.utgard = R;
+}
+function rigSkrymir() {
+  if (RIGS.skry) return RIGS.skry;
+  const skin = '#8f9a7e', skinD = '#6a745c', moss = '#4e6a3a', mossL = '#7a9a5a', cloak = '#2e4a30', gold = '#d6b050', lip = '#5a3a30', ink = '#0e140c';
+  const E = { s: .75, grain: .14, grainScale: 1.2, shade: [.58, .64, .6], lo: .42, edgeA: .28, edgeW: 30, inkW: 3.4, ink, rim: '#c8ff8a', rimA: .45, rimDir: [0, -1], rimT: .25, aoR: 20 };
+  const R = {}, P = (pv, box, layers, extra) => softPart(pv, box, layers, Object.assign({}, E, extra || {}));
+  const sk = (lines, w = 4, c = ink) => g => sketch(g, lines, w, c);
+  const bulge = (g, pts, col = '#d4d4d4') => { g.fillStyle = col; for (const [x, y, rx, ry, a] of pts) { g.beginPath(); g.ellipse(x, y, rx, ry, a || 0, 0, TAU); g.fill(); } };
+  const mossy = (g, pts, r, seed) => { for (let i = 0; i < 40; i++) { const p = pts[i % pts.length], a = hash2(i, seed) * TAU, d = hash2(seed, i) * r; g.fillStyle = i % 3 ? 'rgba(78,106,58,.6)' : 'rgba(122,154,90,.55)'; g.beginPath(); g.ellipse(p[0] + Math.cos(a) * d, p[1] + Math.sin(a) * d * .7, 10 + hash2(i, 3) * 18, 6 + hash2(i, 4) * 10, a, 0, TAU); g.fill(); } };
+  /* the shoulders and cloak, behind everything */
+  R.body = P([0, 300], [-1060, 80, 1060, 760], [
+    { draw: g => Fb(g, P2 => vcr(P2, [[-1040, 760], [-1000, 380], [-860, 220], [-600, 150], [-320, 170], [0, 210], [320, 170], [600, 150], [860, 220], [1000, 380], [1040, 760]]), cloak), amp: .4,
+      bump: g => { bulge(g, [[-760, 300, 220, 120, -.2], [760, 300, 220, 120, .2]]); g.strokeStyle = '#3a3a3a'; g.lineWidth = 12; for (const x of [-500, -260, 260, 500]) { g.beginPath(); g.moveTo(x, 200); g.quadraticCurveTo(x * 1.1, 450, x * 1.15, 760); g.stroke(); } }, bumpAmp: 30 },
+    { draw: g => Fb(g, P2 => { vcr(P2, [[-420, 140], [-200, 110], [0, 120], [200, 110], [420, 140], [380, 230], [0, 260], [-380, 230]]); fringe(P2, [[-400, 220], [0, 250], [400, 220]], 14, 50, 40, PI / 2, .5, 4); }, moss), amp: .5, h: 20 },
+  ], { over: g => { g.save(); g.strokeStyle = gold; g.lineWidth = 9; g.beginPath(); g.moveTo(-1000, 380); g.quadraticCurveTo(-860, 222, -600, 152); g.moveTo(1000, 380); g.quadraticCurveTo(860, 222, 600, 152); g.stroke(); g.restore(); mossy(g, [[-760, 260], [700, 250], [-500, 180]], 90, 2); } });
+  /* the great head */
+  R.head = P([0, 0], [-440, -480, 440, 300], [
+    { draw: g => Fb(g, P2 => vcr(P2, [[-380, -200], [-300, -380], [-120, -460], [120, -460], [300, -380], [380, -200], [420, 40], [360, 200], [260, 120], [300, -60], [200, -300], [0, -340], [-200, -300], [-300, -60], [-260, 120], [-360, 200], [-420, 40]]), moss), amp: .45, lo: .5 },
+    ...[-1, 1].map(k => ({ draw: g => Fc(g, [[k * 290, -150], [k * 372, -170], [k * 404, -70], [k * 376, 40], [k * 300, 40]], skin), amp: .5, h: -6,
+      bump: g => bulge(g, [[k * 350, -60, 26, 60]], '#333'), bumpAmp: 14 })),
+    { draw: g => Fc(g, [[-250, -300], [0, -340], [250, -300], [310, -160], [320, -20], [290, 100], [220, 190], [120, 230], [0, 240], [-120, 230], [-220, 190], [-290, 100], [-320, -20], [-310, -160]], skin), amp: .5,
+      bump: g => { bulge(g, [[0, -230, 200, 40], [-180, 0, 80, 50], [180, 0, 80, 50]]); bulge(g, [[-130, -96, 90, 50], [130, -96, 90, 50], [-240, -40, 40, 80], [240, -40, 40, 80], [-200, 120, 60, 60], [200, 120, 60, 60]], '#2e2e2e');
+        g.strokeStyle = '#3a3a3a'; g.lineWidth = 10; g.lineCap = 'round'; for (let i = 0; i < 3; i++) { g.beginPath(); g.moveTo(-150, -260 - i * 22); g.quadraticCurveTo(0, -280 - i * 22, 150, -260 - i * 22); g.stroke(); } }, bumpAmp: 30 },
+    { draw: g => Fc(g, [[-290, -170], [-160, -214], [-40, -184], [0, -154], [40, -184], [160, -214], [290, -170], [276, -126], [150, -150], [40, -128], [0, -108], [-40, -128], [-150, -150], [-276, -126]], skinD), amp: .55, h: 26 },
+    { draw: g => Fb(g, P2 => { for (const k of [-1, 1]) vell(P2, k * 130, -94, 74, 34); }, '#0c120a'), r: 6, h: -10, ink: false },
+    { draw: g => Fb(g, P2 => { for (const k of [-1, 1]) vell(P2, k * 130, -94, 28, 18); }, '#e6ff8a'), r: 4, h: -8, ink: false, glow: 1 },
+    { draw: g => Fc(g, [[-36, -130], [36, -130], [52, -40], [92, 28], [72, 72], [22, 82], [0, 66], [-22, 82], [-72, 72], [-92, 28], [-52, -40]], skin), amp: .65, h: 34,
+      bump: g => bulge(g, [[-46, 58, 16, 12], [46, 58, 16, 12]], '#222'), bumpAmp: 10 },
+    { draw: g => Fb(g, P2 => { vcr(P2, [[-20, 72], [-120, 82], [-220, 120], [-290, 210], [-240, 196], [-140, 144], [-40, 112], [0, 102], [40, 112], [140, 144], [240, 196], [290, 210], [220, 120], [120, 82], [20, 72]]); }, moss), amp: .55, h: 40,
+      bump: g => { g.strokeStyle = '#444'; g.lineWidth = 8; for (const k of [-1, 1]) for (let i = 0; i < 4; i++) { g.beginPath(); g.moveTo(k * (30 + i * 20), 86 + i * 6); g.quadraticCurveTo(k * (140 + i * 20), 110 + i * 12, k * (260 - i * 10), 196 - i * 6); g.stroke(); } }, bumpAmp: 10 },
+  ], { over: g => { mossy(g, [[-260, -260], [240, -280], [-300, 60], [300, 40]], 60, 5); sk([[[-210, -40], [-170, 40]], [[210, -40], [170, 40]], [[-60, -150], [-20, -120]], [[60, -150], [20, -120]]], 4)(g); } });
+  R.crown = P([0, -320], [-420, -760, 420, -280], [
+    { draw: g => Fb(g, P2 => {
+      vcr(P2, [[-260, -290], [0, -330], [260, -290], [262, -262], [0, -300], [-262, -262]]);
+      for (const k of [-1, 1]) { vlimb(P2, [[k * 180, -300], [k * 260, -420], [k * 340, -520], [k * 400, -580]], [36, 30, 20, 4]); vlimb(P2, [[k * 260, -420], [k * 240, -540], [k * 270, -640]], [22, 14, 3]); vlimb(P2, [[k * 340, -520], [k * 380, -480], [k * 420, -470]], [14, 8, 2]); vlimb(P2, [[k * 80, -320], [k * 110, -440], [k * 100, -540], [k * 130, -620]], [28, 20, 12, 3]); vlimb(P2, [[k * 110, -440], [k * 170, -470], [k * 200, -520]], [12, 8, 2]); }
+      vlimb(P2, [[0, -330], [0, -460], [-14, -560], [6, -680]], [30, 22, 12, 3]);
+    }, gold), amp: .6, spec: .5, lo: .62, inkW: 1 },
+  ], { rimA: .3 });
+  R.jaw = P([0, 150], [-320, 100, 320, 700], [
+    { draw: g => Fb(g, P2 => { vcr(P2, [[-270, 180], [0, 160], [270, 180], [310, 320], [270, 480], [170, 600], [0, 670], [-170, 600], [-270, 480], [-310, 320]]); fringe(P2, [[-270, 480], [-170, 600], [0, 670], [170, 600], [270, 480]], 10, 60, 40, PI / 2, .5, 8); }, moss), amp: .45,
+      bump: g => { g.strokeStyle = '#444'; g.lineWidth = 12; g.lineCap = 'round'; for (let i = 0; i < 9; i++) { const x = -220 + i * 55; g.beginPath(); g.moveTo(x * .8, 200); g.quadraticCurveTo(x * 1.05, 400, x * .7, 640); g.stroke(); } }, bumpAmp: 14 },
+    { draw: g => Fc(g, [[-160, 152], [0, 146], [160, 152], [150, 196], [0, 214], [-150, 196]], lip), amp: .5, h: 14 },
+    ...[-1, 1].map(k => ({ draw: g => { Fb(g, P2 => vlimb(P2, [[k * 110, 300], [k * 120, 450], [k * 100, 640]], [46, 40, 20]), mossL); Fb(g, P2 => { vcr(P2, [[k * 90, 420], [k * 150, 420], [k * 150, 452], [k * 90, 452]]); }, gold); }, amp: .55, h: 20, inkW: 1 })),
+  ], { over: g => mossy(g, [[-200, 300], [200, 320], [0, 520]], 70, 9) });
+  /* a forearm laid along +x (elbow at the origin, wrist at 1000) */
+  R.arm = P([0, 0], [-60, -200, 1060, 200], [
+    { draw: g => Fb(g, P2 => vlimb(P2, [[0, 0], [320, 14], [680, 4], [1000, 0]], [320, 290, 240, 210]), skin), amp: .45,
+      bump: g => { bulge(g, [[260, -40, 200, 70], [600, -20, 160, 50]]); g.strokeStyle = '#3a3a3a'; g.lineWidth = 14; g.beginPath(); g.moveTo(80, 60); g.quadraticCurveTo(500, 90, 980, 40); g.stroke(); }, bumpAmp: 26 },
+    { draw: g => Fb(g, P2 => vcr(P2, [[720, -130], [800, -126], [800, 126], [720, 130]]), gold), amp: .5, h: 14, spec: .5, lo: .62 },
+  ], { rimDir: [0, -1], over: g => mossy(g, [[200, -60], [480, -40], [900, -50]], 60, 13) });
+  /* a hand coming down palm-first: wrist at the top, fingers spread below */
+  R.hand = P([0, 0], [-340, -320, 340, 260], [
+    { draw: g => Fc(g, [[-120, -300], [120, -300], [180, -160], [200, -40], [150, 30], [0, 50], [-150, 30], [-200, -40], [-180, -160]], skin), amp: .45,
+      bump: g => bulge(g, [[-120, -10, 40, 30], [-40, 10, 40, 30], [40, 10, 40, 30], [120, -10, 40, 30], [0, -150, 120, 80]], '#d8d8d8'), bumpAmp: 22 },
+    ...[0, 1, 2, 3].map(i => ({ draw: g => { const x = -120 + i * 80, a = PI / 2 + (i - 1.5) * .18; Fb(g, P2 => vlimb(P2, [[x, 10], [x + Math.cos(a) * 90, 10 + Math.sin(a) * 90], [x + Math.cos(a) * 190, 10 + Math.sin(a) * 190]], [84, 70, 54]), skin); }, amp: .5, h: 10 + i, innerInk: true, inkW: .9,
+      bump: g => { const x = -120 + i * 80, a = PI / 2 + (i - 1.5) * .18; bulge(g, [[x + Math.cos(a) * 90, 10 + Math.sin(a) * 90, 30, 20]], '#cfcfcf'); }, bumpAmp: 12 })),
+    { draw: g => Fb(g, P2 => vlimb(P2, [[-170, -140], [-270, -70], [-310, 30]], [90, 70, 56]), skin), amp: .5, h: 16, innerInk: true, inkW: .9 },
+  ], { rimDir: [0, -1], over: g => mossy(g, [[-60, -220], [100, -180]], 50, 17) });
+  return RIGS.skry = R;
+}
+RIGPREP.utgard = () => { rigUtgard(); rigSkrymir(); };
+function drawUtgard(b) {
+  const A = b.an, t = b.t;
+  if (A.rise.v > .01) drawSkrymir(b);
+  if (A.fade.v < .02) return;
+  const R = rigUtgard();
+  const one = (x, y, alpha, real, ph) => {
+    ctx.save(); ctx.globalAlpha = alpha * A.fade.v;
+    if (real) dropShadow(ctx, x + 14, y + 6, 140, 40, .8);
+    const c = A.cast.v, l = A.laugh.v, sway = Math.sin(t * 1.6 + ph) * .02;
+    if (!real) ctx.filter = 'hue-rotate(20deg) saturate(1.6) brightness(1.15)';
+    // arms: folded close at rest; flung up and out to cast
+    for (const k of [-1, 1]) {
+      const sx = x + k * 84, sy = y - 330, ang = k > 0 ? lerp(1.9, -.75, c) : lerp(PI - 1.9, PI + .75, c), L = 170;
+      rpart(R.utArm, sx, sy, ang + sway);
+      const hx = sx + Math.cos(ang + sway) * L, hy = sy + Math.sin(ang + sway) * L;
+      rpart(R.utHand, hx, hy, ang + sway + (k > 0 ? -.3 : .3) * c);
+      if (c > .2) glowPost(hx + Math.cos(ang) * 30, hy + Math.sin(ang) * 30, 60 * c + 14, '#6aff4a', c * .9);
+    }
+    rpart(R.utBody, x, y - 200, sway * .5);
+    rpart(R.utHead, x + sway * 60, y - 400 - l * 4, sway + Math.sin(t * 9) * .03 * l);
+    ctx.filter = 'none'; ctx.restore();
+    for (const k of [-1, 1]) glowPost(x + k * 12 + sway * 60, y - 440 - l * 4, real ? 14 : 8, '#e6ff8a', .9 * alpha * A.fade.v);
+    glowPost(x, y - 220, 220, '#5aff4a', .1 * alpha * A.fade.v);
+  };
+  for (const c of b.copies) if (c.live) one(c.x + Math.sin(t * 7 + c.ph) * 2, c.y, .62, false, c.ph);
+  one(b.x, b.y, 1, true, 0);
+  G.lights.push({ x: b.x, y: b.y - 260, r: 420, i: .7 * A.fade.v, col: '#b0ff8a' });
+}
+function drawSkrymir(b) {
+  const R = rigSkrymir(), A = b.an, t = b.t, f = skryFace(b), r = A.rise.v, a = G.world.arena;
+  const x = f.x, y = f.y + (1 - smooth(r)) * 700 + Math.sin(t * .7) * 8, m = A.mouth.v;
+  // he stands beyond the cliff: only what rises above the far edge of the field is seen
+  ctx.save(); ctx.globalAlpha = Math.min(1, r * 1.6);
+  ctx.beginPath(); ctx.rect(a.x - 5000, a.y - 5000, 10000, 10000); ctx.arc(a.x, a.y, a.R * .98, 0, TAU, true); ctx.clip('evenodd');
+  rpart(R.body, x, y + 300, Math.sin(t * .5) * .004);
+  if (m > .03) { ctx.fillStyle = '#0a0e08'; ctx.beginPath(); ctx.ellipse(x, y + 160 + m * 50, 170, 20 + m * 90, 0, 0, TAU); ctx.fill(); }
+  rpart(R.jaw, x, y + 150 + m * 120);
+  rpart(R.head, x, y, Math.sin(t * .6) * .01);
+  rpart(R.crown, x, y - 320, Math.sin(t * .6) * .01);
+  ctx.restore();
+  if (m > .2) glowPost(x, y + 170 + m * 60, 220, '#6fb0d8', m * .45);
+  for (const k of [-1, 1]) { glowPost(x + k * 130, y - 94, 120, '#e6ff6a', .55 * r); glowPost(x + k * 130, y - 94, 30, '#ffffff', .8 * r); }
+  // the hands: hovering high over their mark (a shadow warns), then down on the field
+  for (const h of b.hands) {
+    const k = h.side < 0 ? A.hL.v : A.hR.v; if (k < .02) continue;
+    const hover = h.down ? 0 : (1 - k * .25) * 420 + 160, hx = h.x, hy = h.y - hover;
+    dropShadow(ctx, h.x + 30, h.y + 10, h.down ? 330 : 200 + k * 80, h.down ? 110 : 70, h.down ? .9 : .35 + k * .4);
+    const sx = x + h.side * 760, sy = y + 280, wx = hx, wy = hy - 240, d = Math.hypot(wx - sx, wy - sy), an = Math.atan2(wy - sy, wx - sx);
+    ctx.save(); ctx.globalAlpha = Math.min(1, k * 2);
+    rpart(R.arm, sx, sy, an, d / 1000, 1);
+    ctx.save(); ctx.translate(hx, hy); ctx.scale(h.side < 0 ? -1 : 1, 1); rpart(R.hand, 0, 0); ctx.restore();
+    ctx.restore();
+    if (h.rest > 0) glowPost(hx, hy - 40, 200, '#e6ff8a', .2 + .12 * Math.sin(G.t * 8));
+  }
+  G.lights.push({ x, y: y + 100, r: 900, i: .6 * r, col: '#c8ffb0' });
+}
+
+/* =====================================================================
+   SKÖGUL — Chooser of the Slain, Queen of the Valkyries.
+   Tall as a mast, on wings wider than a longship is long: a winged helm,
+   golden braids, a silver breastplate over mail, a blue cloak, a spear
+   with a gold head and a white round shield. Her sisters, when they fall
+   from the sky, are the same shape drawn in light.
+   Frame: (0,0) between her feet; she faces +x and is mirrored to face.
+   ===================================================================== */
+function rigValk() {
+  if (RIGS.valk) return RIGS.valk;
+  const steel = '#c8d0da', steelD = '#8a96a6', gold = '#d6b050', blue = '#2a4a8a', white = '#f2eee6', mail = '#7a8494', skin = '#f0d6bc', hair = '#f0c870', ink = '#1e1a16';
+  const E = { s: 1.4, grain: .08, shade: [.62, .66, .8], lo: .5, edgeA: .2, edgeW: 12, inkW: 2.4, ink, rim: '#fff2c8', rimA: .5, rimDir: [.4, -1], rimT: .25 };
+  const R = {}, P = (pv, box, layers, extra) => softPart(pv, box, layers, Object.assign({}, E, extra || {}));
+  const sk = (lines, w = 1.8, c = ink) => g => sketch(g, lines, w, c);
+  // a wing, root at the origin, reaching up and back (-x, -y): rows of long primaries under coverts
+  // a wing raised up and back from its root: a curved leading edge, long primaries hanging from the hand, secondaries from the arm, coverts over them
+  const wing = (dark) => {
+    const edge = [[0, 0], [-40, -120], [-110, -250], [-210, -350], [-330, -430], [-440, -470]], pt = u => { const S = crSample(edge, 8), i = Math.min(S.length - 1, Math.round(u * (S.length - 1))); return S[i]; };
+    const C = dark ? ['#9a9488', '#b0aa9c', '#c4bead', '#8a8478'] : ['#e8e2d4', '#f4f0e6', '#fffdf6', '#d8d0bc'];
+    const feathers = (u0, u1, n, L0, L1, w, a0, a1, col, h) => ({ draw: g => Fb(g, P2 => { for (let i = n - 1; i >= 0; i--) { const u = lerp(u0, u1, i / (n - 1)), [bx, by] = pt(u), a = lerp(a0, a1, i / (n - 1)), L = lerp(L0, L1, i / (n - 1));
+      vlimb(P2, [[bx, by], [bx + Math.cos(a) * L * .5, by + Math.sin(a) * L * .5], [bx + Math.cos(a + .06) * L * .92, by + Math.sin(a + .06) * L * .92], [bx + Math.cos(a + .1) * L, by + Math.sin(a + .1) * L]], [w, w * 1.05, w * .8, 3]); } }, col), amp: .4, h, innerInk: true, inkW: .7,
+      bump: g => { g.strokeStyle = '#555'; g.lineWidth = 2; for (let i = 0; i < n; i++) { const u = lerp(u0, u1, i / (n - 1)), [bx, by] = pt(u), a = lerp(a0, a1, i / (n - 1)), L = lerp(L0, L1, i / (n - 1)); g.beginPath(); g.moveTo(bx, by); g.lineTo(bx + Math.cos(a + .05) * L * .9, by + Math.sin(a + .05) * L * .9); g.stroke(); } }, bumpAmp: 3 });
+    return P([0, 0], [-780, -640, 140, 330], [
+      feathers(.5, 1, 13, 200, 290, 58, 1.7, 2.95, C[0], 0),
+      feathers(.04, .56, 13, 150, 210, 60, 1.45, 1.75, C[0], 2),
+      feathers(.06, .98, 16, 96, 130, 54, 1.5, 2.6, C[1], 10),
+      feathers(.04, .96, 18, 52, 70, 42, 1.55, 2.45, C[2], 18),
+      { draw: g => Fb(g, P2 => { const S = crSample(edge, 8); vlimb(P2, S.filter((_, i) => i % 3 === 0), S.filter((_, i) => i % 3 === 0).map((_, i, A) => lerp(46, 10, i / (A.length - 1)))); }, C[3]), amp: .5, h: 24 },
+    ], { lo: dark ? .42 : .58, rimA: .4, over: g => { g.strokeStyle = gold; g.lineWidth = 3; g.beginPath(); edge.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.stroke(); } });
+  };
+  R.wingNear = wing(false); R.wingFar = wing(true);
+  R.cape = P([0, -270], [-150, -300, 60, -20], [
+    { draw: g => Fb(g, P2 => { vcr(P2, [[-30, -290], [20, -290], [30, -200], [10, -110], [-30, -40], [-120, -30], [-100, -120], [-70, -220]]); fringe(P2, [[-120, -34], [-80, -36], [-34, -42]], 4, 18, 14, PI / 2, .4, 3); }, blue), amp: .45 },
+  ], { over: g => { g.strokeStyle = gold; g.lineWidth = 3; g.beginPath(); g.moveTo(-118, -36); g.lineTo(-30, -44); g.stroke(); } });
+  R.body = P([0, -150], [-90, -320, 90, 10], [
+    ...[[-20, -36, -6], [24, 40, 36]].map(([hx, kx, fx], i) => ({ draw: g => { Fb(g, P2 => vlimb(P2, [[hx, -150], [kx, -80], [fx, -6]], [34, 28, 24]), i ? steel : steelD); Fc(g, [[fx - 14, -14], [fx + 22, -14], [fx + 28, 4], [fx - 14, 4]], '#5a4a3a'); }, amp: .5, h: i * 6, spec: .4 })),
+    { draw: g => Fb(g, P2 => { vcr(P2, [[-40, -186], [40, -186], [52, -130], [60, -76], [-60, -76], [-52, -130]]); fringe(P2, [[-60, -78], [0, -76], [60, -78]], 7, 12, 14, PI / 2, .3, 5); }, mail), amp: .4, h: 8,
+      bump: g => { g.fillStyle = '#3a3a3a'; for (let y = -180; y < -80; y += 8) for (let x = -56; x < 56; x += 8) { g.beginPath(); g.arc(x + (y / 8 % 2) * 4, y, 1.6, 0, TAU); g.fill(); } }, bumpAmp: 3 },
+    { draw: g => Fc(g, [[-18, -184], [18, -184], [26, -110], [22, -60], [-22, -60], [-26, -110]], white), amp: .35, h: 14 },
+    { draw: g => Fc(g, [[-40, -186], [40, -186], [52, -240], [60, -282], [30, -296], [-30, -296], [-60, -282], [-52, -240]], steel), amp: .5, h: 18, spec: .7, hiT: .9,
+      bump: g => { g.fillStyle = '#e0e0e0'; for (const k of [-1, 1]) { g.beginPath(); g.ellipse(k * 22, -256, 18, 16, 0, 0, TAU); g.fill(); } }, bumpAmp: 10 },
+    { draw: g => Fb(g, P2 => vcr(P2, [[-40, -192], [40, -192], [44, -180], [-44, -180]]), gold), amp: .5, h: 22, spec: .5 },
+  ], { over: g => { g.strokeStyle = gold; g.lineWidth = 2.6; g.beginPath(); g.moveTo(-18, -184); g.lineTo(-26, -110); g.lineTo(-22, -62); g.moveTo(18, -184); g.lineTo(26, -110); g.lineTo(22, -62); g.moveTo(-30, -294); g.quadraticCurveTo(0, -270, 30, -294); g.stroke(); sk([[[-50, -230], [-44, -200]], [[50, -230], [44, -200]]])(g); } });
+  R.head = P([6, -300], [-60, -400, 70, -270], [
+    { draw: g => Fb(g, P2 => vcr(P2, [[-24, -330], [-30, -300], [-20, -276], [-36, -282], [-40, -310]]), hair), amp: .5 },
+    { draw: g => Fc(g, [[-12, -330], [20, -334], [30, -316], [28, -296], [14, -282], [0, -282], [-10, -296]], skin), amp: .5,
+      bump: g => { g.fillStyle = '#333'; g.beginPath(); g.ellipse(14, -312, 5, 3, 0, 0, TAU); g.fill(); g.fillStyle = '#ddd'; g.beginPath(); g.ellipse(26, -306, 4, 8, 0, 0, TAU); g.fill(); }, bumpAmp: 4 },
+    { draw: g => Fb(g, P2 => vcr(P2, [[-26, -320], [-20, -348], [6, -360], [30, -350], [36, -326], [20, -330], [0, -334], [-16, -322]]), steel), amp: .55, h: 10, spec: .7 },
+    ...[-1, 1].map(k => ({ draw: g => Fb(g, P2 => { for (let i = 0; i < 4; i++) vlimb(P2, [[-6 + k * 4, -350], [-24 - i * 8 + k * 6, -372 - i * 10], [-40 - i * 12 + k * 8, -384 - i * 12]], [10 - i, 7 - i, 1.5]); }, k > 0 ? white : '#d0c8b8'), amp: .5, h: k > 0 ? 16 : 4, inkW: .8 })),
+  ], { over: g => { g.fillStyle = blue; g.fillRect(12, -314, 6, 3); g.strokeStyle = gold; g.lineWidth = 2; g.beginPath(); g.moveTo(-24, -324); g.quadraticCurveTo(6, -336, 34, -328); g.stroke(); } });
+  R.spear = P([0, 0], [-160, -20, 360, 20], [ // along +x, grip at the origin
+    { draw: g => Fb(g, P2 => vlimb(P2, [[-150, 0], [300, 0]], [8, 8]), '#9a7444'), amp: .4, inkW: .9 },
+    { draw: g => Fc(g, [[296, -12], [350, 0], [296, 12], [286, 0]], gold), amp: .5, h: 6, spec: .7 },
+    { draw: g => Fb(g, P2 => vcr(P2, [[280, -8], [292, -8], [292, 8], [280, 8]]), gold), r: 3, h: 8 },
+  ]);
+  R.shield = P([0, 0], [-70, -70, 70, 70], [
+    { draw: g => Fb(g, P2 => vell(P2, 0, 0, 62, 62), white), amp: .25 },
+    { draw: g => Fb(g, P2 => vell(P2, 0, 0, 18, 18), gold), amp: .7, h: 10, spec: .7 },
+  ], { over: g => { g.strokeStyle = gold; g.lineWidth = 4; g.beginPath(); g.arc(0, 0, 58, 0, TAU); g.stroke(); g.strokeStyle = blue; g.lineWidth = 3; for (let i = 0; i < 4; i++) { const a = i * PI / 2 + .3; g.beginPath(); g.moveTo(Math.cos(a) * 22, Math.sin(a) * 22); g.lineTo(Math.cos(a) * 52, Math.sin(a) * 52); g.stroke(); } } });
+  R.arm = P([0, 0], [-14, -14, 90, 14], [{ draw: g => { Fb(g, P2 => vlimb(P2, [[0, 0], [44, 2], [84, 0]], [22, 18, 16]), steel); Fb(g, P2 => vell(P2, 86, 0, 11, 10), skin); }, amp: .5, spec: .5 }]);
+  return RIGS.valk = R;
+}
+RIGPREP.skogul = () => rigValk();
+/* one valkyrie: k = scale (1 is the queen, 360 tall), flap = wing phase, side = facing */
+function drawValkyrie(x, y, k, flap, side, fl, ghost, spear = 0, shield = 0, st = null) {
+  const R = rigValk(), fa = Math.sin(flap) * .38;
+  if (st) for (let i = 0; i < 2; i++) { // golden braids on springs, swinging out behind her
+    const c = st.braids[i]; stepChain(c, [x + (-20 + i * 8) * k * side, y - 312 * k], [-.35 * side, 1], st.t, -side * 260 + Math.sin(st.t * 3 + i) * 180, 0);
+    drawLock(c.p, 20 * k, 8 * k, FL('#e8bc5c'), '#ffe39a', '#b08030', '#1e1a16', 2);
+  }
+  ctx.save(); ctx.translate(x, y); ctx.scale(k * side, k);
+  if (ghost) { ctx.globalCompositeOperation = 'lighter'; ctx.filter = 'sepia(1) saturate(3) brightness(1.1)'; }
+  rpart(R.wingFar, 10, -268, .35 + fa * .8, .85, .85);
+  rpart(R.cape, -4, -270, Math.sin(flap * .5) * .05);
+  rpart(R.body, 0, -150);
+  const sa = -PI / 2 + .35 + spear * 1.75; // spear: upright at rest, levelled to thrust
+  rpart(R.arm, 34, -272, sa * .6 + .6);
+  rpart(R.spear, 34 + Math.cos(sa * .6 + .6) * 86, -272 + Math.sin(sa * .6 + .6) * 86, sa);
+  rpart(R.head, 6, -300);
+  rpart(R.wingNear, -10, -262, -.1 - fa, .85, .85);
+  rpart(R.arm, -30, -270, PI - .8 - shield * .6);
+  rpart(R.shield, -64 - shield * 30, -214 - shield * 20);
+  ctx.filter = 'none'; ctx.restore();
+  if (!ghost) glowPost(x, y - 200 * k, 160 * k, '#ffe6a0', .3);
+}
+function drawSkogul(b) {
+  const A = b.an, z = A.z.v;
+  dropShadow(ctx, b.x + 10, b.y + 4, 150 - Math.min(1, z / 700) * 60, 44 - Math.min(1, z / 700) * 18, .7 * (1 - Math.min(1, z / 700) * .6));
+  if (z > 650) return;
+  const st = b.vst || (b.vst = { t: 0, braids: [0, 1].map(() => mkChain(4, 36, .08, .9, 300)) }); st.t = b.t;
+  drawValkyrie(b.x, b.y - z - 20 - Math.sin(b.t * 2) * 8, 1, b.t * (A.wing.v > .5 ? 14 : 4), Math.cos(b.face) < 0 ? -1 : 1, b.flash > 0, false, A.spear.v, A.shield.v, st);
+  G.lights.push({ x: b.x, y: b.y - z - 220, r: 520, i: .85, col: '#fff0c8' });
+}
+
+/* =====================================================================
    WYRM — Níðhöggr, after the second plate: a vast S of brown hide
    rising out of the black water, crest raked back, claw-teeth fanned.
    Body is built live along a spine; head and claw are painted cels.
@@ -5472,6 +5622,13 @@ function drawPortrait(id) {
   const gr = g.createRadialGradient(76, 60, 10, 76, 76, 80); gr.addColorStop(0, mix(bg, '#ffffff', .12)); gr.addColorStop(1, bg);
   g.fillStyle = gr; g.fillRect(0, 0, 152, 152);
   g.translate(76, 84); g.lineJoin = 'round'; g.lineCap = 'round';
+  // a giant whose painted rig is already built is shown as itself
+  const PR = { angr: () => RIGS.angr && [[RIGS.angr.crown, AG.crown], [RIGS.angr.head, AG.neck], [RIGS.angr.jaw, AG.jaw], [0, -850], .62],
+    surtr: () => RIGS.surtr && [[RIGS.surtr.head, SU.neck], [RIGS.surtr.beard, SU.neck], [0, -822], .62],
+    utgard: () => RIGS.utgard && [[RIGS.utgard.utHead, [0, -400]], [0, -452], 1.25],
+    skogul: () => RIGS.valk && [[RIGS.valk.head, [6, -300]], [10, -326], 1.8] };
+  const pr = PR[id] && PR[id]();
+  if (pr) { const k = pr.pop(), c = pr.pop(); for (const [spr, pv] of pr) g.drawImage(spr.c, (pv[0] + spr.ox - c[0]) * k - 0, (pv[1] + spr.oy - c[1]) * k - 8, spr.wu * k, spr.hu * k); return; }
   const ink = '#0a0706';
   const head = (col, rx = 26, ry = 31) => { g.fillStyle = col; g.strokeStyle = ink; g.lineWidth = 3; g.beginPath(); g.ellipse(0, -6, rx, ry, 0, 0, TAU); g.fill(); g.stroke(); };
   const shoulders = (col) => { g.fillStyle = col; g.strokeStyle = ink; g.lineWidth = 3; g.beginPath(); g.moveTo(-64, 80); g.quadraticCurveTo(-60, 26, 0, 22); g.quadraticCurveTo(60, 26, 64, 80); g.closePath(); g.fill(); g.stroke(); };
@@ -6285,70 +6442,6 @@ function drawSwanPool(o) {
 /* ---------------- the companions ---------------- */
 const NRIG = {};
 function npcSpr(key, box, layers, extra) { return NRIG[key] || (NRIG[key] = paintSprite(Object.assign({ s: 4, inkW: 1.4, rim: '#ffd8a8', rimA: .5, ao: .8, box, layers }, extra || {}))); }
-function hildrSpr(sit, hood, feath) {
-  const gown = '#4c4a58', gownD = '#3a3846', ash = '#8a8690', skin = '#e8d8cc';
-  return npcSpr(`h${sit}${hood}${feath}`, [-18, -44, 18, 4], [
-    { draw: g => Fp(g, P => { for (const sd of [-1, 1]) { vcr(P, [[sd * 3, -28], [sd * 13, -36], [sd * 17, -24], [sd * 14, -12], [sd * 8, -8]]); for (let i = 0; i < feath + 2; i++) vleaf(P, sd * (12 - i * 1.4), -20 + i * 2.6, PI / 2 + sd * .25, 9 - i, 3); } }, ash), amp: .6, grain: .3, bump: g => grooves(g, '#555', .8, [[-6, -30, -12, -24, -10, -12], [6, -30, 12, -24, 10, -12]]), bumpAmp: .8 },
-    { draw: g => Fp(g, P => sit ? vcr(P, [[-9, -25], [9, -25], [12, -12], [16, -3], [-15, -3], [-12, -12]]) : vcr(P, [[-8, -26], [8, -26], [10, -12], [11.5, 0], [0, 1.6], [-11.5, 0], [-10, -12]]), gown), amp: .7, grain: .25,
-      bump: g => grooves(g, '#555', 1, [[-4, -22, -5, -10, -6, -1], [3, -22, 4, -10, 5, -1]]), bumpAmp: 1 },
-    { draw: g => { Fp(g, P => vcr(P, [[-3, -24], [3, -24], [4, sit ? -3 : 0], [-4, sit ? -3 : 0]]), '#5e5c6c'); Fp(g, P => vcirc(P, 0, -24, 1.9), '#d6aa48'); }, r: 1.5, h: 1, spec: .6 },
-    ...(hood ? [] : [{ draw: g => Fp(g, P => { vcr(P, [[-5.6, -33], [-7.4, -24], [-5, -20], [-2.4, -27]]); vcr(P, [[5.6, -33], [7.4, -24], [5, -20], [2.4, -27]]); }, '#efeaf4'), amp: .6, h: .5 }]),
-    { draw: g => { Fp(g, P => vcirc(P, 0, -31, 5.2), skin); }, amp: .8, h: 1.5 },
-    ...(hood ? [{ draw: g => Fp(g, P => vcr(P, [[-7.6, -25], [-8, -34], [-4, -38.6], [4, -38.6], [8, -34], [7.6, -25], [5, -31], [0, -32.6], [-5, -31]]), gownD), amp: .7, h: 3 }] : [{ draw: g => Fp(g, P => vcr(P, [[-5.6, -33], [-4, -36.4], [0, -37], [4, -36.4], [5.6, -33], [0, -34]]), '#f2eef6'), amp: .6, h: 2.5 }]),
-  ], { over: g => { g.fillStyle = '#ffcf6a'; g.fillRect(-2.6, -31.6, 1.6, 1.4); g.fillRect(1, -31.6, 1.6, 1.4); } });
-}
-function drawHildr(n) {
-  const sit = n.sit ? 1 : 0, hood = !S.f.twist ? 1 : 0, feath = S.f.night ? 2 : S.f.twist ? 3 : 4;
-  const spr = hildrSpr(sit, hood, feath), b = Math.sin(G.t * 1.6) * .4;
-  dropShadow(ctx, n.x, n.y + 1, 13, 5, .8);
-  drawSpr(spr, n.x, n.y + (sit ? 7 : 0) + b);
-  glow(n.x, n.y + (sit ? 7 : 0) - 31, 8, '#ffcf6a', .5);
-}
-function drawBjarki(n) {
-  const x = n.x, y = n.y, t = G.t, sw = Math.max(0, Math.sin(t * 2.2));
-  const body = npcSpr('bjarki', [-18, -46, 18, 4], [
-    { draw: g => Fp(g, P => { vlimb(P, [[-5, -14], [-6, 0]], [7, 6]); vlimb(P, [[5, -14], [6, 0]], [7, 6]); vcr(P, [[-8, -1.6], [-2, -2.6], [-1, 1.2], [-9, 1.4]]); vcr(P, [[2, -2.6], [8, -1.6], [9, 1.4], [1, 1.2]]); }, '#3a2c22'), amp: .8 },
-    { draw: g => Fp(g, P => vcr(P, [[-13, -28], [-11, -40], [11, -40], [13, -28], [12, -12], [0, -10], [-12, -12]]), '#3e3e46'), amp: .7 },
-    { draw: g => { Fp(g, P => vcr(P, [[-9, -30], [9, -30], [10, -6], [0, -4], [-10, -6]]), '#6a4a2a'); g.strokeStyle = '#3a2614'; g.lineWidth = .6; g.beginPath(); g.moveTo(-9, -30); g.lineTo(-12, -38); g.moveTo(9, -30); g.lineTo(12, -38); g.stroke(); }, r: 4, amp: .6, h: 1.5, grain: .35 },
-    { draw: g => Fp(g, P => vlimb(P, [[11, -36], [14, -26], [12, -16]], [6.4, 5.6, 5]), '#c9a07a'), amp: .9, h: 2 },
-    { draw: g => Fp(g, P => vcirc(P, 0, -42, 6.6), '#c9a07a'), amp: .9, h: 2 },
-    { draw: g => { Fp(g, P => { vcr(P, [[-6.6, -42], [-5, -37], [0, -35], [5, -37], [6.6, -42], [5, -30], [1.6, -22], [-1.6, -22], [-5, -30]]); }, '#b84e24'); g.strokeStyle = '#7a2e12'; g.lineWidth = .5; for (let i = 0; i < 6; i++) { g.beginPath(); g.moveTo(-4 + i * 1.6, -36); g.lineTo(-2 + i * .8, -24); g.stroke(); } Fp(g, P => vcr(P, [[-1, -23.6], [1, -23.6], [1, -22], [-1, -22]]), '#c9a548'); }, amp: .6, h: 3 },
-  ], { over: g => { g.fillStyle = '#1a120c'; g.fillRect(-3.2, -43.6, 1.5, 1.2); g.fillRect(1.8, -43.6, 1.5, 1.2); g.fillStyle = 'rgba(40,30,20,.35)'; g.beginPath(); g.ellipse(-2, -46, 3, 1.4, 0, 0, TAU); g.fill(); } });
-  const arm = npcSpr('bjarkiArm', [-4, -4, 22, 6], [
-    { draw: g => Fp(g, P => vlimb(P, [[0, 0], [8, .5], [14, 0]], [6.4, 5.4, 4.8]), '#c9a07a'), amp: .9 },
-    { draw: g => { Fp(g, P => vpoly(P, [[13, -1], [24, -1], [24, 1], [13, 1]]), '#5a3e24'); Fp(g, P => vcr(P, [[21, -5], [27, -5], [27, 5], [21, 5]]), '#55575c'); }, r: 1.6, h: 2, spec: .8, shine: 16 },
-  ]);
-  dropShadow(ctx, x, y + 1, 16, 6, .8);
-  drawSpr(body, x, y);
-  const a = -1.9 + sw * 1.5; ctx.save(); ctx.translate(x - 11, y - 36); ctx.rotate(a); ctx.drawImage(arm.c, arm.ox, arm.oy, arm.wu, arm.hu); ctx.restore();
-  if (sw > .97 && Math.random() < .5) { burst(x - 22, y - 34, 4, { type: 'spark', color: '#ffd27a', add: 1, smin: 60, smax: 160 }); SFX.tick(); }
-}
-function drawAsta(n) {
-  const x = n.x, y = n.y;
-  const spr = npcSpr('asta', [-20, -64, 20, 6], [
-    { draw: g => Fp(g, P => vlimb(P, [[14, 4], [15, -30], [16, -52]], [2.6, 2.4, 2.2]), '#5a442e'), amp: .9 },
-    { draw: g => { Fp(g, P => vcr(P, [[-11, -26], [11, -26], [14, -10], [15, 4], [-15, 4], [-14, -10]]), '#2a3a5c'); g.fillStyle = '#9fe0c8'; for (let i = 0; i < 14; i++) { g.beginPath(); g.arc(-12 + hash2(i, 1) * 24, -22 + hash2(i, 2) * 24, .9, 0, TAU); g.fill(); } }, amp: .7, grain: .3 },
-    { draw: g => Fp(g, P => vcirc(P, 0, -32, 5.4), '#c8b4a0'), amp: .8, h: 1 },
-    { draw: g => { Fp(g, P => vcr(P, [[-8.4, -25], [-9, -38], [-4, -43], [4, -43], [9, -38], [8.4, -25], [5.6, -33], [0, -35.6], [-5.6, -33]]), '#141416'); g.strokeStyle = '#f4f0ea'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(-7.4, -26); g.quadraticCurveTo(-6, -36, 0, -36); g.quadraticCurveTo(6, -36, 7.4, -26); g.stroke(); }, amp: .7, h: 2.4 },
-    { draw: g => { Fp(g, P => { for (let i = 0; i < 7; i++) vcirc(P, -7 + i * 2.4, -23.4 + Math.sin(i * .9) * 1.6, 1.15); }, '#7fd8c0'); }, r: .8, h: 3, spec: 1, shine: 20, ink: false },
-    { draw: g => Fp(g, P => { vcirc(P, 16, -54, 2.6); vcr(P, [[-6, -6], [-2, -8], [-2, -3], [-6, -2]]); vcr(P, [[2, -8], [6, -6], [6, -2], [2, -3]]); }, '#c9a548'), r: 1.2, h: 3, spec: 1, shine: 18 },
-  ], { over: g => { g.strokeStyle = '#3a2a20'; g.lineWidth = .8; g.beginPath(); g.moveTo(-3.5, -32); g.lineTo(-1, -32); g.moveTo(1, -32); g.lineTo(3.5, -32); g.stroke(); } });
-  drawSpr(spr, x, y - 4);
-  glow(x + 16, y - 58, 14, '#9fe0c8', .6 + .2 * Math.sin(G.t * 2));
-}
-function drawKolr(n) {
-  const x = n.x, y = n.y, t = G.t;
-  const spr = npcSpr('kolr', [-16, -44, 18, 4], [
-    { draw: g => Fp(g, P => vcr(P, [[-9, -22], [9, -22], [12, -8], [12, -2], [-12, -2], [-12, -8]]), '#5a3a1a'), amp: .7, grain: .3 },
-    { draw: g => Fp(g, P => vcr(P, [[-10, -9], [10, -9], [10, -6], [-10, -6]]), '#2a2a34'), r: 1, h: 1 },
-    { draw: g => Fp(g, P => vcirc(P, 0, -28, 5.2), '#dcb48e'), amp: .8, h: 1 },
-    { draw: g => Fp(g, P => vcr(P, [[-3, -24.6], [3, -24.6], [2, -20], [0, -18.4], [-2, -20]]), '#6a4a2a'), amp: .6, h: 1.4 },
-    { draw: g => Fp(g, P => vcr(P, [[-5.6, -30], [-4, -36], [2, -40], [9, -38], [4, -35], [5.6, -30]]), '#a8302a'), amp: .7, h: 2.5 },
-    { draw: g => { Fp(g, P => vcr(P, [[4, -4], [6, -21], [14, -19], [12, -3]]), '#8a6034'); Fp(g, P => vcr(P, [[6.2, -8], [7.4, -18], [12.4, -16.6], [11, -7]]), '#2a1a0e'); g.strokeStyle = '#e8d8b0'; g.lineWidth = .35; for (let i = 0; i < 5; i++) { g.beginPath(); g.moveTo(7 + i * 1.1, -17.4 + i * .3); g.lineTo(6.6 + i * 1.1, -8.4); g.stroke(); } }, r: 1.4, h: 4, spec: .3 },
-  ], { over: g => { g.fillStyle = '#1a120c'; g.fillRect(-2.6, -29, 1.4, 1.3); g.fillRect(1.4, -29, 1.4, 1.3); } });
-  drawSpr(spr, x, y + 2);
-  if (Math.random() < .01) part({ x: x + 14, y: y - 30, vy: -20, vx: 10, life: 1.6, type: 'rune', ch: pick('♪♫'), color: '#f0c87a', size: 10 });
-}
 function drawMuninn(n) {
   const x = n.x, y = n.y - 112, bob = Math.sin(G.t * 1.5) * .6, s = P && P.x < x ? -1 : 1;
   vRaven(ctx, x, y + bob, .55, G.t, { perch: 1, face: s, col: '#101216', rim: '#9ab0d8' });
@@ -6368,6 +6461,153 @@ function drawYlfa(n) {
   ctx.save(); ctx.translate(-7, -8); ctx.rotate(Math.sin(t * 9) * .2); ctx.translate(7, 8); ctx.drawImage(body.c, body.ox, body.oy, body.wu, body.hu); ctx.restore();
   ctx.restore();
   glow(x, y - 6, 20, '#bfe0ff', .35);
+}
+
+/* =====================================================================
+   THE COMPANIONS — painted at the hero's scale (about 46 units tall),
+   each a few parts so they breathe, turn to look at Einar, and work.
+   ===================================================================== */
+const NPCR = {};
+function npcPart(key, box, layers, extra) { return NPCR[key] || (NPCR[key] = paintSprite(Object.assign({ s: 5, inkW: 1.3, rim: '#ffd8a8', rimA: .5, ao: .8, box, layers }, extra || {}))); }
+/* a head, scaled up about its neck (py) to match the hero's bold proportions */
+function nhead(spr, x, y, py, rot = 0, k = 1.25) { ctx.save(); ctx.translate(x, y + py); if (rot) ctx.rotate(rot); ctx.scale(k, k); ctx.translate(0, -py); ctx.drawImage(spr.c, spr.ox, spr.oy, spr.wu, spr.hu); ctx.restore(); }
+function npart(spr, x, y, rot = 0, sx = 1, sy = 1) { ctx.save(); ctx.translate(x, y); if (rot) ctx.rotate(rot); if (sx !== 1 || sy !== 1) ctx.scale(sx, sy); ctx.drawImage(spr.c, spr.ox, spr.oy, spr.wu, spr.hu); ctx.restore(); }
+const npcLook = (n, max = .12) => { const d = P ? P.x - n.x : 0; return clamp(d / 160, -1, 1) * max; };
+const gtrim = (g, pts, col = '#d6b050', w = .7) => { g.strokeStyle = col; g.lineWidth = w; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.stroke(); };
+
+/* ---------------- Hildr: hooded, grey-winged; after the truth, her hair down ---------------- */
+function hildrWings(feath) {
+  return npcPart('hW' + feath, [-20, -46, 20, 0], [
+    ...[-1, 1].map(s => ({ draw: g => Fp(g, P => { vcr(P, [[s * 3, -33], [s * 9, -40], [s * 15, -38], [s * 17, -28], [s * 16, -16], [s * 11, -12], [s * 6, -20]]); }, '#7e7a88'), amp: .7, grain: .2 })),
+    ...[-1, 1].map(s => ({ draw: g => Fp(g, P => { // primaries: fewer and more ragged as she weakens
+      for (let i = 0; i < feath + 3; i++) { const gap = feath < 4 && i % 3 === 1; if (gap) continue; vleaf(P, s * (16 - i * 1.3), -24 + i * 2.6, PI / 2 + s * (.18 + i * .05), 11 - i * .8, 2.8); } }, '#9c98a6'), amp: .7, h: 1, grain: .2, innerInk: true, inkW: .6 })),
+    ...[-1, 1].map(s => ({ draw: g => Fp(g, P => { for (let i = 0; i < 5; i++) vleaf(P, s * (6 + i * 2), -36 + i * 1.2, PI / 2 + s * .3, 6, 2.4); }, '#b6b2c0'), amp: .7, h: 2, innerInk: true, inkW: .5 })),
+  ], { rim: '#e8e4f4' });
+}
+function hildrBody(sit) {
+  const gown = '#4c4a5c', gownD = '#363444', skin = '#ecdcd0';
+  return npcPart('hB' + sit, [-16, -32, 16, 3], [
+    { draw: g => Fp(g, P => sit ? vcr(P, [[-8, -27], [8, -27], [10, -16], [15, -6], [16, -1], [0, 1], [-16, -1], [-15, -6], [-10, -16]]) : vcr(P, [[-7.6, -27.4], [7.6, -27.4], [9.4, -16], [11.4, -4], [12.6, 0], [6, 1.4], [0, .8], [-6, 1.4], [-12.6, 0], [-11.4, -4], [-9.4, -16]]), gown), amp: .7, grain: .25,
+      bump: g => grooves(g, '#555', .9, sit ? [[-4, -16, -9, -8, -12, -2], [4, -16, 9, -8, 12, -2], [0, -14, 0, -6, 0, 0]] : [[-3, -18, -5, -9, -7, 0], [3, -18, 5, -9, 7, 0], [0, -15, .5, -7, 0, 0], [-6, -14, -9, -6, -11, 0]]), bumpAmp: 1.2 },
+    { draw: g => Fp(g, P => vcr(P, [[-8.2, -19.6], [0, -18.4], [8.2, -19.6], [8, -17.4], [0, -16.4], [-8, -17.4]]), '#2a2834'), r: 1, h: 1 },
+    { draw: g => { Fp(g, P => vcirc(P, 0, -18.2, 1.7), '#d6aa48'); Fp(g, P => vcr(P, [[-.6, -16.6], [.6, -16.6], [.9, -10], [-.2, -9.4]]), '#2a2834'); }, r: .8, h: 2, spec: .8, shine: 18 },
+    // sleeves and the clasped hands (or hands on her knees, sitting)
+    { draw: g => { for (const s of [-1, 1]) Fp(g, P => vlimb(P, sit ? [[s * 7.6, -25], [s * 9.4, -18], [s * 7, -12]] : [[s * 7.4, -25], [s * 8.4, -19], [s * 3, -15.4]], [4.4, 4, 3.6]), gownD);
+      Fp(g, P => sit ? (vcirc(P, -6.6, -11.6, 1.7), vcirc(P, 6.6, -11.6, 1.7)) : (vcirc(P, -1.8, -15, 1.7), vcirc(P, 1.8, -15.2, 1.7)), skin); }, amp: .8, h: 2 },
+  ], { over: g => { gtrim(g, sit ? [[-16, -1], [0, 1], [16, -1]] : [[-12.6, 0], [-6, 1.4], [0, .8], [6, 1.4], [12.6, 0]]); gtrim(g, [[-7.4, -27], [0, -24.4], [7.4, -27]], '#d6b050', .5); } });
+}
+function hildrHead(hood) {
+  const skin = '#ecdcd0', hair = '#e8dcc0', hoodC = '#3c3a4a';
+  return npcPart('hH' + hood, [-9, -42, 9, -24], [
+    ...(hood ? [{ draw: g => Fp(g, P => vcr(P, [[-7.4, -25.4], [-8.2, -34], [-5, -39.6], [0, -41.4], [5, -39.6], [8.2, -34], [7.4, -25.4], [4.6, -28], [0, -29], [-4.6, -28]]), hoodC), amp: .7 }] : [
+      { draw: g => Fp(g, P => vcr(P, [[-5.8, -34], [-6.2, -28], [-4.6, -25], [4.6, -25], [6.2, -28], [5.8, -34], [0, -37.4]]), hair), amp: .6 }]),
+    { draw: g => Fp(g, P => vcr(P, [[-4.2, -34.6], [4.2, -34.6], [4.8, -31.4], [3.8, -28.4], [1.4, -26.8], [-1.4, -26.8], [-3.8, -28.4], [-4.8, -31.4]]), skin), amp: .7, h: 1,
+      bump: g => { g.fillStyle = '#444'; g.beginPath(); g.ellipse(-1.8, -31.6, .9, .55, 0, 0, TAU); g.ellipse(1.8, -31.6, .9, .55, 0, 0, TAU); g.fill(); g.fillStyle = '#ccc'; g.beginPath(); g.ellipse(0, -30.4, .5, 1.2, 0, 0, TAU); g.fill(); }, bumpAmp: .5 },
+    ...(hood ? [{ draw: g => Fp(g, P => vcr(P, [[-5.6, -33.4], [-4.6, -37], [0, -38.6], [4.6, -37], [5.6, -33.4], [3, -35.6], [0, -36], [-3, -35.6]]), hoodC), amp: .6, h: 2.6 }] : [
+      { draw: g => Fp(g, P => { vcr(P, [[-5, -33.4], [-4.4, -37], [0, -38.2], [4.4, -37], [5, -33.4], [2.6, -35.4], [0, -34.6], [-2.6, -35.4]]); }, hair), amp: .6, h: 2 },
+      { draw: g => Fp(g, P => vcr(P, [[-4.6, -35.6], [0, -36.8], [4.6, -35.6], [4.6, -35], [0, -36.2], [-4.6, -35]]), '#d6aa48'), r: .5, h: 3, spec: .9, shine: 20 }]),
+  ], { over: g => { g.fillStyle = '#ffcf6a'; g.fillRect(-2.5, -31.9, 1.3, .7); g.fillRect(1.2, -31.9, 1.3, .7); g.strokeStyle = '#a07a70'; g.lineWidth = .4; g.beginPath(); g.moveTo(-.9, -28.6); g.quadraticCurveTo(0, -28.2, .9, -28.6); g.stroke();
+    if (hood) { g.fillStyle = 'rgba(20,16,30,.3)'; g.beginPath(); g.ellipse(0, -34.4, 4.4, 1.6, 0, 0, TAU); g.fill(); }
+    g.strokeStyle = '#6a5a50'; g.lineWidth = .45; g.beginPath(); g.moveTo(-3, -33.2); g.lineTo(-1, -33.6); g.moveTo(3, -33.2); g.lineTo(1, -33.6); g.stroke(); } });
+}
+function drawHildr(n) {
+  const sit = n.sit ? 1 : 0, hood = !S.f.twist ? 1 : 0, feath = S.f.night ? 2 : S.f.twist ? 3 : 4, t = G.t;
+  const x = n.x, y = n.y + (sit ? 7 : 0), br = Math.sin(t * 1.6), look = npcLook(n);
+  const ruffle = Math.max(0, Math.sin(t * .9 + 2)) ** 12; // now and then the grey wings shiver
+  dropShadow(ctx, x, n.y + 1, 14, 5, .8);
+  npart(hildrWings(feath), x, y, ruffle * .04 * Math.sin(t * 30), 1 + ruffle * .06, 1);
+  npart(hildrBody(sit), x, y, 0, 1, 1 + br * .01);
+  if (!hood) { // her braid, over the shoulder, on a spring
+    const st = n.st || (n.st = { c: mkChain(5, 3.4, .12, .88, 120) }); stepChain(st.c, [x + 4.6 + look * 10, y - 32], [.25, 1], t, Math.sin(t * 1.3) * 30, 0);
+    drawLock(st.c.p, 2.6, 1, '#e8dcc0', '#fff6e0', '#b8a880', '#2a2420', .5);
+  }
+  nhead(hildrHead(hood), x + look * 6, y + br * .2, -26, look * .6, 1.3);
+  glow(x + look * 6, y - 34, 4, '#ffcf6a', .25);
+}
+
+/* ---------------- Bjarki the smith: one hand, a red beard, a hammer that never rests ---------------- */
+function drawBjarki(n) {
+  const x = n.x, y = n.y, t = G.t, sw = Math.max(0, Math.sin(t * 2.2)), skin = '#c9a07a', look = npcLook(n, .08);
+  const body = npcPart('bjB', [-18, -40, 18, 3], [
+    { draw: g => Fp(g, P => { vlimb(P, [[-5, -14], [-6, 0]], [7.4, 6.4]); vlimb(P, [[5, -14], [6, 0]], [7.4, 6.4]); vcr(P, [[-9, -1.6], [-2, -2.6], [-1, 1.4], [-10, 1.6]]); vcr(P, [[2, -2.6], [9, -1.6], [10, 1.6], [1, 1.4]]); }, '#3a2c22'), amp: .8 },
+    { draw: g => Fp(g, P => vcr(P, [[-14, -28], [-12, -38], [12, -38], [14, -28], [13, -12], [0, -10], [-13, -12]]), '#4a4a54'), amp: .7, grain: .2 },
+    { draw: g => { Fp(g, P => vcr(P, [[-9.6, -30], [9.6, -30], [10.6, -6], [0, -4], [-10.6, -6]]), '#6a4a2a'); }, r: 4, h: 1, grain: .35,
+      bump: g => { g.fillStyle = '#333'; for (let i = 0; i < 9; i++) { g.beginPath(); g.arc(-7 + hash2(i, 2) * 14, -26 + hash2(i, 3) * 18, .7, 0, TAU); g.fill(); } }, bumpAmp: .6 },
+    { draw: g => Fp(g, P => vcr(P, [[-14, -14], [14, -14], [14, -11.6], [-14, -11.6]]), '#2a1e16'), r: 1, h: 2 },
+    // the stump of his left arm, wrapped, and the right shoulder
+    { draw: g => { Fp(g, P => vlimb(P, [[-12, -36], [-15, -28], [-14, -22]], [6.8, 6, 5.6]), skin); Fp(g, P => vcr(P, [[-17, -24.6], [-11, -24.6], [-11, -20.4], [-17, -20.4]]), '#a89a84'); }, amp: .9, h: 2 },
+  ], { over: g => { g.strokeStyle = '#3a2614'; g.lineWidth = .6; g.beginPath(); g.moveTo(-9.6, -30); g.lineTo(-12.6, -38); g.moveTo(9.6, -30); g.lineTo(12.6, -38); g.stroke(); gtrim(g, [[-17, -22.6], [-11, -22.6]], '#7a6a54', .4); } });
+  const head = npcPart('bjH', [-10, -52, 10, -26], [
+    { draw: g => Fp(g, P => vcirc(P, 0, -43, 6.8), skin), amp: .9,
+      bump: g => { g.fillStyle = '#444'; g.beginPath(); g.ellipse(-2.6, -43.6, 1, .7, 0, 0, TAU); g.ellipse(2.6, -43.6, 1, .7, 0, 0, TAU); g.fill(); g.fillStyle = '#ddd'; g.beginPath(); g.ellipse(0, -46.4, 4.6, 1, 0, 0, TAU); g.fill(); }, bumpAmp: .8 },
+    { draw: g => { Fp(g, P => vcr(P, [[-7.4, -44], [-6, -38.4], [-2.4, -37], [0, -38], [2.4, -37], [6, -38.4], [7.4, -44], [8, -36], [6.4, -30], [3.4, -27.4], [0, -28.6], [-3.4, -27.4], [-6.4, -30], [-8, -36]]), '#b84e24');
+      g.strokeStyle = '#7a2e12'; g.lineWidth = .45; for (let i = 0; i < 7; i++) { g.beginPath(); g.moveTo(-4.4 + i * 1.5, -37); g.quadraticCurveTo(-4 + i * 1.4, -31, -1.6 + i * .5, -25); g.stroke(); } }, amp: .8, h: 2 },
+    { draw: g => { for (const s of [-1, 1]) { Fp(g, P => { for (let i = 0; i < 4; i++) vcirc(P, s * (2 + i * .15), -28.6 + i * 1.6, 1.2 - i * .08); }, '#a8421e'); Fp(g, P => vcirc(P, s * 2.7, -22.4, 1), '#c9a548'); } }, r: .6, h: 3 },
+  ], { over: g => { g.fillStyle = '#1a120c'; g.fillRect(-3.2, -44.2, 1.4, 1.1); g.fillRect(1.8, -44.2, 1.4, 1.1); g.strokeStyle = 'rgba(30,60,90,.6)'; g.lineWidth = .5; g.beginPath(); g.moveTo(-3, -49); g.quadraticCurveTo(0, -51, 3, -49); g.moveTo(-2, -48); g.lineTo(2, -48); g.stroke(); } });
+  const arm = npcPart('bjA', [-4, -5, 30, 8], [
+    { draw: g => Fp(g, P => vlimb(P, [[0, 0], [8, .6], [15, 0]], [7.2, 6, 5.2]), skin), amp: .9 },
+    { draw: g => { Fp(g, P => vpoly(P, [[14, -1.1], [26, -1.1], [26, 1.1], [14, 1.1]]), '#5a3e24'); Fp(g, P => vcr(P, [[22, -5.6], [29, -5.6], [29, 5.6], [22, 5.6]]), '#55575c'); }, r: 1.6, h: 2, spec: .8, shine: 16 },
+    { draw: g => Fp(g, P => vcirc(P, 15.4, 0, 2.8), skin), amp: .9, h: 3 },
+  ]);
+  dropShadow(ctx, x, y + 1, 17, 6, .8);
+  npart(body, x, y, 0, 1, 1 + Math.sin(t * 1.4) * .008);
+  nhead(head, x + look * 4, y - sw * .6, -36, look * .4 + sw * .05, 1.12);
+  const a = -1.9 + sw * 1.5; npart(arm, x + 12, y - 36, a);
+  if (sw > .97 && Math.random() < .5) { burst(x + 12 + Math.cos(a) * 26, y - 36 + Math.sin(a) * 26, 4, { type: 'spark', color: '#ffd27a', add: 1, smin: 60, smax: 160 }); SFX.tick(); }
+}
+
+/* ---------------- Ásta the seer: a blue cloak, a hood of white cat-fur, glass beads, a staff ---------------- */
+function drawAsta(n) {
+  const x = n.x, y = n.y, t = G.t, look = npcLook(n, .1), br = Math.sin(t * 1.2);
+  const body = npcPart('aB', [-18, -40, 18, 6], [
+    { draw: g => Fp(g, P => { vcr(P, [[-10, -30], [10, -30], [13, -14], [16, 2], [6, 4], [0, 3], [-6, 4], [-16, 2], [-13, -14]]); fringe(P, [[-15, 3], [0, 4], [15, 3]], 7, 3, 2.4, PI / 2, .3, 4); }, '#2a3a5c'), amp: .7, grain: .25,
+      bump: g => grooves(g, '#555', .9, [[-5, -24, -8, -10, -11, 2], [5, -24, 8, -10, 11, 2], [0, -22, 0, -8, 0, 2]]), bumpAmp: 1.2 },
+    { draw: g => { Fp(g, P => vcr(P, [[-10.6, -31], [0, -28], [10.6, -31], [9, -26], [0, -24], [-9, -26]]), '#f0eee8'); }, amp: .7, h: 2, grain: .4 },
+    { draw: g => { Fp(g, P => { for (let i = 0; i < 9; i++) vcirc(P, -7.6 + i * 1.9, -23.6 + Math.sin(i * .7) * 1.4 + Math.abs(i - 4) * -.3, 1.05); }, '#7fd8c0'); }, r: .7, h: 3, spec: 1, shine: 20, ink: false },
+    { draw: g => Fp(g, P => { for (const s of [-1, 1]) vlimb(P, [[s * 9, -27], [s * 10, -20], [s * 6, -14]], [4.2, 3.8, 3.4]); }, '#22304c'), amp: .8, h: 2 },
+    { draw: g => Fp(g, P => { vcirc(P, -5.4, -13.6, 2); vcirc(P, 5.4, -13.6, 2); }, '#f0eee8'), amp: .8, h: 3 },
+  ], { over: g => { g.fillStyle = 'rgba(160,224,200,.8)'; for (let i = 0; i < 16; i++) { g.beginPath(); g.arc(-12 + hash2(i, 1) * 24, -18 + hash2(i, 2) * 18, .45, 0, TAU); g.fill(); } } });
+  const head = npcPart('aH', [-10, -46, 10, -24], [
+    { draw: g => Fp(g, P => vcr(P, [[-4.4, -36], [4.4, -36], [5, -32.6], [3.8, -29.4], [1.2, -28], [-1.2, -28], [-3.8, -29.4], [-5, -32.6]]), '#c8b4a0'), amp: .8,
+      bump: g => { g.fillStyle = '#444'; g.beginPath(); g.ellipse(-1.8, -33, .9, .5, 0, 0, TAU); g.ellipse(1.8, -33, .9, .5, 0, 0, TAU); g.fill(); g.strokeStyle = '#555'; g.lineWidth = .3; g.beginPath(); g.moveTo(-3.6, -31); g.lineTo(-2.4, -30); g.moveTo(3.6, -31); g.lineTo(2.4, -30); g.stroke(); }, bumpAmp: .5 },
+    { draw: g => Fp(g, P => vcr(P, [[-8.6, -27], [-9.2, -38], [-4, -44], [4, -44], [9.2, -38], [8.6, -27], [5.6, -33.6], [0, -36.8], [-5.6, -33.6]]), '#141c2c'), amp: .7, h: 2 },
+    { draw: g => Fp(g, P => { vcr(P, [[-8.6, -27], [-9.2, -38], [-4, -44], [4, -44], [9.2, -38], [8.6, -27], [7.2, -27.6], [7.6, -37], [3.4, -42.4], [-3.4, -42.4], [-7.6, -37], [-7.2, -27.6]]); }, '#f0eee8'), amp: .6, h: 3, grain: .45 },
+  ], { over: g => { g.fillStyle = '#9fe0c8'; g.fillRect(-2.5, -33.4, 1.2, .7); g.fillRect(1.3, -33.4, 1.2, .7); g.strokeStyle = '#5a4a40'; g.lineWidth = .4; g.beginPath(); g.moveTo(-3, -34.4); g.lineTo(-1.2, -34.8); g.moveTo(3, -34.4); g.lineTo(1.2, -34.8); g.moveTo(-.8, -29.8); g.lineTo(.8, -29.8); g.stroke(); } });
+  const staff = npcPart('aS', [-3, -62, 3, 4], [
+    { draw: g => Fp(g, P => vlimb(P, [[0, 4], [.4, -30], [0, -54]], [2.4, 2.2, 2]), '#5a442e'), amp: .9 },
+    { draw: g => { Fp(g, P => vcirc(P, 0, -56, 2.8), '#c9a548'); Fp(g, P => { vcr(P, [[-2, -53], [2, -53], [1.6, -50], [-1.6, -50]]); }, '#c9a548'); }, r: 1.2, h: 3, spec: 1, shine: 18 },
+  ]);
+  dropShadow(ctx, x, y + 1, 15, 5, .8);
+  npart(staff, x + 15, y, Math.sin(t * .8) * .02);
+  npart(body, x, y - 2, 0, 1, 1 + br * .008);
+  nhead(head, x + look * 5, y - 2 + br * .2, -27, look * .5, 1.3);
+  const gl = .55 + .25 * Math.sin(t * 2); glow(x + 15, y - 56, 16, '#9fe0c8', gl); glowPost(x + 15, y - 56, 30, '#9fe0c8', gl * .4);
+}
+
+/* ---------------- Kolr the skald: a red cap, a lyre, a song that is mostly about himself ---------------- */
+function drawKolr(n) {
+  const x = n.x, y = n.y, t = G.t, look = npcLook(n, .1), strum = Math.sin(t * 7) * .5 + .5;
+  const body = npcPart('kB', [-16, -32, 18, 4], [
+    { draw: g => Fp(g, P => { vcr(P, [[-9, -24], [9, -24], [12, -10], [12, -2], [-12, -2], [-12, -10]]); vcr(P, [[-11, -3], [11, -3], [12, 2], [-12, 2]]); }, '#5a3a1a'), amp: .7, grain: .3 },
+    { draw: g => Fp(g, P => vcr(P, [[-10, -10], [10, -10], [10, -7], [-10, -7]]), '#2a2a34'), r: 1, h: 1 },
+    { draw: g => Fp(g, P => vcr(P, [[-9, -24], [9, -24], [8, -20], [-8, -20]]), '#3a6a3a'), r: 1.4, h: 1.4 },
+  ], { over: g => gtrim(g, [[-12, -2], [12, -2]], '#c9a548', .6) });
+  const head = npcPart('kH', [-8, -44, 12, -20], [
+    { draw: g => Fp(g, P => vcirc(P, 0, -29, 5.4), '#dcb48e'), amp: .8,
+      bump: g => { g.fillStyle = '#444'; g.beginPath(); g.ellipse(-2, -29.6, .9, .6, 0, 0, TAU); g.ellipse(2, -29.6, .9, .6, 0, 0, TAU); g.fill(); }, bumpAmp: .5 },
+    { draw: g => Fp(g, P => vcr(P, [[-3.2, -25.4], [3.2, -25.4], [2.2, -20.6], [0, -19], [-2.2, -20.6]]), '#6a4a2a'), amp: .6, h: 1.4 },
+    { draw: g => Fp(g, P => vcr(P, [[-5.8, -31], [-4, -37], [2, -41.4], [10, -40], [5, -36], [5.8, -31]]), '#a8302a'), amp: .7, h: 2.5 },
+  ], { over: g => { g.fillStyle = '#1a120c'; g.fillRect(-2.7, -30.1, 1.4, 1.2); g.fillRect(1.3, -30.1, 1.4, 1.2); g.strokeStyle = '#5a3a1a'; g.lineWidth = .5; g.beginPath(); g.moveTo(-3.2, -31.6); g.lineTo(-1.2, -32.2); g.moveTo(3.2, -31.6); g.lineTo(1.2, -32.2); g.stroke(); g.strokeStyle = '#6a3a20'; g.lineWidth = .5; g.beginPath(); g.moveTo(-2, -26.8); g.quadraticCurveTo(0, -25.6, 2, -26.8); g.stroke(); } });
+  const lyre = npcPart('kL', [-1, -20, 14, 1], [
+    { draw: g => { Fp(g, P => vcr(P, [[0, -1], [2, -18], [12, -17], [10, -1]]), '#8a6034'); Fp(g, P => vcr(P, [[2.4, -5], [3.4, -15], [9, -14], [7.6, -5]]), '#2a1a0e'); }, amp: .6, h: 2 },
+  ], { over: g => { g.strokeStyle = '#e8d8b0'; g.lineWidth = .3; for (let i = 0; i < 5; i++) { g.beginPath(); g.moveTo(3.4 + i * 1.2, -15); g.lineTo(3 + i * 1.1, -2); g.stroke(); } } });
+  const hand = npcPart('kHd', [-2, -2, 6, 2], [{ draw: g => Fp(g, P => vlimb(P, [[0, 0], [4, 0]], [2.6, 2.4]), '#dcb48e'), amp: .8 }]);
+  dropShadow(ctx, x, y + 1, 14, 5, .8);
+  npart(body, x, y + 2, 0, 1, 1 + Math.sin(t * 1.5) * .008);
+  npart(lyre, x + 4, y - 2, -.12);
+  npart(hand, x + 6, y - 12 + strum * 3, -.4 + strum * .3);
+  nhead(head, x + look * 4, y + 2 + Math.sin(t * 3.5) * .4, -23, look * .4 + Math.sin(t * 3.5) * .05, 1.35);
+  if (Math.random() < .012) part({ x: x + 14, y: y - 30, vy: -20, vx: 10, life: 1.6, type: 'rune', ch: pick('♪♫'), color: '#f0c87a', size: 10 });
 }
 
 /* =====================================================================
@@ -7634,8 +7874,8 @@ function bossBox(b) { // the screen-space footprint of a jötunn, so the camera 
     case 'thrym': return [b.x - 420, b.y - 1020, b.x + 420, b.y + 40];
     case 'nidhogg': { const h = b.hole, s = P && P.x > h.x ? -1 : 1; return [h.x - (s > 0 ? 520 : 380), h.y - 900 * Math.max(.4, b.an.em.v), h.x + (s > 0 ? 380 : 520), h.y + 120]; }
     case 'surtr': return [b.x - 440, b.y - 960 - b.an.air.v * 600, b.x + 440, b.y + 110];
-    case 'utgard': return b.skry ? [a.x - 470, a.y - a.R - 560, a.x + 470, a.y + 140] : [b.x - 110, b.y - 390, b.x + 110, b.y + 30];
-    case 'skogul': return [b.x - 90, b.y - 140 - Math.min(200, b.an.z.v), b.x + 90, b.y + 24];
+    case 'utgard': return b.skry ? [a.x - 560, a.y - a.R - 760, a.x + 560, a.y + 140] : [b.x - 180, b.y - 580, b.x + 180, b.y + 40];
+    case 'skogul': return [b.x - 300, b.y - 520 - Math.min(200, b.an.z.v), b.x + 300, b.y + 30];
   }
   return [b.x - 100, b.y - 200, b.x + 100, b.y + 40];
 }

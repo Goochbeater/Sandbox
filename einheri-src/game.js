@@ -654,8 +654,8 @@ function bossBox(b) { // the screen-space footprint of a jötunn, so the camera 
     case 'thrym': return [b.x - 420, b.y - 1020, b.x + 420, b.y + 40];
     case 'nidhogg': { const h = b.hole, s = P && P.x > h.x ? -1 : 1; return [h.x - (s > 0 ? 520 : 380), h.y - 900 * Math.max(.4, b.an.em.v), h.x + (s > 0 ? 380 : 520), h.y + 120]; }
     case 'surtr': return [b.x - 440, b.y - 960 - b.an.air.v * 600, b.x + 440, b.y + 110];
-    case 'utgard': return b.skry ? [a.x - 470, a.y - a.R - 560, a.x + 470, a.y + 140] : [b.x - 110, b.y - 390, b.x + 110, b.y + 30];
-    case 'skogul': return [b.x - 90, b.y - 140 - Math.min(200, b.an.z.v), b.x + 90, b.y + 24];
+    case 'utgard': return b.skry ? [a.x - 560, a.y - a.R - 760, a.x + 560, a.y + 140] : [b.x - 180, b.y - 580, b.x + 180, b.y + 40];
+    case 'skogul': return [b.x - 300, b.y - 520 - Math.min(200, b.an.z.v), b.x + 300, b.y + 30];
   }
   return [b.x - 100, b.y - 200, b.x + 100, b.y + 40];
 }

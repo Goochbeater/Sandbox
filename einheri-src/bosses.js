@@ -416,8 +416,8 @@ BOSS_DEFS.utgard = {
   setup(b) { b.an = anim({ cast: 0, laugh: 0, fade: 1, rise: 0, hL: 0, hR: 0, mouth: 0 }); b.copies = []; b.hands = []; b.skry = false; b.noTouch = false; },
   hitboxes(b) {
     if (b.skry) return b.hands.filter(h => h.rest > 0).map(h => ({ x: h.x, y: h.y, r: 96 }));
-    const L = b.an.fade.v > .5 ? [{ x: b.x, y: b.y - 6, r: 46 }] : [];
-    b.copies.forEach((c, i) => { if (c.live) L.push({ x: c.x, y: c.y - 6, r: 46, copy: i }); });
+    const L = b.an.fade.v > .5 ? [{ x: b.x, y: b.y - 20, r: 66 }] : [];
+    b.copies.forEach((c, i) => { if (c.live) L.push({ x: c.x, y: c.y - 20, r: 66, copy: i }); });
     return L;
   },
   dispel(b, i) { const c = b.copies[i]; if (!c || !c.live) return; c.live = 0; SFX.trick(); burst(c.x, c.y - 40, 18, { type: 'smoke', color: '#5aff6a', smin: 30, smax: 120, lmin: .4, lmax: .9, szmin: 6, szmax: 12, grow: 20, alpha: .4 }); G.hitstop = .04; },
@@ -562,7 +562,7 @@ BOSS_DEFS.skogul = {
   name: 'Skögul', title: 'Chooser of the Slain · Queen of the Valkyries', hp: 1400, blood: '#c8b070', roarP: 1.6, music: 'sky',
   norse: 'Skuld helt skildi, en Skögul önnur.', tr: 'Skuld held a shield, and Skögul another.',
   setup(b) { b.an = anim({ z: 0, wing: 0, spear: 0, shield: 0 }); b.noTouch = true; b.face = PI / 2; b.vx = 0; b.vy = 0; },
-  hitboxes: b => b.an.z.v < 60 ? [{ x: b.x, y: b.y - 4, r: 40 }] : [],
+  hitboxes: b => b.an.z.v < 60 ? [{ x: b.x, y: b.y - 30, r: 72 }] : [],
   rest: b => b.phase > 1 ? rand(.35, .7) : rand(.7, 1.1),
   onPhase2(b) { SFX.roar(1.8, 1.4); G.flash = .6; G.flashCol = '#fff2d0'; shake(10); showLine('skogul', 'Sisters! To me!'); setTimeout(hideLine, 2400); },
   update(b, dt) {
@@ -639,5 +639,5 @@ function* skSisters(b) {
   }
   yield .8;
 }
-function fxSisterFall(f) { const k = f.t / f.life; ctx.save(); ctx.globalAlpha = .6 * k; ctx.globalCompositeOperation = 'lighter'; drawValkyrie(f.x, f.y - (1 - k) * 600 - 40, 1.4, f.t * 10, 1, false, true); ctx.restore(); }
+function fxSisterFall(f) { const k = f.t / f.life; ctx.save(); ctx.globalAlpha = .6 * k; ctx.globalCompositeOperation = 'lighter'; drawValkyrie(f.x, f.y - (1 - k) * 600 - 40, .55, f.t * 10, 1, false, true); ctx.restore(); }
 function fxSister(f) { const k = f.t / f.life; glow(f.x, f.y - 20, 120 * (1 - k * .5), '#ffe6a0', 1 - k); }

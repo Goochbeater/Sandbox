@@ -51,8 +51,52 @@
   #rotate { position: absolute; inset: 0; z-index: 8; background: #000; display: none; align-items: center; justify-content: center; text-align: center; padding: 0 24px; color: var(--paper); font-size: 18px; }
   #err { position: absolute; left: 16px; right: 16px; top: 16px; z-index: 20; background: #4a0d0d; color: #fff; font: 12px/1.4 ui-monospace, Menlo, monospace; white-space: pre-wrap; padding: 12px; max-height: 70%; overflow: auto; }
   #fps { position: absolute; right: 8px; top: 6px; font: 11px ui-monospace, Menlo, monospace; color: #8f8; z-index: 6; }
-  @media (orientation: portrait) and (max-width: 700px) { #rotate.can { display: flex; } }
-  @media (prefers-reduced-motion: reduce) { #caption, #fade, .mk, #bubble { transition: none; } }
+  /* holding court: the petition panel and the week's ledger, docked to the bottom of the screen */
+  .sheet { position: absolute; left: 50%; bottom: max(8px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); width: min(94vw, 820px); max-height: 64vh; overflow: auto; z-index: 4;
+           background: rgba(16, 11, 9, 0.94); border: 1px solid rgba(227, 183, 90, 0.55); box-shadow: 0 0 0 4px rgba(16, 11, 9, 0.7), 0 12px 40px rgba(0, 0, 0, 0.6);
+           padding: clamp(10px, 1.8vw, 18px) clamp(12px, 2.4vw, 24px); display: flex; flex-direction: column; gap: clamp(6px, 1.1vw, 11px); font-size: clamp(13px, 1.7vw, 17px); }
+  .sheet h3 { margin: 0; font-family: var(--caps); font-weight: 500; letter-spacing: 0.08em; font-size: clamp(15px, 2.2vw, 22px); color: var(--gold); text-wrap: balance; }
+  .sheet .sub { color: var(--paper); font-style: italic; }
+  #cpBar { display: flex; gap: 4px; }
+  .cell { position: relative; flex: 1; height: clamp(24px, 3.4vw, 34px); border: 1px solid rgba(242, 230, 207, 0.28); background: rgba(255, 255, 255, 0.03); }
+  .cell.on { background: linear-gradient(#e9c25e, #b8862e); border-color: #f4d27a; }
+  .cell.extra.on { background: linear-gradient(#f4d98a, #c8962e); }
+  .cell.need::after { content: ""; position: absolute; right: -4px; top: -5px; bottom: -5px; width: 2px; background: var(--paper); }
+  .cell em { position: absolute; right: -2px; top: -1.45em; font-style: normal; font-size: 0.72em; letter-spacing: 0.1em; text-transform: uppercase; color: var(--paper); transform: translateX(50%); }
+  .cell .fx { position: absolute; inset: 0; display: grid; place-items: center; font-size: 0.95em; font-weight: 700; }
+  .fx.wound { color: #e05040; } .fx.bonus { color: #fff2b0; } .cell.on .fx.wound { color: #7a0e0a; } .cell.on .fx.bonus { color: #fff; }
+  #cpNote, #wkLeft, #wkNotes { color: var(--dim); }
+  .cpRow { display: flex; gap: 10px; flex-wrap: wrap; align-items: stretch; }
+  .agent { flex: 1 1 240px; min-width: 0; display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto; column-gap: 10px; align-items: center; padding: 7px 10px; border: 1px solid rgba(242, 230, 207, 0.18); }
+  .agent .an { font-family: var(--caps); letter-spacing: 0.06em; } .agent .at { color: var(--dim); font-size: 0.85em; font-family: var(--serif); letter-spacing: 0; margin-left: 0.3em; }
+  .agent .pips { grid-column: 1; display: flex; gap: 5px; margin-top: 4px; } .pips i { width: 9px; height: 9px; transform: rotate(45deg); border: 1px solid var(--gold); } .pips i.on { background: var(--gold); }
+  .agent .ctl { grid-column: 2; grid-row: 1 / span 2; display: flex; align-items: center; gap: 8px; }
+  .pm { pointer-events: auto; width: 40px; height: 40px; font: inherit; font-size: 1.3em; line-height: 1; color: var(--paper); background: transparent; border: 1px solid rgba(242, 230, 207, 0.4); cursor: pointer; }
+  .pm:disabled, .item:disabled, .btn:disabled { opacity: 0.35; cursor: default; }
+  .pm:not(:disabled):hover, .pm:focus-visible, .item:focus-visible { border-color: var(--gold); outline: none; }
+  .n { min-width: 1.2em; text-align: center; font-variant-numeric: tabular-nums; font-size: 1.15em; }
+  #cpItems { align-items: center; gap: 8px; } .lbl { color: var(--dim); font-size: 0.9em; }
+  .item { pointer-events: auto; font: inherit; color: var(--paper); background: transparent; border: 1px solid rgba(242, 230, 207, 0.3); padding: 0.35em 0.8em; cursor: pointer; min-height: 40px; }
+  .item b { color: var(--gold); font-weight: 500; } .item.on { background: rgba(227, 183, 90, 0.18); border-color: var(--gold); }
+  .sheet footer { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .sheet .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+  .sheet .ttl { min-width: 0; flex: 1 1 16em; } .sheet .acts { display: flex; gap: 8px; } .sheet .acts .btn { min-width: 6.5em; padding: 0.35em 1em; }
+  #cpBar { margin-top: 1.1em; }
+  @media (max-height: 560px) { .sheet { font-size: 13px; gap: 6px; padding: 8px 14px; max-height: 70vh; } .sheet h3 { font-size: 16px; } .pm { width: 34px; height: 34px; } .item { min-height: 34px; padding: 0.2em 0.7em; }
+    .cell { height: 22px; } .agent { padding: 5px 8px; } .sheet .acts .btn { font-size: 14px; } }
+  .btn.gold { border-color: var(--gold); color: #fff; background: rgba(227, 183, 90, 0.16); }
+  #week { width: min(94vw, 520px); }
+  .wrow { display: grid; grid-template-columns: 6em 1fr auto auto; align-items: center; gap: 10px; }
+  .wn { font-family: var(--caps); letter-spacing: 0.06em; } .wv { font-variant-numeric: tabular-nums; } .wv b { color: var(--gold); font-weight: 500; }
+  #toast { position: absolute; left: 50%; top: 14%; transform: translateX(-50%); font-family: var(--caps); letter-spacing: 0.12em; color: var(--gold); font-size: clamp(16px, 2.6vw, 28px); text-shadow: 0 2px 10px #000; opacity: 0; transition: opacity 0.4s; pointer-events: none; z-index: 3; }
+  #toast.on { opacity: 1; }
+  .mk.pulse { animation: mkpulse 0.7s ease-in-out 4 alternate; }
+  @keyframes mkpulse { from { transform: scale(1); } to { transform: scale(1.6); } }
+  #bubble.wait::before { content: ""; position: absolute; right: 7px; bottom: 5px; width: 6px; height: 6px; border-right: 2px solid var(--gold); border-bottom: 2px solid var(--gold); transform: rotate(45deg); animation: nudge 0.9s ease-in-out infinite alternate; }
+  #bubble.wait { padding-right: 1.6em; }
+  @keyframes nudge { from { opacity: 0.3; } to { opacity: 1; } }
+  @media (max-aspect-ratio: 3/4) { #rotate.can { display: flex; } }   /* phones held upright; a Fold's near-square inner screen plays either way */
+  @media (prefers-reduced-motion: reduce) { #caption, #fade, .mk, #bubble, #toast { transition: none; } .mk.pulse, #bubble.wait::before { animation: none; } }
 </style>
 <div id="stage">
   <div id="view">
@@ -63,6 +107,21 @@
   </div>
   <div class="bar" id="topbar"><button id="pauseBtn" aria-label="Pause"></button></div>
   <div class="bar" id="botbar"><div id="hint"></div></div>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <div class="sheet" id="court" hidden role="dialog" aria-labelledby="cpWho">
+    <div class="top"><div class="ttl"><h3 id="cpWho"></h3><div class="sub" id="cpAsk"></div></div>
+      <div class="acts"><button class="btn" id="cpRefuse">Refuse</button><button class="btn gold" id="cpGrant">Grant</button></div></div>
+    <div id="cpBar" aria-label="How much help you are sending"></div>
+    <div id="cpNote"></div>
+    <div class="cpRow" id="cpAgents"></div>
+    <div class="cpRow" id="cpItems"></div>
+  </div>
+  <div class="sheet" id="week" hidden role="dialog" aria-labelledby="wkTitle">
+    <h3 id="wkTitle">The week's work</h3>
+    <div id="wkSplit"><div class="sub" id="wkEarned"></div><div id="wkRows"></div><div id="wkLeft"></div>
+      <footer><span></span><button class="btn gold" id="wkSeal">Seal the week</button></footer></div>
+    <div id="wkResult" hidden><div class="sub" id="wkStats"></div><div id="wkNotes"></div><footer><span></span><button class="btn gold" id="wkDone">Close the ledger</button></footer></div>
+  </div>
   <div id="pause" hidden>
     <h2>Paused</h2>
     <p id="helpTxt"></p>

@@ -9,9 +9,9 @@ from PIL import Image
 
 SRC = sys.argv[1]
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'assets')
-MESHES = ['male', 'rmale', 'rm_peasant', 'rm_ranger', 'Hair_Long', 'Hair_Beard', 'Hair_SimpleParted']
-CLIPS = ['Idle_Loop', 'Walk_Loop', 'Walk_Formal_Loop', 'Idle_Talking_Loop', 'Interact', 'Idle_FoldArms_Loop']
-TEX = {'male_col': 512, 'rmale_col': 256, 'hair1_col': 256, 'hair2_col': 256, 'eye_col': 128,
+MESHES = ['male', 'rmale', 'rm_peasant', 'rm_ranger', 'female', 'rfemale', 'rf_peasant', 'Hair_Long', 'Hair_Beard', 'Hair_SimpleParted', 'Hair_Buzzed', 'Hair_Buns']
+CLIPS = ['Idle_Loop', 'Walk_Loop', 'Walk_Formal_Loop', 'Idle_Talking_Loop', 'Interact', 'Idle_FoldArms_Loop', 'Sitting_Idle_Loop', 'Idle_Shield_Loop']
+TEX = {'male_col': 512, 'female_col': 512, 'rmale_col': 256, 'rfemale_col': 256, 'hair1_col': 256, 'hair2_col': 256, 'eye_col': 128,
        'peasant_col': 512, 'ranger_col': 512}
 SIZE = {'Float32Array': 4, 'Int16Array': 2, 'Uint8Array': 1, 'Uint16Array': 2, 'Uint32Array': 4}
 

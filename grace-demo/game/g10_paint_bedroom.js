@@ -1,42 +1,4 @@
-/* PIXEL — every texture in the room is pixel art painted here at load time, at 32 texels per metre so the walls, the
-   furniture and the king's sprite share one pixel grid. Colours are 0xRRGGBB; y = 0 is the top row. */
-const PX = { D: 32, T: {} };
-class Pix {
-  constructor(w, h) { this.w = w; this.h = h; this.d = new Uint8ClampedArray(w * h * 4); }
-  set(x, y, c, a) { x |= 0; y |= 0; if (x < 0 || y < 0 || x >= this.w || y >= this.h) return; const i = (y * this.w + x) * 4; this.d[i] = (c >> 16) & 255; this.d[i + 1] = (c >> 8) & 255; this.d[i + 2] = c & 255; this.d[i + 3] = a === undefined ? 255 : a; }
-  wset(x, y, c) { this.set(((x % this.w) + this.w) % this.w, ((y % this.h) + this.h) % this.h, c); }
-  get(x, y) { x |= 0; y |= 0; if (x < 0 || y < 0 || x >= this.w || y >= this.h) return 0; const i = (y * this.w + x) * 4; return (this.d[i] << 16) | (this.d[i + 1] << 8) | this.d[i + 2]; }
-  a(x, y) { x |= 0; y |= 0; if (x < 0 || y < 0 || x >= this.w || y >= this.h) return 0; return this.d[(y * this.w + x) * 4 + 3]; }
-  fill(c) { for (let y = 0; y < this.h; y++) for (let x = 0; x < this.w; x++) this.set(x, y, c); return this; }
-  rect(x, y, w, h, c) { for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) this.set(i, j, c); }
-  hl(x0, x1, y, c) { for (let x = x0; x <= x1; x++) this.set(x, y, c); }
-  vl(x, y0, y1, c) { for (let y = y0; y <= y1; y++) this.set(x, y, c); }
-  line(x0, y0, x1, y1, c) { x0 |= 0; y0 |= 0; x1 |= 0; y1 |= 0; const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1; let e = dx + dy;
-    for (;;) { this.set(x0, y0, c); if (x0 === x1 && y0 === y1) break; const e2 = 2 * e; if (e2 >= dy) { e += dy; x0 += sx; } if (e2 <= dx) { e += dx; y0 += sy; } } }
-  disc(cx, cy, r, c) { for (let y = Math.floor(cy - r); y <= cy + r; y++) for (let x = Math.floor(cx - r); x <= cx + r; x++) if ((x - cx) * (x - cx) + (y - cy) * (y - cy) <= r * r) this.set(x, y, c); }
-  ell(cx, cy, rx, ry, c) { for (let y = Math.floor(cy - ry); y <= cy + ry; y++) for (let x = Math.floor(cx - rx); x <= cx + rx; x++) { const u = (x - cx) / rx, v = (y - cy) / ry; if (u * u + v * v <= 1) this.set(x, y, c); } }
-  /* multiply brightness where painted */
-  shade(x, y, k) { if (!this.a(x, y)) return; this.set(x, y, C.mul(this.get(x, y), k), this.a(x, y)); }
-  jitter(amt, seed) { for (let y = 0; y < this.h; y++) for (let x = 0; x < this.w; x++) if (this.a(x, y)) this.set(x, y, C.mul(this.get(x, y), 1 + (hash(x, y, seed) - 0.5) * 2 * amt), this.a(x, y)); return this; }
-  /* 1 px darker rim where painted pixels meet transparency (sprites read better against busy walls) */
-  outline(c, k) { const m = []; for (let y = 0; y < this.h; y++) for (let x = 0; x < this.w; x++) if (this.a(x, y) && (!this.a(x - 1, y) || !this.a(x + 1, y) || !this.a(x, y - 1) || !this.a(x, y + 1))) m.push([x, y]);
-    for (const [x, y] of m) this.set(x, y, c === null ? C.mul(this.get(x, y), k || 0.6) : c); return this; }
-  tex(o) {
-    o = o || {}; const cv = document.createElement('canvas'); cv.width = this.w; cv.height = this.h;
-    cv.getContext('2d').putImageData(new ImageData(this.d, this.w, this.h), 0, 0);
-    const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter;
-    t.minFilter = o.mip === false ? THREE.NearestFilter : THREE.NearestMipmapLinearFilter; t.generateMipmaps = o.mip !== false;
-    if (o.repeat) t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = o.aniso || 1;
-    t.userData.w = this.w; t.userData.h = this.h; return t;
-  }
-}
-const C = {
-  rgb: (c) => [(c >> 16) & 255, (c >> 8) & 255, c & 255],
-  hex: (r, g, b) => (clamp(Math.round(r), 0, 255) << 16) | (clamp(Math.round(g), 0, 255) << 8) | clamp(Math.round(b), 0, 255),
-  mul: (c, k) => { const [r, g, b] = C.rgb(c); return C.hex(r * k, g * k, b * k); },
-  mix: (a, b, t) => { const A = C.rgb(a), B = C.rgb(b); return C.hex(lerp(A[0], B[0], t), lerp(A[1], B[1], t), lerp(A[2], B[2], t)); },
-  ramp: (cols, t) => cols[clamp(Math.floor(t * cols.length), 0, cols.length - 1)],
-};
+/* BEDROOM TEXTURES — the bedchamber's own pixel art (generic painters live in engine/e02_pixel.js). */
 /* ---------------------------------------------------------------- architecture */
 PX.wall = function () {
   const p = new Pix(32, 32).fill(0x3b2622);
@@ -90,16 +52,6 @@ PX.beam = function () {
   p.hl(0, 31, 0, 0x45281a); p.hl(0, 31, 15, 0x140a06);
   return p.tex({ repeat: true });
 };
-PX.stoneCols = [0xd8c9a8, 0xcfbf9c, 0xe0d2b2, 0xc8b693, 0xd3c29f];
-PX.brickAt = function (p, x, y, ox) {   // returns true if x,y is mortar
-  const row = Math.floor(y / 4), bx = Math.floor((x + (row % 2) * 4 + (ox || 0)) / 8);
-  const mx = (x + (row % 2) * 4 + (ox || 0)) % 8 === 7, my = y % 4 === 3;
-  if (mx || my) { p.set(x, y, 0xa08c6c); return; }
-  let c = PX.stoneCols[Math.floor(hash(bx, row, 11) * 5)];
-  if (y % 4 === 0) c = C.mul(c, 1.06); if ((x + (row % 2) * 4 + (ox || 0)) % 8 === 6 && y % 4 === 2) c = C.mul(c, 0.9);
-  if (hash(x, y, 12) < 0.04) c = C.mul(c, 0.88);
-  p.set(x, y, c);
-};
 PX.brick = function () { const p = new Pix(32, 32); for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) PX.brickAt(p, x, y); return p.jitter(0.02, 13).tex({ repeat: true }); };
 /* fireplace front: bricks with an arched mouth (transparent) ringed by voussoirs, 2.3 × 1.75 m */
 PX.fireFront = function () {
@@ -125,23 +77,6 @@ PX.soot = function () {
   return p.tex({ repeat: true });
 };
 /* ---------------------------------------------------------------- textiles */
-PX.rug = function (w, h, pal, seed) {
-  const p = new Pix(w, h);
-  for (let y = 0; y < h; y++) for (let x = 3; x < w - 3; x++) {
-    const bx = Math.min(x - 3, w - 4 - x), by = Math.min(y, h - 1 - y), b = Math.min(bx, by);
-    let c = pal.field;
-    if (b < 1) c = pal.edge; else if (b < 3) c = pal.gold; else if (b < 7) { const z = ((bx < by ? y : x) + (b % 2)) % 4; c = (b === 4 || b === 5) && z < 2 ? pal.cream : pal.navy; }
-    else if (b < 8) c = pal.gold;
-    else {
-      const u = x - w / 2, v = y - h / 2, period = 22, lu = ((u % period) + period) % period - period / 2, d = Math.abs(lu) + Math.abs(v) * 1.2;
-      if (d < 3) c = pal.gold; else if (d < 5) c = pal.cream; else if (d < 8) c = pal.navy; else if (d < 9) c = pal.cream;
-      else if ((x + y) % 6 === 0 && hash(x, y, seed) < 0.5) c = C.mul(pal.field, 0.8);
-    }
-    p.set(x, y, C.mul(c, 0.94 + 0.12 * hash(x, y, seed)));
-  }
-  for (let y = 0; y < h; y++) for (let x = 0; x < 3; x++) if (y % 2 === 0 && hash(x, y, seed + 1) > 0.25) { p.set(x, y, 0xd8ccb0); p.set(w - 1 - x, y, 0xd8ccb0); }
-  return p.tex({ aniso: 4 });
-};
 PX.tapestryFolk = function () {
   const W = 48, H = 38, p = new Pix(W, H);
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) p.set(x, y, (x + y) % 2 ? 0xe6dcc6 : 0xddd2bb);
@@ -179,31 +114,6 @@ PX.lattice = function () {
   return p.jitter(0.05, 16).tex();
 };
 /* red drape hung from the ceiling, gathered at a gold tie */
-PX.curtain = function (pal, tie) {
-  const W = 20, H = 84, p = new Pix(W, H);
-  for (let y = 0; y < H; y++) {
-    const gather = y < tie ? lerp(1, 0.5, Math.pow(y / tie, 1.4)) : lerp(0.5, 0.62, (y - tie) / (H - tie)), hw = W / 2 * gather;
-    for (let x = 0; x < W; x++) {
-      const u = (x + 0.5 - W / 2) / hw; if (Math.abs(u) > 1) continue;
-      if (y > H - 4 && Math.abs(u) > 0.75 - (H - y) * 0.1) continue;
-      const fold = 0.5 + 0.5 * Math.sin(u * Math.PI * (3.5 - gather) + 0.6), edge = 1 - Math.pow(Math.abs(u), 4) * 0.4;
-      p.set(x, y, C.ramp(pal, fold * edge * (0.85 + 0.15 * (1 - y / H))));
-    }
-  }
-  for (let x = 0; x < W; x++) if (p.a(x, tie)) { p.set(x, tie, 0xd6a23e); p.set(x, tie + 1, 0x9a6a1c); }
-  return p.outline(null, 0.72).tex();
-};
-PX.swag = function (pal) {
-  const W = 64, H = 22, p = new Pix(W, H);
-  for (let x = 0; x < W; x++) {
-    const s = Math.sin(Math.PI * (x + 0.5) / W), bot = 7 + s * 13;
-    for (let y = 0; y < H; y++) { if (y > bot) continue; const v = y / bot, band = 0.5 + 0.5 * Math.sin(v * Math.PI * 3.2 - s * 1.2);
-      p.set(x, y, C.ramp(pal, band * (0.75 + 0.25 * s) * (v > 0.85 ? 0.75 : 1))); }
-  }
-  return p.outline(null, 0.7).tex();
-};
-PX.RED = [0x3a090d, 0x560f15, 0x72161b, 0x8e2022, 0xa8302c, 0xbc4236];
-PX.GOLD = [0x5a3910, 0x7e5216, 0xa06c1e, 0xc4892c, 0xdca444, 0xf0c45e];
 PX.valance = function () {
   const W = 64, H = 13, p = new Pix(W, H);
   for (let x = 0; x < W; x++) {
@@ -224,22 +134,6 @@ PX.quilt = function () {
 PX.linen = function () { const p = new Pix(16, 16); for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) p.set(x, y, C.mul(0xe8dcc2, 0.92 + 0.1 * hash(x, y, 18) - (y % 4 === 0 ? 0.05 : 0))); return p.tex({ repeat: true }); };
 PX.teal = function () { const p = new Pix(16, 16); for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) p.set(x, y, C.mul(0x24605e, 0.85 + 0.25 * noise1(x * 0.5 + y * 2.3, 19))); return p.tex({ repeat: true }); };
 /* ---------------------------------------------------------------- wood */
-PX.wood = function (base, seed) {
-  const p = new Pix(32, 32);
-  for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) { const g = noise1(x * 0.9 + noise1(y * 0.15, seed) * 6, seed + 1); p.set(x, y, C.mul(base, 0.8 + 0.38 * g)); }
-  return p.jitter(0.03, seed).tex({ repeat: true });
-};
-PX.drawers = function (w, h, rows, base) {   // a cabinet / chest front: frame, drawer fronts, brass pulls
-  const p = new Pix(w, h).fill(C.mul(base, 0.8));
-  const rh = (h - 2) / rows;
-  for (let r = 0; r < rows; r++) {
-    const y0 = Math.round(1 + r * rh), y1 = Math.round(1 + (r + 1) * rh) - 2;
-    for (let y = y0; y <= y1; y++) for (let x = 1; x < w - 1; x++) p.set(x, y, C.mul(base, 0.95 + 0.15 * noise1(x * 0.7 + y * 0.2, r + 3)));
-    p.hl(1, w - 2, y0, C.mul(base, 1.25)); p.hl(1, w - 2, y1, C.mul(base, 0.55));
-    const my = Math.round((y0 + y1) / 2); p.set(Math.floor(w / 2) - 1, my, 0xd6a640); p.set(Math.floor(w / 2), my, 0xb88a2a); if (w > 20) { p.set(4, my, 0xb88a2a); p.set(w - 5, my, 0xb88a2a); }
-  }
-  return p.tex();
-};
 PX.chestFront = function () {
   const W = 40, H = 20, p = new Pix(W, H);
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) p.set(x, y, C.mul(0x3e2214, 0.85 + 0.3 * noise1(x * 0.6 + y * 0.1, 21)));
@@ -251,10 +145,6 @@ PX.chestFront = function () {
   return p.tex();
 };
 /* ---------------------------------------------------------------- framed art */
-PX.frame = function (p, w, h, t) {
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const b = Math.min(x, y, w - 1 - x, h - 1 - y); if (b >= t) continue;
-    p.set(x, y, b === 0 ? 0x6a4614 : b === t - 1 ? 0x8a5c18 : (x + y) % 3 === 0 ? 0xf2cc68 : 0xc8962e); }
-};
 PX.landscape = function () {
   const W = 46, H = 30, p = new Pix(W, H);
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const t = y / H; p.set(x, y, C.mix(0x5c6890, 0xf0b07c, smooth(0.1, 0.62, t))); }
@@ -401,19 +291,6 @@ PX.window = function () {
   return p.tex();
 };
 /* ---------------------------------------------------------------- fire */
-PX.flameFrames = function (W, H, n, tongues, seed) {
-  const p = new Pix(W * n, H);
-  const cols = [0x8a1a08, 0xc83a10, 0xf06a18, 0xffa02c, 0xffd250, 0xfff0a8];
-  for (let f = 0; f < n; f++) for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    const v = 1 - y / H; let heat = 0;
-    for (let k = 0; k < tongues; k++) { const cx = (k + 0.5) / tongues * W + (noise1(f * 0.9 + k * 7.3 + y * 0.15, seed + k) - 0.5) * W / tongues * 0.9;
-      const hgt = 0.55 + 0.45 * noise1(f * 1.3 + k * 3.1, seed + 20 + k), width = (W / tongues) * 0.55 * Math.pow(Math.max(0, 1 - v / hgt), 0.7);
-      heat = Math.max(heat, width > 0 ? 1 - Math.abs(x + 0.5 - cx) / width : 0); }
-    heat = heat * (0.75 + 0.5 * noise1(x * 0.7 + f * 2.1 + y * 0.4, seed + 40)) - v * 0.15;
-    if (heat > 0.05) p.set(f * W + x, y, C.ramp(cols, clamp(heat * 1.15, 0, 0.999)));
-  }
-  const t = p.tex({ mip: false }); t.userData.n = n; return t;
-};
 PX.logs = function () {
   const W = 40, H = 12, p = new Pix(W, H);
   const log = (x0, y0, x1, y1, r) => { for (let i = 0; i <= 40; i++) { const x = lerp(x0, x1, i / 40), y = lerp(y0, y1, i / 40); for (let k = -r; k <= r; k++) p.set(x, y + k, k < 0 ? 0x5a3420 : k > 0 ? 0x24140c : 0x3e2416); } p.disc(x1, y1, r, 0xc87a3a); p.set(x1, y1, 0xff9a3a); };
@@ -428,25 +305,26 @@ PX.grate = function () {
   return p.tex();
 };
 /* soft (non-pixel) helpers: glows, shafts, motes */
-PX.soft = function (kind) {
-  const cv = document.createElement('canvas'), s = 64; cv.width = cv.height = s; const g = cv.getContext('2d');
-  if (kind === 'glow') { const r = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(0.25, 'rgba(255,255,255,0.45)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, s, s); }
-  if (kind === 'shaft') { const l = g.createLinearGradient(0, 0, s, 0); l.addColorStop(0, 'rgba(255,255,255,0)'); l.addColorStop(0.5, 'rgba(255,255,255,1)'); l.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = l; g.fillRect(0, 0, s, s);
-    g.globalCompositeOperation = 'destination-in'; const v = g.createLinearGradient(0, 0, 0, s); v.addColorStop(0, 'rgba(0,0,0,0.9)'); v.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = v; g.fillRect(0, 0, s, s); }
-  if (kind === 'mote') { g.fillStyle = '#fff'; g.beginPath(); g.arc(s / 2, s / 2, s * 0.32, 0, Math.PI * 2); g.fill(); }
-  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
-};
-PX.build = function () {
-  const T = PX.T;
-  T.wall = PX.wall(); T.wainscot = PX.wainscot(); T.floor = PX.floor(); T.ceiling = PX.ceiling(); T.beam = PX.beam(); T.brick = PX.brick(); T.fireFront = PX.fireFront(); T.soot = PX.soot();
-  T.rugA = PX.rug(128, 48, { field: 0x7e1a16, edge: 0x2a0e0c, gold: 0xc8923a, navy: 0x22304e, cream: 0xe2d4b4 }, 71);
-  T.rugB = PX.rug(80, 40, { field: 0x6a2a18, edge: 0x200c08, gold: 0xb8862e, navy: 0x3a1a2a, cream: 0xd8c098 }, 72);
-  T.folk = PX.tapestryFolk(); T.lace = PX.tapestryLace(); T.lattice = PX.lattice(); T.landscape = PX.landscape(); T.swan = PX.swanArt(); T.crest = PX.crest();
-  T.curtain = PX.curtain(PX.RED, 58); T.swag = PX.swag(PX.RED); T.goldCurtain = PX.curtain(PX.GOLD, 50); T.valance = PX.valance(); T.quilt = PX.quilt(); T.linen = PX.linen(); T.teal = PX.teal();
-  T.woodDark = PX.wood(0x4a2616, 81); T.woodRed = PX.wood(0x5a2a18, 82); T.woodPost = PX.wood(0x3e2012, 83);
-  T.cabinet = PX.drawers(24, 22, 3, 0x56301c); T.vanity = PX.drawers(40, 16, 2, 0x4e2a18); T.chest = PX.chestFront();
-  T.plant = PX.plant(); T.urn = PX.urn(); T.candles = PX.candles(); T.candle = PX.candle(); T.vase = PX.vase(); T.bottle = PX.bottle(); T.bowl = PX.bowl(); T.jug = PX.jug(); T.goblet = PX.goblet();
-  T.candelabra = PX.candelabra(); T.books = PX.books(); T.mirror = PX.mirror(); T.sconce = PX.sconce(); T.chair = PX.chair(); T.door = PX.door(); T.window = PX.window();
-  T.flame = PX.flameFrames(10, 18, 8, 1, 90); T.fire = PX.flameFrames(40, 30, 8, 4, 91); T.logs = PX.logs(); T.grate = PX.grate();
-  T.glow = PX.soft('glow'); T.shaft = PX.soft('shaft'); T.mote = PX.soft('mote');
-};
+/* ---------------------------------------------------------------- registry */
+for (const [k, f] of Object.entries({
+  wall: PX.wall, wainscot: PX.wainscot, floor: PX.floor, ceiling: PX.ceiling, beam: PX.beam, fireFront: PX.fireFront, soot: PX.soot,
+  folk: PX.tapestryFolk, lace: PX.tapestryLace, lattice: PX.lattice, landscape: PX.landscape, swan: PX.swanArt, crest: PX.crest,
+  valance: PX.valance, quilt: PX.quilt, linen: PX.linen, teal: PX.teal, chest: PX.chestFront,
+  plant: PX.plant, urn: PX.urn, candles: PX.candles, candle: PX.candle, vase: PX.vase, bottle: PX.bottle, bowl: PX.bowl, jug: PX.jug, goblet: PX.goblet,
+  candelabra: PX.candelabra, books: PX.books, mirror: PX.mirror, sconce: PX.sconce, chair: PX.chair, door: PX.door, window: PX.window, logs: PX.logs, grate: PX.grate,
+})) PX.def(k, f);
+PX.def('rugA', () => PX.rug(128, 48, { field: 0x7e1a16, edge: 0x2a0e0c, gold: 0xc8923a, navy: 0x22304e, cream: 0xe2d4b4 }, 71));
+PX.def('rugB', () => PX.rug(80, 40, { field: 0x6a2a18, edge: 0x200c08, gold: 0xb8862e, navy: 0x3a1a2a, cream: 0xd8c098 }, 72));
+PX.def('curtain', () => PX.curtain(PX.RED, 58)); PX.def('swag', () => PX.swag(PX.RED)); PX.def('goldCurtain', () => PX.curtain(PX.GOLD, 50));
+PX.def('cabinet', () => PX.drawers(24, 22, 3, 0x56301c)); PX.def('vanity', () => PX.drawers(40, 16, 2, 0x4e2a18));
+PX.def('brick', () => { const t = PX.brick(); t.userData.tint = 0xc8bcac; return t; });   // cream stone, dimmed so the firelight doesn't blow it out
+/* the crown on its cushion, and the cushion's velvet */
+PX.def('crownCard', () => {
+  const p = new Pix(18, 12), g1 = 0xf4d27a, g2 = 0xd8a43a, g3 = 0x8a5c18;
+  for (let x = 2; x < 16; x++) for (let y = 7; y < 12; y++) p.set(x, y, y === 7 ? g1 : y === 11 ? g3 : (x + y) % 5 === 0 ? g1 : g2);
+  for (const cx of [3, 6, 9, 12, 15]) { const h = cx === 9 ? 6 : cx === 6 || cx === 12 ? 4 : 3; for (let y = 7 - h; y < 7; y++) { p.set(cx - 1, y, g2); p.set(cx, y, y < 7 - h + 1 ? g1 : g2); } p.set(cx - 1, 6 - h, g1); p.set(cx, 6 - h, 0xfff0b0); }
+  p.set(8, 9, 0xc0201e); p.set(9, 9, 0xe8403a); p.set(5, 9, 0x2a4ab0); p.set(12, 9, 0x2a4ab0); p.set(9, 8, 0xff8080);
+  return p.outline(null, 0.6).tex();
+});
+PX.def('velvet', () => { const p = new Pix(16, 16); for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) p.set(x, y, C.ramp([0x4a0a12, 0x6a1018, 0x861820, 0xa02428], clamp(0.5 + 0.35 * Math.sin((x + y) * 0.7) + (hash(x, y, 31) - 0.5) * 0.3, 0, 0.999))); return p.tex({ repeat: true }); });
+PX.def('tassel', () => { const p = new Pix(3, 6); p.set(1, 0, 0xd8a43a); for (let y = 1; y < 6; y++) { p.set(0, y, 0xc8922e); p.set(1, y, 0xf0c45e); p.set(2, y, 0xa87a26); } return p.tex(); });

@@ -4,8 +4,8 @@
      depth of field   (half-res gather, "scatter-as-gather" so blurred foreground bleeds over what's behind it),
      bloom            (soft threshold + dual-filter chain at quarter res),
      final            (DOF mix, bloom, exposure, ACES, warm grade, vignette, grain → screen).
-   Layers: 0 = room (main + reflection cameras), 1 = the king's 3D model (sprite camera only), 2 = main camera only
-   (floor, rugs: things that must not appear in their own reflection). */
+   Layers: 0 = room (main + reflection cameras), 2 = main camera only (floor, rugs: things that must not appear in their
+   own reflection), 3…31 = one per actor: each character's 3D model is seen only by that actor's sprite camera. */
 const R = { q: G.flags.q === 'low' ? 'low' : 'high', fx: !G.flags.nofx, A: 2.96 };
 R.SH = {};
 R.SH.vert = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }';
@@ -86,21 +86,22 @@ R.mk = function (w, h, o) {
   if (o.depthTex) { t.depthTexture = new THREE.DepthTexture(t.width, t.height); t.depthTexture.type = THREE.UnsignedIntType; }
   return t;
 };
-/* the film frame: as wide as the screen allows, letterboxed (2.4–2.96 : 1) */
+/* the film frame: as wide as the screen allows, letterboxed between 1.9:1 (a Fold's near-square inner screen) and 2.96:1
+   (a 20:9 phone). Narrower frames get a slightly wider lens (R.fovK) so they don't feel cramped. */
 R.resize = function () {
   const W = window.innerWidth, H = window.innerHeight, a = W / H;
-  R.A = clamp(a * 1.33, 2.4, 2.96);
+  R.A = clamp(a * 1.25, 1.9, 2.96); R.fovK = 1 + 0.18 * (2.96 - R.A) / 1.06;
   let vw = W, vh = W / R.A; if (vh > H) { vh = H; vw = H * R.A; }
   vw = Math.round(vw); vh = Math.round(vh);
   const v = $('view'); v.style.width = vw + 'px'; v.style.height = vh + 'px'; v.style.left = Math.round((W - vw) / 2) + 'px'; v.style.top = Math.round((H - vh) / 2) + 'px';
   const bar = Math.round((H - vh) / 2); $('topbar').style.height = Math.max(bar, 48) + 'px'; $('botbar').style.height = Math.max(bar, 28) + 'px';
-  $('topbar').style.top = (bar < 48 ? Math.round((H - vh) / 2) : 0) + 'px';
+  $('topbar').style.top = (bar < 30 ? Math.round((H - vh) / 2) : 0) + 'px'; $('topbar').style.height = (bar < 30 ? 48 : bar) + 'px';
   R.vw = vw; R.vh = vh;
   const dpr = Math.min(window.devicePixelRatio || 1, 3), cap = R.q === 'low' ? 1100 : 2000;
   let bw = vw * dpr * (R.q === 'low' ? 0.6 : 1); if (bw > cap) bw = cap; bw = Math.round(bw); const bh = Math.round(bw / R.A);
   R.bw = bw; R.bh = bh;
   R.r.setSize(bw, bh, false);
-  R.cam.aspect = R.A; R.cam.updateProjectionMatrix();
+  R.cam.aspect = R.A; R.cam.fov = (R.baseFov || 19) * R.fovK; R.cam.updateProjectionMatrix();
   for (const k in R.rt || {}) R.rt[k].dispose();
   const hw = bw >> 1, hh = bh >> 1, qw = bw >> 2, qh = bh >> 2, rs = R.q === 'low' ? 0.25 : 0.5;
   R.rt = { scene: R.mk(bw, bh, { depth: true, depthTex: true }), refl: R.mk(bw * rs, bh * rs, { depth: true }), half: R.mk(hw, hh), blur: R.mk(hw, hh) };

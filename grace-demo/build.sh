@@ -1,15 +1,15 @@
 #!/bin/bash
-# Builds the demo as ONE self-contained page (three.js r160 + parts/*.js + the baked CC0 king assets as base64):
+# Builds the demo as ONE self-contained page (three.js r160 + engine/*.js + game/*.js + the baked CC0 character assets):
 #   build/index.html     full document — open it straight from disk
 #   build/artifact.html  the same page without the <html>/<head>/<body> wrapper, for publishing as a claude.ai artifact
 set -e
 cd "$(dirname "$0")"
 mkdir -p build
 JS=$(mktemp)
-for f in $(ls parts/*.js | sort); do
+for f in $(ls engine/*.js | sort) $(ls game/*.js | sort); do
   node --check "$f" || { echo "syntax error in $f"; exit 1; }
   if grep -qi '</script' "$f"; then echo "$f contains </script"; exit 1; fi
-  printf '\n/* ==== %s ==== */\n' "$(basename "$f")" >> "$JS"; cat "$f" >> "$JS"
+  printf '\n/* ==== %s ==== */\n' "$f" >> "$JS"; cat "$f" >> "$JS"
 done
 node --check "$JS" 2>/dev/null || cp "$JS" "$JS.js"
 BODY=$(mktemp)
@@ -24,4 +24,5 @@ BODY=$(mktemp)
 cp "$BODY" build/artifact.html
 { printf '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n</head>\n<body>\n'; cat "$BODY"; printf '</body>\n</html>\n'; } > build/index.html
 rm -f "$JS" "$BODY"
+chmod 644 build/*.html
 ls -la build | tail -n +2

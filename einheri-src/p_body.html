@@ -1,0 +1,52 @@
+<canvas id="c"></canvas>
+
+<div id="hud" class="hide">
+  <div class="hpwrap">
+    <div class="hprow">
+      <svg class="knot" viewBox="0 0 40 40" fill="none" stroke="#e5b45a" stroke-width="2.2" stroke-linejoin="round"><path d="M20 4 33 27H7Z"/><path d="M12 13 25 36 38 13Z" transform="translate(-6 0)"/><path d="M14 13h24L26 34Z" opacity=".75"/></svg>
+      <div class="hpbar"><i class="lag" id="hpLag"></i><i class="fill" id="hpFill"></i><i class="shine"></i></div>
+    </div>
+    <div class="sub"><span>Silfr <b id="silver">0</b></span><span class="runes" id="runeUI"><span></span><span></span></span><span id="locName"></span></div>
+  </div>
+  <button id="pauseBtn" aria-label="Pause"><svg viewBox="0 0 16 16" fill="#eadfc8"><rect x="3" y="2" width="3.4" height="12"/><rect x="9.6" y="2" width="3.4" height="12"/></svg></button>
+</div>
+
+<div id="bossbar"><div class="nm" id="bossName"></div><div class="bar"><i class="lag" id="bossLag"></i><i class="fill" id="bossFill"></i><span class="tick"></span></div></div>
+
+<div id="ctrl" class="hide">
+  <div id="stickZone"><div id="stickBase"></div><div id="stickKnob"></div></div>
+  <div id="stickHint"></div>
+  <button class="btn" id="bAct">Talk</button>
+  <button class="btn pw" id="bP1"><span class="g"></span><span class="pips"></span><svg class="ring" viewBox="0 0 60 60"><circle cx="30" cy="30" r="28" fill="none" stroke="#e5b45a" stroke-width="2" stroke-dasharray="176" stroke-dashoffset="176" transform="rotate(-90 30 30)"/></svg></button>
+  <button class="btn pw" id="bP2"><span class="g"></span><span class="pips"></span><svg class="ring" viewBox="0 0 60 60"><circle cx="30" cy="30" r="28" fill="none" stroke="#e5b45a" stroke-width="2" stroke-dasharray="176" stroke-dashoffset="176" transform="rotate(-90 30 30)"/></svg></button>
+  <button class="btn" id="bDodge" aria-label="Dodge"><svg viewBox="0 0 48 48" fill="none" stroke="#eadfc8" stroke-width="3" stroke-linecap="round"><path d="M8 30c6-14 22-18 32-8"/><path d="M34 14l6 8-9 3"/><path d="M10 38c8 2 16 0 22-6" opacity=".5"/></svg></button>
+  <button class="btn" id="bAtk" aria-label="Attack"><svg viewBox="0 0 48 48" fill="none" stroke="#f3e3c3" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"><path d="M14 40 34 8"/><path d="M27 12c-6-1-10 3-11 8 5-1 9 1 11 5 2-4 6-6 10-6-2-4-6-7-10-7Z" fill="rgba(243,227,195,.25)"/></svg><svg class="chg" viewBox="0 0 96 96"><circle cx="48" cy="48" r="45" fill="none" stroke="#ffb14a" stroke-width="3" stroke-dasharray="283" stroke-dashoffset="283" transform="rotate(-90 48 48)" id="chgRing"/></svg></button>
+</div>
+
+<div id="toast"><div class="t" id="toastT"></div><div class="s" id="toastS"></div></div>
+<div id="note"></div>
+<div id="hurtv"></div>
+<div id="flash"></div>
+
+<div id="dlg"><canvas id="portrait" width="152" height="152"></canvas><div class="tx"><div class="who" id="dlgWho"></div><div class="say" id="dlgSay"></div><div id="choices"></div></div><div class="more" id="dlgMore">▼</div></div>
+
+<div id="card"><div class="in"><div class="k" id="cardK"></div><h1 id="cardH"></h1><div class="ep" id="cardE"></div><div class="on1" id="cardN"></div><div class="tr" id="cardT"></div><div class="src" id="cardS"></div><div class="tap" id="cardTap">tap to continue</div></div></div>
+
+<div class="panel" id="menu"><div class="sheet" id="menuSheet"></div></div>
+<div class="panel" id="shop"><div class="sheet shop" id="shopSheet"></div></div>
+
+<div id="title">
+  <div class="k">A Saga of Jötunheim</div>
+  <h1>EINHERI</h1>
+  <div class="st">The lone warrior. The straw-dead. The last one Odin sent.</div>
+  <div class="menu">
+    <button id="tContinue" hidden>Continue the Saga</button>
+    <button id="tNew">Begin the Saga</button>
+  </div>
+  <div id="confirm"><span>An old saga is written here. Burn it and begin again?</span><div class="row"><button class="mbtn warn" id="cYes">Burn it</button><button class="mbtn" id="cNo">Keep it</button></div></div>
+  <div id="rot">Turn your phone sideways. Jötunheim is wide.</div>
+  <div class="foot">Left thumb moves · tap to strike · hold to wind up · roll through danger</div>
+</div>
+
+<div id="credits"><div class="roll" id="roll"></div></div>
+<div id="fade"></div>

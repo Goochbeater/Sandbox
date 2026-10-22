@@ -6,7 +6,7 @@ async function boot() {
   setLoad(0.05); await nextFrame();
   R.init(); setLoad(0.2, 'Waking the court…'); await nextFrame();
   await CAST.build();
-  SCENE.initInput(); TITLE.init(); WORLD.init();
+  SCENE.initInput(); TITLE.init(); WORLD.init(); NIGHT.init();
   setLoad(0.9, 'Raising the storm…'); await nextFrame();
   const K = SCENE.player, f = G.flags;
   if (f.room && SCENE.rooms[f.room]) {   // straight into a room, for testing

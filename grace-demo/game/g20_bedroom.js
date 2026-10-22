@@ -68,7 +68,7 @@ BEDROOM.build = function () {
   BUILD.card(T.goldCurtain, B0 + 0.28, 0, BZ1 + 0.04, { h: BT - 0.05, w: 0.7 });
   BUILD.card(T.goldCurtain, B1 - 0.28, 0, BZ1 + 0.04, { h: BT - 0.05, w: 0.7 });
   BUILD.card(T.goldCurtain, B1 + 0.05, 0, BZ0 + 0.35, { h: BT - 0.05, w: 0.6, ry: Math.PI / 2 });
-  room.interact('bed', -7.0, 1.5, room.KZ, 1.1, () => say('bed'));
+  room.interact('bed', -7.0, 1.5, room.KZ, 1.1, () => { if (!SCENE.player.crownMesh.visible) NIGHT.show(); else say('bed'); }).label = 'Retire for the night (18+)';
 
   /* window by the bed head, with the evening sun */
   BUILD.card(T.window, -10.55, 0.9, 0.04, { basic: true, k: 1.55, cast: false });

@@ -116,6 +116,11 @@
   #title .rating b { font-family: "Cinzel Decorative", var(--caps); font-weight: 900; font-size: max(14px, min(2.2cqw, 5cqh)); line-height: 1; padding: 0.3em 0.4em; border: 2px solid #fbf3e4;
     border-radius: 4px; background: rgba(140, 20, 20, 0.85); box-shadow: 0 2px 10px rgba(0,0,0,0.6); text-shadow: none; }
   #title .rating span { font-family: var(--caps); letter-spacing: 0.12em; font-size: max(11px, min(1.2cqw, 3cqh)); } #title:not(.ready) .menu { opacity: 0; pointer-events: none; }
+  .badge18 { position: absolute; right: 3cqw; top: 5cqh; border: 2px solid #e8c26a; color: #e8c26a; background: rgba(10, 6, 5, 0.75); font-family: var(--caps); font-size: min(2cqw, 4.6cqh); padding: 0.1em 0.5em; border-radius: 50%; letter-spacing: 0.04em; pointer-events: none; text-shadow: 0 2px 6px #000; }
+  #night { position: absolute; inset: 0; z-index: 9; background: #050303; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 10px; }
+  #nightCv { height: min(76vh, 56.25vw); aspect-ratio: 16 / 9; max-width: 96vw; image-rendering: pixelated; background: #000; }
+  #night .row .btn { min-width: 5em; padding: 0.3em 1em; }
+  #ageGate { z-index: 10; text-align: center; } #ageGate p { margin: 0; color: var(--dim); line-height: 1.4; }
   .panel { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 8; width: min(92vw, 520px); max-height: 86vh; overflow: auto; background: rgba(16, 11, 9, 0.95); border: 1px solid rgba(227, 183, 90, 0.55);
            padding: clamp(14px, 2.4vw, 26px); display: flex; flex-direction: column; gap: 14px; box-shadow: 0 0 0 4px rgba(16, 11, 9, 0.7), 0 12px 40px rgba(0,0,0,0.6); }
   .panel h2 { margin: 0; font-family: var(--caps); font-weight: 500; letter-spacing: 0.16em; color: var(--gold); font-size: clamp(18px, 2.6vw, 26px); }
@@ -159,6 +164,7 @@
     <div id="title" hidden>
       <div class="col"><div class="logo"><span class="l1">The</span><span class="l2">Swan Throne</span><span class="l3">A tale of Lodmir</span></div>
         <nav class="menu" aria-label="Main menu"><button id="tNew">New Game</button><button id="tCont" hidden>Continue</button><button id="tSet">Settings</button><button id="tCred">Credits</button></nav></div>
+      <div class="badge18">18+</div>
       <div id="tapStart">Tap to begin</div>
       <div class="rating" role="img" aria-label="For adults only: 18 and over"><b>18+</b><span>Mature content</span></div>
     </div>
@@ -181,6 +187,10 @@
       <footer><span></span><button class="btn gold" id="wkSeal">Seal the week</button></footer></div>
     <div id="wkResult" hidden><div class="sub" id="wkStats"></div><div id="wkNotes"></div><footer><span></span><button class="btn gold" id="wkDone">Close the ledger</button></footer></div>
   </div>
+  <div class="panel" id="ageGate" hidden role="dialog" aria-labelledby="ageT"><h2 id="ageT">Adults only</h2><p>This scene contains explicit sexual content between adult characters. Continue only if you are 18 or older.</p>
+    <div class="row"><button class="btn gold" id="ageYes">I am 18 or older</button><button class="btn" id="ageNo">Go back</button></div></div>
+  <div id="night" hidden role="dialog" aria-label="The night"><canvas id="nightCv"></canvas>
+    <div class="row"><button class="btn" id="nSlow">Slow</button><button class="btn" id="nMid">Steady</button><button class="btn" id="nFast">Quick</button><button class="btn" id="nZoom">Close-up</button><button class="btn gold" id="nightClose">Leave</button></div></div>
   <div class="panel" id="settings" hidden role="dialog" aria-labelledby="setTitle">
     <h2 id="setTitle">Settings</h2>
     <label class="slider">Music <input type="range" id="volMusic" min="0" max="100" step="5"></label>

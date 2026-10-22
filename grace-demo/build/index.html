@@ -123,6 +123,11 @@
   #title .rating b { font-family: "Cinzel Decorative", var(--caps); font-weight: 900; font-size: max(14px, min(2.2cqw, 5cqh)); line-height: 1; padding: 0.3em 0.4em; border: 2px solid #fbf3e4;
     border-radius: 4px; background: rgba(140, 20, 20, 0.85); box-shadow: 0 2px 10px rgba(0,0,0,0.6); text-shadow: none; }
   #title .rating span { font-family: var(--caps); letter-spacing: 0.12em; font-size: max(11px, min(1.2cqw, 3cqh)); } #title:not(.ready) .menu { opacity: 0; pointer-events: none; }
+  .badge18 { position: absolute; right: 3cqw; top: 5cqh; border: 2px solid #e8c26a; color: #e8c26a; background: rgba(10, 6, 5, 0.75); font-family: var(--caps); font-size: min(2cqw, 4.6cqh); padding: 0.1em 0.5em; border-radius: 50%; letter-spacing: 0.04em; pointer-events: none; text-shadow: 0 2px 6px #000; }
+  #night { position: absolute; inset: 0; z-index: 9; background: #050303; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 10px; }
+  #nightCv { height: min(76vh, 56.25vw); aspect-ratio: 16 / 9; max-width: 96vw; image-rendering: pixelated; background: #000; }
+  #night .row .btn { min-width: 5em; padding: 0.3em 1em; }
+  #ageGate { z-index: 10; text-align: center; } #ageGate p { margin: 0; color: var(--dim); line-height: 1.4; }
   .panel { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 8; width: min(92vw, 520px); max-height: 86vh; overflow: auto; background: rgba(16, 11, 9, 0.95); border: 1px solid rgba(227, 183, 90, 0.55);
            padding: clamp(14px, 2.4vw, 26px); display: flex; flex-direction: column; gap: 14px; box-shadow: 0 0 0 4px rgba(16, 11, 9, 0.7), 0 12px 40px rgba(0,0,0,0.6); }
   .panel h2 { margin: 0; font-family: var(--caps); font-weight: 500; letter-spacing: 0.16em; color: var(--gold); font-size: clamp(18px, 2.6vw, 26px); }
@@ -166,6 +171,7 @@
     <div id="title" hidden>
       <div class="col"><div class="logo"><span class="l1">The</span><span class="l2">Swan Throne</span><span class="l3">A tale of Lodmir</span></div>
         <nav class="menu" aria-label="Main menu"><button id="tNew">New Game</button><button id="tCont" hidden>Continue</button><button id="tSet">Settings</button><button id="tCred">Credits</button></nav></div>
+      <div class="badge18">18+</div>
       <div id="tapStart">Tap to begin</div>
       <div class="rating" role="img" aria-label="For adults only: 18 and over"><b>18+</b><span>Mature content</span></div>
     </div>
@@ -188,6 +194,10 @@
       <footer><span></span><button class="btn gold" id="wkSeal">Seal the week</button></footer></div>
     <div id="wkResult" hidden><div class="sub" id="wkStats"></div><div id="wkNotes"></div><footer><span></span><button class="btn gold" id="wkDone">Close the ledger</button></footer></div>
   </div>
+  <div class="panel" id="ageGate" hidden role="dialog" aria-labelledby="ageT"><h2 id="ageT">Adults only</h2><p>This scene contains explicit sexual content between adult characters. Continue only if you are 18 or older.</p>
+    <div class="row"><button class="btn gold" id="ageYes">I am 18 or older</button><button class="btn" id="ageNo">Go back</button></div></div>
+  <div id="night" hidden role="dialog" aria-label="The night"><canvas id="nightCv"></canvas>
+    <div class="row"><button class="btn" id="nSlow">Slow</button><button class="btn" id="nMid">Steady</button><button class="btn" id="nFast">Quick</button><button class="btn" id="nZoom">Close-up</button><button class="btn gold" id="nightClose">Leave</button></div></div>
   <div class="panel" id="settings" hidden role="dialog" aria-labelledby="setTitle">
     <h2 id="setTitle">Settings</h2>
     <label class="slider">Music <input type="range" id="volMusic" min="0" max="100" step="5"></label>
@@ -56265,7 +56275,7 @@ BEDROOM.build = function () {
   BUILD.card(T.goldCurtain, B0 + 0.28, 0, BZ1 + 0.04, { h: BT - 0.05, w: 0.7 });
   BUILD.card(T.goldCurtain, B1 - 0.28, 0, BZ1 + 0.04, { h: BT - 0.05, w: 0.7 });
   BUILD.card(T.goldCurtain, B1 + 0.05, 0, BZ0 + 0.35, { h: BT - 0.05, w: 0.6, ry: Math.PI / 2 });
-  room.interact('bed', -7.0, 1.5, room.KZ, 1.1, () => say('bed'));
+  room.interact('bed', -7.0, 1.5, room.KZ, 1.1, () => { if (!SCENE.player.crownMesh.visible) NIGHT.show(); else say('bed'); }).label = 'Retire for the night (18+)';
 
   /* window by the bed head, with the evening sun */
   BUILD.card(T.window, -10.55, 0.9, 0.04, { basic: true, k: 1.55, cast: false });
@@ -57098,6 +57108,80 @@ YARD.onUpdate = function (dt) {
   for (let i = B.q.length - 1; i >= 0; i--) if (G.t >= B.q[i].t) { const e = B.q[i]; B.q.splice(i, 1); if (!busy) e.fn(); }
 };
 
+/* ==== game/g26_night.js ==== */
+/* THE NIGHT SCENE — an adult scene between the king and queen (both adults, married), drawn live as pixel art on a
+   small canvas and shown over the game. 18+ only: the player confirms their age once (kept in this browser).
+   The scene is a candlelit cutaway of the bed; the pair move in a loop whose pace the player sets (slow / steady /
+   fast), with a close-up toggle. Drawn with rectangles and ellipses on a 256 × 144 grid, shaded in 5-step skin ramps. */
+const NIGHT = { open: false, t: 0, speed: 1, zoom: false, AGE: 'grace.age18' };
+NIGHT.aged = () => { try { return localStorage.getItem(NIGHT.AGE) === '1'; } catch (e) { return false; } };
+NIGHT.confirm = function (then) {
+  if (NIGHT.aged()) { then(); return; }
+  const g = $('ageGate'); g.hidden = false; SCENE.modal = true; $('ageYes').focus();
+  $('ageYes').onclick = () => { try { localStorage.setItem(NIGHT.AGE, '1'); } catch (e) { /* */ } g.hidden = true; SCENE.modal = false; then(); };
+  $('ageNo').onclick = () => { g.hidden = true; SCENE.modal = false; };
+};
+NIGHT.init = function () {
+  const cv = $('nightCv'); cv.width = 256; cv.height = 144; NIGHT.g = cv.getContext('2d');
+  $('nightClose').onclick = () => NIGHT.hide();
+  for (const [id, k] of [['nSlow', 0.55], ['nMid', 1], ['nFast', 1.7]]) $(id).onclick = () => { NIGHT.speed = k; };
+  $('nZoom').onclick = () => { NIGHT.zoom = !NIGHT.zoom; };
+  window.addEventListener('keydown', (e) => { if (NIGHT.open && e.code === 'Escape') { NIGHT.hide(); e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+  setInterval(() => { if (NIGHT.open) { NIGHT.t += 0.05 * NIGHT.speed; NIGHT.draw(); } }, 50);
+};
+NIGHT.show = function () { NIGHT.confirm(() => { SCENE.modal = true; NIGHT.open = true; $('night').hidden = false; AUDIO.sfx('page', { gain: 0.4 }); AUDIO.playMusic('castle', 2); NIGHT.draw(); $('nMid').focus(); }); };
+NIGHT.hide = function () { NIGHT.open = false; SCENE.modal = false; $('night').hidden = true; $('cv').focus(); };
+const SK = { q: [0x6a3e32, 0x8e5a46, 0xb07a60, 0xd09a7c, 0xe8b898], k: [0x5a3428, 0x7c4c3a, 0xa06a50, 0xc08a6c, 0xdcaa88] };
+NIGHT.draw = function () {
+  const c = NIGHT.g, t = NIGHT.t, z = NIGHT.zoom ? 1.35 : 1;
+  const R = (x, y, w, h, col) => { c.fillStyle = '#' + col.toString(16).padStart(6, '0'); c.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+  const E = (x, y, rx, ry, col) => { c.fillStyle = '#' + col.toString(16).padStart(6, '0'); c.beginPath(); c.ellipse(Math.round(x), Math.round(y), rx, ry, 0, 0, 6.283); c.fill(); };
+  const shadeE = (x, y, rx, ry, ramp) => { E(x, y, rx, ry, ramp[1]); E(x - rx * 0.12, y - ry * 0.14, rx * 0.84, ry * 0.8, ramp[2]); E(x - rx * 0.25, y - ry * 0.3, rx * 0.5, ry * 0.45, ramp[3]); E(x - rx * 0.35, y - ry * 0.45, rx * 0.2, ry * 0.2, ramp[4]); };
+  c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, 256, 144);
+  c.translate(128, 84); c.scale(z, z); c.translate(-128, -84);
+  // the room: warm dark wall, canopy drapes, candle light pooling on the bed
+  const g = c.createLinearGradient(0, 0, 0, 144); g.addColorStop(0, '#1a0e0c'); g.addColorStop(1, '#3a1c14'); c.fillStyle = g; c.fillRect(0, 0, 256, 144);
+  for (let x = 0; x < 256; x += 16) for (let y = 0; y < 90; y += 16) if (((x + y) / 16) % 2 === 0) R(x + 6, y + 6, 4, 4, 0x2a1612);
+  R(0, 0, 40, 100, 0x4a0e14); R(216, 0, 40, 100, 0x4a0e14); for (let x = 4; x < 40; x += 8) { R(x, 0, 2, 100, 0x6a1a20); R(216 + x, 0, 2, 100, 0x6a1a20); } R(0, 0, 256, 10, 0x6a1a20);
+  const f = 0.85 + 0.15 * Math.sin(t * 7.3) * Math.sin(t * 3.1);
+  for (let r = 70; r > 0; r -= 10) { c.globalAlpha = 0.045 * f; E(214, 38, r * 1.2, r, 0xffa840); } c.globalAlpha = 1;
+  R(208, 40, 12, 3, 0x4a3a2a); R(212, 24, 4, 16, 0xe8dcc0); R(213, 20, 2, 4, 0xffd060); R(213, 18, 2, 2, 0xfff0a0);
+  // bed: frame, mattress, rumpled linen
+  R(26, 112, 204, 10, 0x3a1e12); R(26, 108, 204, 4, 0x5a3220); R(22, 104, 6, 28, 0x2a140a); R(228, 104, 6, 28, 0x2a140a);
+  R(28, 92, 200, 18, 0xd8ccb0); R(28, 92, 200, 3, 0xf0e6cc); R(28, 106, 200, 4, 0xa89a80);
+  for (let i = 0; i < 12; i++) R(40 + i * 15 + Math.sin(i * 2) * 3, 96 + (i % 3) * 3, 8, 1, 0xb8aa90);
+  R(30, 78, 34, 18, 0xe8dec4); R(30, 78, 34, 3, 0xf8f0d8); R(30, 92, 34, 3, 0xb8aa90);   // pillow
+  R(170, 90, 56, 18, 0x7a1a24); for (let i = 0; i < 5; i++) R(172 + i * 11, 90, 4, 18, 0x92242e);   // coverlet bunched at the foot
+  const col = (h) => '#' + h.toString(16).padStart(6, '0');
+  // limb: a stroked polyline with round caps, shaded dark → light toward the top-left
+  const limb = (pts, w, ramp) => { c.lineCap = 'round'; c.lineJoin = 'round';
+    for (const [k, dw, ox, oy] of [[1, 0, 0, 0], [2, 1.5, -0.5, -0.8], [3, 3.2, -1, -1.6]]) { c.strokeStyle = col(ramp[k]); c.lineWidth = Math.max(1, w - dw); c.beginPath(); pts.forEach(([x, y], i) => (i ? c.lineTo(x + ox, y + oy) : c.moveTo(x + ox, y + oy))); c.stroke(); } };
+  const sw = Math.sin(t * 6.283 * 0.9), sw2 = Math.sin(t * 6.283 * 0.9 - 0.6), P = sw * 4, Q = sw2 * 1.2;
+  // ---- the queen, on hands and knees, facing left
+  const hipX = 150 + P * 0.35, hipY = 76 + Q * 0.4, shX = 92 + P * 0.15, shY = 84 + Q;
+  limb([[hipX + 6, hipY + 8], [hipX + 14, 104]], 13, SK.q); limb([[hipX + 14, 104], [hipX + 46, 108]], 8, SK.q); E(hipX + 50, 108, 4, 3, SK.q[2]);   // far thigh and shin
+  limb([[shX - 6, shY + 4], [shX - 12, 104]], 7, SK.q); E(shX - 13, 106, 4, 2.5, SK.q[2]);   // far arm
+  c.fillStyle = col(0x4a2a18); c.beginPath(); c.moveTo(shX - 26, shY + 2); c.quadraticCurveTo(shX - 20, shY + 34, shX + 20, shY + 20); c.lineTo(shX + 8, shY - 2); c.fill();   // hair falling forward
+  limb([[shX, shY], [shX + 22, shY + 4 + Q * 0.3], [hipX - 20, hipY + 5], [hipX, hipY]], 15, SK.q);   // back, dipping, then rising to the hips
+  shadeE(hipX + 4, hipY, 14, 12.5, SK.q); shadeE(hipX + 12 + P * 0.2, hipY + 3, 11, 11, SK.q); R(hipX + 2, hipY + 12, 20, 2, SK.q[1]);   // hips and rear
+  limb([[hipX + 4, hipY + 8], [hipX + 2, 104]], 14, SK.q); limb([[hipX + 2, 104], [hipX + 38, 109]], 9, SK.q); E(hipX + 42, 109, 4.5, 3, SK.q[2]);   // near thigh and shin
+  const bx = shX - 10 + sw2 * 1.5; shadeE(bx, shY + 12, 6.5, 8, SK.q); R(bx - 1, shY + 18, 3, 3, 0x9a5a4a);   // breast, swinging
+  limb([[shX, shY + 2], [shX - 4, 96], [shX - 8, 105]], 8, SK.q); E(shX - 9, 107, 4.5, 2.8, SK.q[2]);   // near arm braced
+  E(shX - 18, shY + 10, 11, 10, 0x4a2a18); shadeE(shX - 20, shY + 14, 8.5, 9, SK.q); E(shX - 28, shY + 8, 4, 8, 0x4a2a18); R(shX - 26, shY + 16, 3, 1, 0x8a3a3a); R(shX - 25, shY + 11, 2, 1, 0x2a1810);   // head, hair, mouth, closed eye
+  // ---- the king, kneeling behind her, hands at her hips
+  const kx = 188 - P * 0.9;
+  limb([[kx - 4, 70], [kx - 16, 104]], 15, SK.k); limb([[kx - 16, 104], [kx + 26, 108]], 8, SK.k); E(kx + 30, 108, 4, 3, SK.k[2]);   // thigh and shin, kneeling
+  limb([[kx + 2, 68], [kx + 6, 48]], 32, SK.k); limb([[kx + 6, 48], [kx + 4, 36]], 30, SK.k);   // hips, belly and chest, leaning a little forward
+  for (let i = 0; i < 3; i++) R(kx - 4 + i * 5, 50 + i, 4, 1, SK.k[1]);   // ribs
+  R(kx - 5, 42, 4, 3, 0x6a3a2c); R(kx + 5, 42, 4, 3, 0x6a3a2c); limb([[kx + 4, 33], [kx + 4, 26]], 9, SK.k);
+  shadeE(kx + 3, 20, 8, 9, SK.k); c.fillStyle = col(0x1e1410); c.beginPath(); c.ellipse(kx + 3, 14, 9, 5, 0, Math.PI, 0); c.fill(); R(kx - 1, 25, 9, 3, 0x1e1410); R(kx - 3, 20, 3, 1, 0x1c1410);   // head bowed: hair, beard, closed eye
+  limb([[kx - 8, 38], [kx - 20, 54], [hipX + 18, hipY + 2]], 8, SK.k); E(hipX + 17, hipY + 3, 4.5, 3.5, SK.k[3]);   // arm to her hip
+  R(kx - 22, 82, 44, 22, 0xe0d4ba); for (let i = 0; i < 5; i++) R(kx - 20 + i * 9, 82, 3, 22, 0xc8bc9c);   // a sheet draped across his heels
+  c.globalAlpha = 0.3; E(150, 110, 62, 3.5, 0x000000); c.globalAlpha = 1;
+  for (let i = 0; i < 6; i++) { const a = (Math.sin(t * 2 + i * 1.7) + 1) / 2; c.globalAlpha = a * 0.7; R(hipX - 40 + i * 12, hipY - 12 + (i % 2) * 7, 1, 1, 0xffe8d0); } c.globalAlpha = 1;
+  c.restore();
+};
+
 /* ==== game/g30_throne.js ==== */
 /* THE THRONE ROOM — a long dusk-blue hall. The king comes in through the archway on the left (from the bedchamber);
    petitioners come through the great doors on the right. Bays between stone pilasters, left to right:
@@ -57624,7 +57708,7 @@ async function boot() {
   setLoad(0.05); await nextFrame();
   R.init(); setLoad(0.2, 'Waking the court…'); await nextFrame();
   await CAST.build();
-  SCENE.initInput(); TITLE.init(); WORLD.init();
+  SCENE.initInput(); TITLE.init(); WORLD.init(); NIGHT.init();
   setLoad(0.9, 'Raising the storm…'); await nextFrame();
   const K = SCENE.player, f = G.flags;
   if (f.room && SCENE.rooms[f.room]) {   // straight into a room, for testing

@@ -1,34 +1,30 @@
-# The King's Bedchamber — 2.5D test demo
+# The King's Bedchamber → The Throne Room
 
-A one-room test of the *Yes, Your Grace: Snowfall* look: a 3D bedchamber with pixel-art textures, depth of field,
-bloom and a glossy reflective floor, and a king you can walk around who is a real 3D character drawn as a pixel sprite.
+A playable 2.5D test of the *Yes, Your Grace: Snowfall* look: two rooms built in 3D with pixel-art textures (depth of
+field, bloom, glossy reflective floors), a king and a court of characters who are real 3D models drawn as live pixel
+sprites, and a first slice of the game: hold court, hear two petitions, send agents, split the week's Prosperity.
 
-Open `build/index.html` in a browser (it is one self-contained file, no server needed).
+Open `build/index.html` in a browser. It's one self-contained file and needs no server.
 
-## Controls
-- **Keyboard:** ← → or A D to walk, E (or Space) to look at the thing you're standing by, Esc to pause.
-- **Phone (landscape):** hold beside the king to walk, tap a spot to walk there, tap a ◇ to look closer.
-- The standing mirror puts the crown on and takes it off.
+**How it's made, how to extend it:** see [ENGINE.md](ENGINE.md), the full engine report.
 
-URL options: `?q=low` low quality, `?nofx` no post effects, `?fps` frame counter, `?x=3` start position, `?crown`.
+## Playing
+- Take the crown from its cushion by the mirror, then leave through the door. The door won't open while the king's
+  bare-headed.
+- In the throne room, walk to the throne and sit to hold court. Tap or press E to move a conversation on. In the
+  petition panel, send agents with + and −, offer treasury items, then Grant or Refuse.
+- **Keyboard:** ← → or A D to walk, E or Space to look, talk or continue, Esc to pause.
+- **Phone:** hold beside the king to walk, tap a spot to walk there, tap a ◇ to look closer. On a phone held upright
+  it asks you to turn it. A Fold's inner screen plays either way.
 
-## How it's made
-- **Room** (`parts/p04_room.js`): boxes and flat "cards" laid out from the reference screenshot, textured with pixel
-  art painted in code at 32 texels per metre (`parts/p03_pixel.js`), so walls, props and the king share one pixel grid.
-- **King** (`parts/p05_king.js`): the CC0 Quaternius base body and peasant outfit from the character kit, re-dyed into
-  a dark coat, plus a custom long skirt, fur collar and white tabard, animated with the kit's mocap clips (idle, formal
-  walk, talking, interact). A small orthographic camera renders him every frame into a 48 × 77 px target, which stands
-  in the room as a billboard: he reads as pixel art but turns, walks and catches the firelight like a 3D model.
-- **Frame** (`parts/p02_render.js`): planar floor reflection → HDR scene → half-res depth of field → bloom → ACES,
-  warm grade, vignette and grain.
-- **Game** (`parts/p06_game.js`): input, the follow camera, the interactable objects and the king's lines.
+URL options: `?room=throne`, `?x=3`, `?crown`, `?q=low`, `?nofx`, `?fps`.
 
 ## Build
 ```bash
 ./build.sh                                  # → build/index.html and build/artifact.html
-cd tools && npm install && node shot.js     # headless screenshot (Chromium, software WebGL)
-python3 -I tools/trim_assets.py <kit>/engine/assets   # re-cut the character assets from the kit
+cd tools && npm install && node shot.js     # headless screenshots (see ENGINE.md §11)
 ```
 
 ## Credits
-Character models and animation: Quaternius (CC0). Renderer: three.js r160 (MIT). Everything else is original to this demo.
+Characters, outfits and animation: Quaternius (CC0). Renderer: three.js r160 (MIT). Fonts: Alegreya (SIL OFL).
+Everything else is original to this project.

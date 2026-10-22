@@ -53916,6 +53916,7 @@ class Actor {
       if (u >= 1) { this.path = null; if (P.cb) P.cb(this); } }
     if (sp > 0.05) { this.face = Math.sign(this.v); this.lookYaw = null; }
     if (sp > 0.2 && this.actClip) this.actClip = null;
+    this.yaw = Math.atan2(Math.sin(this.yaw), Math.cos(this.yaw));
     let yawGoal = this.sitting ? (this.sitting.yaw || 0) : pathYaw !== null ? pathYaw : sp > 0.12 ? this.face * 1.32 : this.lookYaw !== null ? this.lookYaw : this.face * 0.42;
     if (Math.abs(yawGoal - this.yaw) > Math.PI) yawGoal += yawGoal > this.yaw ? -Math.PI * 2 : Math.PI * 2;
     this.yaw = damp(this.yaw, yawGoal, sp > 0.12 ? 9 : 4, dt);
@@ -54101,7 +54102,8 @@ SCENE.say = function (actor, text, o) {
   return new Promise((res) => { SCENE.bubble = { actor, t: o.wait ? 60 : 2.6 + text.length * 0.045, res, wait: !!o.wait, min: G.t + 0.35 }; });
 };
 SCENE.bubbleOff = function () { const B = SCENE.bubble; if (!B) return; SCENE.bubble = null; B.actor.talking = false; $('bubble').classList.remove('on'); B.res(); };
-SCENE.advance = function () { const B = SCENE.bubble; if (B && G.t > B.min) { SCENE.bubbleOff(); return true; } return false; };
+/* move a conversation on. Only a waiting line swallows the key/tap; a passing remark just closes and the input carries on */
+SCENE.advance = function () { const B = SCENE.bubble; if (!B) return false; if (!B.wait) { SCENE.bubbleOff(); return false; } if (G.t > B.min) { SCENE.bubbleOff(); return true; } return true; };
 SCENE.talk = async function (seq) { SCENE.lock++; for (const [a, t] of seq) { if (a.visible) { await SCENE.say(a, t, { wait: true }); await SCENE.wait(120); } } SCENE.lock--; };
 /* ---------------------------------------------------------------- markers */
 SCENE.buildMarks = function () {

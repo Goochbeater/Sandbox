@@ -338,8 +338,8 @@ ranger and peasant outfits for both bodies, 8 hairstyles.
 
 ## 12. Performance budget and devices
 
-Measured at 2000×700 on software WebGL: bedchamber ~300 draw calls per frame (sprites + reflection + scene + post),
-throne room ~650 with nine characters. Phones with a modern GPU (a Galaxy Z Fold 4's Adreno 730, recent iPhones)
+Measured at 2000×700: bedchamber ~300 draw calls per frame (sprites + reflection + scene + post), throne room ~420
+with nine characters (~173k triangles). Phones with a modern GPU (a Galaxy Z Fold 4's Adreno 730, recent iPhones)
 are comfortably inside that. The automatic low-quality switch covers slower ones. On a 120 Hz screen the game uses
 the real frame time, so motion stays smooth.
 

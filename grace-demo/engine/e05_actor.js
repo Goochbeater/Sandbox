@@ -154,6 +154,7 @@ class Actor {
       if (u >= 1) { this.path = null; if (P.cb) P.cb(this); } }
     if (sp > 0.05) { this.face = Math.sign(this.v); this.lookYaw = null; }
     if (sp > 0.2 && this.actClip) this.actClip = null;
+    this.yaw = Math.atan2(Math.sin(this.yaw), Math.cos(this.yaw));
     let yawGoal = this.sitting ? (this.sitting.yaw || 0) : pathYaw !== null ? pathYaw : sp > 0.12 ? this.face * 1.32 : this.lookYaw !== null ? this.lookYaw : this.face * 0.42;
     if (Math.abs(yawGoal - this.yaw) > Math.PI) yawGoal += yawGoal > this.yaw ? -Math.PI * 2 : Math.PI * 2;
     this.yaw = damp(this.yaw, yawGoal, sp > 0.12 ? 9 : 4, dt);

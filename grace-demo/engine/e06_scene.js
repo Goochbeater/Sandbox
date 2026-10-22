@@ -44,7 +44,8 @@ SCENE.say = function (actor, text, o) {
   return new Promise((res) => { SCENE.bubble = { actor, t: o.wait ? 60 : 2.6 + text.length * 0.045, res, wait: !!o.wait, min: G.t + 0.35 }; });
 };
 SCENE.bubbleOff = function () { const B = SCENE.bubble; if (!B) return; SCENE.bubble = null; B.actor.talking = false; $('bubble').classList.remove('on'); B.res(); };
-SCENE.advance = function () { const B = SCENE.bubble; if (B && G.t > B.min) { SCENE.bubbleOff(); return true; } return false; };
+/* move a conversation on. Only a waiting line swallows the key/tap; a passing remark just closes and the input carries on */
+SCENE.advance = function () { const B = SCENE.bubble; if (!B) return false; if (!B.wait) { SCENE.bubbleOff(); return false; } if (G.t > B.min) { SCENE.bubbleOff(); return true; } return true; };
 SCENE.talk = async function (seq) { SCENE.lock++; for (const [a, t] of seq) { if (a.visible) { await SCENE.say(a, t, { wait: true }); await SCENE.wait(120); } } SCENE.lock--; };
 /* ---------------------------------------------------------------- markers */
 SCENE.buildMarks = function () {

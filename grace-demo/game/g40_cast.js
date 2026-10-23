@@ -11,7 +11,8 @@ CAST.specs = {
     brows: 0x1a1512, hair: [['Hair_SimpleParted', 0x1e1814], ['Hair_Beard', 0x1c1612]],
     robe: { col: COAT, trim: 0xb8862e }, collar: {}, tabard: { col: 0xe8e2d6, emblem: 0x1a1a24 }, crown: { worn: false } },
   queen: { id: 'queen', name: 'Halina', bind: 'rfemale', s: 1.0, skin: 0xe6bca2, skinK: 0.95, idle: 'Idle_FoldArms_Loop', walk: 'Walk_Formal_Loop', x: 3.35, z: 1.25, y: 0.48, face: -1, headY: 2.02,
-    homes: { throne: { x: 3.35, z: 1.25, y: 0.48, face: -1, idle: 'Idle_FoldArms_Loop' }, garden: { x: -4.5, z: 1.2, face: 1, idle: 'Idle_Loop', sit: { x: -4.5, y: 0.47, z: 1.2, yaw: 0.3, cardDz: 0.45 } } },
+    homes: { throne: { x: 3.35, z: 1.25, y: 0.48, face: -1, idle: 'Idle_FoldArms_Loop' }, garden: { x: -4.5, z: 1.2, face: 1, idle: 'Idle_Loop', sit: { x: -4.5, y: 0.47, z: 1.2, yaw: 0.3, cardDz: 0.45 } },
+      chapel: { x: -2.8, z: 1.25, face: 1, idle: 'Idle_Loop', sit: { x: -2.8, y: 0.5, z: 1.25, yaw: 1.32, cardDz: 0.45 } } },
     parts: [part(P_F('Body'), { L: 0x34426a, P: 0x7a88a8 }), part(P_F('Arms'), { L: 0x34426a, P: 0x5a6a8e }), part(P_F('Legs'), { L: 0x2a3048, P: 0x2a3048 }), part(P_F('Feet'), { L: 0x1a1410, P: 0x2a2018 })],
     brows: 0x3a2418, hair: [['Hair_Buns', 0x4a2c1a]],
     robe: { col: 0x3e4c78, top: 0.95, bot: 0.03, rx: [0.15, 0.36], rz: [0.12, 0.3], trim: 0xc8a040, band: 0xc8a040, leg: 0.4 },
@@ -68,6 +69,13 @@ Object.assign(CAST.specs, {
     homes: { garden: { x: 5.6, z: 2.55, face: -1, wander: { x0: 5.0, x1: 6.6, pause: [3, 6] }, routine: { clips: ['Interact'], every: [3, 6], at: 0.5 } } },
     parts: [part(P_M('Body'), { L: 0x5a1a1a, P: 0xe8dcc4 }), part(P_M('Arms'), { L: 0x5a1a1a, P: 0x5a1a1a }), part(P_M('Arms'), 'skin'), part(P_M('Legs'), { L: 0x2a2a30, P: 0x2a2a30 }), part(P_M('Feet'), { L: 0x2a1a10, P: 0x3a2a1a })],
     brows: 0xa8803a, hair: [['Hair_SimpleParted', 0xb08a48]] },
+  /* the chapel: Saintess Dorota (twenty-nine, a widow of the lower town who took the veil and kept her hair), in white and
+     gold at the chancel rail. Her bust is a bulge on the gown's bodice (robe.bust, see engine/e05_actor.js) */
+  dorota: { id: 'dorota', name: 'Saintess Dorota', bind: 'rfemale', s: 1.0, skin: 0xf2cdb4, skinK: 0.95, home: 'chapel', x: 0, z: 2.2, face: -1, headY: 2.02, idle: 'Idle_Loop',
+    parts: [part(P_F('Body'), { L: 0xf0e8d4, P: 0xf6efdc }), part(P_F('Arms'), { L: 0xf0e8d4, P: 0xf0e8d4 }), part(P_F('Legs'), { L: 0xe8dcc4, P: 0xe8dcc4 }), part(P_F('Feet'), { L: 0x6a4a2a, P: 0x6a4a2a })],
+    brows: 0xc8a050, hair: [['Hair_Long', 0xe8c870]],
+    robe: { col: 0xf4eee0, top: 1.36, bot: 0.03, rx: [0.15, 0.34], rz: [0.12, 0.3], trim: 0xc8a040, band: 0xc8a040, leg: 0.42, bust: { k: 0.085, sep: 0.085, y: 1.24, w: 0.09, h: 0.12 } },
+    collar: { pal: [0xe8c060, 0xf0d890, 0xfff4d8, 0xc8a040], y: 1.41, rx: 0.17, rz: 0.12, thick: 0.05 } },
   /* the opening: the night of the bargain, twelve years ago */
   witch: { id: 'witch', name: 'the Woman in the Wood', bind: 'rfemale', s: 1.0, skin: 0xd8c4b4, skinK: 0.9, x: -61.1, z: 2.5, face: -1, headY: 2.0, idle: 'Spell_Simple_Idle_Loop', offstage: true,
     homes: { exterior: { x: -61.1, z: 2.6, face: -1 } },

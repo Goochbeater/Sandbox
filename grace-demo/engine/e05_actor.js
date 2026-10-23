@@ -114,11 +114,14 @@ class Actor {
   /* ---------------------------------------------------------------- procedural garments */
   /* long skirt / gown: a flared tube from the waist down, weighted to the pelvis and, lower down, to the thighs */
   robe(o) {
-    const I = QA.idx, NS = 28, NR = 10, top = o.top || 1.0, bot = o.bot === undefined ? 0.36 : o.bot, rx = o.rx || [0.168, 0.29], rz = o.rz || [0.128, 0.25], legK = o.leg === undefined ? 0.62 : o.leg;
+    const I = QA.idx, NS = 28, NR = o.bust ? 20 : 10, top = o.top || 1.0, bot = o.bot === undefined ? 0.36 : o.bot, rx = o.rx || [0.168, 0.29], rz = o.rz || [0.128, 0.25], legK = o.leg === undefined ? 0.62 : o.leg;
     const pos = [], uv = [], J = [], W = [], idx = [];
     for (let j = 0; j <= NR; j++) { const t = j / NR, y = lerp(top, bot, t), f = Math.pow(t, 0.75), ax = lerp(rx[0], rx[1], f), az = lerp(rz[0], rz[1], f);
       for (let i = 0; i <= NS; i++) { const a = i / NS * Math.PI * 2, ripple = 1 + 0.035 * Math.sin(a * 9 + t * 2) * t, x = Math.sin(a) * ax * ripple, z = Math.cos(a) * az * ripple - 0.012;
-        pos.push(x, y, z); uv.push(i / NS, t);
+        /* a bust (robe.bust = { k, sep, y, w, h }): two soft bulges on the front of the bodice, strongest where the vertex faces the lens */
+        const b = o.bust, u = b ? (x - b.sep) / b.w : 0, v = b ? (x + b.sep) / b.w : 0, dy = b ? (y - b.y) / b.h : 0;
+        const bu = b ? b.k * (Math.exp(-(u * u + dy * dy)) + Math.exp(-(v * v + dy * dy))) * clamp(z / az, 0, 1) : 0;
+        pos.push(x, y, z + bu); uv.push(i / NS, t);
         const leg = smooth(0.05, 1, t) * legK, wl = clamp(0.5 + x / 0.2, 0, 1);
         J.push(I.pelvis, I.thigh_l, I.thigh_r, I.spine_01); W.push(1 - leg, leg * wl, leg * (1 - wl), 0); } }
     for (let j = 0; j < NR; j++) for (let i = 0; i < NS; i++) { const a = j * (NS + 1) + i, b = a + NS + 1; idx.push(a, b, a + 1, b, b + 1, a + 1); }

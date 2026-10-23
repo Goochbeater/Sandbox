@@ -43,7 +43,10 @@ GARDEN.build = function () {
   BUILD.plane('y-', A0, A0 + BAY * 3, -2.6, 0, 3.9, T.ceiling); for (let x = A0 + 0.6; x < A0 + BAY * 3; x += 1.25) BUILD.box(x - 0.08, x + 0.08, 3.72, 3.9, -2.6, 0, T.beam, { cast: false });
   BUILD.card(T.door, A0 + BAY * 0.5, 0, -2.57, { cast: false, s: 0.9 });
   room.interact('door', A0 + BAY * 0.5, 2.6, KZ, 0.9, () => MAP.open()).label = 'Into the castle (the map)';
-  BUILD.card(T.topiary, A0 + BAY * 1.5, 0, -2.0, { s: 0.95 }); BUILD.card(T.urn, A0 + BAY * 2.5, 0, -2.1);
+  BUILD.card(T.topiary, A0 + BAY * 1.5, 0, -2.0, { s: 0.95 }); BUILD.card(T.urn, A0 + BAY * 2.5 + 0.9, 0, -2.1);
+  /* the stair down the cloister's end wall to the chapel (g28) */
+  BUILD.card(T.door, A0 + BAY * 2.5, 0, -2.57, { cast: false, s: 0.9 });
+  room.interact('chapel', A0 + BAY * 2.5, 2.6, KZ, 0.9, () => { SCENE.lock++; SCENE.say(SCENE.player, 'Down to the chapel. The bells have been going for an hour.').then(() => { SCENE.lock--; GAME.save(); SCENE.go('chapel', { x: CHAPEL.ENTRY, face: 1 }); }); }).label = 'Down to the chapel';
   { const lx = A0 + BAY * 1.5; BUILD.box(lx - 0.01, lx + 0.01, 3.0, 3.9, -1.31, -1.29, null, { col: 0x2a2622, cast: false }); BUILD.card(T.lantern, lx, 2.45, -1.3, { cast: false }); BUILD.glow(lx, 2.7, -1.25, 1.2, 0xffb060, 0.5);
     room.lights.lantern = BUILD.light(new THREE.PointLight(0xffb060, 3.5, 0, 2), lx, 2.6, -1.0, { flicker: 5.2 }); }
   for (const x of [A0 + BAY * 0.5, A0 + BAY * 1.5, A0 + BAY * 2.5]) BUILD.shaft(x + 0.6, 3.6, 0.2, 1.1, 4.2, 0.12, [-0.35, 0, -0.55], 0xffd8a0);

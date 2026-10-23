@@ -94,7 +94,7 @@ WORLD.places = [   // at3: a point in the fortress diorama (exterior room coordi
   { id: 'throne', name: 'Throne Room', sub: 'the great hall', at3: [-5.5, 17, -31], room: 'throne', at: { x: -12.2, face: 1 } },
   { id: 'garden', name: 'Gardens', sub: 'Halina and the children', at3: [-6.3, 8, -21.4], side: 'l', room: 'garden', at: { x: -11.4, face: 1 } },
   { id: 'yard', name: 'Training Yard', sub: 'Ser Bogdan', at3: [25, 8, -38], side: 'r', room: 'yard', at: { x: -10.2, face: 1 } },
-  { id: 'chapel', name: 'Chapel', sub: 'not yet', at3: [-21.2, 22, -33.3], side: 'l', locked: true },
+  { id: 'chapel', name: 'Chapel', sub: 'the lower bailey', at3: [-21.2, 22, -33.3], side: 'l', room: 'chapel', at: { x: -9.6, face: 1 } },
   { id: 'town', name: 'Lower Town', sub: 'not yet', x: 378, y: 222, locked: true },
   { id: 'wood', name: 'The Wood', sub: 'not yet', x: 64, y: 164, locked: true },
 ];

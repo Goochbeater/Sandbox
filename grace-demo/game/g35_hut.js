@@ -3,7 +3,7 @@
    window that faces a moon that isn't where the moon is, and the Woman herself by the fire. Violet and plum throughout: the
    light is violet from the hearth, the window and the orb, the motes are violet, and the wattle walls hold a faint glow.
    Only the king comes here. No one else in the household has a home in this room, and the path into the trees is his alone. */
-const HUT = SCENE.addRoom(new Room('hut', { X0: -10, X1: 10, CEIL: 5.2, KZ: 2.6, cam: { y: 2.4, look: 2.2, dist: 19.4, fov: 19 }, exposure: 0.9, reflK: 0.5,
+const HUT = SCENE.addRoom(new Room('hut', { X0: -10, X1: 10, CEIL: 5.2, KZ: 2.6, cam: { y: 2.4, look: 2.2, dist: 19.4, fov: 19 }, exposure: 1.0, reflK: 0.5,
   music: 'title', ambience: { wind: 0.2, tone: 0.3 }, acoustics: { size: 2.4, wet: 0.35 }, surface: 'wood',
   caption: ['The Woman’s Hut', 'Only the king comes this way'] }));
 HUT.ENTRY = -10.6;   // from the path: the door is in the back wall, at the left
@@ -62,12 +62,24 @@ HUT.build = function () {
   BUILD.card(T.candleStand, -2.6, 0, 2.2, { s: 0.8 }); BUILD.glow(-2.6, 1.6, 2.2, 1.2, 0x9b5cff, 0.4);
   /* the table with the crystal orb; the Woman stands behind it, by the fire */
   BUILD.box(4.4, 6.0, 0, 0.95, 1.6, 2.4, T.woodDark, { col: 0x9a80c0 });
-  BUILD.card(T.orbPix, 5.2, 0.95, 2.0, { s: 1.0, cast: false }); BUILD.glow(5.2, 1.5, 2.0, 2.2, 0x9b5cff, 0.45);
+  BUILD.card(T.orbPix, 5.2, 0.95, 2.0, { s: 1.0, cast: false }); BUILD.glow(5.2, 1.5, 2.0, 1.3, 0x9b5cff, 0.3);
   BUILD.light(new THREE.PointLight(0xa070ff, 2.5, 0, 2), 5.2, 1.6, 2.2, { flicker: 4 });
   room.interact('orb', 5.2, 1.6, KZ, 1.0, () => say('orb'));
   room.interact('witch', 3.6, 2.6, KZ, 1.0, () => HUT.witch()).label = 'Talk to the Woman';
+  /* the dressing: jars on the shelf, a skull and a black cat on the table, cobwebs in the corners, a stool, a barrel,
+     lanterns and candles, and a hanging over the hearth */
+  for (const x of [-6.2, -5.6, -5.0, -4.4]) BUILD.card(T.jarPix, x, 2.6, 0.45, { s: 1.0, cast: false });
+  BUILD.card(T.catPix, 4.6, 0.95, 2.55, { s: 1.0, cast: false });
+  BUILD.card(T.skullPix, 5.8, 0.95, 2.2, { s: 1.0 });
+  BUILD.card(T.cobwebPix, -9.6, 4.2, 0.08, { s: 2.2, cast: false }); BUILD.card(T.cobwebPix, 9.4, 4.4, 0.08, { s: 2.2, cast: false });
+  BUILD.box(2.9, 3.5, 0, 0.45, 1.5, 2.0, T.woodDark, { col: 0x8a70b0 });
+  BUILD.box(-3.4, -2.2, 0, 1.1, 2.4, 3.2, T.woodDark, { col: 0x7a60a0 });
+  BUILD.card(T.lantern, -2.6, 3.0, 1.0, { cast: false }); BUILD.glow(-2.6, 3.2, 1.05, 1.2, 0x9b5cff, 0.4);
+  BUILD.card(T.lantern, 8.4, 3.0, 1.2, { cast: false }); BUILD.glow(8.4, 3.2, 1.25, 1.2, 0x9b5cff, 0.4);
+  BUILD.card(T.candleStand, 8.0, 0, 1.6, { s: 0.8 }); BUILD.glow(8.0, 1.6, 1.6, 1.2, 0x9b5cff, 0.4);
+  BUILD.card(T.folkWide, 0.2, 2.8, 0.03, { cast: false, col: 0x9a80d0 });
   /* light: a violet hemisphere for the room's base, the moon from the window, the hearth; motes drift up from the fire */
-  BUILD.light(new THREE.HemisphereLight(0x3a2a6a, 0x1a0c18, 1.1), 0, 5, 0);
+  BUILD.light(new THREE.HemisphereLight(0x3a2a6a, 0x1a0c18, 1.8), 0, 5, 0);
   room.rim = [0.2, 1.4, 1.2, 0.5, 6, 0x9b5cff, null];
   room.shadowSrc = [5.2, 3.4, 3.6, 6];
   BUILD.motes({ n: 110, boxes: [[-9, 9, 0.5, 4.6, 0.5, 4, 0.3]], embers: [0.2, 1.3, 1.2], col: 0xc8a0ff });

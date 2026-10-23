@@ -56723,14 +56723,39 @@ PX.def('houndPix', () => {   // a grey-brown hound lying with its head up, in pr
   return p.outline(null, 0.6).tex();
 });
 /* ---- the hut */
-PX.def('hutWall', () => {   // purple-black wattle: a woven lattice of staves, with a rare spark of violet in the gaps
-  const p = new Pix(32, 32).fill(0x1e1430);
-  for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) {
-    const over = ((x >> 2) + (y >> 2)) % 2 === 0, stave = over ? (y % 4 === 1 || y % 4 === 2) : (x % 4 === 1 || x % 4 === 2);
-    p.set(x, y, stave ? C.mul(0x4a2c6a, 0.85 + 0.3 * hash(x, y, 1301)) : C.mul(0x2a1a40, 0.9 + 0.2 * hash(x, y, 1302)));
-    if (hash(x, y, 1303) > 0.985) p.set(x, y, 0x9a5cff);
+PX.def('hutWall', () => {   // purple-black wattle: staves of woven wood, eight texels to a stave, so the weave reads at the lens
+  const p = new Pix(64, 64).fill(0x1e1430);
+  for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) {
+    const over = ((x >> 3) + (y >> 3)) % 2 === 0, stave = over ? (y % 8 >= 3 && y % 8 <= 4) : (x % 8 >= 3 && x % 8 <= 4);
+    p.set(x, y, stave ? C.mul(0x5a3a7a, 0.85 + 0.3 * hash(x >> 2, y >> 2, 1301)) : C.mul(0x24183a, 0.9 + 0.15 * hash(x, y, 1302)));
   }
   return p.tex({ repeat: true });
+});
+PX.def('catPix', () => {   // a black cat sitting in profile, green eyes, its tail round its feet
+  const p = new Pix(18, 24), K = 0x0e0a10;
+  p.ell(9, 16, 5, 6.5, K); p.ell(9, 7, 3.5, 3.2, K); p.set(7, 2, K); p.set(7, 1, K); p.set(11, 2, K); p.set(11, 1, K);
+  p.set(8, 7, 0x8aff8a); p.set(10, 7, 0x8aff8a);
+  p.ell(13, 22, 5, 1.5, K);
+  return p.tex({});
+});
+PX.def('jarPix', () => {   // a glass jar of violet liquid with a wooden lid and a name on it, the highlight on the glass
+  const p = new Pix(14, 24);
+  p.rect(3, 0, 8, 3, 0x6a4a2a);
+  for (let y = 3; y < 24; y++) for (let x = 1; x < 13; x++) { const edge = x === 1 || x === 12 || y === 23; p.set(x, y, edge ? 0x4a3a5a : C.mix(0x5a2aa0, 0xb080ff, (x - 1) / 11)); }
+  p.hl(3, 10, 8, 0xe8d8ff); p.rect(4, 12, 6, 4, 0xe8dcc0);
+  return p.tex({});
+});
+PX.def('skullPix', () => {   // a skull, two sockets, the teeth in a row
+  const p = new Pix(14, 14);
+  p.ell(7, 6, 6, 5.5, 0xd8d0c0); p.rect(3, 9, 8, 4, 0xd8d0c0);
+  p.disc(4.5, 6.5, 1.6, 0x1a1418); p.disc(9.5, 6.5, 1.6, 0x1a1418); p.set(7, 9, 0x1a1418); p.set(6, 11, 0x1a1418); p.set(8, 11, 0x1a1418);
+  return p.outline(null, 0.6).tex();
+});
+PX.def('cobwebPix', () => {   // a corner of web: radial threads and three rings, clear outside
+  const p = new Pix(20, 20), c = 0x9a9ab0, cx = 19, cy = 0;
+  for (let a = 0; a <= 8; a++) { const t = a / 8 * Math.PI / 2; p.line(cx, cy, Math.round(cx - Math.cos(t) * 19), Math.round(cy + Math.sin(t) * 19), c); }
+  for (const r of [6, 12, 18]) for (let a = 0; a <= 40; a++) { const t = a / 40 * Math.PI / 2; p.set(Math.round(cx - Math.cos(t) * r), Math.round(cy + Math.sin(t) * r), c); }
+  return p.tex({});
 });
 PX.def('runeRug', () => {   // a ritual circle on dark planks: two rings, six spokes and a violet hub
   const W = 64, p = new Pix(W, W), c = 31.5;
@@ -58630,7 +58655,7 @@ WOOD.build = function () {
   room.interact('butts', -8.0, 1.8, KZ, 1.0, () => say('butts'));
   /* the fishing hole: a stone rim, the water, a dock with its posts, a rod leaning on the dock */
   BUILD.cyl(1.0, 1.8, 0, 0.45, 2.3, T.ashlar, { seg: 10 });
-  BUILD.pool(T.water, 1.0, 0.42, 1.8, 2.1, { seg: 10, rate: 5, glow: 0.2 });
+  BUILD.pool(T.water, 1.0, 0.42, 1.8, 2.1, { seg: 10, rate: 5, glow: 0.35, col: 0x9ac4e8 });
   BUILD.box(2.4, 3.6, 0.42, 0.5, 2.5, 2.9, T.woodDark);
   for (const x of [2.5, 3.5]) BUILD.box(x - 0.06, x + 0.06, 0, 0.42, 2.45, 2.55, T.woodPost);
   BUILD.box(3.5, 3.56, 0.5, 2.4, 2.65, 2.7, T.woodPost);
@@ -58653,6 +58678,12 @@ WOOD.build = function () {
   room.interact('kazik', 11.6, 2.7, KZ, 1.0, () => talk('kazik', 'kazik')).label = 'Talk to Kazik';
   room.interact('woodGuardL', -7.5, 3.0, KZ, 1.0, () => talk('woodGuardL', 'guardL')).label = 'Talk to the guard';
   room.interact('woodGuardR', 1.0, 3.0, KZ, 1.0, () => talk('woodGuardR', 'guardR')).label = 'Talk to the guard';
+  /* the undergrowth and a low fence along the back of the clearing: foxgloves and asters by the butts and the pond, tufts,
+     a split-rail fence in the far right, where the deer comes out of the trees */
+  BUILD.card(T.foxglove, -10.6, 0, 1.3, { s: 0.9 }); BUILD.card(T.asters, -2.2, 0, 1.1, { s: 0.75 }); BUILD.card(T.foxglove, 3.4, 0, 1.2, { s: 0.9 });
+  BUILD.card(T.tuft, -11.6, 0, 2.2, { s: 1.1 }); BUILD.card(T.tuft, 2.8, 0, 0.9, { s: 0.8 }); BUILD.card(T.tuft, 9.8, 0, 1.0, { s: 1.0 });
+  for (const x of [10.0, 11.4, 12.8, 14.0]) BUILD.box(x - 0.07, x + 0.07, 0, 1.0, 0.7, 0.8, T.woodPost);
+  for (const y of [0.45, 0.8]) BUILD.box(10.0, 14.0, y - 0.05, y + 0.05, 0.7, 0.74, T.woodPost);
   /* light: the afternoon sun from the west with long shadows, the sky's fill, a warm bounce off the grass; the same rig as the garden */
   BUILD.light(new THREE.HemisphereLight(0x9ab4dc, 0x5a7434, 1.25), 0, 20, 0);
   room.sun = BUILD.shadow(BUILD.light(new THREE.DirectionalLight(0xffc888, 3.4), 32, 12, 16), R.q === 'low' ? 1024 : 2048); room.sun.target.position.set(0, 0, 0);
@@ -58678,7 +58709,7 @@ WOOD.onEnter = function () {
    window that faces a moon that isn't where the moon is, and the Woman herself by the fire. Violet and plum throughout: the
    light is violet from the hearth, the window and the orb, the motes are violet, and the wattle walls hold a faint glow.
    Only the king comes here. No one else in the household has a home in this room, and the path into the trees is his alone. */
-const HUT = SCENE.addRoom(new Room('hut', { X0: -10, X1: 10, CEIL: 5.2, KZ: 2.6, cam: { y: 2.4, look: 2.2, dist: 19.4, fov: 19 }, exposure: 0.9, reflK: 0.5,
+const HUT = SCENE.addRoom(new Room('hut', { X0: -10, X1: 10, CEIL: 5.2, KZ: 2.6, cam: { y: 2.4, look: 2.2, dist: 19.4, fov: 19 }, exposure: 1.0, reflK: 0.5,
   music: 'title', ambience: { wind: 0.2, tone: 0.3 }, acoustics: { size: 2.4, wet: 0.35 }, surface: 'wood',
   caption: ['The Woman’s Hut', 'Only the king comes this way'] }));
 HUT.ENTRY = -10.6;   // from the path: the door is in the back wall, at the left
@@ -58737,12 +58768,24 @@ HUT.build = function () {
   BUILD.card(T.candleStand, -2.6, 0, 2.2, { s: 0.8 }); BUILD.glow(-2.6, 1.6, 2.2, 1.2, 0x9b5cff, 0.4);
   /* the table with the crystal orb; the Woman stands behind it, by the fire */
   BUILD.box(4.4, 6.0, 0, 0.95, 1.6, 2.4, T.woodDark, { col: 0x9a80c0 });
-  BUILD.card(T.orbPix, 5.2, 0.95, 2.0, { s: 1.0, cast: false }); BUILD.glow(5.2, 1.5, 2.0, 2.2, 0x9b5cff, 0.45);
+  BUILD.card(T.orbPix, 5.2, 0.95, 2.0, { s: 1.0, cast: false }); BUILD.glow(5.2, 1.5, 2.0, 1.3, 0x9b5cff, 0.3);
   BUILD.light(new THREE.PointLight(0xa070ff, 2.5, 0, 2), 5.2, 1.6, 2.2, { flicker: 4 });
   room.interact('orb', 5.2, 1.6, KZ, 1.0, () => say('orb'));
   room.interact('witch', 3.6, 2.6, KZ, 1.0, () => HUT.witch()).label = 'Talk to the Woman';
+  /* the dressing: jars on the shelf, a skull and a black cat on the table, cobwebs in the corners, a stool, a barrel,
+     lanterns and candles, and a hanging over the hearth */
+  for (const x of [-6.2, -5.6, -5.0, -4.4]) BUILD.card(T.jarPix, x, 2.6, 0.45, { s: 1.0, cast: false });
+  BUILD.card(T.catPix, 4.6, 0.95, 2.55, { s: 1.0, cast: false });
+  BUILD.card(T.skullPix, 5.8, 0.95, 2.2, { s: 1.0 });
+  BUILD.card(T.cobwebPix, -9.6, 4.2, 0.08, { s: 2.2, cast: false }); BUILD.card(T.cobwebPix, 9.4, 4.4, 0.08, { s: 2.2, cast: false });
+  BUILD.box(2.9, 3.5, 0, 0.45, 1.5, 2.0, T.woodDark, { col: 0x8a70b0 });
+  BUILD.box(-3.4, -2.2, 0, 1.1, 2.4, 3.2, T.woodDark, { col: 0x7a60a0 });
+  BUILD.card(T.lantern, -2.6, 3.0, 1.0, { cast: false }); BUILD.glow(-2.6, 3.2, 1.05, 1.2, 0x9b5cff, 0.4);
+  BUILD.card(T.lantern, 8.4, 3.0, 1.2, { cast: false }); BUILD.glow(8.4, 3.2, 1.25, 1.2, 0x9b5cff, 0.4);
+  BUILD.card(T.candleStand, 8.0, 0, 1.6, { s: 0.8 }); BUILD.glow(8.0, 1.6, 1.6, 1.2, 0x9b5cff, 0.4);
+  BUILD.card(T.folkWide, 0.2, 2.8, 0.03, { cast: false, col: 0x9a80d0 });
   /* light: a violet hemisphere for the room's base, the moon from the window, the hearth; motes drift up from the fire */
-  BUILD.light(new THREE.HemisphereLight(0x3a2a6a, 0x1a0c18, 1.1), 0, 5, 0);
+  BUILD.light(new THREE.HemisphereLight(0x3a2a6a, 0x1a0c18, 1.8), 0, 5, 0);
   room.rim = [0.2, 1.4, 1.2, 0.5, 6, 0x9b5cff, null];
   room.shadowSrc = [5.2, 3.4, 3.6, 6];
   BUILD.motes({ n: 110, boxes: [[-9, 9, 0.5, 4.6, 0.5, 4, 0.3]], embers: [0.2, 1.3, 1.2], col: 0xc8a0ff });

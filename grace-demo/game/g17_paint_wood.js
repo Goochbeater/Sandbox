@@ -28,14 +28,39 @@ PX.def('houndPix', () => {   // a grey-brown hound lying with its head up, in pr
   return p.outline(null, 0.6).tex();
 });
 /* ---- the hut */
-PX.def('hutWall', () => {   // purple-black wattle: a woven lattice of staves, with a rare spark of violet in the gaps
-  const p = new Pix(32, 32).fill(0x1e1430);
-  for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) {
-    const over = ((x >> 2) + (y >> 2)) % 2 === 0, stave = over ? (y % 4 === 1 || y % 4 === 2) : (x % 4 === 1 || x % 4 === 2);
-    p.set(x, y, stave ? C.mul(0x4a2c6a, 0.85 + 0.3 * hash(x, y, 1301)) : C.mul(0x2a1a40, 0.9 + 0.2 * hash(x, y, 1302)));
-    if (hash(x, y, 1303) > 0.985) p.set(x, y, 0x9a5cff);
+PX.def('hutWall', () => {   // purple-black wattle: staves of woven wood, eight texels to a stave, so the weave reads at the lens
+  const p = new Pix(64, 64).fill(0x1e1430);
+  for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) {
+    const over = ((x >> 3) + (y >> 3)) % 2 === 0, stave = over ? (y % 8 >= 3 && y % 8 <= 4) : (x % 8 >= 3 && x % 8 <= 4);
+    p.set(x, y, stave ? C.mul(0x5a3a7a, 0.85 + 0.3 * hash(x >> 2, y >> 2, 1301)) : C.mul(0x24183a, 0.9 + 0.15 * hash(x, y, 1302)));
   }
   return p.tex({ repeat: true });
+});
+PX.def('catPix', () => {   // a black cat sitting in profile, green eyes, its tail round its feet
+  const p = new Pix(18, 24), K = 0x0e0a10;
+  p.ell(9, 16, 5, 6.5, K); p.ell(9, 7, 3.5, 3.2, K); p.set(7, 2, K); p.set(7, 1, K); p.set(11, 2, K); p.set(11, 1, K);
+  p.set(8, 7, 0x8aff8a); p.set(10, 7, 0x8aff8a);
+  p.ell(13, 22, 5, 1.5, K);
+  return p.tex({});
+});
+PX.def('jarPix', () => {   // a glass jar of violet liquid with a wooden lid and a name on it, the highlight on the glass
+  const p = new Pix(14, 24);
+  p.rect(3, 0, 8, 3, 0x6a4a2a);
+  for (let y = 3; y < 24; y++) for (let x = 1; x < 13; x++) { const edge = x === 1 || x === 12 || y === 23; p.set(x, y, edge ? 0x4a3a5a : C.mix(0x5a2aa0, 0xb080ff, (x - 1) / 11)); }
+  p.hl(3, 10, 8, 0xe8d8ff); p.rect(4, 12, 6, 4, 0xe8dcc0);
+  return p.tex({});
+});
+PX.def('skullPix', () => {   // a skull, two sockets, the teeth in a row
+  const p = new Pix(14, 14);
+  p.ell(7, 6, 6, 5.5, 0xd8d0c0); p.rect(3, 9, 8, 4, 0xd8d0c0);
+  p.disc(4.5, 6.5, 1.6, 0x1a1418); p.disc(9.5, 6.5, 1.6, 0x1a1418); p.set(7, 9, 0x1a1418); p.set(6, 11, 0x1a1418); p.set(8, 11, 0x1a1418);
+  return p.outline(null, 0.6).tex();
+});
+PX.def('cobwebPix', () => {   // a corner of web: radial threads and three rings, clear outside
+  const p = new Pix(20, 20), c = 0x9a9ab0, cx = 19, cy = 0;
+  for (let a = 0; a <= 8; a++) { const t = a / 8 * Math.PI / 2; p.line(cx, cy, Math.round(cx - Math.cos(t) * 19), Math.round(cy + Math.sin(t) * 19), c); }
+  for (const r of [6, 12, 18]) for (let a = 0; a <= 40; a++) { const t = a / 40 * Math.PI / 2; p.set(Math.round(cx - Math.cos(t) * r), Math.round(cy + Math.sin(t) * r), c); }
+  return p.tex({});
 });
 PX.def('runeRug', () => {   // a ritual circle on dark planks: two rings, six spokes and a violet hub
   const W = 64, p = new Pix(W, W), c = 31.5;

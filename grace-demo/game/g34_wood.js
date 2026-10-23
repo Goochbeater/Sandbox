@@ -47,7 +47,7 @@ WOOD.build = function () {
   room.interact('butts', -8.0, 1.8, KZ, 1.0, () => say('butts'));
   /* the fishing hole: a stone rim, the water, a dock with its posts, a rod leaning on the dock */
   BUILD.cyl(1.0, 1.8, 0, 0.45, 2.3, T.ashlar, { seg: 10 });
-  BUILD.pool(T.water, 1.0, 0.42, 1.8, 2.1, { seg: 10, rate: 5, glow: 0.2 });
+  BUILD.pool(T.water, 1.0, 0.42, 1.8, 2.1, { seg: 10, rate: 5, glow: 0.35, col: 0x9ac4e8 });
   BUILD.box(2.4, 3.6, 0.42, 0.5, 2.5, 2.9, T.woodDark);
   for (const x of [2.5, 3.5]) BUILD.box(x - 0.06, x + 0.06, 0, 0.42, 2.45, 2.55, T.woodPost);
   BUILD.box(3.5, 3.56, 0.5, 2.4, 2.65, 2.7, T.woodPost);
@@ -70,6 +70,12 @@ WOOD.build = function () {
   room.interact('kazik', 11.6, 2.7, KZ, 1.0, () => talk('kazik', 'kazik')).label = 'Talk to Kazik';
   room.interact('woodGuardL', -7.5, 3.0, KZ, 1.0, () => talk('woodGuardL', 'guardL')).label = 'Talk to the guard';
   room.interact('woodGuardR', 1.0, 3.0, KZ, 1.0, () => talk('woodGuardR', 'guardR')).label = 'Talk to the guard';
+  /* the undergrowth and a low fence along the back of the clearing: foxgloves and asters by the butts and the pond, tufts,
+     a split-rail fence in the far right, where the deer comes out of the trees */
+  BUILD.card(T.foxglove, -10.6, 0, 1.3, { s: 0.9 }); BUILD.card(T.asters, -2.2, 0, 1.1, { s: 0.75 }); BUILD.card(T.foxglove, 3.4, 0, 1.2, { s: 0.9 });
+  BUILD.card(T.tuft, -11.6, 0, 2.2, { s: 1.1 }); BUILD.card(T.tuft, 2.8, 0, 0.9, { s: 0.8 }); BUILD.card(T.tuft, 9.8, 0, 1.0, { s: 1.0 });
+  for (const x of [10.0, 11.4, 12.8, 14.0]) BUILD.box(x - 0.07, x + 0.07, 0, 1.0, 0.7, 0.8, T.woodPost);
+  for (const y of [0.45, 0.8]) BUILD.box(10.0, 14.0, y - 0.05, y + 0.05, 0.7, 0.74, T.woodPost);
   /* light: the afternoon sun from the west with long shadows, the sky's fill, a warm bounce off the grass; the same rig as the garden */
   BUILD.light(new THREE.HemisphereLight(0x9ab4dc, 0x5a7434, 1.25), 0, 20, 0);
   room.sun = BUILD.shadow(BUILD.light(new THREE.DirectionalLight(0xffc888, 3.4), 32, 12, 16), R.q === 'low' ? 1024 : 2048); room.sun.target.position.set(0, 0, 0);

@@ -58034,6 +58034,9 @@ CHAPEL.build = function () {
   BUILD.card(T.chVotive, -4.2, 0, 0.7, { s: 1.0, cast: false });
   for (const [px, py] of [[7, 1.25], [19, 1.25], [31, 1.25], [7, 0.875], [19, 0.875], [31, 0.875]]) BUILD.flame(-4.2 - 0.625 + px / 32, py, 0.7, 0.2);
   room.interact('votive', -4.2, 1.8, KZ, 1.0, () => say('votive'));
+  /* a prayer bench under the right-hand lancet and a lectern for the readings, as in the throne hall's bench and lectern */
+  BUILD.box(7.6, 9.1, 0, 0.46, 0.2, 0.6, T.woodDark, { front: BUILD.std(T.bench) }); BUILD.box(7.55, 9.15, 0.46, 0.52, 0.16, 0.64, T.woodPost);
+  BUILD.card(T.lectern, -5.9, 0, 1.45, { s: 0.9 });
   /* the confessional on the right, its lattice facing the aisle */
   BUILD.box(9.4, 11.5, 0, 2.2, 0.1, 1.3, T.woodDark, { front: BUILD.std(T.chConfess) }); BUILD.box(9.3, 11.6, 2.2, 2.35, 0.0, 1.45, T.woodDark);
   room.interact('confess', 10.4, 2.5, KZ, 1.0, () => say(CHAPEL.flirt ? 'confessFlirt' : 'confess'));

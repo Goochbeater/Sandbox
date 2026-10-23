@@ -47,7 +47,7 @@ WOOD.build = function () {
   room.interact('butts', -8.0, 1.8, KZ, 1.0, () => say('butts'));
   /* the fishing hole: a stone rim, the water, a dock with its posts, a rod leaning on the dock */
   BUILD.cyl(1.0, 1.8, 0, 0.45, 2.3, T.ashlar, { seg: 10 });
-  BUILD.pool(T.water, 1.0, 0.42, 1.8, 2.1, { seg: 10, rate: 5, glow: 0.35, col: 0x9ac4e8 });
+  BUILD.pool(T.water, 1.0, 0.48, 1.8, 2.1, { seg: 10, rate: 5, glow: 0.35, col: 0x9ac4e8 });   // above the rim's cap (0.45), so the water shows
   BUILD.box(2.4, 3.6, 0.42, 0.5, 2.5, 2.9, T.woodDark);
   for (const x of [2.5, 3.5]) BUILD.box(x - 0.06, x + 0.06, 0, 0.42, 2.45, 2.55, T.woodPost);
   BUILD.box(3.5, 3.56, 0.5, 2.4, 2.65, 2.7, T.woodPost);

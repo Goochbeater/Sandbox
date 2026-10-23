@@ -78,6 +78,10 @@ HUT.build = function () {
   BUILD.card(T.lantern, 8.4, 3.0, 1.2, { cast: false }); BUILD.glow(8.4, 3.2, 1.25, 1.2, 0x9b5cff, 0.4);
   BUILD.card(T.candleStand, 8.0, 0, 1.6, { s: 0.8 }); BUILD.glow(8.0, 1.6, 1.6, 1.2, 0x9b5cff, 0.4);
   BUILD.card(T.folkWide, 0.2, 2.8, 0.03, { cast: false, col: 0x9a80d0 });
+  /* a broom against the wall by the door, a sack of something by the barrel, violet mushrooms on the floor */
+  BUILD.box(-7.66, -7.6, 0, 2.6, 0.12, 0.18, T.woodPost); BUILD.box(-7.85, -7.42, 0, 0.5, 0.1, 0.22, T.woodDark, { col: 0xb8a070 });
+  BUILD.box(-2.0, -1.2, 0, 0.7, 0.4, 1.0, T.woodPost, { col: 0xb0a080 });
+  BUILD.card(T.tuft, -0.8, 0, 0.5, { s: 0.9, col: 0x9a6aff }); BUILD.card(T.tuft, 7.6, 0, 1.2, { s: 1.1, col: 0x9a6aff }); BUILD.card(T.tuft, -4.7, 0, 1.4, { s: 0.8, col: 0x9a6aff });
   /* light: a violet hemisphere for the room's base, the moon from the window, the hearth; motes drift up from the fire */
   BUILD.light(new THREE.HemisphereLight(0x3a2a6a, 0x1a0c18, 1.8), 0, 5, 0);
   room.rim = [0.2, 1.4, 1.2, 0.5, 6, 0x9b5cff, null];

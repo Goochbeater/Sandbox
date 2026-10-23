@@ -52,13 +52,17 @@ PX.def('chReredos', () => {   // gold leaf, a red-and-gold cross, two saints kne
   }
   return p.jitter(0.02, 942).tex({});
 });
-PX.def('chPlaster', () => {   // cream lime plaster, mottled
-  const p = new Pix(64, 64);
-  for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) {
-    const n = noise1(x * 0.11 + y * 0.07, 901) * 0.6 + hash(x, y, 902) * 0.4;
-    p.set(x, y, C.mix(0xdccbad, 0xbcaa86, clamp(n, 0, 1)));
-  }
-  return p.jitter(0.02, 903).tex({ repeat: true });
+/* a cream damask, the chapel's wall: a lattice of ochre lines with a gold-tipped boss at every crossing (the same
+   construction as the throne's damask, so the wall reads as a pattern at distance and as stone up close) */
+PX.def('chWall', () => {
+  const p = new Pix(32, 32).fill(0xd6c6a2);
+  for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) { const a = (x + y) % 16, b = ((x - y) % 16 + 16) % 16;
+    if (a === 0 || b === 0) p.set(x, y, 0xb8a278); else if (a === 1 || b === 1) p.set(x, y, 0xe6d8b6); }
+  for (const [cx, cy] of [[8, 0], [24, 0], [0, 8], [16, 8], [32, 8], [8, 16], [24, 16], [0, 24], [16, 24], [32, 24], [8, 32], [24, 32]]) {
+    for (const [dx, dy] of [[0, -3], [0, 3], [-3, 0], [3, 0]]) p.wset(cx + dx, cy + dy, 0xa8703a);
+    for (const [dx, dy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) p.wset(cx + dx, cy + dy, 0xb88a4a);
+    p.wset(cx, cy, 0xc8a040); }
+  return p.jitter(0.025, 901).tex({ repeat: true });
 });
 PX.def('chVault', () => {   // ultramarine vault with gold stars
   const p = new Pix(32, 32);
@@ -66,15 +70,17 @@ PX.def('chVault', () => {   // ultramarine vault with gold stars
   for (const [x, y] of [[4, 5], [20, 11], [11, 22], [27, 26]]) { p.set(x, y, 0xe8c060); p.set(x + 1, y, 0xc8a040); p.set(x, y + 1, 0xc8a040); }
   return p.tex({ repeat: true });
 });
-PX.def('chTile', () => {   // black and cream chequer, one metre a square
-  const p = new Pix(64, 64);
+/* worn grey flagstones, a metre square each: varied tones, a dark joint, a few hairline cracks */
+PX.def('chFlags', () => {
+  const p = new Pix(64, 64), tones = [0x6e6a62, 0x7a7468, 0x66625a, 0x847c6e, 0x726c60];
   for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) {
-    const dark = ((x >> 5) + (y >> 5)) % 2 === 0;
-    let c = dark ? C.mul(0x2a2420, 0.9 + 0.2 * hash(x, y, 921)) : C.mul(0xd8ccb4, 0.9 + 0.12 * hash(x, y, 922));
-    if (x % 32 === 0 || y % 32 === 0) c = 0x5a5048;
+    const cell = ((x >> 5) * 7 + (y >> 5) * 13) % tones.length;
+    let c = C.mul(tones[cell], 0.9 + 0.2 * hash(x, y, 921));
+    if (x % 32 === 0 || y % 32 === 0) c = 0x3c3830;
+    if (Math.abs(noise1(x * 0.2 + y * 0.05, 922) - 0.5) < 0.012) c = C.mul(c, 0.8);
     p.set(x, y, c);
   }
-  return p.tex({ repeat: true });
+  return p.tex({ repeat: true, aniso: 4 });
 });
 PX.def('chAltarCloth', () => {   // white linen with a gold border
   const p = new Pix(16, 16); p.fill(0xf0ead6);

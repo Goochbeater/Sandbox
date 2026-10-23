@@ -5,7 +5,7 @@
      D the bishop, the swan's lancet · E the confessional on the right
    The walking line runs in front of the stalls. Saintess Dorota keeps the chancel rail; Halina sits in the stall nearest
    the aisle. The king's replies to Dorota are his choices (NIGHT.ask): what he says, and how far he goes, is the player's. */
-const CHAPEL = SCENE.addRoom(new Room('chapel', { X0: -12, X1: 12, CEIL: 7.6, KZ: 3.0, cam: { y: 2.8, look: 2.55, dist: 19.4, fov: 19 }, exposure: 0.95, reflK: 0.7,
+const CHAPEL = SCENE.addRoom(new Room('chapel', { X0: -12, X1: 12, CEIL: 7.6, KZ: 3.0, cam: { y: 2.8, look: 2.55, dist: 19.4, fov: 19 }, exposure: 0.92, reflK: 0.85,
   music: 'castle', ambience: { fire: 0.25, tone: 0.2 }, acoustics: { size: 3.6, wet: 0.5 }, surface: 'stone',
   caption: ['The Chapel', 'Vespers, and nobody in a hurry'] }));
 CHAPEL.ENTRY = -9.6;   // where the king arrives from the garden's cloister stair
@@ -51,10 +51,12 @@ CHAPEL.build = function () {
   const room = BUILD.begin(this), T = PX.T, X0 = room.X0, X1 = room.X1, CE = room.CEIL, KZ = room.KZ, L = room.LINES;
   const say = (k) => SCENE.say(SCENE.player, SCENE.cycle(k, L[k]));
   /* shell: plaster walls, a stone plinth, the ultramarine vault and its ribs */
-  BUILD.plane('z', X0, X1, 0, CE, 0, T.chPlaster);
-  for (const [x, ax] of [[X0, 'x+'], [X1, 'x-']]) BUILD.plane(ax, 0, 10, 0, CE, x, T.chPlaster);
+  BUILD.plane('z', X0, X1, 0, CE, 0, T.chWall);
+  BUILD.plane('z', X0, X1, 0.5, 1.9, 0.01, T.hallWainscot);   // the carved panelling, as in the throne hall
+  BUILD.plane('z', X0, X1, 5.55, 5.86, 0.02, T.frieze, { rough: 0.8 });   // the gold rosette frieze under the vault
+  for (const [x, ax] of [[X0, 'x+'], [X1, 'x-']]) BUILD.plane(ax, 0, 10, 0, CE, x, T.chWall);
   BUILD.box(X0, X1, 0, 0.5, 0, 0.3, T.ashlar);
-  room.floorMat = BUILD.reflective(T.chTile, { k: 1.0, rough: 0.3 }); BUILD.plane('y+', X0, X1, 0, 12, 0, T.chTile, { mat: room.floorMat, layer: 2 });
+  room.floorMat = BUILD.reflective(T.chFlags, { k: 1.0, rough: 0.35 }); BUILD.plane('y+', X0, X1, 0, 12, 0, T.chFlags, { mat: room.floorMat, layer: 2 });
   BUILD.plane('y-', X0, X1, 0, 14, CE, T.chVault);
   for (let x = X0 + 1.5; x < X1; x += 3) BUILD.box(x - 0.15, x + 0.15, CE - 0.55, CE, 0, 9, T.ashlar, { cast: false });
   /* the back wall: pilasters, the arch to the garden, the stoup, the lancets, the statues */
@@ -67,7 +69,7 @@ CHAPEL.build = function () {
   for (const [x, tex] of [[-8.4, T.chGlassSaint], [-5.2, T.chGlassSwan], [5.2, T.chGlassSwan], [8.4, T.chGlassSaint]]) {
     BUILD.card(tex, x, 1.8, 0.03, { basic: true, k: 1.25, cast: false }); BUILD.glow(x, 3.5, 0.3, 4.0, 0xffe0a0, 0.14);
     BUILD.light(new THREE.PointLight(0xb8d0ff, 2.5, 0, 2), x, 3.2, 1.2);
-    BUILD.shaft(x, 4.8, 0.6, 1.2, 6, 0.16, [-0.42, 0, 0.3], 0xc8d8ff); }
+    BUILD.shaft(x, 4.8, 0.6, 1.2, 6, 0.16, [-0.42, 0, 0.3], 0xc8d8ff); BUILD.shaft(x + 0.4, 4.6, 0.5, 0.6, 6, 0.1, [-0.42, 0.1, 0.3], 0xc8d8ff); }
   room.interact('glass', -8.4, 3.2, KZ, 1.0, () => say('glass'));
   room.interact('swan', -5.2, 3.2, KZ, 1.0, () => say('swan'));
   for (const [x, tex, who] of [[-6.8, T.chStatueA, 'virgin'], [6.8, T.chStatueB, 'bishop']]) {
@@ -107,6 +109,20 @@ CHAPEL.build = function () {
   /* the confessional on the right, its lattice facing the aisle */
   BUILD.box(9.4, 11.5, 0, 2.2, 0.1, 1.3, T.woodDark, { front: BUILD.std(T.chConfess) }); BUILD.box(9.3, 11.6, 2.2, 2.35, 0.0, 1.45, T.woodDark);
   room.interact('confess', 10.4, 2.5, KZ, 1.0, () => say(CHAPEL.flirt ? 'confessFlirt' : 'confess'));
+  /* the foreground, close to the lens and out of focus, as in the throne hall: two piers and a brazier for the depth of field */
+  for (const [x, z] of [[-7.6, 7.3], [10.9, 7.0]]) { const g = new THREE.CylinderGeometry(0.48, 0.48, CE, 16); g.translate(x, CE / 2, z); BUILD.planarUV(g, T.ashlar); BUILD.add(new THREE.Mesh(g, BUILD.std(T.ashlar, { col: 0xb8b0a4 })), { cast: false });
+    BUILD.box(x - 0.6, x + 0.6, 0, 0.4, z - 0.6, z + 0.6, T.ashlar, { cast: false }); }
+  BUILD.card(T.brazier, -10.4, 0, 7.8, { s: 1.5, cast: false }); BUILD.flame(-10.4, 0.66, 7.81, 0.9, true); BUILD.glow(-10.4, 1.1, 7.85, 1.4, 0xff8a2a, 0.3);
+  BUILD.light(new THREE.PointLight(0xff8a3c, 4, 0, 2), -10.4, 1.3, 7.5, { flicker: 7 });
+  /* torches on the pilasters and between the statues: a bracket card, a flame, a glow and a warm light, as the throne has */
+  for (const [x, y, z] of [[-3.4, 2.25, 0.47], [3.4, 2.25, 0.47], [-6.8, 3.2, 0.1], [6.8, 3.2, 0.1]]) {
+    BUILD.card(T.sconce, x, y, z, { cast: false }); BUILD.flame(x, y + 0.23, z + 0.07, 0.6); BUILD.glow(x, y + 0.43, z + 0.15, 1.1, 0xffa050, 0.42);
+    BUILD.light(new THREE.PointLight(0xffa050, 4.2, 0, 2), x, y + 0.5, z + 0.9, { flicker: 6 + x * 0.1 }); }
+  /* two shadow-casting spots, as the throne has: the light through the rose onto the altar, and the saint's window's cool light */
+  room.lights.rose = BUILD.shadow(BUILD.light(new THREE.SpotLight(0xffe2b0, 110, 0, 0.5, 0.8, 2), 0, 6.8, 3.6), R.q === 'low' ? 512 : 1024);
+  room.lights.rose.target.position.set(0, 1.4, 0.4);
+  room.lights.winL = BUILD.shadow(BUILD.light(new THREE.SpotLight(0x9ab8ff, 80, 0, 0.6, 0.8, 2), -7.0, 6.0, 2.6), R.q === 'low' ? 512 : 1024);
+  room.lights.winL.target.position.set(-7.0, 0, 0.8);
   /* the chandeliers over the walk line, as in the throne room */
   for (const cx of [-6.0, 6.0]) {
     const iron = BUILD.std(null, { col: 0x2a2622, rough: 0.5, metal: 0.6 }), y = 5.0, z = KZ - 0.2;

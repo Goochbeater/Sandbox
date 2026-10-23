@@ -71,7 +71,7 @@ Object.assign(CAST.specs, {
     brows: 0xa8803a, hair: [['Hair_SimpleParted', 0xb08a48]] },
   /* the chapel: Saintess Dorota (twenty-nine, a widow of the lower town who took the veil and kept her hair), in white and
      gold at the chancel rail. Her bust is a bulge on the gown's bodice (robe.bust, see engine/e05_actor.js) */
-  dorota: { id: 'dorota', name: 'Saintess Dorota', bind: 'rfemale', s: 1.0, skin: 0xf2cdb4, skinK: 0.95, home: 'chapel', x: 0, z: 2.2, face: -1, headY: 2.02, idle: 'Idle_Loop',
+  dorota: { id: 'dorota', name: 'Saintess Dorota', bind: 'rfemale', s: 1.0, skin: 0xf2cdb4, skinK: 0.95, home: 'chapel', x: 1.8, z: 2.2, face: -1, headY: 2.02, idle: 'Idle_Loop',
     parts: [part(P_F('Body'), { L: 0xf0e8d4, P: 0xf6efdc }), part(P_F('Arms'), { L: 0xf0e8d4, P: 0xf0e8d4 }), part(P_F('Legs'), { L: 0xe8dcc4, P: 0xe8dcc4 }), part(P_F('Feet'), { L: 0x6a4a2a, P: 0x6a4a2a })],
     brows: 0xc8a050, hair: [['Hair_Long', 0xe8c870]],
     robe: { col: 0xf4eee0, top: 1.36, bot: 0.03, rx: [0.15, 0.34], rz: [0.12, 0.3], trim: 0xc8a040, band: 0xc8a040, leg: 0.42, bust: { k: 0.085, sep: 0.085, y: 1.24, w: 0.09, h: 0.12 } },

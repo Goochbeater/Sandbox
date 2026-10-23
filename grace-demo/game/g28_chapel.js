@@ -98,9 +98,8 @@ CHAPEL.build = function () {
     for (const zc of [0.75, 1.25, 1.75, 2.25]) {
       BUILD.box(xs - 0.55, xs + 0.55, 0.42, 0.5, zc - 0.22, zc + 0.22, T.chPew);
       BUILD.box(xs - 0.5, xs + 0.5, 0, 0.42, zc - 0.2, zc + 0.2, T.chPew); }
-    for (const z of [0.5, 1.0, 1.5, 2.0, 2.5]) BUILD.card(T.chPewEnd, xs, 0, z, { w: 1.1, h: 1.9, cast: false });
   }
-  /* the nave: the aisle runner, the carved stall ends catch the lens, a votive stand by the lancets */
+  /* the nave: the aisle runner, a votive stand by the lancets */
   BUILD.rug(T.runnerZ, -1.05, 1.05, 0.9, 7.5, { rv: 6 });
   BUILD.card(T.chVotive, -4.2, 0, 0.7, { s: 1.0, cast: false });
   for (const [px, py] of [[7, 1.25], [19, 1.25], [31, 1.25], [7, 0.875], [19, 0.875], [31, 0.875]]) BUILD.flame(-4.2 - 0.625 + px / 32, py, 0.7, 0.2);
@@ -119,7 +118,7 @@ CHAPEL.build = function () {
     BUILD.light(new THREE.PointLight(0xffb070, 6, 0, 2), cx, y + 0.1, z, { flicker: 8 }); }
   /* the choir and the people in it: Halina and Dorota are placed by their specs (g40) */
   room.interact('queen', -2.8, 2.6, KZ, 0.9, () => CHAPEL.queen()).label = 'Talk to Halina';
-  room.interact('dorota', 0, 2.7, KZ, 1.0, () => CHAPEL.dorota()).label = 'Talk to Saintess Dorota';
+  room.interact('dorota', 1.8, 2.7, KZ, 1.0, () => CHAPEL.dorota()).label = 'Talk to Saintess Dorota';
   /* light: the cool glass, the warm candles, a hemisphere for the vault, a fill from the lens side */
   BUILD.light(new THREE.HemisphereLight(0x8a9ac0, 0x3a2a1c, 1.5), 0, 6, 0);
   const fill = BUILD.light(new THREE.DirectionalLight(0xa8b8e0, 0.6), 2, 5, 15); fill.target.position.set(0, 1.5, 0);

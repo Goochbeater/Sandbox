@@ -93,18 +93,6 @@ PX.def('chAltarFront', () => {   // red brocade with gold crosses
   return p.tex({ repeat: true });
 });
 PX.def('chPew', () => PX.wood(0x5a3620, 31));
-PX.def('chPewEnd', () => {   // a carved stall end: a recessed panel with a quatrefoil
-  const W = 40, H = 96, p = new Pix(W, H);
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    const panel = x >= 6 && x <= 33 && y >= 8 && y <= 86;
-    let c = C.mul(0x4a2a16, 0.85 + 0.25 * noise1(x * 0.5 + y * 0.07, 971));
-    if (panel) c = C.mul(0x3a2010, 0.9 + 0.15 * noise1(y * 0.3, 972));
-    if (panel && Math.hypot(x - 19.5, y - 40) < 9) c = Math.hypot(x - 19.5, y - 40) > 7.5 ? 0x6a4020 : 0x2a1810;
-    if (panel && (x === 6 || x === 33 || y === 8 || y === 86)) c = 0x2a1810;
-    p.set(x, y, c);
-  }
-  return p.tex({});
-});
 PX.def('chStoup', () => {   // a stone font: the basin in shadow, the water lit at the rim
   const p = new Pix(24, 32);
   for (let y = 0; y < 32; y++) for (let x = 0; x < 24; x++) {
@@ -129,7 +117,7 @@ PX.def('chStatueB', () => {   // a bishop saint: a gold mitre, a green cope with
   for (let y = 2; y < 9; y++) { const hw = (y - 2) * 0.7; for (let x = Math.floor(12 - hw); x <= 12 + hw; x++) p.set(x, y, 0xc8a040); }
   p.ell(12, 13, 3.3, 3.6, 0xe8c8a8);
   for (let y = 17; y < 62; y++) { const hw = 3.5 + (y - 17) * 0.08; for (let x = Math.floor(12 - hw); x <= 12 + hw; x++) p.set(x, y, C.mul(0x2e5a3a, 0.8 + 0.25 * noise1(x * 0.6 + y * 0.1, 992)));
-    if (y > 20 && (x === 11 || x === 12)) p.set(x, y, 0xc8a040); }
+    if (y > 20) { p.set(11, y, 0xc8a040); p.set(12, y, 0xc8a040); } }
   return p.tex({});
 });
 PX.def('chConfess', () => {   // the confessional screen: a lattice of holes in dark oak

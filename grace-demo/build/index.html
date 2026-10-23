@@ -58090,6 +58090,7 @@ CHAPEL.build = function () {
   BUILD.box(10.0, 10.9, 0, 1.1, 2.0, 2.4, T.woodDark); BUILD.box(9.95, 10.95, 1.1, 1.13, 1.95, 2.45, T.velvet, { cast: false });
   BUILD.card(T.candle, 10.3, 1.1, 2.1, { cast: false }); BUILD.flame(10.3, 1.38, 2.11, 0.3);
   room.lights.candle = BUILD.light(new THREE.PointLight(0xffb060, 0, 0, 2), 10.45, 1.6, 1.9);
+  room.lights.scene = BUILD.light(new THREE.PointLight(0xffc890, 0, 0, 2), 8.5, 1.9, 3.1);   // the king's side of the scene: lit only during it
   /* the confessional on the right, its lattice facing the aisle */
   BUILD.box(9.4, 11.5, 0, 2.2, 0.1, 1.3, T.woodDark, { front: BUILD.std(T.chConfess) }); BUILD.box(9.3, 11.6, 2.2, 2.35, 0.0, 1.45, T.woodDark);
   room.interact('confess', 10.4, 2.5, KZ, 1.0, () => CHAPEL.confess());
@@ -58162,11 +58163,11 @@ CHAPEL.dorota = async function () {
    this undoes exactly. The candle on the desk is the one light that comes on for the scene. */
 CHAPEL.dim = function (on) {
   const room = CHAPEL; if (!room.built) return;
-  room.group.traverse((o) => { if (!o.isLight || o.userData.base === undefined || o === room.lights.candle) return;
+  room.group.traverse((o) => { if (!o.isLight || o.userData.base === undefined || o === room.lights.candle || o === room.lights.scene) return;
     let k = 1; if (on) { if (o.isHemisphereLight || o.isDirectionalLight) k = 0.3; else if (o.isSpotLight) k = 0.5; else k = 0.35; }
     o.intensity = o.userData.base * k; });
   for (const f of room.flick) if (f.L !== room.lights.candle) f.base = f.L.userData.base * (on ? 0.35 : 1);
-  room.lights.candle.intensity = on ? 2.2 : 0;
+  room.lights.candle.intensity = on ? 2.2 : 0; room.lights.scene.intensity = on ? 1.6 : 0;
   R.mat.final.uniforms.uExpo.value = room.exposure * (on ? 0.85 : 1);
 };
 /* the confessional: a few lines through the lattice. Once the saintess has flirted with him enough (CHAPEL.flirt, two or more),

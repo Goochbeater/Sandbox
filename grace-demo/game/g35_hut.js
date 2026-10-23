@@ -30,7 +30,7 @@ HUT.build = function () {
   /* the shell: wattle walls, a dark plank floor tinted violet, a black vault with beams */
   BUILD.plane('z', X0, X1, 0, CE, 0, T.hutWall);
   for (const [x, ax] of [[X0, 'x+'], [X1, 'x-']]) BUILD.plane(ax, 0, 10, 0, CE, x, T.hutWall);
-  BUILD.plane('y+', X0, X1, 0, 12, 0, T.woodDark, { mat: BUILD.std(T.woodDark, { col: 0x8a70b0, rough: 0.8 }), layer: 2 });
+  BUILD.plane('y+', X0, X1, 0, 12, 0, T.woodDark, { mat: BUILD.std(T.woodDark, { col: 0xb49ad4, rough: 0.8 }), layer: 2 });
   BUILD.plane('y-', X0, X1, 0, 12, CE, T.hutWall);
   for (let x = X0 + 1.2; x < X1; x += 2.6) BUILD.box(x - 0.14, x + 0.14, CE - 0.45, CE, 0, 9, T.beam, { cast: false });
   /* the door to the wood, in the back wall at the left: an arch with violet light beyond it */
@@ -40,12 +40,13 @@ HUT.build = function () {
   /* the window: stained glass tinted violet, a glow, a shaft and a shadow-casting spot for the moon */
   BUILD.card(T.stained, 6.6, 1.7, 0.02, { basic: true, k: 1.2, col: 0x9a7aff, cast: false }); BUILD.glow(6.6, 3.2, 0.3, 3.2, 0x9b5cff, 0.25);
   BUILD.shaft(6.6, 4.4, 0.5, 1.0, 5, 0.14, [-0.42, 0, -0.3], 0x9b5cff);
-  room.lights.moon = BUILD.shadow(BUILD.light(new THREE.SpotLight(0x9b7cff, 90, 0, 0.5, 0.8, 2), 6.6, 4.8, 1.2), R.q === 'low' ? 512 : 1024);
+  room.lights.moon = BUILD.shadow(BUILD.light(new THREE.SpotLight(0xb4a0ff, 130, 0, 0.5, 0.8, 2), 6.6, 4.8, 1.2), R.q === 'low' ? 512 : 1024);
   room.lights.moon.target.position.set(5.6, 0, 1.2);
   room.interact('window', 6.6, 2.6, KZ, 1.0, () => say('window'));
   /* the shelf of jars, the bookcase tinted plum */
   BUILD.box(-6.6, -4.4, 0, 2.6, 0, 0.5, T.bookcase, { front: BUILD.std(T.bookcase, { col: 0xa890d0 }) });
   room.interact('shelves', -5.5, 1.8, KZ, 1.0, () => say('shelves'));
+  BUILD.light(new THREE.PointLight(0x9b5cff, 1.6, 0, 2), -5.5, 2.0, 1.4, { flicker: 3 });   // the jars' violet, on the shelves
   /* herbs hung from the beams on cords */
   for (const x of [-3.0, -1.8, 2.2]) { BUILD.box(x - 0.01, x + 0.01, 3.9, CE, 0.9, 0.92, T.woodPost, { cast: false }); BUILD.card(T.herbBundle, x, 3.0, 0.9, { s: 1.0 }); }
   room.interact('herbs', -1.8, 3.0, KZ, 1.2, () => say('herbs'));
@@ -53,13 +54,17 @@ HUT.build = function () {
   BUILD.box(-0.8, 1.2, 0, 0.9, 0.2, 1.4, T.ashlar);
   BUILD.card(T.cauldronPix, 0.2, 0.9, 1.25, { s: 1.0, cast: true });
   BUILD.glow(0.2, 1.2, 1.25, 2.4, 0x9b5cff, 0.5);
-  BUILD.light(new THREE.PointLight(0x9b5cff, 6, 0, 2), 0.2, 1.4, 1.1, { flicker: 7 });
+  BUILD.light(new THREE.PointLight(0x9b5cff, 4, 0, 2), 0.2, 1.2, 1.25, { flicker: 7 });   // the violet of the brew, from the pot
+  BUILD.light(new THREE.PointLight(0xffa860, 7, 0, 2), 0.2, 1.7, 0.7, { flicker: 7 });     // the fire's gold on the faces
+  room.lights.key = BUILD.shadow(BUILD.light(new THREE.SpotLight(0xffd8a8, 150, 0, 0.6, 0.8, 2), 0.4, 5.0, 2.8), R.q === 'low' ? 512 : 1024);   // a throne-style spot over the hearth, wide enough to light the rug
+  room.lights.key.target.position.set(0.2, 0, 1.3);
   room.interact('cauldron', 0.2, 1.5, KZ, 1.0, () => say('cauldron'));
   room.interact('hearth', 0.2, 0.6, KZ, 1.2, () => say('hearth'));
   /* the runed rug in front of the hearth, a candle stand at the left, a little violet light from its flames */
   BUILD.rug(T.runeRug, -1.6, 2.0, 1.2, 3.4, {});
   room.interact('rug', 0.2, 0.1, KZ + 0.4, 1.4, () => say('rug'));
   BUILD.card(T.candleStand, -2.6, 0, 2.2, { s: 0.8 }); BUILD.glow(-2.6, 1.6, 2.2, 1.2, 0x9b5cff, 0.4);
+  BUILD.light(new THREE.PointLight(0xffb070, 1.2, 0, 2), -2.6, 1.3, 2.4, { flicker: 6 });
   /* the table with the crystal orb; the Woman stands behind it, by the fire */
   BUILD.box(4.4, 6.0, 0, 0.95, 1.6, 2.4, T.woodDark, { col: 0x9a80c0 });
   BUILD.card(T.orbPix, 5.2, 0.95, 2.0, { s: 1.0, cast: false }); BUILD.glow(5.2, 1.5, 2.0, 1.3, 0x9b5cff, 0.3);
@@ -75,17 +80,21 @@ HUT.build = function () {
   BUILD.box(2.9, 3.5, 0, 0.45, 1.5, 2.0, T.woodDark, { col: 0x8a70b0 });
   BUILD.box(-3.4, -2.2, 0, 1.1, 2.4, 3.2, T.woodDark, { col: 0x7a60a0 });
   BUILD.card(T.lantern, -2.6, 3.0, 1.0, { cast: false }); BUILD.glow(-2.6, 3.2, 1.05, 1.2, 0x9b5cff, 0.4);
+  BUILD.light(new THREE.PointLight(0xa070ff, 2.4, 0, 2), -2.6, 3.0, 1.8, { flicker: 5 });
   BUILD.card(T.lantern, 8.4, 3.0, 1.2, { cast: false }); BUILD.glow(8.4, 3.2, 1.25, 1.2, 0x9b5cff, 0.4);
+  BUILD.light(new THREE.PointLight(0xa070ff, 2.4, 0, 2), 8.4, 3.0, 2.0, { flicker: 5 });
   BUILD.card(T.candleStand, 8.0, 0, 1.6, { s: 0.8 }); BUILD.glow(8.0, 1.6, 1.6, 1.2, 0x9b5cff, 0.4);
+  BUILD.light(new THREE.PointLight(0xffb070, 1.2, 0, 2), 8.0, 1.3, 2.2, { flicker: 6 });
   BUILD.card(T.folkWide, 0.2, 2.8, 0.03, { cast: false, col: 0x9a80d0 });
   /* a broom against the wall by the door, a sack of something by the barrel, violet mushrooms on the floor */
   BUILD.box(-7.66, -7.6, 0, 2.6, 0.12, 0.18, T.woodPost); BUILD.box(-7.85, -7.42, 0, 0.5, 0.1, 0.22, T.woodDark, { col: 0xb8a070 });
   BUILD.box(-2.0, -1.2, 0, 0.7, 0.4, 1.0, T.woodPost, { col: 0xb0a080 });
   BUILD.card(T.tuft, -0.8, 0, 0.5, { s: 0.9, col: 0x9a6aff }); BUILD.card(T.tuft, 7.6, 0, 1.2, { s: 1.1, col: 0x9a6aff }); BUILD.card(T.tuft, -4.7, 0, 1.4, { s: 0.8, col: 0x9a6aff });
   /* light: a violet hemisphere for the room's base, the moon from the window, the hearth; motes drift up from the fire */
-  BUILD.light(new THREE.HemisphereLight(0x3a2a6a, 0x1a0c18, 1.8), 0, 5, 0);
-  room.rim = [0.2, 1.4, 1.2, 0.5, 6, 0x9b5cff, null];
-  room.shadowSrc = [5.2, 3.4, 3.6, 6];
+  BUILD.light(new THREE.HemisphereLight(0x6a5aa8, 0x2a1a24, 2.2), 0, 5, 0);
+  const fill = BUILD.light(new THREE.DirectionalLight(0xb8a8e8, 0.9), -6, 6, 16); fill.target.position.set(0, 1.5, 0);
+  room.rim = [0.2, 1.4, 1.2, 0.5, 6, 0xb08cff, null];
+  room.shadowSrc = [0.4, 5.0, 2.8, 7];
   BUILD.motes({ n: 110, boxes: [[-9, 9, 0.5, 4.6, 0.5, 4, 0.3]], embers: [0.2, 1.3, 1.2], col: 0xc8a0ff });
   room.update(0, 0);
   return BUILD.end();

@@ -29,8 +29,15 @@ WOOD.build = function () {
   BUILD.plane('y+', -120, 120, -200, 12, 0, T.turfPix);
   BUILD.sky(T.skyAfternoon, { z: -200, w: 520, h: 190, y: -40, k: 1.0 });
   BUILD.card(T.ridgeDay, 0, -8, -170, { w: 560, h: 46, basic: true, k: 1.0, cast: false });
-  /* the trees: pines in the depth, a deadwood snag, the old oak over Halina's blanket */
-  for (const [x, z, s] of [[-13, -14, 2.6], [-9, -18, 2.4], [-4, -22, 2.8], [2, -16, 2.2], [7, -20, 2.6], [12, -15, 2.4], [15, -24, 2.8], [-1, -10, 1.9], [14, -9, 2.0]]) BUILD.windCard(T.pine, x, 0, z, 'sway', 0.02, { s, cast: false });
+  /* the forest behind the clearing, in three painted rows standing on the ground: a hazed blue-grey row far off, a green row in
+     the middle and a dark near row with bushes at its feet. Each row is lower than the one behind, so the sky shows between the
+     tops, and the haze thins as the rows come forward. Two swaying pines frame the edges; the old oak over Halina's blanket is below */
+  BUILD.card(T.forestFar, 0, 0, -160, { w: 288, h: 36, basic: true, cast: false });
+  BUILD.card(T.forestMid, 0, 0, -100, { w: 128, h: 20, basic: true, cast: false });
+  BUILD.card(T.forestNear, -10, 0, -40, { w: 56, h: 11, basic: true, cast: false });
+  BUILD.card(T.forestNear, 24, 0, -36, { w: 56, h: 11, basic: true, cast: false });
+  for (const [x, z, s] of [[-13, -12, 2.4], [13, -11, 2.2]]) BUILD.windCard(T.pine, x, 0, z, 'sway', 0.02, { s, cast: false });
+  for (const [x, z, s] of [[-9, -3, 2.6], [-2.5, -5, 2.2], [4.5, -4, 2.5], [11, -6, 2.3]]) BUILD.card(T.bushPix, x, 0, z, { s, cast: false });
   BUILD.card(T.deadTree, -11.8, 0, -6, { s: 1.4, cast: false });
   BUILD.windCard(T.appleTree, 6.6, 0, 0.4, 'sway', 0.035, { s: 1.9, cast: true });
   BUILD.card(T.tuft, -6.2, 0, 1.2, { s: 1.0 }); BUILD.card(T.tuft, 4.1, 0, 1.4, { s: 0.9 }); BUILD.card(T.tuft, 12.6, 0, 1.1, { s: 1.0 });

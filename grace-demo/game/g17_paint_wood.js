@@ -1,6 +1,33 @@
 /* THE WOOD AND THE WOMAN'S HUT — pixel painters. The wood: the archery butt's target, a red deer and a hound in profile (the
    character kit has no animals, so they are painted). The hut: a purple wattle wall, a ritual rug, herbs on a cord, a crystal
    orb and a cauldron. Violet and dark plum throughout the hut; afternoon greens in the wood. */
+/* a row of conifers in silhouette along a horizon: each tree a stack of ragged tiers on a short trunk, the left edge lit
+   (the sun is in the west). Far rows are painted in a haze colour, near rows in the forest's greens. */
+PX.treeRow = function (W, H, dark, lit, seed, spacing, hMin, hMax) {
+  const p = new Pix(W, H);
+  for (let x0 = -spacing; x0 < W + spacing; x0 += spacing) {
+    const cx = x0 + (hash(x0 | 0, seed, 1401) - 0.5) * spacing * 0.5, th = hMin + hash(x0 | 0, seed, 1402) * (hMax - hMin), base = H - 1, top = base - th;
+    for (let y = Math.max(0, Math.floor(top)); y <= base; y++) {
+      const t = (y - top) / th, tiers = 0.55 + 0.45 * Math.abs(Math.sin(t * 6 * Math.PI));
+      const half = th * 0.15 * t * tiers + 0.4;
+      for (let x = Math.floor(cx - half); x <= Math.ceil(cx + half); x++) {
+        if (x < 0 || x >= W) continue;
+        p.set(x, y, x < cx - half * 0.35 ? lit : dark);
+      }
+    }
+    for (let y = Math.floor(base - th * 0.07); y <= base; y++) p.set(Math.round(cx), y, dark);
+  }
+  return p;
+};
+PX.def('forestFar', () => PX.treeRow(1024, 128, 0x7f9aaa, 0x9cb6c4, 21, 18, 40, 92).tex({}));
+PX.def('forestMid', () => PX.treeRow(1024, 160, 0x3f5e58, 0x5c7c6c, 33, 26, 60, 140).tex({}));
+PX.def('forestNear', () => PX.treeRow(1024, 200, 0x1c3626, 0x3c5c42, 47, 40, 90, 190).tex({}));
+PX.def('bushPix', () => {   // a clump of bushes: dark green mass, lit top-left, a few berries
+  const p = new Pix(64, 40);
+  p.ell(32, 26, 28, 13, 0x1e3a24); p.ell(26, 20, 18, 10, 0x2e5a34); p.ell(20, 16, 9, 5, 0x4a7a44);
+  for (let i = 0; i < 9; i++) { const x = 10 + i * 5, y = 26 + (i % 3) * 3; p.set(x, y, 0xb03a3a); }
+  return p.tex({});
+});
 PX.def('archeryTarget', () => {   // a straw butt's target: five rings, the gold at the centre
   const W = 40, H = 40, p = new Pix(W, H), c = 19.5;
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {

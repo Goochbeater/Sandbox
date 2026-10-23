@@ -113,9 +113,11 @@ CHAPEL.build = function () {
   /* a prayer bench under the right-hand lancet and a lectern for the readings, as in the throne hall's bench and lectern */
   BUILD.box(7.6, 9.1, 0, 0.46, 0.2, 0.6, T.woodDark, { front: BUILD.std(T.bench) }); BUILD.box(7.55, 9.15, 0.46, 0.52, 0.16, 0.64, T.woodPost);
   BUILD.card(T.lectern, -5.9, 0, 1.45, { s: 0.9 });
+  /* the confessor's desk in front of the box, where the confessional scene is played (g29): a wood body, a velvet top */
+  BUILD.box(10.0, 10.9, 0, 1.1, 2.0, 2.4, T.woodDark); BUILD.box(9.95, 10.95, 1.1, 1.13, 1.95, 2.45, T.velvet, { cast: false });
   /* the confessional on the right, its lattice facing the aisle */
   BUILD.box(9.4, 11.5, 0, 2.2, 0.1, 1.3, T.woodDark, { front: BUILD.std(T.chConfess) }); BUILD.box(9.3, 11.6, 2.2, 2.35, 0.0, 1.45, T.woodDark);
-  room.interact('confess', 10.4, 2.5, KZ, 1.0, () => say(CHAPEL.flirt ? 'confessFlirt' : 'confess'));
+  room.interact('confess', 10.4, 2.5, KZ, 1.0, () => CHAPEL.confess());
   /* the foreground, close to the lens and out of focus, as in the throne hall: two piers and a brazier for the depth of field */
   for (const [x, z] of [[-7.6, 7.3], [10.9, 7.0]]) { const g = new THREE.CylinderGeometry(0.48, 0.48, CE, 16); g.translate(x, CE / 2, z); BUILD.planarUV(g, T.ashlar); BUILD.add(new THREE.Mesh(g, BUILD.std(T.ashlar, { col: 0xb8b0a4 })), { cast: false });
     BUILD.box(x - 0.6, x + 0.6, 0, 0.4, z - 0.6, z + 0.6, T.ashlar, { cast: false }); }
@@ -146,7 +148,7 @@ CHAPEL.build = function () {
   /* the choir and the people in it: Halina and Dorota are placed by their specs (g40) */
   /* the priest in the aisle, and the castle's guards at the two ends of the nave */
   room.interact('priest', -1.1, 2.8, KZ, 1.0, () => CHAPEL.priest()).label = 'Talk to Father Ambroży';
-  for (const [id, x] of [['cguardL', -8.1], ['cguardR', 8.1]]) room.interact(id, x, 3.0, KZ, 1.0, () => SCENE.say(CAST.A[id], SCENE.cycle('guard', L.guard))).label = 'Talk to the guard';
+  for (const [id, x] of [['cguardL', -8.1], ['cguardR', 8.1]]) room.interact(id, x, 3.0, KZ, 1.0, () => SCENE.say(CAST.A[id], SCENE.cycle('guard', CHAPEL.TALK.guard))).label = 'Talk to the guard';
   room.interact('queen', -2.8, 2.6, KZ, 0.9, () => CHAPEL.queen()).label = 'Talk to Halina';
   room.interact('dorota', 1.8, 2.7, KZ, 1.0, () => CHAPEL.dorota()).label = 'Talk to Saintess Dorota';
   /* light: the cool glass, the warm candles, a hemisphere for the vault, a fill from the lens side */
@@ -180,6 +182,13 @@ CHAPEL.dorota = async function () {
       if (pick === 0) { CHAPEL.flirt++; CHAPEL.cold++; await SCENE.talk(T.queenAgain.map(([k, t]) => [who(k), t])); }
     }
   } finally { D.lookYaw = null; SCENE.lock--; }
+};
+/* the confessional: a few lines through the lattice. Once the saintess has flirted with him enough (CHAPEL.flirt, two or more),
+   the king may take her up on the offer, behind the desk; that scene is CONF (g29), behind the age gate */
+CHAPEL.confess = async function () {
+  const key = CHAPEL.flirt ? 'confessFlirt' : 'confess';
+  if (CHAPEL.flirt < 2) { SCENE.say(SCENE.player, SCENE.cycle(key, CHAPEL.LINES[key])); return; }
+  if (await NIGHT.ask(['Confess to her, behind the desk', 'Not today']) === 0) CONF.start();
 };
 /* Father Ambroży, in the aisle before the rail. The first time he speaks about vespers; after that he has opinions about the
    king's company, and the flirting in particular (CHAPEL.flirt). */

@@ -12,7 +12,8 @@ CAST.specs = {
     robe: { col: COAT, trim: 0xb8862e }, collar: {}, tabard: { col: 0xe8e2d6, emblem: 0x1a1a24 }, crown: { worn: false } },
   queen: { id: 'queen', name: 'Halina', bind: 'rfemale', s: 1.0, skin: 0xe6bca2, skinK: 0.95, idle: 'Idle_FoldArms_Loop', walk: 'Walk_Formal_Loop', x: 3.35, z: 1.25, y: 0.48, face: -1, headY: 2.02,
     homes: { throne: { x: 3.35, z: 1.25, y: 0.48, face: -1, idle: 'Idle_FoldArms_Loop' }, garden: { x: -4.5, z: 1.2, face: 1, idle: 'Idle_Loop', sit: { x: -4.5, y: 0.47, z: 1.2, yaw: 0.3, cardDz: 0.45 } },
-      chapel: { x: -2.8, z: 1.25, face: 1, idle: 'Idle_Loop', sit: { x: -2.8, y: 0.5, z: 1.25, yaw: 1.32, cardDz: 0.45 } } },
+      chapel: { x: -2.8, z: 1.25, face: 1, idle: 'Idle_Loop', sit: { x: -2.8, y: 0.5, z: 1.25, yaw: 1.32, cardDz: 0.45 } },
+      wood: { x: 5.6, z: 2.8, face: -1, idle: 'Idle_Loop', sit: { x: 5.6, y: 0.22, z: 2.8, yaw: 0.3, cardDz: 0.2 } } },
     parts: [part(P_F('Body'), { L: 0x34426a, P: 0x7a88a8 }), part(P_F('Arms'), { L: 0x34426a, P: 0x5a6a8e }), part(P_F('Legs'), { L: 0x2a3048, P: 0x2a3048 }), part(P_F('Feet'), { L: 0x1a1410, P: 0x2a2018 })],
     brows: 0x3a2418, hair: [['Hair_Buns', 0x4a2c1a]],
     robe: { col: 0x3e4c78, top: 0.95, bot: 0.03, rx: [0.15, 0.36], rz: [0.12, 0.3], trim: 0xc8a040, band: 0xc8a040, leg: 0.4 },
@@ -62,13 +63,18 @@ Object.assign(CAST.specs, {
     brows: 0x8a6a3a, hair: [['Hair_Buzzed', 0x8a6a3a]] },
   /* the gardens: the princess at her sword drill, her little brother running about */
   zofia: { id: 'zofia', name: 'Zofia', bind: 'rfemale', s: 0.84, skin: 0xe8c0a6, skinK: 0.95, child: { head: 1.2 }, x: 4.4, z: 2.1, face: -1, headY: 1.78, idle: 'Sword_Idle', box: [1.5, 2.1], prop: 'woodsword',
-    homes: { garden: { x: 9.15, z: 1.85, face: -1, routine: { clips: ['Sword_Regular_Combo', 'Sword_Attack', 'Sword_Block'], every: [2.5, 5], at: 0.4, sound: 'thud', gain: 0.25 } } },
+    homes: { garden: { x: 9.15, z: 1.85, face: -1, routine: { clips: ['Sword_Regular_Combo', 'Sword_Attack', 'Sword_Block'], every: [2.5, 5], at: 0.4, sound: 'thud', gain: 0.25 } },
+      wood: { x: 9.2, z: 2.2, face: -1, routine: { clips: ['Sword_Regular_Combo', 'Sword_Attack', 'Sword_Block'], every: [2.5, 5], at: 0.4, sound: 'thud', gain: 0.25 } } },
     parts: [part(P_F('Body'), { L: 0x24405a, P: 0xe8dcc4 }), part(P_F('Arms'), { L: 0x24405a, P: 0x34506a }), part(P_F('Legs'), { L: 0x3a2e24, P: 0x3a2e24 }), part(P_F('Feet'), { L: 0x2a1a10, P: 0x3a2a1a })],
     brows: 0x6a3a1e, hair: [['Hair_Long', 0x7a3a1a]], tabard: { col: 0x24405a, emblem: 0xe8e2d6, top: 0.96, w: 0.08, from: P_F('Body') } },
   kazik: { id: 'kazik', name: 'Kazik', bind: 'rmale', s: 0.68, skin: 0xecc4aa, skinK: 0.96, child: { head: 1.26 }, x: 7.5, z: 2.9, face: -1, headY: 1.5, walk: 'Jog_Fwd_Loop', speed: 1.7, box: [1.3, 1.9],
-    homes: { garden: { x: 5.6, z: 2.55, face: -1, wander: { x0: 5.0, x1: 6.6, pause: [3, 6] }, routine: { clips: ['Interact'], every: [3, 6], at: 0.5 } } },
+    homes: { garden: { x: 5.6, z: 2.55, face: -1, wander: { x0: 5.0, x1: 6.6, pause: [3, 6] }, routine: { clips: ['Interact'], every: [3, 6], at: 0.5 } },
+      wood: { x: 11.0, z: 2.6, face: -1, wander: { x0: 10.2, x1: 12.6, pause: [3, 6] }, routine: { clips: ['Interact'], every: [3, 6], at: 0.5 } } },
     parts: [part(P_M('Body'), { L: 0x5a1a1a, P: 0xe8dcc4 }), part(P_M('Arms'), { L: 0x5a1a1a, P: 0x5a1a1a }), part(P_M('Arms'), 'skin'), part(P_M('Legs'), { L: 0x2a2a30, P: 0x2a2a30 }), part(P_M('Feet'), { L: 0x2a1a10, P: 0x3a2a1a })],
     brows: 0xa8803a, hair: [['Hair_SimpleParted', 0xb08a48]] },
+  /* the wood's guards, on their rounds: the path's guard on the left, the pond's on the right */
+  woodGuardL: Object.assign(guard('woodGuardL', -7.5), { home: 'wood', homes: { wood: { x: -7.5, z: 2.45, face: 1, wander: { x0: -10.2, x1: -5.4, pause: [4, 8] } } } }),
+  woodGuardR: Object.assign(guard('woodGuardR', 1.0), { home: 'wood', homes: { wood: { x: 1.0, z: 2.45, face: -1, wander: { x0: -1.6, x1: 3.2, pause: [4, 8] } } } }),
   /* the chapel's guards: the castle's own livery, at the two ends of the nave */
   cguardL: Object.assign(guard('cguardL', -8.1), { home: 'chapel' }), cguardR: Object.assign(guard('cguardR', 4.6), { home: 'chapel' }),
   /* the priest: Father Ambroży, sixty, in a black cassock with a white stole edged in gold, a book in his hands */
@@ -96,6 +102,8 @@ Object.assign(CAST.specs, {
       part(R_M('Feet_Boots'), { L: 0x1a1410, G: 0x1a1410, P: 0x3a3a40 })],
     brows: 0x1a1512, hair: [['Hair_SimpleParted', 0x1e1814]] },
 });
+/* the Woman in the wood, in her hut: the opening's witch, but not offstage here, and at home in the hut by the fire */
+CAST.specs.hutWitch = Object.assign({}, CAST.specs.witch, { id: 'hutWitch', offstage: false, home: 'hut', homes: { hut: { x: 3.6, z: 2.0, face: -1, idle: 'Spell_Simple_Idle_Loop' } } });
 CAST.build = async function () {
   const A = {};
   for (const [k, spec] of Object.entries(CAST.specs)) { A[k] = await new Actor(spec).build(); SCENE.addActor(A[k]); setLoad(0.7 + 0.15 * Object.keys(A).length / Object.keys(CAST.specs).length); await nextFrame(); }

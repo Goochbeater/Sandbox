@@ -56699,6 +56699,85 @@ PX.def('chLamp', () => {   // the sanctuary lamp: a red glass cup on a chain
   return p.tex({});
 });
 
+/* ==== game/g17_paint_wood.js ==== */
+/* THE WOOD AND THE WOMAN'S HUT — pixel painters. The wood: the archery butt's target, a red deer and a hound in profile (the
+   character kit has no animals, so they are painted). The hut: a purple wattle wall, a ritual rug, herbs on a cord, a crystal
+   orb and a cauldron. Violet and dark plum throughout the hut; afternoon greens in the wood. */
+PX.def('archeryTarget', () => {   // a straw butt's target: five rings, the gold at the centre
+  const W = 40, H = 40, p = new Pix(W, H), c = 19.5;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const d = Math.hypot(x - c, y - c); if (d > 19) continue;
+    p.set(x, y, [0xe8c040, 0xb02a2a, 0x2a4fa8, 0x1a1a1e, 0xf4f0e0][Math.min(Math.floor(d / 4), 4)]);
+  }
+  return p.tex({});
+});
+PX.def('deerPix', () => {   // a red deer standing in profile, facing right: a lit back, a pale rump, dark legs, a rough antler
+  const p = new Pix(64, 48), B = 0x9a6a40, D = 0x4a2e1c, L = 0xd8b890, W = 0xf0e8d8;
+  p.ell(30, 25, 15, 8, B); p.ell(29, 22, 13, 4, C.mul(B, 1.2)); p.ell(18, 24, 3.5, 4, W);
+  for (let y = 9; y <= 22; y++) p.rect(Math.round(42 + (22 - y) * 0.12), y, 5, 1, B);   // the neck, leaning up
+  p.ell(50, 9, 4.5, 3, B); p.ell(53, 10, 2, 1.6, D); p.set(50, 8, 0x110a08);
+  p.vl(47, 3, 7, 0x6a4a2c); p.hl(44, 49, 3, 0x6a4a2c); p.vl(49, 0, 2, 0x6a4a2c);
+  for (const x of [20, 25, 36, 41]) p.rect(x, 31, 2, 14, D);
+  p.rect(16, 21, 2, 3, L);
+  return p.outline(null, 0.6).tex();
+});
+PX.def('houndPix', () => {   // a grey-brown hound lying with its head up, in profile facing right
+  const p = new Pix(40, 26), B = 0x8a7050, D = 0x3a2a1c;
+  p.ell(18, 17, 12, 5, B); p.ell(18, 15, 10, 2.5, C.mul(B, 1.2));
+  p.ell(31, 11, 4.5, 3.5, B); p.ell(35, 12, 2.5, 1.8, D); p.set(33, 10, 0x0e0a08); p.ell(27, 9, 1.8, 3, D);
+  p.rect(9, 19, 2, 4, D); p.rect(13, 20, 2, 3, D); p.rect(22, 20, 2, 3, D); p.rect(26, 20, 2, 3, D);
+  p.hl(3, 9, 15, B);
+  return p.outline(null, 0.6).tex();
+});
+/* ---- the hut */
+PX.def('hutWall', () => {   // purple-black wattle: a woven lattice of staves, with a rare spark of violet in the gaps
+  const p = new Pix(32, 32).fill(0x1e1430);
+  for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) {
+    const over = ((x >> 2) + (y >> 2)) % 2 === 0, stave = over ? (y % 4 === 1 || y % 4 === 2) : (x % 4 === 1 || x % 4 === 2);
+    p.set(x, y, stave ? C.mul(0x4a2c6a, 0.85 + 0.3 * hash(x, y, 1301)) : C.mul(0x2a1a40, 0.9 + 0.2 * hash(x, y, 1302)));
+    if (hash(x, y, 1303) > 0.985) p.set(x, y, 0x9a5cff);
+  }
+  return p.tex({ repeat: true });
+});
+PX.def('runeRug', () => {   // a ritual circle on dark planks: two rings, six spokes and a violet hub
+  const W = 64, p = new Pix(W, W), c = 31.5;
+  for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
+    const d = Math.hypot(x - c, y - c), ang = Math.atan2(y - c, x - c);
+    let col = C.mul(0x2a2038, 0.9 + 0.2 * hash(x, y, 1311));
+    if (d < 30.5) {
+      col = 0x3a2a50;
+      if (Math.abs(d - 27) < 0.7 || Math.abs(d - 22) < 0.6 || (d > 22 && Math.abs(Math.sin(ang * 6)) < 0.05)) col = 0x9a5cff;
+      if (d < 6) col = 0x6a3aa8;
+    }
+    p.set(x, y, col);
+  }
+  return p.tex({});
+});
+PX.def('herbBundle', () => {   // dried herbs and lavender on a cord, hung head down
+  const p = new Pix(20, 44);
+  p.vl(10, 0, 8, 0x8a7a5a);
+  for (let y = 9; y < 40; y++) for (let x = 4; x < 16; x++) { const d = Math.abs(x - 9.5) / (4 + (y - 9) * 0.05); if (d < 1) p.set(x, y, hash(x, y, 1321) > 0.5 ? 0x6a4a9a : 0x4a6a3a); }
+  p.hl(5, 14, 38, 0x8a7a5a);
+  return p.outline(null, 0.7).tex();
+});
+PX.def('orbPix', () => {   // a crystal ball with a fog inside it, violet to pale
+  const p = new Pix(28, 28), c = 13.5;
+  for (let y = 0; y < 28; y++) for (let x = 0; x < 28; x++) {
+    const d = Math.hypot(x - c, y - c) / 13; if (d > 1) continue;
+    p.set(x, y, C.mix(0x6a3aff, 0xe8d8ff, clamp(0.9 - d + (x < c && y < c ? 0.4 : 0), 0, 1)));
+  }
+  p.disc(9, 9, 2, 0xffffff);
+  return p.tex({});
+});
+PX.def('cauldronPix', () => {   // an iron cauldron on three legs, the brew violet and bubbling
+  const p = new Pix(40, 40);
+  p.rect(9, 35, 3, 4, 0x1a1418); p.rect(28, 35, 3, 4, 0x1a1418);
+  p.ell(20, 26, 15, 11, 0x1a1418); p.ell(19, 23, 12, 7, 0x2a2228);
+  p.ell(20, 15, 13, 4, 0x6a2ab0); p.ell(18, 14, 7, 2, 0xb880ff); p.set(14, 13, 0xe8d8ff);
+  p.hl(6, 34, 26, 0x3a3038);
+  return p.outline(null, 0.7).tex();
+});
+
 /* ==== game/g20_bedroom.js ==== */
 /* THE BEDCHAMBER — laid out from the reference frame. The king starts here; the crown waits on its cushion beside the
    standing mirror, and the door at the far right leads to the throne room once he's wearing it. */
@@ -58328,11 +58407,13 @@ CONF.play = async function () {
   Q.act('Interact'); await NIGHT.beat(500);
   await Q.undress('outer'); AUDIO.sfx('sheets', { gain: 0.6 }); await NIGHT.beat(400);
   await K.undress('outer'); AUDIO.sfx('sheets', { gain: 0.6 }); await NIGHT.beat(400);
-  await Q.undress('all'); await K.undress('all'); K.setArousal(0.25); AUDIO.sfx('sheets', { gain: 0.8 }); await NIGHT.beat(500);
+  await Q.undress('all'); await K.undress('all');
+  if (K.sexGroup) K.sexGroup.visible = false;   // the scene shows no genitals: the pin reads world positions, which still update when hidden
+  K.setArousal(0.25); AUDIO.sfx('sheets', { gain: 0.8 }); await NIGHT.beat(500);
   // each body keeps its own sprite, widened to take in the reach (his hands at her hips, hers on the desk), so both read
-  // he is behind her in profile, so his card comes forward: his silhouette shows over her back, where they overlap
-  K.hostInto(null); K.reframe(2.0, 2.4); K.frame = new THREE.Vector3(8.9, 1.2, CONF.DESK.zc); K.cardDz = 0.3;
-  Q.hostInto(null); Q.reframe(2.6, 2.4); Q.frame = new THREE.Vector3(9.75, 1.2, CONF.DESK.zc); Q.cardDz = 0;
+  // her card stays in front (the frame that read well): he is behind her in profile, and his body shows only where it isn't hidden by hers
+  K.hostInto(null); K.reframe(2.0, 2.4); K.frame = new THREE.Vector3(8.9, 1.2, CONF.DESK.zc); K.cardDz = 0.05;
+  Q.hostInto(null); Q.reframe(2.6, 2.4); Q.frame = new THREE.Vector3(9.75, 1.2, CONF.DESK.zc); Q.cardDz = 0.1;
   await CONF.drive(1.8);
   CONF.inPose = true; CONF.lineT = 4; CONF.bar();
   SCENE.say(Q, T.pose);
@@ -58506,6 +58587,188 @@ THRONE.night = function (on) {
   R.r.shadowMap.needsUpdate = true;
 };
 
+/* ==== game/g34_wood.js ==== */
+/* THE WOOD — an afternoon clearing west of the castle, where the household spends its one dry afternoon of the week: Ser
+   Bogdan's archery butts, a fishing hole with a dock, Halina's blanket under the old oak, Zofia at her post, Kazik and the
+   birds, the two guards on their rounds, a red deer at the edge of the trees and Bogdan's hound asleep in the sun. At the far
+   left a path goes into the trees to the Woman's hut. Only the king takes it: nobody else in the household is ever sent down
+   it, and the hut is no one else's home. */
+const WOOD = SCENE.addRoom(new Room('wood', { X0: -14, X1: 14, CEIL: 40, KZ: 3.0, cam: { y: 3.0, look: 2.7, dist: 19.4, fov: 19 }, exposure: 1.0, reflK: 0.3, far: 320,
+  fog: [0xc8d8b0, 0.004], music: 'garden', ambience: { birds: 0.7, wind: 0.35 }, acoustics: { size: 1.4, wet: 0.1 }, surface: 'grass',
+  caption: ['The Wood', 'The one dry afternoon of the week'] }));
+WOOD.ENTRY = -9.8;   // where the king arrives from the map
+WOOD.LINES = {
+  path: ['A path into the trees, narrow and dark. The children are never sent down it, and nobody else goes.', 'The Woman’s hut is at the end of it. She is the only one who has never once told me to hurry.'],
+  butts: ['Bogdan’s butts. Zofia has put three arrows in the gold this week, and her mother pretends not to be proud.'],
+  pond: ['The fishing hole. Carp as old as the Margrave, the grooms say. Nobody has landed one since the siege.'],
+  deer: ['A red deer at the edge of the trees, standing as though it is waiting to be asked something.'],
+  hound: ['Bogdan’s hound. It has never been taught anything except sleeping in the sun.'],
+  basket: ['Bread, pears and a jug of something cold. Halina says the one dry afternoon of the week belongs to her.'],
+  oak: ['An old oak with a rope swing Kazik is not allowed to use, and uses every day.'],
+  zofia: ['Watch, Father! Three in the gold, and a fourth in the post.', 'Bogdan says I shoot like a squire. I told him squires don’t shoot at all.'],
+  kazik: ['The big crow sat on the fence and watched me the whole time. She doesn’t blink.', 'Shh. If you move, the birds come back.'],
+  guardL: ['Halt. Nobody goes down the path without the Woman’s leave, and nobody has ever had it.'],
+  guardR: ['The deer comes every afternoon. We have decided not to shoot it, which Bogdan does not understand.'],
+  queen: ['Sit down, Radomir. Close your eyes for once. The children are not drowning, nobody is shooting at anybody, and the rain has the decency to stay away.', 'You are doing it again. Watching the trees as if they owe you money.']
+};
+WOOD.build = function () {
+  const room = BUILD.begin(this), T = PX.T, X0 = room.X0, X1 = room.X1, KZ = room.KZ, L = room.LINES;
+  const say = (k) => SCENE.say(SCENE.player, SCENE.cycle(k, L[k]));
+  const talk = (id, k) => SCENE.say(CAST.A[id], SCENE.cycle(k, L[k]));
+  /* the sky, the far ridge and the ground, as in the garden */
+  BUILD.plane('y+', -120, 120, -200, 12, 0, T.turfPix);
+  BUILD.sky(T.skyAfternoon, { z: -200, w: 520, h: 190, y: -40, k: 1.0 });
+  BUILD.card(T.ridgeDay, 0, -8, -170, { w: 560, h: 46, basic: true, k: 1.0, cast: false });
+  /* the trees: pines in the depth, a deadwood snag, the old oak over Halina's blanket */
+  for (const [x, z, s] of [[-13, -14, 2.6], [-9, -18, 2.4], [-4, -22, 2.8], [2, -16, 2.2], [7, -20, 2.6], [12, -15, 2.4], [15, -24, 2.8], [-1, -10, 1.9], [14, -9, 2.0]]) BUILD.windCard(T.pine, x, 0, z, 'sway', 0.02, { s, cast: false });
+  BUILD.card(T.deadTree, -11.8, 0, -6, { s: 1.4, cast: false });
+  BUILD.windCard(T.appleTree, 6.6, 0, 0.4, 'sway', 0.035, { s: 1.9, cast: true });
+  BUILD.card(T.tuft, -6.2, 0, 1.2, { s: 1.0 }); BUILD.card(T.tuft, 4.1, 0, 1.4, { s: 0.9 }); BUILD.card(T.tuft, 12.6, 0, 1.1, { s: 1.0 });
+  /* the path to the hut, at the far left: a dark arch in the trees, violet light on the ground, the path itself */
+  BUILD.plane('y+', -13.2, -10.6, -14, 3.6, 0.006, T.mud);
+  BUILD.card(T.arch, -12.2, 0, 0.02, { basic: true, k: 0.3, cast: false });
+  BUILD.glow(-12.2, 1.4, 0.4, 3.2, 0x9b5cff, 0.35);
+  room.interact('path', -12.2, 2.0, KZ, 1.0, () => { SCENE.lock++; SCENE.say(SCENE.player, L.path[0]).then(() => { SCENE.lock--; GAME.save(); SCENE.go('hut', { x: HUT.ENTRY, face: 1 }); }); }).label = 'Take the path into the trees';
+  /* Bogdan's archery butts: a straw bale, the target on it, a bow rack */
+  BUILD.box(-9.0, -7.0, 0, 1.0, 1.5, 2.0, T.woodDark, { col: 0xd8b060 });
+  BUILD.card(T.archeryTarget, -8.0, 1.0, 1.35, { cast: true });
+  BUILD.box(-6.4, -6.1, 0, 1.6, 1.2, 1.25, T.woodPost); BUILD.box(-6.5, -5.4, 1.55, 1.62, 1.15, 1.3, T.woodPost);
+  BUILD.box(-6.3, -6.25, 0, 1.4, 1.0, 1.05, T.woodDark); BUILD.box(-6.0, -5.95, 0, 1.4, 1.02, 1.05, T.woodDark);
+  room.interact('butts', -8.0, 1.8, KZ, 1.0, () => say('butts'));
+  /* the fishing hole: a stone rim, the water, a dock with its posts, a rod leaning on the dock */
+  BUILD.cyl(1.0, 1.8, 0, 0.45, 2.3, T.ashlar, { seg: 10 });
+  BUILD.pool(T.water, 1.0, 0.42, 1.8, 2.1, { seg: 10, rate: 5, glow: 0.2 });
+  BUILD.box(2.4, 3.6, 0.42, 0.5, 2.5, 2.9, T.woodDark);
+  for (const x of [2.5, 3.5]) BUILD.box(x - 0.06, x + 0.06, 0, 0.42, 2.45, 2.55, T.woodPost);
+  BUILD.box(3.5, 3.56, 0.5, 2.4, 2.65, 2.7, T.woodPost);
+  room.interact('pond', 1.0, 1.2, KZ, 1.2, () => say('pond'));
+  /* the birds on the rim and the bank: the garden's ground birds, for the fishing hole */
+  room.birds = BUILD.critters(T.crowGround, [[0.2, 0.45, 2.6, 1.0], [2.0, 0, 3.1, 1.2], [11.5, 0, 2.9, 1.2], [-2.6, 0, 3.2, 1.3]], { shy: 1.5, sound: 'whoosh' });
+  /* Halina's blanket under the oak, the basket of bread and pears beside it, the hound asleep in the sun */
+  BUILD.rug(T.rugA, 4.4, 7.2, 2.0, 3.6, { y: 0.02 });
+  BUILD.card(T.basket, 7.4, 0.02, 2.4, { s: 0.9 });
+  BUILD.card(T.houndPix, 8.4, 0.02, 1.9, { s: 0.9 });
+  room.interact('queen', 5.6, 2.7, KZ, 1.0, () => talk('queen', 'queen')).label = 'Talk to Halina';
+  room.interact('basket', 7.4, 1.0, KZ, 1.0, () => say('basket'));
+  room.interact('hound', 8.4, 0.9, KZ, 1.0, () => say('hound'));
+  room.interact('oak', 6.6, 3.2, KZ, 1.0, () => say('oak'));
+  /* Zofia's post, and the deer at the edge of the trees */
+  BUILD.card(T.pell, 9.2, 0, 1.4, { s: 0.95 });
+  BUILD.card(T.deerPix, -4.4, 0, 1.6, { s: 1.0, cast: false });
+  room.interact('deer', -4.4, 1.6, KZ, 1.0, () => say('deer'));
+  room.interact('zofia', 9.2, 2.7, KZ, 1.0, () => talk('zofia', 'zofia')).label = 'Talk to Zofia';
+  room.interact('kazik', 11.6, 2.7, KZ, 1.0, () => talk('kazik', 'kazik')).label = 'Talk to Kazik';
+  room.interact('woodGuardL', -7.5, 3.0, KZ, 1.0, () => talk('woodGuardL', 'guardL')).label = 'Talk to the guard';
+  room.interact('woodGuardR', 1.0, 3.0, KZ, 1.0, () => talk('woodGuardR', 'guardR')).label = 'Talk to the guard';
+  /* light: the afternoon sun from the west with long shadows, the sky's fill, a warm bounce off the grass; the same rig as the garden */
+  BUILD.light(new THREE.HemisphereLight(0x9ab4dc, 0x5a7434, 1.25), 0, 20, 0);
+  room.sun = BUILD.shadow(BUILD.light(new THREE.DirectionalLight(0xffc888, 3.4), 32, 12, 16), R.q === 'low' ? 1024 : 2048); room.sun.target.position.set(0, 0, 0);
+  Object.assign(room.sun.shadow.camera, { left: -22, right: 22, top: 14, bottom: -14, near: 1, far: 90 }); room.sun.shadow.camera.updateProjectionMatrix(); room.sun.shadow.bias = -0.0008;
+  const fill = BUILD.light(new THREE.DirectionalLight(0x8aa0d0, 0.45), -14, 8, 18); fill.target.position.set(0, 1, 0);
+  room.rim = [6.4, 2.4, 2.5, 0.8, 14, 0xffd8a0, null]; room.shadowSrc = [26, 9, 10, 80]; room.keyK = 0.9;
+  /* the air: falling leaves, the crows over the trees, the drifting motes that the lens turns into bokeh */
+  BUILD.leaves({ n: 24, box: [-13, 13, 0.2, 5, 0.6, 3.6], tex: T.leafFrames, speed: 0.5, wind: -0.1 });
+  BUILD.flock(T.crow, [[-8, 14, -40, 14, 2, 0.25], [6, 16, -50, 18, 3, -0.2], [20, 12, -45, 10, 2, 0.3]], { s: 2.2 });
+  BUILD.motes({ n: 70, boxes: [[-14, -4, 0.4, 3.6, 0.5, 3.5, 0.4], [2, 14, 0.4, 3.6, 0.5, 3.5, 0.4]], col: 0xfff0c0 });
+  room.update(0, 0);
+  return BUILD.end();
+};
+WOOD.onEnter = function () {
+  if (!CUT.playing) SCENE.caption(...this.caption);
+  const A = CAST.A;
+  for (const id of ['woodGuardL', 'woodGuardR']) A[id].setVisible(true);
+};
+
+/* ==== game/g35_hut.js ==== */
+/* THE WOMAN'S HUT — a crooked hut at the end of the path through the wood. Inside: a hearth with a violet cauldron, a ritual rug
+   worn into the planks, herbs hung head down on cords, a shelf of jars with names on the lids, a crystal orb on a table, the
+   window that faces a moon that isn't where the moon is, and the Woman herself by the fire. Violet and plum throughout: the
+   light is violet from the hearth, the window and the orb, the motes are violet, and the wattle walls hold a faint glow.
+   Only the king comes here. No one else in the household has a home in this room, and the path into the trees is his alone. */
+const HUT = SCENE.addRoom(new Room('hut', { X0: -10, X1: 10, CEIL: 5.2, KZ: 2.6, cam: { y: 2.4, look: 2.2, dist: 19.4, fov: 19 }, exposure: 0.9, reflK: 0.5,
+  music: 'title', ambience: { wind: 0.2, tone: 0.3 }, acoustics: { size: 2.4, wet: 0.35 }, surface: 'wood',
+  caption: ['The Woman’s Hut', 'Only the king comes this way'] }));
+HUT.ENTRY = -10.6;   // from the path: the door is in the back wall, at the left
+HUT.LINES = {
+  door: ['Back out into the wood, where the light is. The dark is not going anywhere.'],
+  cauldron: ['Something green and something violet, simmering since the rain began. Do not put your finger in it. Your finger has done enough.'],
+  orb: ['A ball of glass that is not glass. There is a fog inside it that is almost a face, and it is looking at me.'],
+  herbs: ['Dried herbs and lavender, hung head down to keep their sleep. Some of them are not herbs.'],
+  shelves: ['Jars with names written on the lids. One says Bolesław. Its lid is not screwed down.'],
+  rug: ['A ring of runes worn into the planks by feet that stood here a long time ago, most of them bare.'],
+  window: ['The window faces a moon that is not where the moon is in the sky.'],
+  hearth: ['The fire is violet at the heart and gold at the edge, and it does not seem to need wood.']
+};
+HUT.TALK = {
+  first: [['witch', 'You came alone. Good. Children break everything they touch, and the rain only listens to people who come by themselves.'],
+    ['witch', 'Sit by the fire, Radomir. You look like a man who has been carrying his father’s sword in his sleep.']],
+  more: ['The rain will stop for you when you have paid what you promised. Not before, and not for less.',
+    'Have you thought about what you hold dearest? Do not answer. I already know it is not the crown.',
+    'Your wife bakes bread on a Sunday and prays for you on the others. The saints are fond of her. I am fond of her too.']
+};
+HUT.build = function () {
+  const room = BUILD.begin(this), T = PX.T, X0 = room.X0, X1 = room.X1, CE = room.CEIL, KZ = room.KZ, L = room.LINES;
+  const say = (k) => SCENE.say(SCENE.player, SCENE.cycle(k, L[k]));
+  /* the shell: wattle walls, a dark plank floor tinted violet, a black vault with beams */
+  BUILD.plane('z', X0, X1, 0, CE, 0, T.hutWall);
+  for (const [x, ax] of [[X0, 'x+'], [X1, 'x-']]) BUILD.plane(ax, 0, 10, 0, CE, x, T.hutWall);
+  BUILD.plane('y+', X0, X1, 0, 12, 0, T.woodDark, { mat: BUILD.std(T.woodDark, { col: 0x8a70b0, rough: 0.8 }), layer: 2 });
+  BUILD.plane('y-', X0, X1, 0, 12, CE, T.hutWall);
+  for (let x = X0 + 1.2; x < X1; x += 2.6) BUILD.box(x - 0.14, x + 0.14, CE - 0.45, CE, 0, 9, T.beam, { cast: false });
+  /* the door to the wood, in the back wall at the left: an arch with violet light beyond it */
+  BUILD.card(T.arch, -8.6, 0, 0.02, { basic: true, k: 0.6, col: 0x7a5ab8, cast: false });
+  BUILD.light(new THREE.PointLight(0x9b5cff, 3, 0, 2), -8.6, 1.6, 0.8, { flicker: 5 });
+  room.interact('door', -8.6, 2.4, KZ, 1.0, () => { SCENE.lock++; SCENE.say(SCENE.player, L.door[0]).then(() => { SCENE.lock--; GAME.save(); SCENE.go('wood', { x: WOOD.ENTRY, face: 1 }); }); }).label = 'Back out into the wood';
+  /* the window: stained glass tinted violet, a glow, a shaft and a shadow-casting spot for the moon */
+  BUILD.card(T.stained, 6.6, 1.7, 0.02, { basic: true, k: 1.2, col: 0x9a7aff, cast: false }); BUILD.glow(6.6, 3.2, 0.3, 3.2, 0x9b5cff, 0.25);
+  BUILD.shaft(6.6, 4.4, 0.5, 1.0, 5, 0.14, [-0.42, 0, -0.3], 0x9b5cff);
+  room.lights.moon = BUILD.shadow(BUILD.light(new THREE.SpotLight(0x9b7cff, 90, 0, 0.5, 0.8, 2), 6.6, 4.8, 1.2), R.q === 'low' ? 512 : 1024);
+  room.lights.moon.target.position.set(5.6, 0, 1.2);
+  room.interact('window', 6.6, 2.6, KZ, 1.0, () => say('window'));
+  /* the shelf of jars, the bookcase tinted plum */
+  BUILD.box(-6.6, -4.4, 0, 2.6, 0, 0.5, T.bookcase, { front: BUILD.std(T.bookcase, { col: 0xa890d0 }) });
+  room.interact('shelves', -5.5, 1.8, KZ, 1.0, () => say('shelves'));
+  /* herbs hung from the beams on cords */
+  for (const x of [-3.0, -1.8, 2.2]) { BUILD.box(x - 0.01, x + 0.01, 3.9, CE, 0.9, 0.92, T.woodPost, { cast: false }); BUILD.card(T.herbBundle, x, 3.0, 0.9, { s: 1.0 }); }
+  room.interact('herbs', -1.8, 3.0, KZ, 1.2, () => say('herbs'));
+  /* the hearth and the cauldron: a stone hearth, the brew violet, a violet glow and light that breathes */
+  BUILD.box(-0.8, 1.2, 0, 0.9, 0.2, 1.4, T.ashlar);
+  BUILD.card(T.cauldronPix, 0.2, 0.9, 1.25, { s: 1.0, cast: true });
+  BUILD.glow(0.2, 1.2, 1.25, 2.4, 0x9b5cff, 0.5);
+  BUILD.light(new THREE.PointLight(0x9b5cff, 6, 0, 2), 0.2, 1.4, 1.1, { flicker: 7 });
+  room.interact('cauldron', 0.2, 1.5, KZ, 1.0, () => say('cauldron'));
+  room.interact('hearth', 0.2, 0.6, KZ, 1.2, () => say('hearth'));
+  /* the runed rug in front of the hearth, a candle stand at the left, a little violet light from its flames */
+  BUILD.rug(T.runeRug, -1.6, 2.0, 1.2, 3.4, {});
+  room.interact('rug', 0.2, 0.1, KZ + 0.4, 1.4, () => say('rug'));
+  BUILD.card(T.candleStand, -2.6, 0, 2.2, { s: 0.8 }); BUILD.glow(-2.6, 1.6, 2.2, 1.2, 0x9b5cff, 0.4);
+  /* the table with the crystal orb; the Woman stands behind it, by the fire */
+  BUILD.box(4.4, 6.0, 0, 0.95, 1.6, 2.4, T.woodDark, { col: 0x9a80c0 });
+  BUILD.card(T.orbPix, 5.2, 0.95, 2.0, { s: 1.0, cast: false }); BUILD.glow(5.2, 1.5, 2.0, 2.2, 0x9b5cff, 0.45);
+  BUILD.light(new THREE.PointLight(0xa070ff, 2.5, 0, 2), 5.2, 1.6, 2.2, { flicker: 4 });
+  room.interact('orb', 5.2, 1.6, KZ, 1.0, () => say('orb'));
+  room.interact('witch', 3.6, 2.6, KZ, 1.0, () => HUT.witch()).label = 'Talk to the Woman';
+  /* light: a violet hemisphere for the room's base, the moon from the window, the hearth; motes drift up from the fire */
+  BUILD.light(new THREE.HemisphereLight(0x3a2a6a, 0x1a0c18, 1.1), 0, 5, 0);
+  room.rim = [0.2, 1.4, 1.2, 0.5, 6, 0x9b5cff, null];
+  room.shadowSrc = [5.2, 3.4, 3.6, 6];
+  BUILD.motes({ n: 110, boxes: [[-9, 9, 0.5, 4.6, 0.5, 4, 0.3]], embers: [0.2, 1.3, 1.2], col: 0xc8a0ff });
+  room.update(0, 0);
+  return BUILD.end();
+};
+HUT.onEnter = function () { if (!CUT.playing) SCENE.caption(...this.caption); };
+/* the Woman by the fire: a fuller talk the first time, then one line at a time, and the king's own lines are only the player's */
+HUT.witch = async function () {
+  const K = SCENE.player, W = CAST.A.hutWitch, T = HUT.TALK, who = (k) => (k === 'witch' ? W : K);
+  W.faceTo(K.x); K.faceTo(W.x);
+  SCENE.lock++;
+  try {
+    if (!HUT.met) { HUT.met = true; await SCENE.talk(T.first.map(([k, t]) => [who(k), t])); }
+    else await SCENE.say(W, SCENE.cycle('witch', T.more));
+  } finally { SCENE.lock--; }
+};
+HUT.met = false;
+
 /* ==== game/g40_cast.js ==== */
 /* THE CAST — every character is an Actor spec: a base body (rmale / rfemale), outfit pieces with dye colours
    (L = leather & wool, P = pale linen & metal, G = green cloth, 'skin' = bare hands), hair, and procedural garments.
@@ -58521,7 +58784,8 @@ CAST.specs = {
     robe: { col: COAT, trim: 0xb8862e }, collar: {}, tabard: { col: 0xe8e2d6, emblem: 0x1a1a24 }, crown: { worn: false } },
   queen: { id: 'queen', name: 'Halina', bind: 'rfemale', s: 1.0, skin: 0xe6bca2, skinK: 0.95, idle: 'Idle_FoldArms_Loop', walk: 'Walk_Formal_Loop', x: 3.35, z: 1.25, y: 0.48, face: -1, headY: 2.02,
     homes: { throne: { x: 3.35, z: 1.25, y: 0.48, face: -1, idle: 'Idle_FoldArms_Loop' }, garden: { x: -4.5, z: 1.2, face: 1, idle: 'Idle_Loop', sit: { x: -4.5, y: 0.47, z: 1.2, yaw: 0.3, cardDz: 0.45 } },
-      chapel: { x: -2.8, z: 1.25, face: 1, idle: 'Idle_Loop', sit: { x: -2.8, y: 0.5, z: 1.25, yaw: 1.32, cardDz: 0.45 } } },
+      chapel: { x: -2.8, z: 1.25, face: 1, idle: 'Idle_Loop', sit: { x: -2.8, y: 0.5, z: 1.25, yaw: 1.32, cardDz: 0.45 } },
+      wood: { x: 5.6, z: 2.8, face: -1, idle: 'Idle_Loop', sit: { x: 5.6, y: 0.22, z: 2.8, yaw: 0.3, cardDz: 0.2 } } },
     parts: [part(P_F('Body'), { L: 0x34426a, P: 0x7a88a8 }), part(P_F('Arms'), { L: 0x34426a, P: 0x5a6a8e }), part(P_F('Legs'), { L: 0x2a3048, P: 0x2a3048 }), part(P_F('Feet'), { L: 0x1a1410, P: 0x2a2018 })],
     brows: 0x3a2418, hair: [['Hair_Buns', 0x4a2c1a]],
     robe: { col: 0x3e4c78, top: 0.95, bot: 0.03, rx: [0.15, 0.36], rz: [0.12, 0.3], trim: 0xc8a040, band: 0xc8a040, leg: 0.4 },
@@ -58571,13 +58835,18 @@ Object.assign(CAST.specs, {
     brows: 0x8a6a3a, hair: [['Hair_Buzzed', 0x8a6a3a]] },
   /* the gardens: the princess at her sword drill, her little brother running about */
   zofia: { id: 'zofia', name: 'Zofia', bind: 'rfemale', s: 0.84, skin: 0xe8c0a6, skinK: 0.95, child: { head: 1.2 }, x: 4.4, z: 2.1, face: -1, headY: 1.78, idle: 'Sword_Idle', box: [1.5, 2.1], prop: 'woodsword',
-    homes: { garden: { x: 9.15, z: 1.85, face: -1, routine: { clips: ['Sword_Regular_Combo', 'Sword_Attack', 'Sword_Block'], every: [2.5, 5], at: 0.4, sound: 'thud', gain: 0.25 } } },
+    homes: { garden: { x: 9.15, z: 1.85, face: -1, routine: { clips: ['Sword_Regular_Combo', 'Sword_Attack', 'Sword_Block'], every: [2.5, 5], at: 0.4, sound: 'thud', gain: 0.25 } },
+      wood: { x: 9.2, z: 2.2, face: -1, routine: { clips: ['Sword_Regular_Combo', 'Sword_Attack', 'Sword_Block'], every: [2.5, 5], at: 0.4, sound: 'thud', gain: 0.25 } } },
     parts: [part(P_F('Body'), { L: 0x24405a, P: 0xe8dcc4 }), part(P_F('Arms'), { L: 0x24405a, P: 0x34506a }), part(P_F('Legs'), { L: 0x3a2e24, P: 0x3a2e24 }), part(P_F('Feet'), { L: 0x2a1a10, P: 0x3a2a1a })],
     brows: 0x6a3a1e, hair: [['Hair_Long', 0x7a3a1a]], tabard: { col: 0x24405a, emblem: 0xe8e2d6, top: 0.96, w: 0.08, from: P_F('Body') } },
   kazik: { id: 'kazik', name: 'Kazik', bind: 'rmale', s: 0.68, skin: 0xecc4aa, skinK: 0.96, child: { head: 1.26 }, x: 7.5, z: 2.9, face: -1, headY: 1.5, walk: 'Jog_Fwd_Loop', speed: 1.7, box: [1.3, 1.9],
-    homes: { garden: { x: 5.6, z: 2.55, face: -1, wander: { x0: 5.0, x1: 6.6, pause: [3, 6] }, routine: { clips: ['Interact'], every: [3, 6], at: 0.5 } } },
+    homes: { garden: { x: 5.6, z: 2.55, face: -1, wander: { x0: 5.0, x1: 6.6, pause: [3, 6] }, routine: { clips: ['Interact'], every: [3, 6], at: 0.5 } },
+      wood: { x: 11.0, z: 2.6, face: -1, wander: { x0: 10.2, x1: 12.6, pause: [3, 6] }, routine: { clips: ['Interact'], every: [3, 6], at: 0.5 } } },
     parts: [part(P_M('Body'), { L: 0x5a1a1a, P: 0xe8dcc4 }), part(P_M('Arms'), { L: 0x5a1a1a, P: 0x5a1a1a }), part(P_M('Arms'), 'skin'), part(P_M('Legs'), { L: 0x2a2a30, P: 0x2a2a30 }), part(P_M('Feet'), { L: 0x2a1a10, P: 0x3a2a1a })],
     brows: 0xa8803a, hair: [['Hair_SimpleParted', 0xb08a48]] },
+  /* the wood's guards, on their rounds: the path's guard on the left, the pond's on the right */
+  woodGuardL: Object.assign(guard('woodGuardL', -7.5), { home: 'wood', homes: { wood: { x: -7.5, z: 2.45, face: 1, wander: { x0: -10.2, x1: -5.4, pause: [4, 8] } } } }),
+  woodGuardR: Object.assign(guard('woodGuardR', 1.0), { home: 'wood', homes: { wood: { x: 1.0, z: 2.45, face: -1, wander: { x0: -1.6, x1: 3.2, pause: [4, 8] } } } }),
   /* the chapel's guards: the castle's own livery, at the two ends of the nave */
   cguardL: Object.assign(guard('cguardL', -8.1), { home: 'chapel' }), cguardR: Object.assign(guard('cguardR', 4.6), { home: 'chapel' }),
   /* the priest: Father Ambroży, sixty, in a black cassock with a white stole edged in gold, a book in his hands */
@@ -58605,6 +58874,8 @@ Object.assign(CAST.specs, {
       part(R_M('Feet_Boots'), { L: 0x1a1410, G: 0x1a1410, P: 0x3a3a40 })],
     brows: 0x1a1512, hair: [['Hair_SimpleParted', 0x1e1814]] },
 });
+/* the Woman in the wood, in her hut: the opening's witch, but not offstage here, and at home in the hut by the fire */
+CAST.specs.hutWitch = Object.assign({}, CAST.specs.witch, { id: 'hutWitch', offstage: false, home: 'hut', homes: { hut: { x: 3.6, z: 2.0, face: -1, idle: 'Spell_Simple_Idle_Loop' } } });
 CAST.build = async function () {
   const A = {};
   for (const [k, spec] of Object.entries(CAST.specs)) { A[k] = await new Actor(spec).build(); SCENE.addActor(A[k]); setLoad(0.7 + 0.15 * Object.keys(A).length / Object.keys(CAST.specs).length); await nextFrame(); }
@@ -58887,7 +59158,7 @@ WORLD.places = [   // at3: a point in the fortress diorama (exterior room coordi
   { id: 'yard', name: 'Training Yard', sub: 'Ser Bogdan', at3: [25, 8, -38], side: 'r', room: 'yard', at: { x: -10.2, face: 1 } },
   { id: 'chapel', name: 'Chapel', sub: 'the lower bailey', at3: [-21.2, 22, -33.3], side: 'l', room: 'chapel', at: { x: -9.6, face: 1 } },
   { id: 'town', name: 'Lower Town', sub: 'not yet', x: 378, y: 222, locked: true },
-  { id: 'wood', name: 'The Wood', sub: 'not yet', x: 64, y: 164, locked: true },
+  { id: 'wood', name: 'The Wood', sub: 'the clearing', x: 64, y: 164, room: 'wood', at: { x: -9.8, face: 1 } },
 ];
 WORLD.init = function () {
   for (const pl of WORLD.places) if (pl.room && !SCENE.rooms[pl.room]) { pl.locked = true; pl.sub = 'being built'; }   // rooms not in this build yet

@@ -127,11 +127,13 @@ CONF.play = async function () {
   Q.act('Interact'); await NIGHT.beat(500);
   await Q.undress('outer'); AUDIO.sfx('sheets', { gain: 0.6 }); await NIGHT.beat(400);
   await K.undress('outer'); AUDIO.sfx('sheets', { gain: 0.6 }); await NIGHT.beat(400);
-  await Q.undress('all'); await K.undress('all'); K.setArousal(0.25); AUDIO.sfx('sheets', { gain: 0.8 }); await NIGHT.beat(500);
+  await Q.undress('all'); await K.undress('all');
+  if (K.sexGroup) K.sexGroup.visible = false;   // the scene shows no genitals: the pin reads world positions, which still update when hidden
+  K.setArousal(0.25); AUDIO.sfx('sheets', { gain: 0.8 }); await NIGHT.beat(500);
   // each body keeps its own sprite, widened to take in the reach (his hands at her hips, hers on the desk), so both read
-  // he is behind her in profile, so his card comes forward: his silhouette shows over her back, where they overlap
-  K.hostInto(null); K.reframe(2.0, 2.4); K.frame = new THREE.Vector3(8.9, 1.2, CONF.DESK.zc); K.cardDz = 0.3;
-  Q.hostInto(null); Q.reframe(2.6, 2.4); Q.frame = new THREE.Vector3(9.75, 1.2, CONF.DESK.zc); Q.cardDz = 0;
+  // her card stays in front (the frame that read well): he is behind her in profile, and his body shows only where it isn't hidden by hers
+  K.hostInto(null); K.reframe(2.0, 2.4); K.frame = new THREE.Vector3(8.9, 1.2, CONF.DESK.zc); K.cardDz = 0.05;
+  Q.hostInto(null); Q.reframe(2.6, 2.4); Q.frame = new THREE.Vector3(9.75, 1.2, CONF.DESK.zc); Q.cardDz = 0.1;
   await CONF.drive(1.8);
   CONF.inPose = true; CONF.lineT = 4; CONF.bar();
   SCENE.say(Q, T.pose);

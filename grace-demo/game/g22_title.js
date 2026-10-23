@@ -60,18 +60,18 @@ const INTRO = [
 ];
 /* ---------------------------------------------------------------- the save slot */
 const GAME = {};
-GAME.reset = function () { SCENE.player.crownMesh.visible = false; COURT.reset(); CHAPEL.met = CHAPEL.queenMet = false; CHAPEL.flirt = CHAPEL.cold = 0; };
+GAME.reset = function () { SCENE.player.crownMesh.visible = false; COURT.reset(); CHAPEL.met = CHAPEL.queenMet = CHAPEL.priestMet = false; CHAPEL.flirt = CHAPEL.cold = 0; };
 GAME.state = function () { const K = SCENE.player, R0 = SCENE.room;
   return { room: R0 && R0.id !== 'exterior' ? R0.id : 'bedroom', x: K.x, crown: K.crownMesh.visible,
     court: { done: COURT.done, prosperity: COURT.prosperity, stats: COURT.stats, agents: COURT.agents.map((a) => ({ id: a.id, ap: a.ap, wound: a.wound })), items: COURT.items.map((i) => ({ id: i.id, n: i.n })) },
-    chapel: { met: CHAPEL.met, queenMet: CHAPEL.queenMet, flirt: CHAPEL.flirt, cold: CHAPEL.cold } }; };
+    chapel: { met: CHAPEL.met, queenMet: CHAPEL.queenMet, priestMet: CHAPEL.priestMet, flirt: CHAPEL.flirt, cold: CHAPEL.cold } }; };
 GAME.save = function () { if (SCENE.room && SCENE.room.id !== 'exterior' && !CUT.playing) SAVE.put(GAME.state()); };
 GAME.load = function (s) {
   const K = SCENE.player; K.crownMesh.visible = !!s.crown;
   if (s.court) { COURT.done = s.court.done; COURT.greeted = COURT.done; COURT.prosperity = s.court.prosperity || 0; Object.assign(COURT.stats, s.court.stats || {});
     for (const a of s.court.agents || []) { const g = COURT.agents.find((q) => q.id === a.id); if (g) Object.assign(g, a); }
     for (const i of s.court.items || []) { const g = COURT.items.find((q) => q.id === i.id); if (g) g.n = i.n; } }
-  if (s.chapel) { CHAPEL.met = !!s.chapel.met; CHAPEL.queenMet = !!s.chapel.queenMet; CHAPEL.flirt = s.chapel.flirt || 0; CHAPEL.cold = s.chapel.cold || 0; }
+  if (s.chapel) { CHAPEL.met = !!s.chapel.met; CHAPEL.queenMet = !!s.chapel.queenMet; CHAPEL.priestMet = !!s.chapel.priestMet; CHAPEL.flirt = s.chapel.flirt || 0; CHAPEL.cold = s.chapel.cold || 0; }
 };
 /* ---------------------------------------------------------------- credits */
 const CREDITS = {

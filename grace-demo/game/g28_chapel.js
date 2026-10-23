@@ -9,7 +9,7 @@ const CHAPEL = SCENE.addRoom(new Room('chapel', { X0: -12, X1: 12, CEIL: 7.6, KZ
   music: 'castle', ambience: { fire: 0.25, tone: 0.2 }, acoustics: { size: 3.6, wet: 0.5 }, surface: 'stone',
   caption: ['The Chapel', 'Vespers, and nobody in a hurry'] }));
 CHAPEL.ENTRY = -9.6;   // where the king arrives from the garden's cloister stair
-CHAPEL.met = false; CHAPEL.queenMet = false; CHAPEL.flirt = 0; CHAPEL.cold = 0;   // kept in the save: see GAME.state
+CHAPEL.met = false; CHAPEL.queenMet = false; CHAPEL.priestMet = false; CHAPEL.flirt = 0; CHAPEL.cold = 0;   // kept in the save: see GAME.state
 CHAPEL.LINES = {
   arch: ['Back out to the garden. The sun is still up there, being generous to somebody else.'],
   stoup: ['Holy water. Dip your fingers and make the sign. Don’t leave them wet for the saintess to notice.'],
@@ -46,6 +46,10 @@ CHAPEL.TALK = {
   queenFirst: ['Radomir. You’re standing in the aisle like a man waiting to be hanged.', 'Sit. Pray, if you like. God listens better than your steward.'],
   queenWarm: ['Still in the one dry corner of the city. I approve.', 'Kazik says the crows like this chapel. I think they only like the candles.'],
   queenCold: ['I see Dorota is still preaching to you.', 'Some of us come here to pray, you know. I count the ones who don’t.'],
+  priestFirst: ['Your Grace. Vespers begins when the Saintess has finished her sermon, which will be some time yet.', 'The Mother hears everything said in this chapel. I hear it too, and I write it down.'],
+  priestWarm: ['The chapel is open to all of Lodmir. I wish the sinners were quieter about it.', 'Pray for the rain to stop, Your Grace. The river does not care what the court wants.'],
+  priestFlirt: ['I have heard thirty years of confessions, Your Grace. Yours will be the short one.', 'The lower town says the Saintess is here to pray. The lower town is wrong about a great many things.'],
+  guard: ['Halt. Nobody passes the rail without the Saintess’s leave.', 'Nobody has ever had her leave. We are told that is a compliment.'],
 };
 CHAPEL.build = function () {
   const room = BUILD.begin(this), T = PX.T, X0 = room.X0, X1 = room.X1, CE = room.CEIL, KZ = room.KZ, L = room.LINES;
@@ -117,6 +121,10 @@ CHAPEL.build = function () {
     BUILD.box(x - 0.6, x + 0.6, 0, 0.4, z - 0.6, z + 0.6, T.ashlar, { cast: false }); }
   BUILD.card(T.brazier, -10.4, 0, 7.8, { s: 1.5, cast: false }); BUILD.flame(-10.4, 0.66, 7.81, 0.9, true); BUILD.glow(-10.4, 1.1, 7.85, 1.4, 0xff8a2a, 0.3);
   BUILD.light(new THREE.PointLight(0xff8a3c, 4, 0, 2), -10.4, 1.3, 7.5, { flicker: 7 });
+  /* church banners on the pilasters, hung from gilt rods above the torches, as the throne hall hangs its banners */
+  for (const x of [-3.4, 3.4]) { BUILD.card(T.chBanner, x, 2.85, 0.56, { cast: false }); BUILD.box(x - 0.72, x + 0.72, 5.78, 5.86, 0.5, 0.62, T.gilt, { cast: false }); }
+  /* a stone niche behind each statue */
+  for (const x of [-6.8, 6.8]) BUILD.card(T.chNiche, x, 0.5, 0.03, { cast: false });
   /* torches on the pilasters and between the statues: a bracket card, a flame, a glow and a warm light, as the throne has */
   for (const [x, y, z] of [[-3.4, 2.25, 0.47], [3.4, 2.25, 0.47], [-6.8, 3.2, 0.1], [6.8, 3.2, 0.1]]) {
     BUILD.card(T.sconce, x, y, z, { cast: false }); BUILD.flame(x, y + 0.23, z + 0.07, 0.6); BUILD.glow(x, y + 0.43, z + 0.15, 1.1, 0xffa050, 0.42);
@@ -136,6 +144,9 @@ CHAPEL.build = function () {
     BUILD.glow(cx, y + 0.25, z, 1.8, 0xffb070, 0.22);
     BUILD.light(new THREE.PointLight(0xffb070, 6, 0, 2), cx, y + 0.1, z, { flicker: 8 }); }
   /* the choir and the people in it: Halina and Dorota are placed by their specs (g40) */
+  /* the priest in the aisle, and the castle's guards at the two ends of the nave */
+  room.interact('priest', -1.1, 2.8, KZ, 1.0, () => CHAPEL.priest()).label = 'Talk to Father Ambroży';
+  for (const [id, x] of [['cguardL', -8.1], ['cguardR', 8.1]]) room.interact(id, x, 3.0, KZ, 1.0, () => SCENE.say(CAST.A[id], SCENE.cycle('guard', L.guard))).label = 'Talk to the guard';
   room.interact('queen', -2.8, 2.6, KZ, 0.9, () => CHAPEL.queen()).label = 'Talk to Halina';
   room.interact('dorota', 1.8, 2.7, KZ, 1.0, () => CHAPEL.dorota()).label = 'Talk to Saintess Dorota';
   /* light: the cool glass, the warm candles, a hemisphere for the vault, a fill from the lens side */
@@ -169,6 +180,17 @@ CHAPEL.dorota = async function () {
       if (pick === 0) { CHAPEL.flirt++; CHAPEL.cold++; await SCENE.talk(T.queenAgain.map(([k, t]) => [who(k), t])); }
     }
   } finally { D.lookYaw = null; SCENE.lock--; }
+};
+/* Father Ambroży, in the aisle before the rail. The first time he speaks about vespers; after that he has opinions about the
+   king's company, and the flirting in particular (CHAPEL.flirt). */
+CHAPEL.priest = async function () {
+  const P = CAST.A.priest, K = SCENE.player, T = CHAPEL.TALK;
+  P.faceTo(K.x); K.faceTo(P.x);
+  SCENE.lock++;
+  try {
+    if (!CHAPEL.priestMet) { CHAPEL.priestMet = true; await SCENE.talk(T.priestFirst.map((t) => [P, t])); }
+    else await SCENE.say(P, SCENE.cycle('priest', CHAPEL.flirt > 0 ? T.priestFlirt : T.priestWarm));
+  } finally { SCENE.lock--; }
 };
 /* Halina, in her stall. Her lines are cooler once the king has flirted with the saintess (CHAPEL.cold). */
 CHAPEL.queen = async function () {

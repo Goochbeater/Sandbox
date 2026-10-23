@@ -69,6 +69,14 @@ Object.assign(CAST.specs, {
     homes: { garden: { x: 5.6, z: 2.55, face: -1, wander: { x0: 5.0, x1: 6.6, pause: [3, 6] }, routine: { clips: ['Interact'], every: [3, 6], at: 0.5 } } },
     parts: [part(P_M('Body'), { L: 0x5a1a1a, P: 0xe8dcc4 }), part(P_M('Arms'), { L: 0x5a1a1a, P: 0x5a1a1a }), part(P_M('Arms'), 'skin'), part(P_M('Legs'), { L: 0x2a2a30, P: 0x2a2a30 }), part(P_M('Feet'), { L: 0x2a1a10, P: 0x3a2a1a })],
     brows: 0xa8803a, hair: [['Hair_SimpleParted', 0xb08a48]] },
+  /* the chapel's guards: the castle's own livery, at the two ends of the nave */
+  cguardL: Object.assign(guard('cguardL', -8.1), { home: 'chapel' }), cguardR: Object.assign(guard('cguardR', 8.1), { home: 'chapel' }),
+  /* the priest: Father Ambroży, sixty, in a black cassock with a white stole edged in gold, a book in his hands */
+  priest: { id: 'priest', name: 'Father Ambroży', bind: 'rmale', s: 1.0, skin: 0xd0a888, skinK: 0.9, home: 'chapel', x: -1.1, z: 2.0, face: 1, headY: 2.1, idle: 'Idle_Talking_Loop',
+    parts: [part(P_M('Body'), { L: 0x1c1a22, P: 0x24222c }), part(P_M('Arms'), { L: 0x1c1a22, P: 0x1c1a22 }), part(P_M('Arms'), 'skin'), part(P_M('Legs'), { L: 0x1c1a22, P: 0x1c1a22 }), part(P_M('Feet'), { L: 0x141010, P: 0x1e1816 })],
+    brows: 0xb8b2a8, hair: [['Hair_Buzzed', 0xc8c2b8], ['Hair_Beard', 0xc8c2b8]],
+    robe: { col: 0x1c1a22, top: 1.0, bot: 0.04, rx: [0.17, 0.33], rz: [0.13, 0.28], trim: 0xc8a040, leg: 0.5 },
+    tabard: { col: 0xf0ead8, trim: 0xc8a040, w: 0.05, top: 1.42 }, prop: 'scroll' },
   /* the chapel: Saintess Dorota (twenty-nine, a widow of the lower town who took the veil and kept her hair), in white and
      gold at the chancel rail. Her bust is a bulge on the gown's bodice (robe.bust, see engine/e05_actor.js) */
   dorota: { id: 'dorota', name: 'Saintess Dorota', bind: 'rfemale', s: 1.0, skin: 0xf2cdb4, skinK: 0.95, home: 'chapel', x: 1.8, z: 2.2, face: -1, headY: 2.02, idle: 'Idle_Loop',

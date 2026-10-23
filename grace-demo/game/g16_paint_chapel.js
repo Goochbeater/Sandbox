@@ -153,6 +153,32 @@ PX.def('chVotive', () => {   // an iron stand with rows of votive candles
   for (const row of [14, 28, 38]) for (let x = 6; x <= 32; x += 6) { p.rect(x, row - 6, 2, 6, 0xf0e6c8); p.set(x + 1, row - 6, 0xc8b890); }
   return p.tex({});
 });
+/* a church banner, hung from a gilt rod: white linen, a red cross down a gold stem, a gold border and a fringed hem */
+PX.def('chBanner', () => {
+  const W = 40, H = 92, p = new Pix(W, H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const hem = y > H - 6 ? (H - 6) + (Math.abs(((x + 2) % 6) - 3) >= 2 ? 3 : 0) : H;
+    if (y > hem) continue;
+    const b = Math.min(x, W - 1 - x, y);
+    let c = C.mul(0xe8e0cc, 0.95 + 0.06 * hash(x, y, 1201));
+    if (b < 2) c = 0xc8a040; else if (b < 3) c = 0x6a4a20;
+    const cross = (x >= 18 && x <= 21 && y >= 16 && y <= 70) || (x >= 12 && x <= 27 && y >= 30 && y <= 33);
+    if (cross) c = (x === 18 || x === 21 || y === 30 || y === 33) ? 0x6a1414 : 0xa82a2a;
+    p.set(x, y, c);
+  }
+  return p.outline(null, 0.7).tex();
+});
+/* a niche for each statue: a stone-framed round arch with a dark hollow, clear outside the arch */
+PX.def('chNiche', () => {
+  const W = 40, H = 78, R = 16, p = new Pix(W, H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const d = Math.hypot(x - 19.5, y - R), inArch = y >= R || d <= R;
+    if (!inArch) continue;
+    const edge = y >= R ? (x < 3 || x > 36) : d > R - 3;
+    p.set(x, y, edge ? C.mul(0xb8a888, 0.85 + 0.2 * hash(x, y, 1211)) : C.mix(0x2a3450, 0x161c2c, clamp(y / H, 0, 1)));
+  }
+  return p.tex({});
+});
 PX.def('chLamp', () => {   // the sanctuary lamp: a red glass cup on a chain
   const p = new Pix(12, 20);
   p.vl(6, 0, 4, 0x7a7e88);

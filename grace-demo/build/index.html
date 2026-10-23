@@ -56666,6 +56666,32 @@ PX.def('chVotive', () => {   // an iron stand with rows of votive candles
   for (const row of [14, 28, 38]) for (let x = 6; x <= 32; x += 6) { p.rect(x, row - 6, 2, 6, 0xf0e6c8); p.set(x + 1, row - 6, 0xc8b890); }
   return p.tex({});
 });
+/* a church banner, hung from a gilt rod: white linen, a red cross down a gold stem, a gold border and a fringed hem */
+PX.def('chBanner', () => {
+  const W = 40, H = 92, p = new Pix(W, H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const hem = y > H - 6 ? (H - 6) + (Math.abs(((x + 2) % 6) - 3) >= 2 ? 3 : 0) : H;
+    if (y > hem) continue;
+    const b = Math.min(x, W - 1 - x, y);
+    let c = C.mul(0xe8e0cc, 0.95 + 0.06 * hash(x, y, 1201));
+    if (b < 2) c = 0xc8a040; else if (b < 3) c = 0x6a4a20;
+    const cross = (x >= 18 && x <= 21 && y >= 16 && y <= 70) || (x >= 12 && x <= 27 && y >= 30 && y <= 33);
+    if (cross) c = (x === 18 || x === 21 || y === 30 || y === 33) ? 0x6a1414 : 0xa82a2a;
+    p.set(x, y, c);
+  }
+  return p.outline(null, 0.7).tex();
+});
+/* a niche for each statue: a stone-framed round arch with a dark hollow, clear outside the arch */
+PX.def('chNiche', () => {
+  const W = 40, H = 78, R = 16, p = new Pix(W, H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const d = Math.hypot(x - 19.5, y - R), inArch = y >= R || d <= R;
+    if (!inArch) continue;
+    const edge = y >= R ? (x < 3 || x > 36) : d > R - 3;
+    p.set(x, y, edge ? C.mul(0xb8a888, 0.85 + 0.2 * hash(x, y, 1211)) : C.mix(0x2a3450, 0x161c2c, clamp(y / H, 0, 1)));
+  }
+  return p.tex({});
+});
 PX.def('chLamp', () => {   // the sanctuary lamp: a red glass cup on a chain
   const p = new Pix(12, 20);
   p.vl(6, 0, 4, 0x7a7e88);
@@ -57142,18 +57168,18 @@ const INTRO = [
 ];
 /* ---------------------------------------------------------------- the save slot */
 const GAME = {};
-GAME.reset = function () { SCENE.player.crownMesh.visible = false; COURT.reset(); CHAPEL.met = CHAPEL.queenMet = false; CHAPEL.flirt = CHAPEL.cold = 0; };
+GAME.reset = function () { SCENE.player.crownMesh.visible = false; COURT.reset(); CHAPEL.met = CHAPEL.queenMet = CHAPEL.priestMet = false; CHAPEL.flirt = CHAPEL.cold = 0; };
 GAME.state = function () { const K = SCENE.player, R0 = SCENE.room;
   return { room: R0 && R0.id !== 'exterior' ? R0.id : 'bedroom', x: K.x, crown: K.crownMesh.visible,
     court: { done: COURT.done, prosperity: COURT.prosperity, stats: COURT.stats, agents: COURT.agents.map((a) => ({ id: a.id, ap: a.ap, wound: a.wound })), items: COURT.items.map((i) => ({ id: i.id, n: i.n })) },
-    chapel: { met: CHAPEL.met, queenMet: CHAPEL.queenMet, flirt: CHAPEL.flirt, cold: CHAPEL.cold } }; };
+    chapel: { met: CHAPEL.met, queenMet: CHAPEL.queenMet, priestMet: CHAPEL.priestMet, flirt: CHAPEL.flirt, cold: CHAPEL.cold } }; };
 GAME.save = function () { if (SCENE.room && SCENE.room.id !== 'exterior' && !CUT.playing) SAVE.put(GAME.state()); };
 GAME.load = function (s) {
   const K = SCENE.player; K.crownMesh.visible = !!s.crown;
   if (s.court) { COURT.done = s.court.done; COURT.greeted = COURT.done; COURT.prosperity = s.court.prosperity || 0; Object.assign(COURT.stats, s.court.stats || {});
     for (const a of s.court.agents || []) { const g = COURT.agents.find((q) => q.id === a.id); if (g) Object.assign(g, a); }
     for (const i of s.court.items || []) { const g = COURT.items.find((q) => q.id === i.id); if (g) g.n = i.n; } }
-  if (s.chapel) { CHAPEL.met = !!s.chapel.met; CHAPEL.queenMet = !!s.chapel.queenMet; CHAPEL.flirt = s.chapel.flirt || 0; CHAPEL.cold = s.chapel.cold || 0; }
+  if (s.chapel) { CHAPEL.met = !!s.chapel.met; CHAPEL.queenMet = !!s.chapel.queenMet; CHAPEL.priestMet = !!s.chapel.priestMet; CHAPEL.flirt = s.chapel.flirt || 0; CHAPEL.cold = s.chapel.cold || 0; }
 };
 /* ---------------------------------------------------------------- credits */
 const CREDITS = {
@@ -57952,7 +57978,7 @@ const CHAPEL = SCENE.addRoom(new Room('chapel', { X0: -12, X1: 12, CEIL: 7.6, KZ
   music: 'castle', ambience: { fire: 0.25, tone: 0.2 }, acoustics: { size: 3.6, wet: 0.5 }, surface: 'stone',
   caption: ['The Chapel', 'Vespers, and nobody in a hurry'] }));
 CHAPEL.ENTRY = -9.6;   // where the king arrives from the garden's cloister stair
-CHAPEL.met = false; CHAPEL.queenMet = false; CHAPEL.flirt = 0; CHAPEL.cold = 0;   // kept in the save: see GAME.state
+CHAPEL.met = false; CHAPEL.queenMet = false; CHAPEL.priestMet = false; CHAPEL.flirt = 0; CHAPEL.cold = 0;   // kept in the save: see GAME.state
 CHAPEL.LINES = {
   arch: ['Back out to the garden. The sun is still up there, being generous to somebody else.'],
   stoup: ['Holy water. Dip your fingers and make the sign. Don’t leave them wet for the saintess to notice.'],
@@ -57989,6 +58015,10 @@ CHAPEL.TALK = {
   queenFirst: ['Radomir. You’re standing in the aisle like a man waiting to be hanged.', 'Sit. Pray, if you like. God listens better than your steward.'],
   queenWarm: ['Still in the one dry corner of the city. I approve.', 'Kazik says the crows like this chapel. I think they only like the candles.'],
   queenCold: ['I see Dorota is still preaching to you.', 'Some of us come here to pray, you know. I count the ones who don’t.'],
+  priestFirst: ['Your Grace. Vespers begins when the Saintess has finished her sermon, which will be some time yet.', 'The Mother hears everything said in this chapel. I hear it too, and I write it down.'],
+  priestWarm: ['The chapel is open to all of Lodmir. I wish the sinners were quieter about it.', 'Pray for the rain to stop, Your Grace. The river does not care what the court wants.'],
+  priestFlirt: ['I have heard thirty years of confessions, Your Grace. Yours will be the short one.', 'The lower town says the Saintess is here to pray. The lower town is wrong about a great many things.'],
+  guard: ['Halt. Nobody passes the rail without the Saintess’s leave.', 'Nobody has ever had her leave. We are told that is a compliment.'],
 };
 CHAPEL.build = function () {
   const room = BUILD.begin(this), T = PX.T, X0 = room.X0, X1 = room.X1, CE = room.CEIL, KZ = room.KZ, L = room.LINES;
@@ -58060,6 +58090,10 @@ CHAPEL.build = function () {
     BUILD.box(x - 0.6, x + 0.6, 0, 0.4, z - 0.6, z + 0.6, T.ashlar, { cast: false }); }
   BUILD.card(T.brazier, -10.4, 0, 7.8, { s: 1.5, cast: false }); BUILD.flame(-10.4, 0.66, 7.81, 0.9, true); BUILD.glow(-10.4, 1.1, 7.85, 1.4, 0xff8a2a, 0.3);
   BUILD.light(new THREE.PointLight(0xff8a3c, 4, 0, 2), -10.4, 1.3, 7.5, { flicker: 7 });
+  /* church banners on the pilasters, hung from gilt rods above the torches, as the throne hall hangs its banners */
+  for (const x of [-3.4, 3.4]) { BUILD.card(T.chBanner, x, 2.85, 0.56, { cast: false }); BUILD.box(x - 0.72, x + 0.72, 5.78, 5.86, 0.5, 0.62, T.gilt, { cast: false }); }
+  /* a stone niche behind each statue */
+  for (const x of [-6.8, 6.8]) BUILD.card(T.chNiche, x, 0.5, 0.03, { cast: false });
   /* torches on the pilasters and between the statues: a bracket card, a flame, a glow and a warm light, as the throne has */
   for (const [x, y, z] of [[-3.4, 2.25, 0.47], [3.4, 2.25, 0.47], [-6.8, 3.2, 0.1], [6.8, 3.2, 0.1]]) {
     BUILD.card(T.sconce, x, y, z, { cast: false }); BUILD.flame(x, y + 0.23, z + 0.07, 0.6); BUILD.glow(x, y + 0.43, z + 0.15, 1.1, 0xffa050, 0.42);
@@ -58079,6 +58113,9 @@ CHAPEL.build = function () {
     BUILD.glow(cx, y + 0.25, z, 1.8, 0xffb070, 0.22);
     BUILD.light(new THREE.PointLight(0xffb070, 6, 0, 2), cx, y + 0.1, z, { flicker: 8 }); }
   /* the choir and the people in it: Halina and Dorota are placed by their specs (g40) */
+  /* the priest in the aisle, and the castle's guards at the two ends of the nave */
+  room.interact('priest', -1.1, 2.8, KZ, 1.0, () => CHAPEL.priest()).label = 'Talk to Father Ambroży';
+  for (const [id, x] of [['cguardL', -8.1], ['cguardR', 8.1]]) room.interact(id, x, 3.0, KZ, 1.0, () => SCENE.say(CAST.A[id], SCENE.cycle('guard', L.guard))).label = 'Talk to the guard';
   room.interact('queen', -2.8, 2.6, KZ, 0.9, () => CHAPEL.queen()).label = 'Talk to Halina';
   room.interact('dorota', 1.8, 2.7, KZ, 1.0, () => CHAPEL.dorota()).label = 'Talk to Saintess Dorota';
   /* light: the cool glass, the warm candles, a hemisphere for the vault, a fill from the lens side */
@@ -58112,6 +58149,17 @@ CHAPEL.dorota = async function () {
       if (pick === 0) { CHAPEL.flirt++; CHAPEL.cold++; await SCENE.talk(T.queenAgain.map(([k, t]) => [who(k), t])); }
     }
   } finally { D.lookYaw = null; SCENE.lock--; }
+};
+/* Father Ambroży, in the aisle before the rail. The first time he speaks about vespers; after that he has opinions about the
+   king's company, and the flirting in particular (CHAPEL.flirt). */
+CHAPEL.priest = async function () {
+  const P = CAST.A.priest, K = SCENE.player, T = CHAPEL.TALK;
+  P.faceTo(K.x); K.faceTo(P.x);
+  SCENE.lock++;
+  try {
+    if (!CHAPEL.priestMet) { CHAPEL.priestMet = true; await SCENE.talk(T.priestFirst.map((t) => [P, t])); }
+    else await SCENE.say(P, SCENE.cycle('priest', CHAPEL.flirt > 0 ? T.priestFlirt : T.priestWarm));
+  } finally { SCENE.lock--; }
 };
 /* Halina, in her stall. Her lines are cooler once the king has flirted with the saintess (CHAPEL.cold). */
 CHAPEL.queen = async function () {
@@ -58334,6 +58382,14 @@ Object.assign(CAST.specs, {
     homes: { garden: { x: 5.6, z: 2.55, face: -1, wander: { x0: 5.0, x1: 6.6, pause: [3, 6] }, routine: { clips: ['Interact'], every: [3, 6], at: 0.5 } } },
     parts: [part(P_M('Body'), { L: 0x5a1a1a, P: 0xe8dcc4 }), part(P_M('Arms'), { L: 0x5a1a1a, P: 0x5a1a1a }), part(P_M('Arms'), 'skin'), part(P_M('Legs'), { L: 0x2a2a30, P: 0x2a2a30 }), part(P_M('Feet'), { L: 0x2a1a10, P: 0x3a2a1a })],
     brows: 0xa8803a, hair: [['Hair_SimpleParted', 0xb08a48]] },
+  /* the chapel's guards: the castle's own livery, at the two ends of the nave */
+  cguardL: Object.assign(guard('cguardL', -8.1), { home: 'chapel' }), cguardR: Object.assign(guard('cguardR', 8.1), { home: 'chapel' }),
+  /* the priest: Father Ambroży, sixty, in a black cassock with a white stole edged in gold, a book in his hands */
+  priest: { id: 'priest', name: 'Father Ambroży', bind: 'rmale', s: 1.0, skin: 0xd0a888, skinK: 0.9, home: 'chapel', x: -1.1, z: 2.0, face: 1, headY: 2.1, idle: 'Idle_Talking_Loop',
+    parts: [part(P_M('Body'), { L: 0x1c1a22, P: 0x24222c }), part(P_M('Arms'), { L: 0x1c1a22, P: 0x1c1a22 }), part(P_M('Arms'), 'skin'), part(P_M('Legs'), { L: 0x1c1a22, P: 0x1c1a22 }), part(P_M('Feet'), { L: 0x141010, P: 0x1e1816 })],
+    brows: 0xb8b2a8, hair: [['Hair_Buzzed', 0xc8c2b8], ['Hair_Beard', 0xc8c2b8]],
+    robe: { col: 0x1c1a22, top: 1.0, bot: 0.04, rx: [0.17, 0.33], rz: [0.13, 0.28], trim: 0xc8a040, leg: 0.5 },
+    tabard: { col: 0xf0ead8, trim: 0xc8a040, w: 0.05, top: 1.42 }, prop: 'scroll' },
   /* the chapel: Saintess Dorota (twenty-nine, a widow of the lower town who took the veil and kept her hair), in white and
      gold at the chancel rail. Her bust is a bulge on the gown's bodice (robe.bust, see engine/e05_actor.js) */
   dorota: { id: 'dorota', name: 'Saintess Dorota', bind: 'rfemale', s: 1.0, skin: 0xf2cdb4, skinK: 0.95, home: 'chapel', x: 1.8, z: 2.2, face: -1, headY: 2.02, idle: 'Idle_Loop',

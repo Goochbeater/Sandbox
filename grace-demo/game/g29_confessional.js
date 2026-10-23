@@ -61,7 +61,7 @@ CONF.bar = function () {
   const row = $('nPos'); row.innerHTML = '';
   const add = (t, fn) => { const b = document.createElement('button'); b.className = 'btn'; b.textContent = t; b.onclick = (e) => { e.stopPropagation(); fn(); }; row.append(b); };
   add('Finish her', () => CONF.finish()); add('Let her go', () => CONF.end(false));
-  NIGHT.setPace(1); $('nView').hidden = true; NIGHT.bar(['pos', 'pace']);
+  NIGHT.setPace(1); $('nView').hidden = true; $('nFinish').hidden = true; NIGHT.bar(['pos', 'pace']);   // the bed's camera and finish don't apply here
 };
 CONF.start = function () { if (CONF.on || SCENE.lock || CUT.playing) return; NIGHT.confirm(() => CONF.play().catch(fail)); };
 CONF.play = async function () {
@@ -108,7 +108,7 @@ CONF.finish = async function () {
 /* back to the nave: the bodies are handed back to the clips and dressed, the saintess to her place at the rail */
 CONF.end = async function (finished) {
   const room = CHAPEL, K = CONF.A.K, Q = CONF.A.Q;   // also when turned down before undressing: they are put back the same way
-  NIGHT.bar([]); $('nView').hidden = false; await NIGHT.fade(true);
+  NIGHT.bar([]); $('nView').hidden = false; $('nFinish').hidden = false; await NIGHT.fade(true);
   POSE.release(K); POSE.release(Q); Q.hostInto(null); K.frame = null; K.reframe(); K.cardDz = 0;
   K.dress(); Q.dress(); K.setArousal(0);
   Q.stand(); Q.x = 1.8; Q.z = 2.2; Q.face = -1; Q.yaw = -0.42; Q.lookYaw = null; Q.baseY = Q.y = 0; Q.setVisible(true);

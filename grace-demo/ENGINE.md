@@ -19,6 +19,9 @@ Contents
 11. Testing and debugging
 12. Performance budget and devices
 13. Known limits and next steps
+13b. Matching the throne room's quality (how the chapel was made)
+13c. Adult scenes and poses (the night, the confessional)
+13d. Who can see what: partitions, scene light, separate sprites
 14. Credits and licences
 
 ---
@@ -421,6 +424,127 @@ calls into a 48×77 target), bloom, the final pass.
 - Petitions, agents, items and their numbers are first-pass placeholders, as are all the lines.
 - Next rooms that fit the engine as is: the council chamber from the reference (bookcases, green window, the queen and
   agents at a table), a courtyard (open sky = a gradient card behind the arches), the town gate.
+
+## 13b. Matching the throne room's quality (how the chapel was made)
+
+The throne room is the bar. Every new room is measured against it, in the same browser, with the same eval. Run this with
+the room on screen (`?test&room=<id>`), then compare the numbers and a screenshot of each side by side:
+
+```js
+(() => { let mesh = 0, n = 0, sh = 0, pt = 0, sp = 0, hemi = 0;
+  SCENE.room.group.traverse((o) => { if (o.isMesh) mesh++; if (o.isLight) { n++; if (o.castShadow) sh++; if (o.isPointLight) pt++; if (o.isSpotLight) sp++; if (o.isHemisphereLight) hemi++; } });
+  R.r.info.autoReset = false; R.r.info.reset(); SCENE.render(); const calls = R.r.info.render.calls; R.r.info.autoReset = true;
+  return JSON.stringify({ meshes: mesh, lights: n, castShadow: sh, point: pt, spot: sp, hemi, drawCalls: calls, exposure: SCENE.room.exposure, reflK: SCENE.room.reflK }); })()
+```
+
+As built, the throne room measures 84 meshes, 18 lights (2 of them shadow-casting spots), 294 draw calls, exposure 0.92,
+reflK 0.85. The chapel reached 79 meshes and 18 lights (2 shadow-casting) after the pass; its draw-call count depends on
+what is in the room, so measure it again rather than trust a number written down here.
+
+**Why the throne room looks good, and what to copy.** Each of these is a deliberate choice in `game/g30_throne.js` and
+`game/g11_paint_throne.js`:
+
+1. **Foreground framing.** Two stone piers and a brazier stand at z ≈ 7, between the lens and the walk line. The depth
+   of field blurs them, which gives the room depth. Put two or three objects 3.5–5 m in front of the walk line.
+2. **Warm light on every bay.** Each pilaster carries a torch: `BUILD.card(T.sconce, …)`, a `BUILD.flame`, a
+   `BUILD.glow`, and a flickering `BUILD.light`. A torch at each bay does more than one big warm lamp.
+3. **Shadow-casting spots.** Two of them, each made with
+   `BUILD.shadow(BUILD.light(new THREE.SpotLight(…), x, y, z), R.q === 'low' ? 512 : 1024)` and a `target` set by hand.
+   The chapel's are the light through the rose onto the altar and the cool light of a saint's window.
+4. **Surface rhythm, not noise.** Walls carry a repeating pattern with a boss at every crossing (`PX.def('chWall')`, the
+   same construction as the throne's damask), a carved wainscot one plane 1.4 m tall (`T.hallWainscot`), and a frieze band
+   (`T.frieze`, 0.31 m). Do not build a surface from noise indexed by one diagonal: the chapel's first plaster used
+   `noise1(x*0.11 + y*0.07)` and showed diagonal streaks on every wall.
+5. **Dressing.** Banners on gilt rods, a bench, a lectern, statues in stone niches, candle stands. The throne has 84
+   meshes; a room that feels bare is usually under 70.
+6. **Exposure and reflection.** Exposure 0.92 and `reflK` 0.85 on the throne. Two light shafts per window, not one.
+
+**Process.** Build, then look at three frames: the room at its default framing, a close view, and the view with the king
+moved to the far side of the room (things out of the default frame are easy to forget). For a close view, set
+`SCENE.room.cam.dist = 6; SCENE.room.cam.y = 1.45; SCENE.room.cam.look = 1.25` and hide the others with `a.setVisible(false)`.
+
+**Pitfalls seen on the chapel.**
+- A piece beyond about ±8 m from the default camera position is out of frame. Check it by moving the king to x ≈ −6.5.
+- A stall-end card placed between the lens and a seated actor hides that actor completely. Put cards behind the people
+  they frame, not in front of them.
+- `SCENE.cycle(key, lines)` throws when `lines` is undefined. A room keeps its scenery lines in `LINES` and its talk in
+  `TALK`; an interaction must read the object its text lives in. The first guard talk threw for this reason.
+- A sprite is 48×77 px. A higher `DPR` does not add detail; a larger object or a closer camera does.
+
+## 13c. Adult scenes and poses (the night, the confessional)
+
+The adult scenes are built from parts that every scene reuses:
+
+- **`engine/e13_body.js`**: the bare body. `Actor.makeBare()` builds the full body on first use, `Actor.bareTex` paints
+  the anatomy onto it, `Actor.genitals` builds the men's parts, and `setArousal(0..1)` sets them. Only the two adult
+  characters in a scene ever call it.
+- **`engine/e14_pose.js`**: procedural poses. A pose is data: `at` (the pelvis, in world space), `up` and `fwd` (the body's
+  axes, in world space with `world: true`), limb chains as `[dir, dir]` or as IK targets `{ ik: [x,y,z], pole: [dx,dy,dz] }`
+  (the hand point, and the direction the elbow or knee points), and an optional `pin`. `POSE.drive(actor, fn, dur)` blends
+  the body into the pose and then re-evaluates `fn` every frame; `POSE.release(actor)` returns the body to the clips.
+- **`game/g27_lovers.js`**: the bed's five positions, `LOVERS.pose(name, ph, k, A)`. The helpers are the ones to reuse:
+  `LOVERS.stroke(ph)` is the in-and-out curve (0 to 1, a quick push and a slower draw back), `LOVERS.entry(Q)` is her
+  entry point, `LOVERS.rod(K, depth)` is a point up his shaft, and `LOVERS.at(a, bone, p)` is a body point riding a bone
+  (for hands on hips).
+- **`game/g26_night.js`**: the scene flow for the bed. `NIGHT.confirm` is the 18+ gate (a flag kept in localStorage under
+  `swan.age18`), `NIGHT.ask(opts)` is the choice strip (keys 1..n work too), `NIGHT.bar` and `NIGHT.setPace` show the
+  strip, `NIGHT.tick` runs the rhythm, the breath and the lines, and `NIGHT.play` runs fade → makeBare → undress → bed →
+  kiss → position → finish → morning.
+- **`game/g29_confessional.js`**: the standing scene in the chapel (`CONF`). It reuses the gate, the choices, the strip,
+  undressing, the pose driver, the stroke, the pins and the sounds, and writes only the standing pose.
+
+**To add a position.**
+1. Write `fn(name, ph, k, A)` returning `{ king, queen }`, as `CONF.pose` does. Use `world: true`. Set `at` on the
+   pelvis, `up` and `fwd` for the body's axes, the hands as IK targets, the legs as `[[0,-1,0],[0,-1,0]]` for straight
+   standing. A pole is a world direction.
+2. Pin the body that moves: `pin: (a) => LOVERS.entry(Q, out).sub(LOVERS.rod(a, depth, out2))` moves his pelvis until his
+   shaft meets her entry. `depth = lerp(0.035, 0.118, LOVERS.stroke(ph)) * (0.85 + 0.15 * k)`, as the bed uses.
+3. Drive both bodies with `POSE.drive(actor, () => fn(…)[who], dur)`. The function is called every frame, so it must read
+   the scene's current phase and intensity from state, not from its arguments.
+4. Advance the phase with `ph += rate * dt` and read the curve through `LOVERS.stroke(ph)`. Arousal is
+   `K.setArousal(0..1)`, eased toward a target each frame.
+
+**Rules these scenes keep.**
+- Only the adult characters are undressed or posed: the king, the queen, and the saintess (twenty-nine). The scene code takes
+  only the actors it is handed, and no child character is ever passed in. Zofia and Kazik are never a scene's actors.
+- The player chooses. The king's bubble says what the player picked through `NIGHT.ask`, and the other characters speak
+  their own lines. The bed scene's scripted king lines predate this rule; the confessional follows it.
+- Undress in layers: `Actor.undress('outer')` hides the gown, collar and crown; `Actor.undress('all')` takes it to skin.
+- A scene is gated before its first frame: `NIGHT.confirm(then)` for the bed and `CONF.start()` for the confessional.
+
+**Testing a scene headlessly.** Set the age flag, the story state, and start the scene, then advance it with E and pick
+with the number keys:
+
+```
+localStorage.setItem("swan.age18","1"); CHAPEL.flirt = 2; CONF.start();   // then press E to advance, 1/2 to choose
+```
+
+Check `CONF.inPose`, `CONF.k` (how far gone), `SCENE.lock` (back to 0 at the end) and the page log for errors.
+
+## 13d. Who can see what: partitions, scene light, separate sprites
+
+**A partition.** The camera is in profile, so a wall that separates a scene from the rest of a room must stand between the
+lens and the scene. The confession screen is a box across the nave (`BUILD.box(7.5, 7.9, 0, 2.2, 0.9, 2.4, T.woodDark,
+{ front: BUILD.std(T.chConfess) })`): its lattice end faces the lens and it stands clear of the walk line, so the king can
+still walk past it. Put the people who should not see the scene on the far side. The chapel's castle guard moved from
+x 8.1, inside the alcove, to x 4.6, in the nave.
+
+**Scene light.** `CHAPEL.dim(on)` follows `BEDROOM.setNight` and `THRONE.night`. Every light keeps its built intensity in
+`userData.base` (`BUILD.light` sets it), so dimming is undone exactly. A light with a flicker has its `base` changed too, or
+the flicker would bring it back. The candle on the confessor's desk, `room.lights.candle`, is the only light on for the
+scene, at 2.2. Exposure goes to 0.85 of the room's. Warm candles on the skin make it read orange under the sprite's
+posterising; dimming fixes that, and it is why the scene dims before the bodies are shown.
+
+**Separate sprites.** Every actor has its own sprite (its own camera and layer) by default. `Actor.hostInto(host)` puts a
+body into another's sprite, with one depth buffer, so bodies that touch overlap correctly. The bed uses that, because its
+two bodies fill one sprite. The confessional does not: in profile, one merged sprite became a single orange silhouette
+and the king could not be read. Instead each body gets a sprite widened with `reframe(w, h)`, placed with `frame` (a world
+point), with `cardDz` nudging its card toward the lens. Two rules keep this clean:
+- Widen a sprite to take in the reach of the pose. Dorota's hands reach the desk's far edge, so her box is 2.6 m wide, and
+  the king's is 2.0 m. A box that is too narrow cuts the hands off.
+- Restore everything when the scene ends: `frame = null`, `reframe()`, `cardDz = 0`, `hostInto(null)`, `POSE.release` on
+  both bodies, `dress()`, `setVisible(true)` for those who stay, removal of the scene's tick from `room.tick`, and the
+  scene lock released (`SCENE.lock--`).
 
 ## 14. Credits and licences
 

@@ -70,6 +70,7 @@ CONF.play = async function () {
   CONF.on = true; CONF.A = { K, Q }; CONF.ph = 0; CONF.k = 0; CONF.finishing = false; CONF.hold = false; CONF.inPose = false; CONF.lineT = 5; CONF.brT = 1;
   SCENE.lock++;
   await NIGHT.fade(true);
+  CHAPEL.dim(true);   // the alcove goes dark but for the candle on the desk
   await Promise.all([K.makeBare(), Q.makeBare()]);
   const zc = CONF.DESK.zc;
   K.stand(); K.target = null; K.x = 8.0; K.z = zc; K.face = 1; K.lookYaw = null; K.yaw = 0.42;
@@ -89,7 +90,9 @@ CONF.play = async function () {
   await K.undress('outer'); AUDIO.sfx('sheets', { gain: 0.6 }); await NIGHT.beat(400);
   await Q.undress('all'); await K.undress('all'); K.setArousal(0.25); AUDIO.sfx('sheets', { gain: 0.8 }); await NIGHT.beat(500);
   // she bends over the desk and he takes her hips: one sprite for both, widened to take in the desk's end
-  K.reframe(3.0, 2.4); K.frame = new THREE.Vector3(9.7, 1.2, zc); K.cardDz = 0.4; Q.hostInto(K);
+  // each body keeps its own sprite, widened to take in the reach (his hands at her hips, hers on the desk), so both read
+  K.hostInto(null); K.reframe(2.0, 2.4); K.frame = new THREE.Vector3(8.9, 1.2, zc); K.cardDz = 0.05;
+  Q.hostInto(null); Q.reframe(2.6, 2.4); Q.frame = new THREE.Vector3(9.75, 1.2, zc); Q.cardDz = 0.1;
   await CONF.drive(1.8);
   CONF.inPose = true; CONF.lineT = 4; CONF.bar();
   SCENE.say(Q, 'Hold my hips. Hold them like you mean it.');
@@ -109,7 +112,8 @@ CONF.finish = async function () {
 CONF.end = async function (finished) {
   const room = CHAPEL, K = CONF.A.K, Q = CONF.A.Q;   // also when turned down before undressing: they are put back the same way
   NIGHT.bar([]); $('nView').hidden = false; $('nFinish').hidden = false; await NIGHT.fade(true);
-  POSE.release(K); POSE.release(Q); Q.hostInto(null); K.frame = null; K.reframe(); K.cardDz = 0;
+  CHAPEL.dim(false);
+  POSE.release(K); POSE.release(Q); K.frame = null; K.reframe(); K.cardDz = 0; Q.frame = null; Q.reframe(); Q.cardDz = 0;
   K.dress(); Q.dress(); K.setArousal(0);
   Q.stand(); Q.x = 1.8; Q.z = 2.2; Q.face = -1; Q.yaw = -0.42; Q.lookYaw = null; Q.baseY = Q.y = 0; Q.setVisible(true);
   K.stand(); K.x = 7.9; K.z = room.KZ; K.y = 0; K.face = 1; K.yaw = 0.42; K.lookYaw = null;

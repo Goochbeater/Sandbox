@@ -113,8 +113,14 @@ CHAPEL.build = function () {
   /* a prayer bench under the right-hand lancet and a lectern for the readings, as in the throne hall's bench and lectern */
   BUILD.box(7.6, 9.1, 0, 0.46, 0.2, 0.6, T.woodDark, { front: BUILD.std(T.bench) }); BUILD.box(7.55, 9.15, 0.46, 0.52, 0.16, 0.64, T.woodPost);
   BUILD.card(T.lectern, -5.9, 0, 1.45, { s: 0.9 });
-  /* the confessor's desk in front of the box, where the confessional scene is played (g29): a wood body, a velvet top */
+  /* the confession screen: a solid partition between the nave and the desk alcove, so the nave is on the far side of it from
+     the scene (g29). It stands clear of the walk line, which passes in front of it. */
+  BUILD.box(7.5, 7.9, 0, 2.2, 0.9, 2.4, T.woodDark, { front: BUILD.std(T.chConfess) }); BUILD.box(7.45, 7.95, 2.2, 2.27, 0.85, 2.45, T.woodPost);
+  /* the confessor's desk in front of the box, where the confessional scene is played (g29): a wood body, a velvet top, and
+     one candle that is the only light on in the alcove during the scene */
   BUILD.box(10.0, 10.9, 0, 1.1, 2.0, 2.4, T.woodDark); BUILD.box(9.95, 10.95, 1.1, 1.13, 1.95, 2.45, T.velvet, { cast: false });
+  BUILD.card(T.candle, 10.3, 1.1, 2.1, { cast: false }); BUILD.flame(10.3, 1.38, 2.11, 0.3);
+  room.lights.candle = BUILD.light(new THREE.PointLight(0xffb060, 0, 0, 2), 10.45, 1.6, 1.9);
   /* the confessional on the right, its lattice facing the aisle */
   BUILD.box(9.4, 11.5, 0, 2.2, 0.1, 1.3, T.woodDark, { front: BUILD.std(T.chConfess) }); BUILD.box(9.3, 11.6, 2.2, 2.35, 0.0, 1.45, T.woodDark);
   room.interact('confess', 10.4, 2.5, KZ, 1.0, () => CHAPEL.confess());
@@ -148,7 +154,7 @@ CHAPEL.build = function () {
   /* the choir and the people in it: Halina and Dorota are placed by their specs (g40) */
   /* the priest in the aisle, and the castle's guards at the two ends of the nave */
   room.interact('priest', -1.1, 2.8, KZ, 1.0, () => CHAPEL.priest()).label = 'Talk to Father Ambroży';
-  for (const [id, x] of [['cguardL', -8.1], ['cguardR', 8.1]]) room.interact(id, x, 3.0, KZ, 1.0, () => SCENE.say(CAST.A[id], SCENE.cycle('guard', CHAPEL.TALK.guard))).label = 'Talk to the guard';
+  for (const [id, x] of [['cguardL', -8.1], ['cguardR', 4.6]]) room.interact(id, x, 3.0, KZ, 1.0, () => SCENE.say(CAST.A[id], SCENE.cycle('guard', CHAPEL.TALK.guard))).label = 'Talk to the guard';
   room.interact('queen', -2.8, 2.6, KZ, 0.9, () => CHAPEL.queen()).label = 'Talk to Halina';
   room.interact('dorota', 1.8, 2.7, KZ, 1.0, () => CHAPEL.dorota()).label = 'Talk to Saintess Dorota';
   /* light: the cool glass, the warm candles, a hemisphere for the vault, a fill from the lens side */
@@ -182,6 +188,17 @@ CHAPEL.dorota = async function () {
       if (pick === 0) { CHAPEL.flirt++; CHAPEL.cold++; await SCENE.talk(T.queenAgain.map(([k, t]) => [who(k), t])); }
     }
   } finally { D.lookYaw = null; SCENE.lock--; }
+};
+/* the scene's lighting, the way the bedroom dims for the night: every light keeps its built intensity in userData.base, so
+   this undoes exactly. The candle on the desk is the one light that comes on for the scene. */
+CHAPEL.dim = function (on) {
+  const room = CHAPEL; if (!room.built) return;
+  room.group.traverse((o) => { if (!o.isLight || o.userData.base === undefined || o === room.lights.candle) return;
+    let k = 1; if (on) { if (o.isHemisphereLight || o.isDirectionalLight) k = 0.3; else if (o.isSpotLight) k = 0.5; else k = 0.35; }
+    o.intensity = o.userData.base * k; });
+  for (const f of room.flick) if (f.L !== room.lights.candle) f.base = f.L.userData.base * (on ? 0.35 : 1);
+  room.lights.candle.intensity = on ? 2.2 : 0;
+  R.mat.final.uniforms.uExpo.value = room.exposure * (on ? 0.85 : 1);
 };
 /* the confessional: a few lines through the lattice. Once the saintess has flirted with him enough (CHAPEL.flirt, two or more),
    the king may take her up on the offer, behind the desk; that scene is CONF (g29), behind the age gate */

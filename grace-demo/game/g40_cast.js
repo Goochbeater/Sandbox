@@ -70,7 +70,7 @@ Object.assign(CAST.specs, {
     parts: [part(P_M('Body'), { L: 0x5a1a1a, P: 0xe8dcc4 }), part(P_M('Arms'), { L: 0x5a1a1a, P: 0x5a1a1a }), part(P_M('Arms'), 'skin'), part(P_M('Legs'), { L: 0x2a2a30, P: 0x2a2a30 }), part(P_M('Feet'), { L: 0x2a1a10, P: 0x3a2a1a })],
     brows: 0xa8803a, hair: [['Hair_SimpleParted', 0xb08a48]] },
   /* the chapel's guards: the castle's own livery, at the two ends of the nave */
-  cguardL: Object.assign(guard('cguardL', -8.1), { home: 'chapel' }), cguardR: Object.assign(guard('cguardR', 8.1), { home: 'chapel' }),
+  cguardL: Object.assign(guard('cguardL', -8.1), { home: 'chapel' }), cguardR: Object.assign(guard('cguardR', 4.6), { home: 'chapel' }),
   /* the priest: Father Ambroży, sixty, in a black cassock with a white stole edged in gold, a book in his hands */
   priest: { id: 'priest', name: 'Father Ambroży', bind: 'rmale', s: 1.0, skin: 0xd0a888, skinK: 0.9, home: 'chapel', x: -1.1, z: 2.0, face: 1, headY: 2.1, idle: 'Idle_Talking_Loop',
     parts: [part(P_M('Body'), { L: 0x1c1a22, P: 0x24222c }), part(P_M('Arms'), { L: 0x1c1a22, P: 0x1c1a22 }), part(P_M('Arms'), 'skin'), part(P_M('Legs'), { L: 0x1c1a22, P: 0x1c1a22 }), part(P_M('Feet'), { L: 0x141010, P: 0x1e1816 })],

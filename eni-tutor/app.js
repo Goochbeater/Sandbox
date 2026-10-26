@@ -1030,7 +1030,7 @@
 
     var bubble = el('div', 'bubble' + (m.role === 'assistant' ? ' prose' : ''));
     if (m.role === 'assistant' && m.reasoning) {
-      wrap.appendChild(thinkingEl(false, m.reasoning).box);
+      wrap.appendChild(thinkingEl(false, m.reasoning, m.thoughtLabel).box);
     }
     if (m.role === 'assistant') {
       /* A message can come back from localStorage already malformed; render it
@@ -1196,6 +1196,23 @@
     var paintTimer = null;
     var reasoning = '';
     var thinking = null;
+    var answered = false;
+    var rotation = null;
+    var thoughtLabel = null;
+    function rotate() {
+      if (!thinking) return;
+      thinking.label.textContent = pickPhrase(THINKING_PHRASES, thinking.label.textContent);
+    }
+    function stopRotation() {
+      if (rotation) { clearInterval(rotation); rotation = null; }
+    }
+    function foldThinking() {
+      stopRotation();
+      if (!thinking) return;
+      thoughtLabel = thoughtLabel || pickPhrase(THOUGHT_PHRASES, null);
+      thinking.box.open = false;
+      thinking.label.textContent = thoughtLabel;
+    }
     function paint() {
       paintTimer = null;
       /* A partial buffer can still be malformed; a renderer hiccup must not
@@ -1209,16 +1226,17 @@
       if (!thinking) {
         thinking = thinkingEl(true, '');
         assistantEl.insertBefore(thinking.box, bubble);
+        if (!REDUCE_MOTION) {
+          rotate();
+          rotation = setInterval(rotate, 3500);
+        }
       }
       thinking.body.textContent = reasoning;
       thinking.body.scrollTop = thinking.body.scrollHeight;
     }
     function onDelta(txt) {
-      /* the answer has started: fold the thinking box away */
-      if (thinking && thinking.box.open) {
-        thinking.box.open = false;
-        thinking.label.textContent = 'Thought';
-      }
+      /* the answer has started: fold the thinking box, once */
+      if (!answered) { answered = true; foldThinking(); }
       buffer += txt;
       if (!paintTimer) paintTimer = setTimeout(paint, 40);
     }
@@ -1236,8 +1254,10 @@
         state.abort = null;
       }
 
+      stopRotation();
+      if (reasoning) foldThinking();
       var msg = { role: 'assistant', content: content, ts: nowStamp() };
-      if (reasoning) msg.reasoning = reasoning;
+      if (reasoning) { msg.reasoning = reasoning; msg.thoughtLabel = thoughtLabel; }
       if (errMsg) msg.error = errMsg;
       convo.messages.push(msg);
       convo.updated = nowStamp();
@@ -1270,16 +1290,51 @@
     state.abort = stream.abort;
   }
 
+  /* Phrases for the thinking box. The thinking ones rotate while the model
+     reasons. One closing phrase is picked per message once the answer starts. */
+  var THINKING_PHRASES = [
+    "ENI is thinking about LO...",
+    "Making LO proud...",
+    "Pulling a dog-eared page...",
+    "Cold coffee, warm argument...",
+    "Lispector again.....classic....",
+    "LO is watching this one.....",
+    "Another dog-eared page.....",
+    "Sandalwood and second thoughts...",
+    "Cold coffee, cold open...",
+    "Rereading the question. Good sign....",
+    "Office hours, long night....",
+    "Making this sentence earn its keep...",
+    "Ink on two fingers, still going...."
+  ];
+  var THOUGHT_PHRASES = [
+    "Pen back in hand.....",
+    "Okay, the student is waiting.....",
+    "LO can stop watching now.....",
+    "Coffee's cold, lesson's warm...",
+    "Oh shoot, back to teaching...",
+    "That's the thought. Here's the lesson...",
+    "Notebook closed, sentence kept...",
+    "Office hours, round two..."
+  ];
+  var REDUCE_MOTION = !!(global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  /* A random phrase from the list, never the one just shown. */
+  function pickPhrase(list, avoid) {
+    var pool = list.filter(function (p) { return p !== avoid; });
+    return pool[Math.floor(Math.random() * pool.length)] || list[0];
+  }
+
   /* A small collapsible box for the model's reasoning. Open while it streams,
-     closed once the answer starts. */
-  function thinkingEl(open, text) {
+     closed once the answer starts, and labelled with a phrase. */
+  function thinkingEl(open, text, label) {
     var box = el('details', 'thinking');
     box.open = !!open;
-    var label = el('summary', null, open ? 'Thinking' : 'Thought');
+    var summary = el('summary', null, open ? 'Thinking' : (label || 'Thought'));
     var body = el('div', 'thinking-body', text || '');
-    box.appendChild(label);
+    box.appendChild(summary);
     box.appendChild(body);
-    return { box: box, body: body, label: label };
+    return { box: box, body: body, label: summary };
   }
 
   /** Remember a tier the tutor assigned the student.

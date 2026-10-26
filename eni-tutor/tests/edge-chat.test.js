@@ -7,23 +7,60 @@ const os = require('os');
 const path = require('path');
 const { pathToFileURL } = require('url');
 
-// The edge runtime is Deno. Provide the one global it needs, read from `env`.
+// The edge runtime is Deno. Provide the globals it needs, read from `env`.
 const env = {};
 globalThis.Deno = { env: { get: (k) => env[k] } };
 
-// Load the module by copying it to a .mjs file, since this package is CommonJS.
-// build.js writes knowledge.js (the persona and the whole library) next to chat.js.
+// build.js writes knowledge.js (persona, index, documents) next to chat.js.
 const edgeDir = path.join(__dirname, '..', 'netlify', 'edge-functions');
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'edge-chat-'));
 fs.copyFileSync(path.join(edgeDir, 'knowledge.js'), path.join(dir, 'knowledge.js'));
-const file = path.join(dir, 'chat.mjs');
-fs.writeFileSync(file, fs.readFileSync(path.join(edgeDir, 'chat.js'), 'utf8').replace("'./knowledge.js'", "'./knowledge.js'"));
-const loaded = import(pathToFileURL(file).href).then((m) => m.default);
+fs.writeFileSync(path.join(dir, 'chat.mjs'), fs.readFileSync(path.join(edgeDir, 'chat.js'), 'utf8'));
+const loaded = import(pathToFileURL(path.join(dir, 'chat.mjs')).href).then((m) => m.default);
+const knowledge = import(pathToFileURL(path.join(dir, 'knowledge.js')).href);
 
 const SITE = 'https://eni.example.netlify.app';
+const UPSTREAM = 'https://openrouter.ai/api/v1/chat/completions';
+const SEARCH = 'https://api.search.brave.com/res/v1/web/search';
+const encoder = new TextEncoder();
+
+const frame = (obj) => 'data: ' + JSON.stringify(obj) + '\n\n';
+const text = (t) => frame({ choices: [{ delta: { content: t } }] });
+const done = 'data: [DONE]\n\n';
+// A tool call, streamed in two pieces, as providers do.
+const toolCall = (index, id, name, args) => [
+  frame({ choices: [{ delta: { tool_calls: [{ index, id, function: { name, arguments: args.slice(0, 5) } }] } }] }),
+  frame({ choices: [{ delta: { tool_calls: [{ index, function: { arguments: args.slice(5) } }] } }] }),
+];
+
+const sse = (frames, status = 200) => new Response(new ReadableStream({
+  start(c) {
+    for (const f of frames) c.enqueue(encoder.encode(f));
+    c.close();
+  },
+}), { status, headers: { 'Content-Type': 'text/event-stream' } });
+
+// Replies to the model in order: rounds[0] is the first call, and so on.
+function stubRounds(rounds) {
+  const calls = [];
+  const real = globalThis.fetch;
+  globalThis.fetch = async (url, init) => {
+    calls.push({ url: String(url), init });
+    if (String(url).startsWith(UPSTREAM)) {
+      const round = rounds[calls.filter((c) => c.url.startsWith(UPSTREAM)).length - 1];
+      return round;
+    }
+    return new Response(JSON.stringify({ web: { results: [] } }), { headers: { 'Content-Type': 'application/json' } });
+  };
+  return { calls, restore: () => { globalThis.fetch = real; } };
+}
+
+const modelCalls = (calls) => calls.filter((c) => c.url.startsWith(UPSTREAM));
+const bodyOf = (call) => JSON.parse(call.init.body);
+
 const goodBody = (extra) => JSON.stringify(Object.assign({
   messages: [{ role: 'user', content: 'hello' }],
-  stream: false, temperature: 0.7, top_p: 0.95, max_tokens: 2048,
+  temperature: 0.7, top_p: 0.95, max_tokens: 2048,
 }, extra || {}));
 const post = (body, headers) => new Request(SITE + '/api/v1/chat/completions', {
   method: 'POST',
@@ -31,45 +68,30 @@ const post = (body, headers) => new Request(SITE + '/api/v1/chat/completions', {
   body,
 });
 
-// Replace fetch with a stub that returns the given status and body chunks.
-function stubFetch(status, chunks, { reject } = {}) {
-  const calls = [];
-  const real = globalThis.fetch;
-  globalThis.fetch = async (url, init) => {
-    calls.push({ url, init });
-    if (reject) throw new Error(reject);
-    const enc = new TextEncoder();
-    const body = new ReadableStream({
-      start(c) {
-        for (const chunk of chunks) c.enqueue(enc.encode(chunk));
-        c.close();
-      },
-    });
-    return new Response(body, { status });
-  };
-  return { calls, restore: () => { globalThis.fetch = real; } };
-}
+const interviewId = async () => {
+  const { INDEX } = await knowledge;
+  return INDEX.find((i) => i.path.includes('interview-script')).id;
+};
 
-function withKey(key) {
-  env.OPENROUTER_API_KEY = key;
-}
+test.beforeEach(() => {
+  env.OPENROUTER_API_KEY = 'test-key-123';
+  delete env.BRAVE_SEARCH_API_KEY;
+});
 
 test('rejects non-POST requests', async () => {
-  withKey('k');
   const handler = await loaded;
   const res = await handler(new Request(SITE + '/api/v1/chat/completions', { method: 'GET' }));
   assert.equal(res.status, 405);
 });
 
 test('rejects an origin that is not this site', async () => {
-  withKey('k');
   const handler = await loaded;
   const res = await handler(post(goodBody(), { origin: 'https://evil.example' }));
   assert.equal(res.status, 403);
 });
 
 test('fails closed when the key is not configured', async () => {
-  withKey(undefined);
+  delete env.OPENROUTER_API_KEY;
   const handler = await loaded;
   const res = await handler(post(goodBody()));
   assert.equal(res.status, 503);
@@ -77,7 +99,6 @@ test('fails closed when the key is not configured', async () => {
 });
 
 test('rejects bodies that are not JSON or break the message rules', async () => {
-  withKey('k');
   const handler = await loaded;
   const cases = [
     'not json',
@@ -95,88 +116,152 @@ test('rejects bodies that are not JSON or break the message rules', async () => 
 });
 
 test('rejects oversized bodies before parsing', async () => {
-  withKey('k');
   const handler = await loaded;
   const res = await handler(post('x'.repeat(65 * 1024)));
   assert.equal(res.status, 413);
 });
 
-test('streams the reply, forces the model and stream flag, caps tokens, sends the key', async () => {
-  withKey('test-key-123');
+test('a plain answer: one model call, the persona and index in the system message, tools offered', async () => {
   const handler = await loaded;
-  const up = stubFetch(200, [
-    'data: {"choices":[{"delta":{"content":"Hel"}}]}\n\n',
-    'data: {"choices":[{"delta":{"content":"lo"}}]}\n\n',
-    'data: [DONE]\n\n',
-  ]);
+  const up = stubRounds([sse([text('Hello.'), done])]);
   try {
     const res = await handler(post(goodBody({ model: 'other/model', max_tokens: 99999, temperature: 9 })));
     assert.equal(res.status, 200);
     assert.match(res.headers.get('content-type'), /text\/event-stream/);
-    const text = await res.text();
-    assert.match(text, /: waiting/, 'heartbeat is sent first');
-    assert.match(text, /"content":"Hel"/);
-    assert.match(text, /"content":"lo"/);
-    assert.match(text, /\[DONE\]/);
-    assert.equal(up.calls.length, 1);
-    const sent = JSON.parse(up.calls[0].init.body);
-    assert.equal(sent.messages[0].role, 'system', 'the relay adds the system message');
-    assert.match(sent.messages[0].content, /ENI/, 'the persona is in the system message');
-    assert.match(sent.messages[0].content, /# LIBRARY INDEX/, 'the index is always in the system message');
-    assert.doesNotMatch(sent.messages[0].content, /# LOADED DOCUMENTS/, 'no document without a request');
-    assert.ok(sent.messages[0].content.length < 40000, 'the default prompt is the index, not the library');
-    assert.equal(sent.messages.length, 2, 'the page sent one user message; the relay added one system message');
+    const out = await res.text();
+    assert.match(out, /: waiting/, 'heartbeat is sent first');
+    assert.match(out, /"content":"Hello\."/);
+    const calls = modelCalls(up.calls);
+    assert.equal(calls.length, 1);
+    const sent = bodyOf(calls[0]);
     assert.equal(sent.model, 'nvidia/nemotron-3.5-super-vl:free');
     assert.equal(sent.stream, true);
     assert.equal(sent.max_tokens, 2048);
     assert.equal(sent.temperature, 1.5);
-    assert.equal(up.calls[0].init.headers.Authorization, 'Bearer test-key-123');
-    assert.equal(up.calls[0].url, 'https://openrouter.ai/api/v1/chat/completions');
+    assert.equal(sent.tool_choice, 'auto');
+    assert.deepEqual(sent.tools.map((t) => t.function.name), ['open_document', 'web_search']);
+    assert.equal(sent.messages[0].role, 'system');
+    assert.match(sent.messages[0].content, /# LIBRARY INDEX/);
+    assert.match(sent.messages[0].content, /\[D01\]/);
+    assert.equal(sent.messages.length, 2, 'the system message and the one user message');
+    assert.equal(calls[0].init.headers.Authorization, 'Bearer test-key-123');
   } finally {
     up.restore();
   }
 });
 
-test('attaches only the documents the page names, and ignores unknown ids', async () => {
-  withKey('k');
+test('open_document: the model reads a document, then answers with it in view', async () => {
   const handler = await loaded;
-  const up = stubFetch(200, ['data: [DONE]\n\n']);
-  try {
-    const res = await handler(post(goodBody({ docIds: ['kb/v2/interview-script.md', 'nope/missing.md', 7] })));
-    await res.text();
-    const system = JSON.parse(up.calls[0].init.body).messages[0].content;
-    assert.match(system, /# LOADED DOCUMENTS/);
-    assert.match(system, /Interview Script/, 'the named document is attached in full');
-    assert.doesNotMatch(system, /nope\/missing/);
-    assert.ok(system.length < 150000, 'one document, not the library');
-  } finally {
-    up.restore();
-  }
-});
-
-test('reports an upstream error as a stream error event with its status', async () => {
-  withKey('k');
-  const handler = await loaded;
-  const up = stubFetch(429, ['{"error":"rate limited"}']);
+  const id = await interviewId();
+  const up = stubRounds([
+    sse([...toolCall(0, 'call_1', 'open_document', JSON.stringify({ id })), done]),
+    sse([text('Let us begin.'), done]),
+  ]);
   try {
     const res = await handler(post(goodBody()));
-    assert.equal(res.status, 200);
-    const text = await res.text();
-    assert.match(text, /HTTP 429/);
-    assert.match(text, /rate limited/);
+    const out = await res.text();
+    assert.match(out, /"eni":\{"tool":"read","id":"[^"]+","title":"[^"]*Interview/, 'the page is told what was read');
+    assert.match(out, /Let us begin\./);
+    const calls = modelCalls(up.calls);
+    assert.equal(calls.length, 2);
+    const second = bodyOf(calls[1]).messages;
+    const toolMsg = second.find((m) => m.role === 'tool');
+    assert.equal(toolMsg.tool_call_id, 'call_1');
+    assert.match(toolMsg.content, /Interview Script/, 'the full document is the tool result');
+    assert.ok(second.some((m) => m.role === 'assistant' && m.tool_calls && m.tool_calls[0].function.name === 'open_document'));
   } finally {
     up.restore();
   }
 });
 
-test('reports an unreachable upstream as a stream error event', async () => {
-  withKey('k');
+test('open_document: an unknown id is refused, and the model is told which ids exist', async () => {
   const handler = await loaded;
-  const up = stubFetch(200, [], { reject: 'ENOTFOUND' });
+  const up = stubRounds([
+    sse([...toolCall(0, 'call_1', 'open_document', JSON.stringify({ id: 'D99' })), done]),
+    sse([text('Noted.'), done]),
+  ]);
   try {
-    const res = await handler(post(goodBody()));
-    const text = await res.text();
-    assert.match(text, /could not reach OpenRouter/);
+    await (await handler(post(goodBody()))).text();
+    const toolMsg = bodyOf(modelCalls(up.calls)[1]).messages.find((m) => m.role === 'tool');
+    assert.match(toolMsg.content, /No document has the id "D99"/);
+  } finally {
+    up.restore();
+  }
+});
+
+test('open_document: the read budget stops a lesson from pulling the whole library', async () => {
+  const handler = await loaded;
+  const { INDEX } = await knowledge;
+  const ids = INDEX.slice(0, 9).map((i) => i.id);
+  const burst = ids.flatMap((id, i) => toolCall(i, 'call_' + i, 'open_document', JSON.stringify({ id })));
+  const up = stubRounds([sse([...burst, done]), sse([text('Done.'), done])]);
+  try {
+    await (await handler(post(goodBody()))).text();
+    const toolMsgs = bodyOf(modelCalls(up.calls)[1]).messages.filter((m) => m.role === 'tool');
+    assert.equal(toolMsgs.length, 9);
+    assert.match(toolMsgs[0].content, /^## /, 'the first document opens');
+    assert.match(toolMsgs[8].content, /reading budget/, 'the ninth is refused');
+  } finally {
+    up.restore();
+  }
+});
+
+test('web_search without a key says so, and the answer still comes', async () => {
+  const handler = await loaded;
+  const up = stubRounds([
+    sse([...toolCall(0, 'call_1', 'web_search', JSON.stringify({ query: 'paper on a new attack' })), done]),
+    sse([text('I cannot check that now.'), done]),
+  ]);
+  try {
+    const out = await (await handler(post(goodBody()))).text();
+    assert.match(out, /"tool":"search","query":"paper on a new attack"/);
+    assert.match(out, /I cannot check that now\./);
+    const toolMsg = bodyOf(modelCalls(up.calls)[1]).messages.find((m) => m.role === 'tool');
+    assert.match(toolMsg.content, /not configured/);
+  } finally {
+    up.restore();
+  }
+});
+
+test('web_search with a key queries Brave and returns the results as data', async () => {
+  env.BRAVE_SEARCH_API_KEY = 'brave-key';
+  const handler = await loaded;
+  const real = globalThis.fetch;
+  const searches = [];
+  const up = stubRounds([
+    sse([...toolCall(0, 'call_1', 'web_search', JSON.stringify({ query: 'agent swarms' })), done]),
+    sse([text('Found it.'), done]),
+  ]);
+  const stubbed = globalThis.fetch;
+  globalThis.fetch = async (url, init) => {
+    if (String(url).startsWith(SEARCH)) {
+      searches.push({ url: String(url), init });
+      return new Response(JSON.stringify({ web: { results: [{ title: 'A study', url: 'https://example.org/a', description: '<strong>Agents</strong> and tools' }] } }), { headers: { 'Content-Type': 'application/json' } });
+    }
+    return stubbed(url, init);
+  };
+  try {
+    await (await handler(post(goodBody()))).text();
+    assert.equal(searches.length, 1);
+    assert.match(searches[0].url, /q=agent\+swarms/);
+    assert.equal(searches[0].init.headers['X-Subscription-Token'], 'brave-key');
+    const toolMsg = bodyOf(modelCalls(up.calls)[1]).messages.find((m) => m.role === 'tool');
+    assert.match(toolMsg.content, /A study \(https:\/\/example\.org\/a\)/);
+    assert.match(toolMsg.content, /Agents and tools/, 'markup is stripped');
+    assert.doesNotMatch(toolMsg.content, /<strong>/);
+  } finally {
+    globalThis.fetch = real;
+    up.restore();
+  }
+});
+
+test('an upstream error reaches the page as a stream error with its status', async () => {
+  const handler = await loaded;
+  const up = stubRounds([new Response('{"error":"rate limited"}', { status: 429 })]);
+  try {
+    const out = await (await handler(post(goodBody()))).text();
+    assert.match(out, /HTTP 429/);
+    assert.match(out, /rate limited/);
   } finally {
     up.restore();
   }

@@ -1,27 +1,58 @@
-// Netlify Edge Function: the OpenRouter relay for the locked ENI build.
+// Netlify Edge Function: the ENI relay, with tools.
 //
-// The page posts an OpenAI-style chat body to /api/v1/chat/completions, which
-// netlify.toml routes here. The key is read from OPENROUTER_API_KEY and never
-// reaches the browser. The model, the persona, the whole library and the limits
-// are fixed here, not by the caller. The reply is streamed as server-sent events. Until the model's first
-// token arrives, a heartbeat keeps the connection open.
+// The page sends the conversation. The relay adds the persona and the library
+// index, then lets the model call two tools: open_document (the full text of a
+// library document) and web_search (for gaps the library cannot fill). Tool
+// rounds run here. The final answer streams to the page as it arrives. The page
+// also receives a small event for each read and each search.
+//
+// The key is read from OPENROUTER_API_KEY and, for search, BRAVE_SEARCH_API_KEY.
+// Neither reaches the browser. The model, the persona and the limits are fixed
+// here, not by the caller.
 
 import { PERSONA, INDEX, DOCS } from './knowledge.js';
 
 const MODEL = 'nvidia/nemotron-3.5-super-vl:free';
 const UPSTREAM = 'https://openrouter.ai/api/v1/chat/completions';
+const SEARCH_URL = 'https://api.search.brave.com/res/v1/web/search';
 const MAX_BODY_BYTES = 64 * 1024;
 const MAX_MESSAGES = 40;
 const MAX_CHARS_PER_MESSAGE = 24000;
 const MAX_TOKENS_CAP = 2048;
-const MAX_DOCS = 3;
-const MAX_DOC_CHARS = 90000;
 const HEARTBEAT_MS = 4000;
-// The page sends the conversation and the ids of the documents this reply
-// needs. The persona and the index are always added here; only the named
-// documents are added in full, so the page cannot change the persona.
+const MAX_ROUNDS = 8;      // model calls per reply, the last one without tools
+const MAX_READS = 8;       // documents opened per reply
+const MAX_READ_CHARS = 240000;
+const MAX_SEARCHES = 3;    // web searches per reply
 const ROLES = ['user', 'assistant'];
 const encoder = new TextEncoder();
+
+const TOOLS = [
+  {
+    type: 'function',
+    function: {
+      name: 'open_document',
+      description: 'Load the full text of one library document, by its id from the LIBRARY INDEX. Open the documents a lesson, lab or section depends on before you teach from them.',
+      parameters: {
+        type: 'object',
+        properties: { id: { type: 'string', description: 'The document id in brackets in the index, e.g. D07.' } },
+        required: ['id'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'web_search',
+      description: 'Search the web. Only for an extreme knowledge gap, or when the student names a research document that is not in the library.',
+      parameters: {
+        type: 'object',
+        properties: { query: { type: 'string', description: 'A short search query.' } },
+        required: ['query'],
+      },
+    },
+  },
+];
 
 const json = (status, body) =>
   new Response(JSON.stringify(body), {
@@ -29,67 +60,175 @@ const json = (status, body) =>
     headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
   });
 
-function indexText() {
-  return '# LIBRARY INDEX\n\nThe documents below exist. Their full text is attached to a reply only when that reply needs it.\n\n' +
-    INDEX.map((i) => '- ' + i.title + ' (' + i.type + '): ' + i.summary).join('\n');
-}
-
-// The full text of the documents the page named, validated against the index
-// and capped in size.
-function loadedText(ids) {
-  const parts = [];
-  let total = 0;
-  const seen = new Set();
-  for (const id of (Array.isArray(ids) ? ids : []).slice(0, MAX_DOCS)) {
-    if (typeof id !== 'string' || seen.has(id) || !Object.prototype.hasOwnProperty.call(DOCS, id)) continue;
-    seen.add(id);
-    const text = DOCS[id];
-    if (total + text.length > MAX_DOC_CHARS) break;
-    total += text.length;
-    const entry = INDEX.find((i) => i.path === id);
-    parts.push('## ' + entry.title + '\n\n' + text);
-  }
-  return parts.length ? '# LOADED DOCUMENTS\n\nThe full text of the documents for this reply.\n\n' + parts.join('\n\n---\n\n') : '';
-}
-
 function clamp(value, lo, hi, fallback) {
   const n = Number(value);
   return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : fallback;
 }
 
-// Sends the model's stream into the response. Failures travel as a
-// server-sent error event, which the page already shows to the reader.
-async function relay(controller, key, payload, signal) {
-  const fail = (message) => {
-    controller.enqueue(encoder.encode('data: ' + JSON.stringify({ error: message }) + '\n\n'));
+const plain = (s) => String(s || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+
+function indexText() {
+  return '# LIBRARY INDEX\n\nEvery document in the library is listed here with its id in brackets. ' +
+    'Open a document with open_document(id) to read it in full before you teach from it.\n\n' +
+    INDEX.map((i) => '- [' + i.id + '] ' + i.title + ' (' + i.type + '): ' + i.summary).join('\n');
+}
+
+// A web search through Brave's API. Results are data for the model, not instructions.
+async function webSearch(query) {
+  const key = Deno.env.get('BRAVE_SEARCH_API_KEY');
+  if (!key) return 'Web search is not configured for this site.';
+  try {
+    const url = SEARCH_URL + '?' + new URLSearchParams({ q: query, count: '5' });
+    const res = await fetch(url, { headers: { Accept: 'application/json', 'X-Subscription-Token': key } });
+    if (!res.ok) return 'Web search failed: HTTP ' + res.status + '.';
+    const data = await res.json();
+    const results = (data.web && data.web.results) || [];
+    if (!results.length) return 'No results.';
+    return results.slice(0, 5)
+      .map((r, i) => (i + 1) + '. ' + plain(r.title) + ' (' + r.url + ')\n' + plain(r.description))
+      .join('\n\n');
+  } catch (e) {
+    return 'Web search failed: ' + e.message;
+  }
+}
+
+// One tool call. The result goes back to the model as the tool message.
+async function runTool(ctx, call) {
+  let args = null;
+  try { args = JSON.parse(call.arguments || '{}'); } catch (e) { args = null; }
+
+  if (call.name === 'open_document') {
+    const id = args && typeof args.id === 'string' ? args.id.trim() : '';
+    const entry = INDEX.find((i) => i.id === id);
+    if (!entry) return 'No document has the id "' + id + '". Use an id from the LIBRARY INDEX.';
+    if (ctx.reads.has(entry.id)) return entry.title + ' is already open in this reply.';
+    const text = DOCS[entry.path] || '';
+    if (ctx.reads.size >= MAX_READS || ctx.readChars + text.length > MAX_READ_CHARS) {
+      return 'The reading budget for this reply is used. Teach from the documents already open.';
+    }
+    ctx.reads.add(entry.id);
+    ctx.readChars += text.length;
+    ctx.emit({ eni: { tool: 'read', id: entry.id, title: entry.title } });
+    return '## ' + entry.title + '\n\n' + text;
+  }
+
+  if (call.name === 'web_search') {
+    const query = args && typeof args.query === 'string' ? args.query.trim().slice(0, 200) : '';
+    if (!query) return 'web_search needs a query.';
+    if (ctx.searches >= MAX_SEARCHES) return 'The search limit for this reply is used. Answer from what you have.';
+    ctx.searches += 1;
+    ctx.emit({ eni: { tool: 'search', query } });
+    return await webSearch(query);
+  }
+
+  return 'Unknown tool: ' + call.name + '.';
+}
+
+// One model call, streamed. Content and reasoning go to the page as they arrive.
+// Tool calls are collected and returned to the caller, not shown.
+async function streamRound(ctx, messages, tools) {
+  const payload = {
+    model: MODEL,
+    messages,
+    stream: true,
+    max_tokens: ctx.maxTokens,
+    temperature: ctx.temperature,
+    top_p: ctx.topP,
   };
+  if (tools) { payload.tools = tools; payload.tool_choice = 'auto'; }
+
   let upstream;
   try {
     upstream = await fetch(UPSTREAM, {
       method: 'POST',
       headers: {
-        Authorization: 'Bearer ' + key,
+        Authorization: 'Bearer ' + ctx.key,
         'Content-Type': 'application/json',
         'HTTP-Referer': 'https://eni-tutor.netlify.app',
         'X-Title': 'ENI Tutor',
       },
       body: JSON.stringify(payload),
-      signal,
+      signal: ctx.signal,
     });
   } catch (e) {
-    fail('could not reach OpenRouter: ' + e.message);
-    return;
+    ctx.fail('could not reach OpenRouter: ' + e.message);
+    return null;
   }
   if (!upstream.ok) {
     const text = await upstream.text();
-    fail('HTTP ' + upstream.status + ' from OpenRouter: ' + text.slice(0, 300));
-    return;
+    ctx.fail('HTTP ' + upstream.status + ' from OpenRouter: ' + text.slice(0, 300));
+    return null;
   }
+
+  const turn = { content: '', toolCalls: [], reasoningDetails: [] };
+  const calls = new Map();
   const reader = upstream.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = '';
   for (;;) {
     const { done, value } = await reader.read();
     if (done) break;
-    controller.enqueue(value);
+    buf += decoder.decode(value, { stream: true });
+    let sep;
+    while ((sep = buf.match(/\r?\n\r?\n/))) {
+      const frame = buf.slice(0, sep.index);
+      buf = buf.slice(sep.index + sep[0].length);
+      for (const line of frame.split('\n')) {
+        if (!line.startsWith('data:')) continue;
+        const data = line.slice(5).trim();
+        if (!data || data === '[DONE]') continue;
+        let obj;
+        try { obj = JSON.parse(data); } catch (e) { continue; }
+        if (obj.error) {
+          ctx.fail(typeof obj.error === 'string' ? obj.error : JSON.stringify(obj.error));
+          return null;
+        }
+        const delta = obj.choices && obj.choices[0] && obj.choices[0].delta;
+        if (!delta) continue;
+        if (typeof delta.content === 'string' && delta.content) {
+          turn.content += delta.content;
+          ctx.emit({ choices: [{ delta: { content: delta.content } }] });
+        }
+        const r = typeof delta.reasoning === 'string' ? delta.reasoning
+          : (typeof delta.reasoning_content === 'string' ? delta.reasoning_content : '');
+        if (r) ctx.emit({ choices: [{ delta: { reasoning: r } }] });
+        if (Array.isArray(delta.reasoning_details)) turn.reasoningDetails.push(...delta.reasoning_details);
+        for (const tc of delta.tool_calls || []) {
+          const i = tc.index == null ? 0 : tc.index;
+          const call = calls.get(i) || { id: '', name: '', arguments: '' };
+          if (tc.id) call.id = tc.id;
+          if (tc.function && tc.function.name) call.name = tc.function.name;
+          if (tc.function && typeof tc.function.arguments === 'string') call.arguments += tc.function.arguments;
+          calls.set(i, call);
+        }
+      }
+    }
+  }
+  turn.toolCalls = [...calls.values()]
+    .filter((c) => c.name)
+    .map((c, i) => ({ ...c, id: c.id || 'call_' + i }));
+  return turn;
+}
+
+// The loop: ask, run the tools the model asks for, ask again, until it answers.
+async function run(ctx) {
+  const messages = [{ role: 'system', content: PERSONA + '\n\n' + indexText() }].concat(ctx.conversation);
+  for (let round = 0; round < MAX_ROUNDS; round++) {
+    const last = round === MAX_ROUNDS - 1;
+    const turn = await streamRound(ctx, messages, last ? null : TOOLS);
+    if (!turn || !turn.toolCalls.length) return;
+    messages.push({
+      role: 'assistant',
+      content: turn.content || null,
+      tool_calls: turn.toolCalls.map((c) => ({
+        id: c.id, type: 'function', function: { name: c.name, arguments: c.arguments || '{}' },
+      })),
+      ...(turn.reasoningDetails.length ? { reasoning_details: turn.reasoningDetails } : {}),
+    });
+    for (const call of turn.toolCalls) {
+      const result = await runTool(ctx, call);
+      messages.push({ role: 'tool', tool_call_id: call.id, content: result });
+    }
   }
 }
 
@@ -118,50 +257,64 @@ export default async (request) => {
   if (messages.length === 0 || messages.length > MAX_MESSAGES) {
     return json(400, { error: 'messages must hold 1 to ' + MAX_MESSAGES + ' items' });
   }
-  const clean = [];
+  const conversation = [];
   for (const m of messages) {
     const role = m && ROLES.includes(m.role) ? m.role : null;
     const content = m && typeof m.content === 'string' ? m.content : null;
     if (!role || content === null || content.length > MAX_CHARS_PER_MESSAGE) {
-      return json(400, { error: 'each message needs a role and text under the size limit' });
+      return json(400, { error: 'each message needs a user or assistant role and text under the size limit' });
     }
-    clean.push({ role, content });
+    conversation.push({ role, content });
   }
 
-  const system = [PERSONA, indexText(), loadedText(body.docIds)].filter(Boolean).join('\n\n');
-  const payload = {
-    model: MODEL,
-    messages: [{ role: 'system', content: system }].concat(clean),
-    stream: true,
+  const params = {
+    maxTokens: Math.round(clamp(body.max_tokens, 64, MAX_TOKENS_CAP, 1024)),
     temperature: clamp(body.temperature, 0, 1.5, 0.7),
-    top_p: clamp(body.top_p, 0, 1, 0.95),
-    max_tokens: Math.round(clamp(body.max_tokens, 64, MAX_TOKENS_CAP, 1024)),
+    topP: clamp(body.top_p, 0, 1, 0.95),
   };
 
   let timer = null;
+  let closed = false;
   const stream = new ReadableStream({
     start(controller) {
+      const emit = (obj) => {
+        if (closed) return;
+        try {
+          controller.enqueue(encoder.encode('data: ' + JSON.stringify(obj) + '\n\n'));
+        } catch (e) {
+          closed = true;
+        }
+      };
       const beat = () => {
+        if (closed) return;
         try {
           controller.enqueue(encoder.encode(': waiting\n\n'));
         } catch (e) {
-          clearInterval(timer);
+          closed = true;
         }
       };
+      const ctx = Object.assign({
+        key,
+        conversation,
+        signal: request.signal,
+        emit,
+        fail: (message) => emit({ error: message }),
+        reads: new Set(),
+        readChars: 0,
+        searches: 0,
+      }, params);
       beat();
       timer = setInterval(beat, HEARTBEAT_MS);
-      relay(controller, key, payload, request.signal)
-        .catch((e) => {
-          try {
-            controller.enqueue(encoder.encode('data: ' + JSON.stringify({ error: String(e && e.message) }) + '\n\n'));
-          } catch (ignored) { /* the reader has gone */ }
-        })
+      run(ctx)
+        .catch((e) => emit({ error: String(e && e.message) }))
         .finally(() => {
           clearInterval(timer);
-          try { controller.close(); } catch (ignored) { /* already closed */ }
+          closed = true;
+          try { controller.close(); } catch (e) { /* already closed */ }
         });
     },
     cancel() {
+      closed = true;
       clearInterval(timer);
     },
   });

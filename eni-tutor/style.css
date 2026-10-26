@@ -125,6 +125,11 @@ button { font: inherit; }
 .msg-actions { display: flex; gap: 8px; margin-top: 8px; opacity: 0.55; }
 .msg-actions:hover { opacity: 1; }
 
+/* tool lines: what the tutor read or searched for a reply */
+.tool-lines { display: flex; flex-direction: column; gap: 3px; margin: 0 0 10px; }
+.tool-line { font-size: 12px; color: var(--faint); }
+.tool-line::before { content: '·'; margin-right: 7px; color: var(--line); }
+
 /* thinking: the model's reasoning, folded by default */
 .thinking { margin: 0 0 10px; font-size: 13px; color: var(--faint); }
 .thinking > summary {

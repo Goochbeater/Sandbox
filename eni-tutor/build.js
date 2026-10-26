@@ -94,7 +94,8 @@ function readDoc(file) {
   return { path: path.relative(root, file).split(path.sep).join('/'), title, type, tags, summary, body };
 }
 const docs = walkMd(path.join(root, 'kb')).sort().map(readDoc);
-const index = docs.map(({ path: p, title, type, tags, summary }) => ({ path: p, title, type, tags, summary }));
+docs.forEach((d, i) => { d.id = 'D' + String(i + 1).padStart(2, '0'); });
+const index = docs.map(({ id, path: p, title, type, tags, summary }) => ({ id, path: p, title, type, tags, summary }));
 const texts = Object.fromEntries(docs.map((d) => [d.path, d.body]));
 const persona = fs.readFileSync(path.join(root, 'data', 'system-prompt.md'), 'utf8');
 

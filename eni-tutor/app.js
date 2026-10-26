@@ -326,7 +326,7 @@
   function renderMarkdown(md) {
     if (md == null) return '';
     /* Chunk ids are for the library, not the reader: drop any the model prints. */
-    var src = stripControls(String(md).replace(/\r\n?/g, '\n').replace(/[ \t]*\[KB-\d+\]/g, ''));
+    var src = stripControls(String(md).replace(/\r\n?/g, '\n').replace(/[ \t]*\[(?:KB-\d+|D\d{2})\]/g, ''));
 
     /* --- 1. Lift fenced code blocks out of the flow ---------------------- */
     var blocks = [];
@@ -696,6 +696,7 @@
     streaming: false,
     chunksByConvo: {},  /* retrieved chunks per conversation, in memory only */
     docsByConvo: {},    /* documents loaded for the last reply, per conversation */
+    docTitles: {},      /* titles of the documents the relay has opened, by id */
     drawerOpen: false,
     menuOpen: false,
     menuTab: 'menu',
@@ -1038,6 +1039,11 @@
     wrap.appendChild(role);
 
     var bubble = el('div', 'bubble' + (m.role === 'assistant' ? ' prose' : ''));
+    if (m.role === 'assistant' && m.tools && m.tools.length) {
+      var tl = el('div', 'tool-lines');
+      m.tools.forEach(function (t) { tl.appendChild(el('span', 'tool-line', t)); });
+      wrap.appendChild(tl);
+    }
     if (m.role === 'assistant' && m.reasoning) {
       wrap.appendChild(thinkingEl(false, m.reasoning, m.thoughtLabel).box);
     }
@@ -1197,7 +1203,8 @@
         chunks = global.ENI.retrieveForMessages(convo.messages, { k: s.topK, includeText: true });
       } catch (e) { chunks = []; }
     }
-    var docs = s.provider === 'demo' ? [] : chooseDocs(convo, userText);
+    /* The locked build's relay picks documents itself, through open_document. */
+    var docs = (s.provider === 'demo' || LOCKED) ? [] : chooseDocs(convo, userText);
     state.chunksByConvo[convo.id] = chunks;
     state.docsByConvo[convo.id] = docs;
     renderDrawer();
@@ -1249,6 +1256,25 @@
       thinking.body.textContent = reasoning;
       thinking.body.scrollTop = thinking.body.scrollHeight;
     }
+    var tools = [];
+    var docsRead = [];
+    var toolsEl = null;
+    function onTool(t) {
+      var line = null;
+      if (t.tool === 'read') {
+        docsRead.push(t.id);
+        state.docTitles[t.id] = t.title;
+        line = 'Read · ' + t.title;
+      }
+      else if (t.tool === 'search') { line = 'Searched · ' + t.query; }
+      if (!line) return;
+      tools.push(line);
+      if (!toolsEl) {
+        toolsEl = el('div', 'tool-lines');
+        assistantEl.insertBefore(toolsEl, thinking ? thinking.box : bubble);
+      }
+      toolsEl.appendChild(el('span', 'tool-line', line));
+    }
     function onDelta(txt) {
       /* the answer has started: fold the thinking box, once */
       if (!answered) { answered = true; foldThinking(); }
@@ -1273,7 +1299,14 @@
       if (reasoning) foldThinking();
       var msg = { role: 'assistant', content: content, ts: nowStamp() };
       if (reasoning) { msg.reasoning = reasoning; msg.thoughtLabel = thoughtLabel; }
-      if (docs.length) msg.docs = docs;
+      var used = docsRead.length ? docsRead : docs;
+      if (used.length) { msg.docs = used; state.docsByConvo[convo.id] = used; }
+      if (tools.length) msg.tools = tools;
+      if (docsRead.length) {
+        msg.docTitles = {};
+        docsRead.forEach(function (id) { msg.docTitles[id] = state.docTitles[id]; });
+      }
+      renderDrawer();
       if (errMsg) msg.error = errMsg;
       convo.messages.push(msg);
       convo.updated = nowStamp();
@@ -1302,6 +1335,7 @@
     var stream = streamProvider(Object.assign({}, s, { docIds: docs }), system, history, {
       onDelta: onDelta,
       onReasoning: onReasoning,
+      onTool: onTool,
       onDone: function () { finish(buffer); },
       onError: onError
     });
@@ -1475,7 +1509,7 @@
         init.headers['X-Title'] = 'ENI Tutor';
       }
       var reqBody = buildOpenAIBody(cfg, system, history);
-      if (LOCKED && cfg.docIds) reqBody.docIds = cfg.docIds;
+      if (LOCKED && cfg.docIds && cfg.docIds.length) reqBody.docIds = cfg.docIds;
       init.body = JSON.stringify(reqBody);
     } else if (cfg.provider === 'anthropic') {
       kind = 'sse';
@@ -1538,6 +1572,8 @@
             buf = parsed.rest;
             pending = parsed.pending;
             parsed.events.forEach(function (ev) {
+              /* the relay's own events: a read, or a search */
+              if (ev.data && ev.data.eni) { if (handlers.onTool) handlers.onTool(ev.data.eni); return; }
               var r = extractReasoning(cfg.provider, ev);
               if (r && handlers.onReasoning) handlers.onReasoning(r);
               var d = extractDelta(cfg.provider, ev);
@@ -1626,18 +1662,30 @@
 
   /* A model reply gets the index, and the full text of the documents it loaded. */
   function renderLibraryNote(body) {
-    var index = (global.KB_INDEX || []);
+    var convo = activeConvo();
+    var last = lastReply(convo);
     if (!state.settings.kbAttach) {
       body.appendChild(el('p', 'drawer-note', 'The library is off for replies. Turn it on in Settings.'));
       return;
     }
-    var docs = state.docsByConvo[state.activeId] || lastDocs(activeConvo());
-    body.appendChild(el('p', 'drawer-note', index.length + ' documents in the index. ' +
-      (docs.length ? 'Loaded for the last reply:' : 'No document was loaded for the last reply.')));
+    var docs = state.docsByConvo[state.activeId] || (last && last.docs) || [];
+    var count = (global.KB_DATA && global.KB_DATA.docs ? global.KB_DATA.docs.length : 0);
+    body.appendChild(el('p', 'drawer-note', count + ' documents in the library. ' +
+      (docs.length ? 'Read for the last reply:' : 'Nothing was read for the last reply.')));
     if (!docs.length) return;
     var list = el('ul', 'drawer-list');
-    docs.forEach(function (p) { list.appendChild(el('li', null, docTitle(p))); });
+    docs.forEach(function (id) {
+      var title = state.docTitles[id] || (last && last.docTitles && last.docTitles[id]) || docTitle(id);
+      list.appendChild(el('li', null, title));
+    });
     body.appendChild(list);
+  }
+
+  function lastReply(convo) {
+    for (var i = convo.messages.length - 1; i >= 0; i--) {
+      if (convo.messages[i].role === 'assistant') return convo.messages[i];
+    }
+    return null;
   }
 
   function lastDocs(convo) {

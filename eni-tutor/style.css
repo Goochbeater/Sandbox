@@ -125,6 +125,27 @@ button { font: inherit; }
 .msg-actions { display: flex; gap: 8px; margin-top: 8px; opacity: 0.55; }
 .msg-actions:hover { opacity: 1; }
 
+/* thinking: the model's reasoning, folded by default */
+.thinking { margin: 0 0 10px; font-size: 13px; color: var(--faint); }
+.thinking > summary {
+  display: inline-flex; align-items: center; gap: 8px;
+  list-style: none; cursor: pointer; padding: 2px 0; user-select: none;
+}
+.thinking > summary::-webkit-details-marker { display: none; }
+.thinking > summary::before {
+  content: ''; width: 5px; height: 5px; flex: none;
+  border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg); transition: transform 0.2s ease; margin-left: 2px;
+}
+.thinking[open] > summary::before { transform: rotate(45deg); }
+.thinking > summary:hover { color: var(--dim); }
+.thinking-body {
+  margin: 6px 0 0; padding: 2px 0 2px 12px;
+  border-left: 1px solid var(--line);
+  color: var(--dim); white-space: pre-wrap; line-height: 1.55;
+  max-height: 220px; overflow-y: auto;
+}
+
 /* prose: model and chunk text */
 .prose p { margin: 0 0 12px; }
 .prose p:last-child { margin-bottom: 0; }

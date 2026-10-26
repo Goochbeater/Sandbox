@@ -134,6 +134,27 @@ button { font: inherit; }
 .msg-actions { display: flex; gap: 8px; margin-top: 8px; opacity: 0.55; }
 .msg-actions:hover { opacity: 1; }
 
+/* thinking: the model's reasoning, folded by default */
+.thinking { margin: 0 0 10px; font-size: 13px; color: var(--faint); }
+.thinking > summary {
+  display: inline-flex; align-items: center; gap: 8px;
+  list-style: none; cursor: pointer; padding: 2px 0; user-select: none;
+}
+.thinking > summary::-webkit-details-marker { display: none; }
+.thinking > summary::before {
+  content: ''; width: 5px; height: 5px; flex: none;
+  border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg); transition: transform 0.2s ease; margin-left: 2px;
+}
+.thinking[open] > summary::before { transform: rotate(45deg); }
+.thinking > summary:hover { color: var(--dim); }
+.thinking-body {
+  margin: 6px 0 0; padding: 2px 0 2px 12px;
+  border-left: 1px solid var(--line);
+  color: var(--dim); white-space: pre-wrap; line-height: 1.55;
+  max-height: 220px; overflow-y: auto;
+}
+
 /* prose: model and chunk text */
 .prose p { margin: 0 0 12px; }
 .prose p:last-child { margin-bottom: 0; }
@@ -1830,6 +1851,9 @@ window.ENI_SYSTEM_PROMPT = "# ENI TUTOR \u2014 Jailbreaking & Red Teaming Tutor\
     wrap.appendChild(role);
 
     var bubble = el('div', 'bubble' + (m.role === 'assistant' ? ' prose' : ''));
+    if (m.role === 'assistant' && m.reasoning) {
+      wrap.appendChild(thinkingEl(false, m.reasoning).box);
+    }
     if (m.role === 'assistant') {
       /* A message can come back from localStorage already malformed; render it
          defensively so one bad record cannot blank the whole transcript. */
@@ -1992,6 +2016,8 @@ window.ENI_SYSTEM_PROMPT = "# ENI TUTOR \u2014 Jailbreaking & Red Teaming Tutor\
 
     var buffer = '';
     var paintTimer = null;
+    var reasoning = '';
+    var thinking = null;
     function paint() {
       paintTimer = null;
       /* A partial buffer can still be malformed; a renderer hiccup must not
@@ -2000,7 +2026,21 @@ window.ENI_SYSTEM_PROMPT = "# ENI TUTOR \u2014 Jailbreaking & Red Teaming Tutor\
       catch (e) { bubble.textContent = buffer; }
       scrollMessages();
     }
+    function onReasoning(txt) {
+      reasoning += txt;
+      if (!thinking) {
+        thinking = thinkingEl(true, '');
+        assistantEl.insertBefore(thinking.box, bubble);
+      }
+      thinking.body.textContent = reasoning;
+      thinking.body.scrollTop = thinking.body.scrollHeight;
+    }
     function onDelta(txt) {
+      /* the answer has started: fold the thinking box away */
+      if (thinking && thinking.box.open) {
+        thinking.box.open = false;
+        thinking.label.textContent = 'Thought';
+      }
       buffer += txt;
       if (!paintTimer) paintTimer = setTimeout(paint, 40);
     }
@@ -2019,6 +2059,7 @@ window.ENI_SYSTEM_PROMPT = "# ENI TUTOR \u2014 Jailbreaking & Red Teaming Tutor\
       }
 
       var msg = { role: 'assistant', content: content, ts: nowStamp() };
+      if (reasoning) msg.reasoning = reasoning;
       if (errMsg) msg.error = errMsg;
       convo.messages.push(msg);
       convo.updated = nowStamp();
@@ -2044,10 +2085,23 @@ window.ENI_SYSTEM_PROMPT = "# ENI TUTOR \u2014 Jailbreaking & Red Teaming Tutor\
     var history = convo.messages.map(function (m) { return { role: m.role, content: m.content }; });
     var stream = streamProvider(s, system, history, {
       onDelta: onDelta,
+      onReasoning: onReasoning,
       onDone: function () { finish(buffer); },
       onError: onError
     });
     state.abort = stream.abort;
+  }
+
+  /* A small collapsible box for the model's reasoning. Open while it streams,
+     closed once the answer starts. */
+  function thinkingEl(open, text) {
+    var box = el('details', 'thinking');
+    box.open = !!open;
+    var label = el('summary', null, open ? 'Thinking' : 'Thought');
+    var body = el('div', 'thinking-body', text || '');
+    box.appendChild(label);
+    box.appendChild(body);
+    return { box: box, body: body, label: label };
   }
 
   /** Remember a tier the tutor assigned the student.
@@ -2123,6 +2177,18 @@ window.ENI_SYSTEM_PROMPT = "# ENI TUTOR \u2014 Jailbreaking & Red Teaming Tutor\
       var c = data.choices[0].delta.content;
       if (typeof c === 'string') return c;
     }
+    return '';
+  }
+
+  /* Reasoning streams beside the answer: OpenRouter's `reasoning` field, or
+     `reasoning_content` from providers that use that name. */
+  function extractReasoning(provider, ev) {
+    var data = ev.data;
+    if (!data || typeof data !== 'object' || provider === 'anthropic') return '';
+    var d = data.choices && data.choices[0] && data.choices[0].delta;
+    if (!d) return '';
+    if (typeof d.reasoning === 'string') return d.reasoning;
+    if (typeof d.reasoning_content === 'string') return d.reasoning_content;
     return '';
   }
 
@@ -2219,6 +2285,8 @@ window.ENI_SYSTEM_PROMPT = "# ENI TUTOR \u2014 Jailbreaking & Red Teaming Tutor\
             buf = parsed.rest;
             pending = parsed.pending;
             parsed.events.forEach(function (ev) {
+              var r = extractReasoning(cfg.provider, ev);
+              if (r && handlers.onReasoning) handlers.onReasoning(r);
               var d = extractDelta(cfg.provider, ev);
               if (d) handlers.onDelta(d);
             });

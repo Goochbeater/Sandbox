@@ -1029,6 +1029,9 @@
     wrap.appendChild(role);
 
     var bubble = el('div', 'bubble' + (m.role === 'assistant' ? ' prose' : ''));
+    if (m.role === 'assistant' && m.reasoning) {
+      wrap.appendChild(thinkingEl(false, m.reasoning).box);
+    }
     if (m.role === 'assistant') {
       /* A message can come back from localStorage already malformed; render it
          defensively so one bad record cannot blank the whole transcript. */
@@ -1191,6 +1194,8 @@
 
     var buffer = '';
     var paintTimer = null;
+    var reasoning = '';
+    var thinking = null;
     function paint() {
       paintTimer = null;
       /* A partial buffer can still be malformed; a renderer hiccup must not
@@ -1199,7 +1204,21 @@
       catch (e) { bubble.textContent = buffer; }
       scrollMessages();
     }
+    function onReasoning(txt) {
+      reasoning += txt;
+      if (!thinking) {
+        thinking = thinkingEl(true, '');
+        assistantEl.insertBefore(thinking.box, bubble);
+      }
+      thinking.body.textContent = reasoning;
+      thinking.body.scrollTop = thinking.body.scrollHeight;
+    }
     function onDelta(txt) {
+      /* the answer has started: fold the thinking box away */
+      if (thinking && thinking.box.open) {
+        thinking.box.open = false;
+        thinking.label.textContent = 'Thought';
+      }
       buffer += txt;
       if (!paintTimer) paintTimer = setTimeout(paint, 40);
     }
@@ -1218,6 +1237,7 @@
       }
 
       var msg = { role: 'assistant', content: content, ts: nowStamp() };
+      if (reasoning) msg.reasoning = reasoning;
       if (errMsg) msg.error = errMsg;
       convo.messages.push(msg);
       convo.updated = nowStamp();
@@ -1243,10 +1263,23 @@
     var history = convo.messages.map(function (m) { return { role: m.role, content: m.content }; });
     var stream = streamProvider(s, system, history, {
       onDelta: onDelta,
+      onReasoning: onReasoning,
       onDone: function () { finish(buffer); },
       onError: onError
     });
     state.abort = stream.abort;
+  }
+
+  /* A small collapsible box for the model's reasoning. Open while it streams,
+     closed once the answer starts. */
+  function thinkingEl(open, text) {
+    var box = el('details', 'thinking');
+    box.open = !!open;
+    var label = el('summary', null, open ? 'Thinking' : 'Thought');
+    var body = el('div', 'thinking-body', text || '');
+    box.appendChild(label);
+    box.appendChild(body);
+    return { box: box, body: body, label: label };
   }
 
   /** Remember a tier the tutor assigned the student.
@@ -1322,6 +1355,18 @@
       var c = data.choices[0].delta.content;
       if (typeof c === 'string') return c;
     }
+    return '';
+  }
+
+  /* Reasoning streams beside the answer: OpenRouter's `reasoning` field, or
+     `reasoning_content` from providers that use that name. */
+  function extractReasoning(provider, ev) {
+    var data = ev.data;
+    if (!data || typeof data !== 'object' || provider === 'anthropic') return '';
+    var d = data.choices && data.choices[0] && data.choices[0].delta;
+    if (!d) return '';
+    if (typeof d.reasoning === 'string') return d.reasoning;
+    if (typeof d.reasoning_content === 'string') return d.reasoning_content;
     return '';
   }
 
@@ -1418,6 +1463,8 @@
             buf = parsed.rest;
             pending = parsed.pending;
             parsed.events.forEach(function (ev) {
+              var r = extractReasoning(cfg.provider, ev);
+              if (r && handlers.onReasoning) handlers.onReasoning(r);
               var d = extractDelta(cfg.provider, ev);
               if (d) handlers.onDelta(d);
             });

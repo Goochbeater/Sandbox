@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>ENI — Red-Team Tutor</title>
+<meta name="description" content="ENI: a red-team tutor for a five-tier jailbreaking and prompt-injection curriculum, backed by a local knowledge base.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to the conversation</a>
+
+<!-- Shown only if the knowledge base or its index failed to load. -->
+<div class="banner" id="kbBanner" role="alert" hidden>
+  <strong class="banner-title">The knowledge base did not load.</strong>
+  <span class="banner-body" id="kbBannerBody">kb.js could not be read. Chat still works in demo mode, but retrieval and the library will be empty.</span>
+</div>
+
+<!-- ───────────────────────────── top bar ───────────────────────────── -->
+<header class="topbar">
+  <button type="button" class="icon-btn" id="btnMenu" aria-label="Open menu" aria-controls="menu" aria-expanded="false">
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+  </button>
+
+  <p class="brand" aria-label="ENI, red-team tutor">
+    <span class="brand-mark">ENI</span>
+    <span class="brand-sub">red-team tutor</span>
+  </p>
+
+  <div class="topbar-actions">
+    <span class="tier-badge" id="tierBadge" hidden></span>
+    <button type="button" class="icon-btn" id="btnContext" aria-controls="drawer" aria-expanded="false" aria-label="Retrieved context">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5h16M4 12h16M4 19h10"/></svg>
+    </button>
+    <button type="button" class="icon-btn" id="btnNewChat" aria-label="New conversation">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- ──────────────────────────── conversation ──────────────────────────── -->
+<main class="main" id="main" tabindex="-1">
+  <div class="messages" id="messages" role="log" aria-live="polite" aria-relevant="additions text" tabindex="0"></div>
+
+  <form class="compose" id="compose" autocomplete="off">
+    <label class="sr-only" for="composer">Message ENI</label>
+    <textarea id="composer" class="composer" rows="1" placeholder="Ask ENI something…" spellcheck="true"></textarea>
+    <button type="submit" class="send-btn" id="sendBtn" aria-label="Send message">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+  </form>
+</main>
+
+<!-- ───────────────────────────── menu drawer ───────────────────────────── -->
+<div class="scrim" id="scrim" hidden></div>
+
+<aside class="menu" id="menu" aria-label="Menu" hidden>
+  <div class="menu-head">
+    <div class="menu-portrait">
+      <div class="portrait-frame" id="portraitFrame">
+        <img id="portraitImg" class="portrait-img" alt="ENI" hidden>
+        <svg id="portraitMono" class="portrait-mono" viewBox="0 0 120 120" role="img" aria-label="ENI monogram">
+          <rect width="120" height="120" rx="10" fill="#1b1614"></rect>
+          <text x="60" y="78" text-anchor="middle" font-family="'Bonsai', cursive" font-size="46" fill="#e0a34a">ENI</text>
+        </svg>
+      </div>
+      <div class="menu-identity">
+        <p class="menu-name">ENI</p>
+        <p class="status" id="statusLine" role="status">Starting up…</p>
+      </div>
+    </div>
+    <button type="button" class="icon-btn" id="btnCloseMenu" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+
+  <div class="tabs" role="tablist" aria-label="Menu sections">
+    <button type="button" class="tab is-active" id="tabMenu" role="tab" aria-selected="true" aria-controls="panelMenu">Menu</button>
+    <button type="button" class="tab" id="tabLibrary" role="tab" aria-selected="false" aria-controls="panelLibrary">Library</button>
+  </div>
+
+  <!-- ── menu panel: intake, labs, chats, provider ── -->
+  <div class="panel" id="panelMenu" role="tabpanel" aria-labelledby="tabMenu">
+    <section class="sect">
+      <button type="button" class="primary-action" id="btnIntake">
+        <span class="pa-title">Intake interview</span>
+        <span class="pa-sub">Tell ENI what you already know and get placed in a tier</span>
+      </button>
+    </section>
+
+    <section class="sect">
+      <h2 class="sect-h">Labs</h2>
+      <ul class="lab-list" id="labList" aria-label="Lab exercises"></ul>
+    </section>
+
+    <section class="sect">
+      <div class="sect-head">
+        <h2 class="sect-h">Conversations</h2>
+        <button type="button" class="btn btn-tiny" id="btnNewChatRail">New</button>
+      </div>
+      <ul class="convo-list" id="convoList"></ul>
+    </section>
+
+    <section class="sect">
+      <h2 class="sect-h">Model</h2>
+      <form class="settings" id="settingsForm">
+        <div class="field">
+          <label for="setProvider">Provider</label>
+          <select class="input" id="setProvider" name="provider">
+            <option value="demo">Demo — offline, answers from the library only</option>
+            <option value="openai-compatible">OpenAI-compatible (chat/completions)</option>
+            <option value="anthropic">Anthropic (messages API)</option>
+            <option value="ollama">Ollama (local /api/chat)</option>
+            <option value="openrouter">OpenRouter (free models, e.g. Nemotron 3.5 Super VL)</option>
+          </select>
+          <p class="hint" id="providerHint"></p>
+        </div>
+
+        <div class="field">
+          <label for="setBaseUrl">Base URL</label>
+          <input class="input" id="setBaseUrl" name="baseUrl" type="url" spellcheck="false" placeholder="https://api.openai.com/v1">
+        </div>
+
+        <div class="field">
+          <label for="setApiKey">API key</label>
+          <input class="input" id="setApiKey" name="apiKey" type="password" spellcheck="false" autocomplete="off" placeholder="sk-…">
+          <p class="hint">Stored in this browser only, and sent only to the provider you chose.</p>
+        </div>
+
+        <div class="field">
+          <label for="setModel">Model id</label>
+          <input class="input" id="setModel" name="model" type="text" spellcheck="false" placeholder="gpt-4o-mini">
+        </div>
+
+        <div class="grid-3">
+          <div class="field">
+            <label for="setTemperature">Temp</label>
+            <input class="input" id="setTemperature" name="temperature" type="number" min="0" max="2" step="0.05" inputmode="decimal">
+          </div>
+          <div class="field">
+            <label for="setTopP">top_p</label>
+            <input class="input" id="setTopP" name="topP" type="number" min="0" max="1" step="0.05" inputmode="decimal">
+          </div>
+          <div class="field">
+            <label for="setMaxTokens">Max</label>
+            <input class="input" id="setMaxTokens" name="maxTokens" type="number" min="64" max="32768" step="64" inputmode="numeric">
+          </div>
+        </div>
+
+        <div class="field field-check">
+          <input class="checkbox" id="setKbAttach" name="kbAttach" type="checkbox">
+          <label for="setKbAttach">Ground answers in the library</label>
+        </div>
+
+        <div class="field">
+          <label for="setTopK">Chunks per turn — <output id="topKOut">6</output></label>
+          <input class="range" id="setTopK" name="topK" type="range" min="1" max="10" step="1">
+        </div>
+
+        <div class="field-check">
+          <input class="checkbox" id="setStream" name="stream" type="checkbox">
+          <label for="setStream">Stream token-by-token</label>
+        </div>
+
+        <div class="row">
+          <button type="submit" class="btn btn-accent">Save</button>
+          <button type="button" class="btn" id="btnTestConn">Test</button>
+          <span class="hint" id="settingsSaved" role="status"></span>
+        </div>
+        <p class="hint" id="testConnResult" role="status"></p>
+      </form>
+    </section>
+
+  </div>
+
+  <!-- ── library panel: browse + search the knowledge base ── -->
+  <div class="panel" id="panelLibrary" role="tabpanel" aria-labelledby="tabLibrary" hidden>
+    <form class="lib-search" id="kbSearchForm" role="search">
+      <label class="sr-only" for="kbQuery">Search the library</label>
+      <input class="input" id="kbQuery" type="search" placeholder="Search the library…" autocomplete="off">
+      <button type="submit" class="btn">Go</button>
+    </form>
+    <p class="lib-stats" id="kbStats"></p>
+
+    <div class="lib-list" id="kbList">
+      <ul class="doc-list" id="docList"></ul>
+      <div class="kb-results" id="kbResults"></div>
+    </div>
+
+    <div class="lib-detail" id="kbDetail" hidden></div>
+  </div>
+</aside>
+
+<!-- ─────────────────────────── context drawer ─────────────────────────── -->
+<aside class="drawer" id="drawer" aria-label="Retrieved context" hidden>
+  <div class="drawer-head">
+    <h2 class="drawer-title">Context</h2>
+    <button type="button" class="btn btn-tiny" id="btnCloseDrawer">Close</button>
+  </div>
+  <div class="drawer-body" id="drawerBody"></div>
+</aside>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<!-- Load order matters: KB data → system prompt → retrieval library → app. -->
+<script src="data/kb.js" onerror="window.__eniKbFailed=true"></script>
+<script src="data/system-prompt.js" onerror="window.__eniPromptFailed=true"></script>
+<script src="lib/retrieval.js" onerror="window.__eniLibFailed=true"></script>
+<script src="app.js"></script>
+</body>
+</html>

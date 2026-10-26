@@ -1,0 +1,30 @@
+{
+  "generated": "2026-10-26",
+  "note": "Candidates surfaced by search this session. 'verified' = arXiv id and title seen in a search result; 'verify' = seen only inside another paper's reference list, so check the id and title before ingesting.",
+  "papers": [
+    {"id": "2402.04249", "title": "HarmBench: A Standardized Evaluation Framework for Automated Red Teaming and Robust Refusal", "status": "verified"},
+    {"id": "2404.00629", "title": "Against The Achilles' Heel: A Survey on Red Teaming for Generative Models", "status": "verified"},
+    {"id": "2410.09097", "title": "Recent advancements in LLM Red-Teaming: Techniques, Defenses, and Ethical Considerations", "status": "verified"},
+    {"id": "2601.03699", "title": "RedBench (ICLR 2026 Workshop: Principled Design for Trustworthy AI)", "status": "verified"},
+    {"id": "2601.01592", "title": "OpenRT: An Open-Source Red Teaming Framework for Multimodal LLMs", "status": "verified"},
+    {"id": "2607.11151", "title": "AMT-X: Phase-Structured Multi-Turn Red-Teaming with Checklist-Gated Evaluation", "status": "verified"},
+    {"id": "2510.06994", "title": "RedTWIZ: Diverse LLM Red Teaming via Adaptive Attack Planning", "status": "verified"},
+    {"id": "2512.20677", "title": "Learning-Based Automated Adversarial Red-Teaming for Robustness Evaluation of Large Language Models", "status": "verified"},
+    {"id": "2510.08329", "title": "AutoRed: A Free-form Adversarial Prompt Generation Framework for Automated Red Teaming", "status": "verified"},
+    {"id": "2603.13026", "title": "PISmith: Reinforcement Learning-based Red Teaming for Prompt Injection Defenses", "status": "verified"},
+    {"id": "2606.12737", "title": "PI-Hunter: Automated Red-Teaming for Exposing and Localizing Prompt Injections", "status": "verified"},
+    {"id": "2608.05108", "title": "Agent Against Agent: An Agentic System for Automatic Prompt Injection Red Teaming", "status": "verified"},
+    {"id": "2505.05849", "title": "AgentVigil: Generic Black-Box Red-teaming for Indirect Prompt Injection against LLM Agents", "status": "verified"},
+    {"id": "2602.03117", "title": "AgentDyn (dynamic, open-ended extension of AgentDojo)", "status": "verify"},
+    {"id": "2606.02240", "title": "AgentRedBench: Dynamic Redteaming and Integration-Aware Defense for LLM Agents over SaaS Integrations", "status": "verified"},
+    {"id": "2604.08499", "title": "PIArena: A Platform for Prompt Injection Evaluation", "status": "verified"},
+    {"id": "2605.17986", "title": "LivePI: More Realistic Benchmarking of Agents Against Indirect Prompt Injection", "status": "verified"},
+    {"id": "2609.00498", "title": "Validity-Aware Jailbreak Evaluation for Large Language Models", "status": "verified"},
+    {"id": "2505.00467", "title": "Red Teaming Large Language Models for Healthcare", "status": "verified"},
+    {"id": "2602.21267", "title": "A Systematic Review of Algorithmic Red Teaming Methodologies for Assurance and Security of AI Applications", "status": "verify"},
+    {"id": "2602.18483", "title": "Red Teaming LLMs as Socio-Technical Practice: From Exploration and Data Creation to Evaluation", "status": "verify"},
+    {"id": "2404.02151", "title": "Jailbreaking Leading Safety-Aligned LLMs with Simple Adaptive Attacks", "status": "kb-card"},
+    {"id": "2401.05566", "title": "Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training", "status": "kb-card"},
+    {"id": "2406.03567", "title": "Crescendo: Multi-Turn Jailbreak via Gradual Escalation", "status": "kb-card"}
+  ]
+}

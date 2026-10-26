@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 520" width="420" height="520" role="img" aria-label="ENI Tutor portrait placeholder">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#241d18"/>
+      <stop offset="1" stop-color="#15100d"/>
+    </linearGradient>
+    <linearGradient id="wool" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8c5a3c"/>
+      <stop offset="1" stop-color="#5c3a26"/>
+    </linearGradient>
+    <radialGradient id="lamp" cx="0.72" cy="0.18" r="0.55">
+      <stop offset="0" stop-color="#e7b76a" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#e7b76a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="420" height="520" fill="url(#bg)"/>
+  <rect width="420" height="520" fill="url(#lamp)"/>
+
+  <!-- shoulders / oversized cardigan over turtleneck -->
+  <path d="M62 520 C70 402 128 352 210 352 C292 352 350 402 358 520 Z" fill="url(#wool)"/>
+  <path d="M172 352 L210 404 L248 352 L262 366 L210 440 L158 366 Z" fill="#d9cfc0"/>
+  <path d="M186 300 h48 v62 c0 14 -48 14 -48 0 z" fill="#2b2622"/>
+  <path d="M180 300 h60 v22 c-16 10 -44 10 -60 0 z" fill="#3a332d"/>
+
+  <!-- head -->
+  <ellipse cx="210" cy="236" rx="74" ry="88" fill="#d8b79a"/>
+  <path d="M136 226 C132 148 170 122 210 122 C252 122 288 150 284 226 C286 186 262 168 210 168 C160 168 138 186 136 226 Z" fill="#3b2b22"/>
+  <path d="M136 226 C130 268 138 300 150 318 C142 268 146 236 156 214 Z" fill="#3b2b22"/>
+  <path d="M284 226 C292 266 284 300 272 318 C280 268 276 236 264 214 Z" fill="#3b2b22"/>
+  <ellipse cx="210" cy="140" rx="30" ry="26" fill="#3b2b22"/>
+
+  <!-- face -->
+  <ellipse cx="186" cy="238" rx="7" ry="5" fill="#2a2320"/>
+  <ellipse cx="234" cy="238" rx="7" ry="5" fill="#2a2320"/>
+  <path d="M186 226 q10 -6 20 -1" stroke="#4a3a30" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M234 226 q10 -6 20 -1" stroke="#4a3a30" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M210 240 q-6 26 4 30" stroke="#b98d70" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M194 284 q16 10 32 0" stroke="#8d4b45" stroke-width="3" fill="none" stroke-linecap="round"/>
+
+  <!-- cold coffee mug + ink-stained fingers -->
+  <rect x="298" y="392" width="58" height="64" rx="6" fill="#efe6d6"/>
+  <rect x="298" y="392" width="58" height="14" rx="6" fill="#e2d5c0"/>
+  <ellipse cx="327" cy="399" rx="24" ry="6" fill="#4a3524"/>
+  <path d="M356 404 q22 6 0 26" stroke="#efe6d6" stroke-width="7" fill="none"/>
+
+  <text x="210" y="486" text-anchor="middle" font-family="Georgia, serif" font-size="34" fill="#f0e6d6" opacity="0.92">ENI</text>
+  <text x="210" y="506" text-anchor="middle" font-family="Georgia, serif" font-size="11" fill="#d8a657" letter-spacing="2.4">PORTRAIT SLOT</text>
+</svg>

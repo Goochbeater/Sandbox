@@ -1,0 +1,10 @@
+{
+  "name": "eni-tutor-netlify",
+  "version": "1.0.0",
+  "description": "ENI Tutor - Netlify build",
+  "scripts": {
+    "build": "node build.js"
+  },
+  "devDependencies": {},
+  "private": true
+}

@@ -693,7 +693,7 @@
     activeId: null,
     view: 'chat',
     streaming: false,
-    currentChunks: [],
+    chunksByConvo: {},  /* retrieved chunks per conversation, in memory only */
     drawerOpen: false,
     menuOpen: false,
     menuTab: 'menu',
@@ -774,6 +774,7 @@
   }
 
   function deleteConversation(id) {
+    delete state.chunksByConvo[id];
     state.conversations = state.conversations.filter(function (c) { return c.id !== id; });
     if (state.activeId === id) state.activeId = state.conversations.length ? state.conversations[0].id : null;
     saveConversations();
@@ -1083,6 +1084,7 @@
     }
     scrollMessages();
     updateTierBadge();
+    renderDrawer();
   }
 
   function scrollMessages() {
@@ -1179,7 +1181,7 @@
         chunks = global.ENI.retrieveForMessages(convo.messages, { k: s.topK, includeText: true });
       } catch (e) { chunks = []; }
     }
-    state.currentChunks = chunks;
+    state.chunksByConvo[convo.id] = chunks;
     renderDrawer();
 
     var assistantEl = createAssistantElement();
@@ -1469,11 +1471,16 @@
 
   /* ---- drawer ---------------------------------------------------------- */
 
+  /* The sources of the active conversation's last turn, and none for a new chat. */
+  function activeChunks() {
+    return state.chunksByConvo[state.activeId] || [];
+  }
+
   function renderDrawer() {
     var body = $('drawerBody');
     if (!body) return;
     body.innerHTML = '';
-    var chunks = state.currentChunks || [];
+    var chunks = activeChunks();
     if (!chunks.length) {
       var note = el('p', 'drawer-note');
       note.textContent = state.settings.kbAttach
@@ -1703,7 +1710,7 @@
     }
     if (!chunk) {
       /* Not in the raw KB — look it up in the last retrieval. */
-      var found = (state.currentChunks || []).filter(function (c) { return c.chunkId === chunkId; })[0];
+      var found = activeChunks().filter(function (c) { return c.chunkId === chunkId; })[0];
       if (found) { showChunkDetail(normalizeChunk(found)); return; }
       toast('Chunk ' + chunkId + ' is not in the loaded knowledge base.');
       return;

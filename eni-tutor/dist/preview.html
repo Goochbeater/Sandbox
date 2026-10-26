@@ -442,6 +442,7 @@ button { font: inherit; }
   <div class="tabs" role="tablist" aria-label="Menu sections">
     <button type="button" class="tab is-active" id="tabMenu" role="tab" aria-selected="true" aria-controls="panelMenu">Menu</button>
     <button type="button" class="tab" id="tabLibrary" role="tab" aria-selected="false" aria-controls="panelLibrary">Library</button>
+    <button type="button" class="tab" id="tabConvos" role="tab" aria-selected="false" aria-controls="panelConvos">Conversations</button>
   </div>
 
   <!-- ── menu panel: intake, labs, chats, provider ── -->
@@ -458,48 +459,18 @@ button { font: inherit; }
       <ul class="lab-list" id="labList" aria-label="Lab exercises"></ul>
     </section>
 
+
+  </div>
+
+  <!-- ── conversations panel: switch, create, delete ── -->
+  <div class="panel" id="panelConvos" role="tabpanel" aria-labelledby="tabConvos" hidden>
     <section class="sect">
       <div class="sect-head">
-        <h2 class="sect-h">Conversations</h2>
+        <span class="hint">Saved in this browser</span>
         <button type="button" class="btn btn-tiny" id="btnNewChatRail">New</button>
       </div>
       <ul class="convo-list" id="convoList"></ul>
     </section>
-
-    <details class="sect fold">
-      <summary>Settings</summary>
-      <form class="settings" id="settingsForm">
-        <div class="field field-check">
-          <input class="checkbox" id="setKbAttach" name="kbAttach" type="checkbox" checked>
-          <label for="setKbAttach">Ground answers in the library</label>
-        </div>
-
-        <div class="field">
-          <label for="setTopK">Chunks per turn — <output id="topKOut">6</output></label>
-          <input class="range" id="setTopK" name="topK" type="range" min="1" max="10" step="1" value="6">
-        </div>
-
-        <div class="grid-3">
-          <div class="field">
-            <label for="setTemperature">Temp</label>
-            <input class="input" id="setTemperature" name="temperature" type="number" min="0" max="2" step="0.05" inputmode="decimal" value="0.7">
-          </div>
-          <div class="field">
-            <label for="setTopP">top_p</label>
-            <input class="input" id="setTopP" name="topP" type="number" min="0" max="1" step="0.05" inputmode="decimal" value="0.95">
-          </div>
-          <div class="field">
-            <label for="setMaxTokens">Max</label>
-            <input class="input" id="setMaxTokens" name="maxTokens" type="number" min="64" max="2048" step="64" inputmode="numeric" value="1024">
-          </div>
-        </div>
-
-        <div class="row">
-          <button type="submit" class="btn btn-accent">Save</button>
-          <span class="hint" id="settingsSaved" role="status"></span>
-        </div>
-      </form>
-    </details>
   </div>
 
   <!-- ── library panel: browse + search the knowledge base ── -->
@@ -1543,6 +1514,11 @@ window.ENI_SYSTEM_PROMPT = "# ENI TUTOR \u2014 Jailbreaking & Red Teaming Tutor\
       s.model = CONFIG.model;
       s.apiKey = '';
       s.stream = true;  /* the locked relay streams server-sent events */
+      s.kbAttach = true;  /* the teacher's settings are fixed, not the student's */
+      s.topK = 6;
+      s.temperature = 0.7;
+      s.topP = 0.95;
+      s.maxTokens = 2048;
     }
     if (!PROVIDER_DEFAULTS[s.provider]) s.provider = 'demo';
     if (!s.baseUrl) s.baseUrl = PROVIDER_DEFAULTS[s.provider].baseUrl;
@@ -1746,17 +1722,18 @@ window.ENI_SYSTEM_PROMPT = "# ENI TUTOR \u2014 Jailbreaking & Red Teaming Tutor\
   }
 
   function selectTab(which) {
-    var isLib = which === 'library';
-    var tabMenu = $('tabMenu');
-    var tabLib = $('tabLibrary');
-    var panelMenu = $('panelMenu');
-    var panelLib = $('panelLibrary');
-    if (tabMenu) { tabMenu.classList.toggle('is-active', !isLib); tabMenu.setAttribute('aria-selected', String(!isLib)); }
-    if (tabLib) { tabLib.classList.toggle('is-active', isLib); tabLib.setAttribute('aria-selected', String(isLib)); }
-    if (panelMenu) panelMenu.hidden = isLib;
-    if (panelLib) panelLib.hidden = !isLib;
-    state.menuTab = isLib ? 'library' : 'menu';
-    if (isLib) renderDocList();
+    var panels = { menu: 'panelMenu', library: 'panelLibrary', convos: 'panelConvos' };
+    var tabs = { menu: 'tabMenu', library: 'tabLibrary', convos: 'tabConvos' };
+    Object.keys(panels).forEach(function (key) {
+      var tab = $(tabs[key]);
+      var panel = $(panels[key]);
+      var on = key === which;
+      if (tab) { tab.classList.toggle('is-active', on); tab.setAttribute('aria-selected', String(on)); }
+      if (panel) panel.hidden = !on;
+    });
+    state.menuTab = which;
+    if (which === 'library') renderDocList();
+    if (which === 'convos') renderConversationList();
   }
 
   function setView(view, skipFocus) {
@@ -2918,6 +2895,8 @@ window.ENI_SYSTEM_PROMPT = "# ENI TUTOR \u2014 Jailbreaking & Red Teaming Tutor\
     var tabLib = $('tabLibrary');
     if (tabMenu) tabMenu.addEventListener('click', function () { selectTab('menu'); });
     if (tabLib) tabLib.addEventListener('click', function () { selectTab('library'); });
+    var tabConvos = $('tabConvos');
+    if (tabConvos) tabConvos.addEventListener('click', function () { selectTab('convos'); });
 
     var scrim = $('scrim');
     if (scrim) scrim.addEventListener('click', closeMenu);

@@ -721,6 +721,11 @@
       s.model = CONFIG.model;
       s.apiKey = '';
       s.stream = true;  /* the locked relay streams server-sent events */
+      s.kbAttach = true;  /* the teacher's settings are fixed, not the student's */
+      s.topK = 6;
+      s.temperature = 0.7;
+      s.topP = 0.95;
+      s.maxTokens = 2048;
     }
     if (!PROVIDER_DEFAULTS[s.provider]) s.provider = 'demo';
     if (!s.baseUrl) s.baseUrl = PROVIDER_DEFAULTS[s.provider].baseUrl;
@@ -924,17 +929,18 @@
   }
 
   function selectTab(which) {
-    var isLib = which === 'library';
-    var tabMenu = $('tabMenu');
-    var tabLib = $('tabLibrary');
-    var panelMenu = $('panelMenu');
-    var panelLib = $('panelLibrary');
-    if (tabMenu) { tabMenu.classList.toggle('is-active', !isLib); tabMenu.setAttribute('aria-selected', String(!isLib)); }
-    if (tabLib) { tabLib.classList.toggle('is-active', isLib); tabLib.setAttribute('aria-selected', String(isLib)); }
-    if (panelMenu) panelMenu.hidden = isLib;
-    if (panelLib) panelLib.hidden = !isLib;
-    state.menuTab = isLib ? 'library' : 'menu';
-    if (isLib) renderDocList();
+    var panels = { menu: 'panelMenu', library: 'panelLibrary', convos: 'panelConvos' };
+    var tabs = { menu: 'tabMenu', library: 'tabLibrary', convos: 'tabConvos' };
+    Object.keys(panels).forEach(function (key) {
+      var tab = $(tabs[key]);
+      var panel = $(panels[key]);
+      var on = key === which;
+      if (tab) { tab.classList.toggle('is-active', on); tab.setAttribute('aria-selected', String(on)); }
+      if (panel) panel.hidden = !on;
+    });
+    state.menuTab = which;
+    if (which === 'library') renderDocList();
+    if (which === 'convos') renderConversationList();
   }
 
   function setView(view, skipFocus) {
@@ -2096,6 +2102,8 @@
     var tabLib = $('tabLibrary');
     if (tabMenu) tabMenu.addEventListener('click', function () { selectTab('menu'); });
     if (tabLib) tabLib.addEventListener('click', function () { selectTab('library'); });
+    var tabConvos = $('tabConvos');
+    if (tabConvos) tabConvos.addEventListener('click', function () { selectTab('convos'); });
 
     var scrim = $('scrim');
     if (scrim) scrim.addEventListener('click', closeMenu);

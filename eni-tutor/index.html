@@ -79,6 +79,7 @@
   <div class="tabs" role="tablist" aria-label="Menu sections">
     <button type="button" class="tab is-active" id="tabMenu" role="tab" aria-selected="true" aria-controls="panelMenu">Menu</button>
     <button type="button" class="tab" id="tabLibrary" role="tab" aria-selected="false" aria-controls="panelLibrary">Library</button>
+    <button type="button" class="tab" id="tabConvos" role="tab" aria-selected="false" aria-controls="panelConvos">Conversations</button>
   </div>
 
   <!-- ── menu panel: intake, labs, chats, provider ── -->
@@ -95,13 +96,6 @@
       <ul class="lab-list" id="labList" aria-label="Lab exercises"></ul>
     </section>
 
-    <section class="sect">
-      <div class="sect-head">
-        <h2 class="sect-h">Conversations</h2>
-        <button type="button" class="btn btn-tiny" id="btnNewChatRail">New</button>
-      </div>
-      <ul class="convo-list" id="convoList"></ul>
-    </section>
 
     <details class="sect fold">
       <summary>Settings</summary>
@@ -173,6 +167,17 @@
       </form>
     </details>
 
+  </div>
+
+  <!-- ── conversations panel: switch, create, delete ── -->
+  <div class="panel" id="panelConvos" role="tabpanel" aria-labelledby="tabConvos" hidden>
+    <section class="sect">
+      <div class="sect-head">
+        <span class="hint">Saved in this browser</span>
+        <button type="button" class="btn btn-tiny" id="btnNewChatRail">New</button>
+      </div>
+      <ul class="convo-list" id="convoList"></ul>
+    </section>
   </div>
 
   <!-- ── library panel: browse + search the knowledge base ── -->

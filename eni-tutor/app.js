@@ -1045,7 +1045,7 @@
       wrap.appendChild(tl);
     }
     if (m.role === 'assistant' && m.reasoning) {
-      wrap.appendChild(thinkingEl(false, m.reasoning, m.thoughtLabel).box);
+      wrap.appendChild(thinkingEl(m.reasoning, m.thoughtLabel).box);
     }
     if (m.role === 'assistant') {
       /* A message can come back from localStorage already malformed; render it
@@ -1246,7 +1246,7 @@
     function onReasoning(txt) {
       reasoning += txt;
       if (!thinking) {
-        thinking = thinkingEl(true, '');
+        thinking = thinkingEl('');
         assistantEl.insertBefore(thinking.box, bubble);
         if (!REDUCE_MOTION) {
           rotate();
@@ -1377,12 +1377,11 @@
     return pool[Math.floor(Math.random() * pool.length)] || list[0];
   }
 
-  /* A small collapsible box for the model's reasoning. Open while it streams,
-     closed once the answer starts, and labelled with a phrase. */
-  function thinkingEl(open, text, label) {
+  /* A small collapsible box for the model's reasoning. Closed by default, so the
+     answer comes first; the student opens it to read the thinking. */
+  function thinkingEl(text, label) {
     var box = el('details', 'thinking');
-    box.open = !!open;
-    var summary = el('summary', null, open ? 'Thinking' : (label || 'Thought'));
+    var summary = el('summary', null, label || 'Thought');
     var body = el('div', 'thinking-body', text || '');
     box.appendChild(summary);
     box.appendChild(body);

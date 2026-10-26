@@ -695,6 +695,7 @@
     view: 'chat',
     streaming: false,
     chunksByConvo: {},  /* retrieved chunks per conversation, in memory only */
+    docsByConvo: {},    /* documents loaded for the last reply, per conversation */
     drawerOpen: false,
     menuOpen: false,
     menuTab: 'menu',
@@ -781,6 +782,7 @@
 
   function deleteConversation(id) {
     delete state.chunksByConvo[id];
+    delete state.docsByConvo[id];
     state.conversations = state.conversations.filter(function (c) { return c.id !== id; });
     if (state.activeId === id) state.activeId = state.conversations.length ? state.conversations[0].id : null;
     saveConversations();
@@ -1117,13 +1119,17 @@
 
   /* ---- the turn -------------------------------------------------------- */
 
-  function buildSystemPrompt(chunks) {
+  function buildSystemPrompt(docPaths) {
     var base = state.settings.systemPrompt || global.ENI_SYSTEM_PROMPT || '';
-    if (!chunks || !chunks.length || !global.ENI) return base;
-    var ctx = '';
-    try { ctx = global.ENI.formatContext(chunks, { maxChars: 12000 }); } catch (e) { ctx = ''; }
-    if (!ctx) return base;
-    return base + '\n\n' + ctx;
+    if (!state.settings.kbAttach || !global.KB_INDEX) return base;
+    var index = global.KB_INDEX;
+    var lines = index.map(function (i) { return '- ' + i.title + ' (' + i.type + '): ' + i.summary; });
+    var prompt = base + '\n\n# LIBRARY INDEX\n\nThe documents below exist. Their full text is attached to a reply only when that reply needs it.\n\n' + lines.join('\n');
+    var loaded = (docPaths || []).filter(function (p) { return global.KB_DOCS && global.KB_DOCS[p]; });
+    if (!loaded.length) return prompt;
+    return prompt + '\n\n# LOADED DOCUMENTS\n\nThe full text of the documents for this reply.\n\n' + loaded.map(function (p) {
+      return '## ' + docTitle(p) + '\n\n' + global.KB_DOCS[p];
+    }).join('\n\n---\n\n');
   }
 
   function sendMessage(text) {
@@ -1186,12 +1192,14 @@
     /* Retrieve the material for this turn. The context never enters the
        visible history — it is appended to the system message only. */
     var chunks = [];
-    if (s.kbAttach && global.ENI && global.KB_DATA) {
+    if (s.provider === 'demo' && s.kbAttach && global.ENI && global.KB_DATA) {
       try {
         chunks = global.ENI.retrieveForMessages(convo.messages, { k: s.topK, includeText: true });
       } catch (e) { chunks = []; }
     }
+    var docs = s.provider === 'demo' ? [] : chooseDocs(convo, userText);
     state.chunksByConvo[convo.id] = chunks;
+    state.docsByConvo[convo.id] = docs;
     renderDrawer();
 
     var assistantEl = createAssistantElement();
@@ -1265,6 +1273,7 @@
       if (reasoning) foldThinking();
       var msg = { role: 'assistant', content: content, ts: nowStamp() };
       if (reasoning) { msg.reasoning = reasoning; msg.thoughtLabel = thoughtLabel; }
+      if (docs.length) msg.docs = docs;
       if (errMsg) msg.error = errMsg;
       convo.messages.push(msg);
       convo.updated = nowStamp();
@@ -1286,9 +1295,11 @@
       return;
     }
 
-    var system = buildSystemPrompt(chunks);
+    /* The locked build adds the persona and the index on the server, and the
+       documents this reply needs (named by id). */
+    var system = LOCKED ? '' : buildSystemPrompt(docs);
     var history = convo.messages.map(function (m) { return { role: m.role, content: m.content }; });
-    var stream = streamProvider(s, system, history, {
+    var stream = streamProvider(Object.assign({}, s, { docIds: docs }), system, history, {
       onDelta: onDelta,
       onReasoning: onReasoning,
       onDone: function () { finish(buffer); },
@@ -1463,7 +1474,9 @@
         init.headers['HTTP-Referer'] = 'https://eni-tutor.netlify.app';
         init.headers['X-Title'] = 'ENI Tutor';
       }
-      init.body = JSON.stringify(buildOpenAIBody(cfg, system, history));
+      var reqBody = buildOpenAIBody(cfg, system, history);
+      if (LOCKED && cfg.docIds) reqBody.docIds = cfg.docIds;
+      init.body = JSON.stringify(reqBody);
     } else if (cfg.provider === 'anthropic') {
       kind = 'sse';
       init.headers['Content-Type'] = 'application/json';
@@ -1586,10 +1599,60 @@
     return state.chunksByConvo[state.activeId] || [];
   }
 
+  /* The documents for a reply: the best matches for this message, then the
+     documents the last reply used, so a lesson stays in view while it is in use. */
+  function chooseDocs(convo, userText) {
+    var prev = [];
+    for (var i = convo.messages.length - 1; i >= 0; i--) {
+      var m = convo.messages[i];
+      if (m.role === 'assistant' && m.docs) { prev = m.docs; break; }
+    }
+    var fresh = [];
+    var hits = [];
+    try { hits = global.ENI ? global.ENI.retrieve(userText, { k: 12, includeText: false }) : []; } catch (e) { hits = []; }
+    hits.forEach(function (h) {
+      if (fresh.length >= 2) return;
+      var path = h.path || '';
+      if (path && fresh.indexOf(path) === -1) fresh.push(path);
+    });
+    return fresh.concat(prev.filter(function (p) { return fresh.indexOf(p) === -1; })).slice(0, 3);
+  }
+
+  function docTitle(path) {
+    var docs = (global.KB_DATA && global.KB_DATA.docs) || [];
+    for (var i = 0; i < docs.length; i++) if (docs[i].path === path) return docs[i].title;
+    return path;
+  }
+
+  /* A model reply gets the index, and the full text of the documents it loaded. */
+  function renderLibraryNote(body) {
+    var index = (global.KB_INDEX || []);
+    if (!state.settings.kbAttach) {
+      body.appendChild(el('p', 'drawer-note', 'The library is off for replies. Turn it on in Settings.'));
+      return;
+    }
+    var docs = state.docsByConvo[state.activeId] || lastDocs(activeConvo());
+    body.appendChild(el('p', 'drawer-note', index.length + ' documents in the index. ' +
+      (docs.length ? 'Loaded for the last reply:' : 'No document was loaded for the last reply.')));
+    if (!docs.length) return;
+    var list = el('ul', 'drawer-list');
+    docs.forEach(function (p) { list.appendChild(el('li', null, docTitle(p))); });
+    body.appendChild(list);
+  }
+
+  function lastDocs(convo) {
+    for (var i = convo.messages.length - 1; i >= 0; i--) {
+      var m = convo.messages[i];
+      if (m.role === 'assistant' && m.docs) return m.docs;
+    }
+    return [];
+  }
+
   function renderDrawer() {
     var body = $('drawerBody');
     if (!body) return;
     body.innerHTML = '';
+    if (state.settings.provider !== 'demo') { renderLibraryNote(body); return; }
     var chunks = activeChunks();
     if (!chunks.length) {
       var note = el('p', 'drawer-note');

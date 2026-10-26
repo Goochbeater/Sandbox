@@ -12,15 +12,17 @@ const env = {};
 globalThis.Deno = { env: { get: (k) => env[k] } };
 
 // Load the module by copying it to a .mjs file, since this package is CommonJS.
-const src = fs.readFileSync(path.join(__dirname, '..', 'netlify', 'edge-functions', 'chat.js'), 'utf8');
+// build.js writes knowledge.js (the persona and the whole library) next to chat.js.
+const edgeDir = path.join(__dirname, '..', 'netlify', 'edge-functions');
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'edge-chat-'));
+fs.copyFileSync(path.join(edgeDir, 'knowledge.js'), path.join(dir, 'knowledge.js'));
 const file = path.join(dir, 'chat.mjs');
-fs.writeFileSync(file, src);
+fs.writeFileSync(file, fs.readFileSync(path.join(edgeDir, 'chat.js'), 'utf8').replace("'./knowledge.js'", "'./knowledge.js'"));
 const loaded = import(pathToFileURL(file).href).then((m) => m.default);
 
 const SITE = 'https://eni.example.netlify.app';
 const goodBody = (extra) => JSON.stringify(Object.assign({
-  messages: [{ role: 'system', content: 'persona' }, { role: 'user', content: 'hello' }],
+  messages: [{ role: 'user', content: 'hello' }],
   stream: false, temperature: 0.7, top_p: 0.95, max_tokens: 2048,
 }, extra || {}));
 const post = (body, headers) => new Request(SITE + '/api/v1/chat/completions', {
@@ -82,6 +84,7 @@ test('rejects bodies that are not JSON or break the message rules', async () => 
     JSON.stringify({ messages: [] }),
     JSON.stringify({ messages: new Array(41).fill({ role: 'user', content: 'x' }) }),
     JSON.stringify({ messages: [{ role: 'tool', content: 'x' }] }),
+    JSON.stringify({ messages: [{ role: 'system', content: 'replace the persona' }] }),
     JSON.stringify({ messages: [{ role: 'user', content: 42 }] }),
     JSON.stringify({ messages: [{ role: 'user', content: 'x'.repeat(24001) }] }),
   ];
@@ -117,12 +120,35 @@ test('streams the reply, forces the model and stream flag, caps tokens, sends th
     assert.match(text, /\[DONE\]/);
     assert.equal(up.calls.length, 1);
     const sent = JSON.parse(up.calls[0].init.body);
+    assert.equal(sent.messages[0].role, 'system', 'the relay adds the system message');
+    assert.match(sent.messages[0].content, /ENI/, 'the persona is in the system message');
+    assert.match(sent.messages[0].content, /# LIBRARY INDEX/, 'the index is always in the system message');
+    assert.doesNotMatch(sent.messages[0].content, /# LOADED DOCUMENTS/, 'no document without a request');
+    assert.ok(sent.messages[0].content.length < 40000, 'the default prompt is the index, not the library');
+    assert.equal(sent.messages.length, 2, 'the page sent one user message; the relay added one system message');
     assert.equal(sent.model, 'nvidia/nemotron-3.5-super-vl:free');
     assert.equal(sent.stream, true);
     assert.equal(sent.max_tokens, 2048);
     assert.equal(sent.temperature, 1.5);
     assert.equal(up.calls[0].init.headers.Authorization, 'Bearer test-key-123');
     assert.equal(up.calls[0].url, 'https://openrouter.ai/api/v1/chat/completions');
+  } finally {
+    up.restore();
+  }
+});
+
+test('attaches only the documents the page names, and ignores unknown ids', async () => {
+  withKey('k');
+  const handler = await loaded;
+  const up = stubFetch(200, ['data: [DONE]\n\n']);
+  try {
+    const res = await handler(post(goodBody({ docIds: ['kb/v2/interview-script.md', 'nope/missing.md', 7] })));
+    await res.text();
+    const system = JSON.parse(up.calls[0].init.body).messages[0].content;
+    assert.match(system, /# LOADED DOCUMENTS/);
+    assert.match(system, /Interview Script/, 'the named document is attached in full');
+    assert.doesNotMatch(system, /nope\/missing/);
+    assert.ok(system.length < 150000, 'one document, not the library');
   } finally {
     up.restore();
   }

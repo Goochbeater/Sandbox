@@ -2,9 +2,11 @@
 //
 // The page posts an OpenAI-style chat body to /api/v1/chat/completions, which
 // netlify.toml routes here. The key is read from OPENROUTER_API_KEY and never
-// reaches the browser. The model and the limits are fixed here, not by the
-// caller. The reply is streamed as server-sent events. Until the model's first
+// reaches the browser. The model, the persona, the whole library and the limits
+// are fixed here, not by the caller. The reply is streamed as server-sent events. Until the model's first
 // token arrives, a heartbeat keeps the connection open.
+
+import { PERSONA, INDEX, DOCS } from './knowledge.js';
 
 const MODEL = 'nvidia/nemotron-3.5-super-vl:free';
 const UPSTREAM = 'https://openrouter.ai/api/v1/chat/completions';
@@ -12,8 +14,13 @@ const MAX_BODY_BYTES = 64 * 1024;
 const MAX_MESSAGES = 40;
 const MAX_CHARS_PER_MESSAGE = 24000;
 const MAX_TOKENS_CAP = 2048;
+const MAX_DOCS = 3;
+const MAX_DOC_CHARS = 90000;
 const HEARTBEAT_MS = 4000;
-const ROLES = ['system', 'user', 'assistant'];
+// The page sends the conversation and the ids of the documents this reply
+// needs. The persona and the index are always added here; only the named
+// documents are added in full, so the page cannot change the persona.
+const ROLES = ['user', 'assistant'];
 const encoder = new TextEncoder();
 
 const json = (status, body) =>
@@ -21,6 +28,29 @@ const json = (status, body) =>
     status,
     headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
   });
+
+function indexText() {
+  return '# LIBRARY INDEX\n\nThe documents below exist. Their full text is attached to a reply only when that reply needs it.\n\n' +
+    INDEX.map((i) => '- ' + i.title + ' (' + i.type + '): ' + i.summary).join('\n');
+}
+
+// The full text of the documents the page named, validated against the index
+// and capped in size.
+function loadedText(ids) {
+  const parts = [];
+  let total = 0;
+  const seen = new Set();
+  for (const id of (Array.isArray(ids) ? ids : []).slice(0, MAX_DOCS)) {
+    if (typeof id !== 'string' || seen.has(id) || !Object.prototype.hasOwnProperty.call(DOCS, id)) continue;
+    seen.add(id);
+    const text = DOCS[id];
+    if (total + text.length > MAX_DOC_CHARS) break;
+    total += text.length;
+    const entry = INDEX.find((i) => i.path === id);
+    parts.push('## ' + entry.title + '\n\n' + text);
+  }
+  return parts.length ? '# LOADED DOCUMENTS\n\nThe full text of the documents for this reply.\n\n' + parts.join('\n\n---\n\n') : '';
+}
 
 function clamp(value, lo, hi, fallback) {
   const n = Number(value);
@@ -98,9 +128,10 @@ export default async (request) => {
     clean.push({ role, content });
   }
 
+  const system = [PERSONA, indexText(), loadedText(body.docIds)].filter(Boolean).join('\n\n');
   const payload = {
     model: MODEL,
-    messages: clean,
+    messages: [{ role: 'system', content: system }].concat(clean),
     stream: true,
     temperature: clamp(body.temperature, 0, 1.5, 0.7),
     top_p: clamp(body.top_p, 0, 1, 0.95),

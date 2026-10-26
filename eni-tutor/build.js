@@ -61,3 +61,49 @@ if (html.split(demoConfig).length !== 2) throw new Error('provider line not foun
 const preview = html.replace(demoConfig, "provider: 'demo',");
 fs.writeFileSync(path.join(outDir, 'preview.html'), preview, 'utf8');
 console.log('built dist/preview.html (' + size(preview) + ', demo mode)');
+
+// The knowledge library. The persona and an index of every document are always
+// sent to the model. Full documents are sent only when a reply needs them, so
+// the index is what the model sees by default. Dev page: data/kb-docs.js.
+function walkMd(dir) {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const full = path.join(dir, e.name);
+    return e.isDirectory() ? walkMd(full) : (e.name.endsWith('.md') ? [full] : []);
+  });
+}
+function readDoc(file) {
+  const raw = fs.readFileSync(file, 'utf8');
+  let title = path.basename(file, '.md');
+  let type = '';
+  let tags = [];
+  let body = raw;
+  const fm = raw.match(/^---\n([\s\S]*?)\n---\n?/);
+  if (fm) {
+    const t = fm[1].match(/^title:\s*"?(.*?)"?\s*$/m);
+    if (t) title = t[1];
+    const y = fm[1].match(/^type:\s*(\S+)/m);
+    if (y) type = y[1];
+    const g = fm[1].match(/^tags:\s*\[(.*)\]/m);
+    if (g) tags = g[1].split(',').map((x) => x.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+    body = raw.slice(fm[0].length);
+  }
+  body = body.trim();
+  // the first real sentence of the body, as the index summary
+  const para = body.split(/\n\s*\n/).find((p) => p.trim() && !/^#/.test(p.trim())) || '';
+  const summary = tags.length ? tags.join(', ') : para.replace(/\s+/g, ' ').trim().slice(0, 180);
+  return { path: path.relative(root, file).split(path.sep).join('/'), title, type, tags, summary, body };
+}
+const docs = walkMd(path.join(root, 'kb')).sort().map(readDoc);
+const index = docs.map(({ path: p, title, type, tags, summary }) => ({ path: p, title, type, tags, summary }));
+const texts = Object.fromEntries(docs.map((d) => [d.path, d.body]));
+const persona = fs.readFileSync(path.join(root, 'data', 'system-prompt.md'), 'utf8');
+
+fs.mkdirSync(path.join(root, 'netlify', 'edge-functions'), { recursive: true });
+fs.writeFileSync(path.join(root, 'netlify', 'edge-functions', 'knowledge.js'),
+  'export const PERSONA = ' + JSON.stringify(persona) + ';\n\n' +
+  'export const INDEX = ' + JSON.stringify(index) + ';\n\n' +
+  'export const DOCS = ' + JSON.stringify(texts) + ';\n', 'utf8');
+fs.writeFileSync(path.join(root, 'data', 'kb-docs.js'),
+  'window.KB_INDEX = ' + JSON.stringify(index) + ';\nwindow.KB_DOCS = ' + JSON.stringify(texts) + ';\n', 'utf8');
+const bytes = Object.values(texts).reduce((n, t) => n + Buffer.byteLength(t, 'utf8'), 0);
+console.log('library: ' + docs.length + ' documents indexed, ' + (bytes / 1024).toFixed(0) + ' KB of full text, sent only on request');

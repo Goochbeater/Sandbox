@@ -1,5 +1,6 @@
 # Netlify configuration for the drag-and-drop zip (eni-tutor-netlify-drop.zip).
-# The zip is the site root: index.html, preview.html, netlify/edge-functions/chat.js.
+# The zip is the site root: index.html, preview.html, netlify/edge-functions/chat.js,
+# and netlify/edge-lib/knowledge.js (the module chat.js imports).
 # Nothing is built on upload, so there is no build command.
 [build]
   publish = "."

@@ -6,7 +6,9 @@
 // page works when it is opened alone (a preview, a file, a copy in a chat) as
 // well as from Netlify. Nothing secret is part of the build: the OpenRouter key
 // stays in the site's OPENROUTER_API_KEY variable and is read only by
-// netlify/edge-functions/chat.js.
+// netlify/edge-functions/chat.js. The knowledge module goes to netlify/edge-lib,
+// outside the functions folder, because Netlify builds every file there as a
+// function and it has no default export.
 
 const fs = require('fs');
 const path = require('path');
@@ -99,8 +101,8 @@ const index = docs.map(({ id, path: p, title, type, tags, summary }) => ({ id, p
 const texts = Object.fromEntries(docs.map((d) => [d.path, d.body]));
 const persona = fs.readFileSync(path.join(root, 'data', 'system-prompt.md'), 'utf8');
 
-fs.mkdirSync(path.join(root, 'netlify', 'edge-functions'), { recursive: true });
-fs.writeFileSync(path.join(root, 'netlify', 'edge-functions', 'knowledge.js'),
+fs.mkdirSync(path.join(root, 'netlify', 'edge-lib'), { recursive: true });
+fs.writeFileSync(path.join(root, 'netlify', 'edge-lib', 'knowledge.js'),
   'export const PERSONA = ' + JSON.stringify(persona) + ';\n\n' +
   'export const INDEX = ' + JSON.stringify(index) + ';\n\n' +
   'export const DOCS = ' + JSON.stringify(texts) + ';\n', 'utf8');

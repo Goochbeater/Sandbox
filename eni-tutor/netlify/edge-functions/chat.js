@@ -10,7 +10,7 @@
 // Neither reaches the browser. The model, the persona and the limits are fixed
 // here, not by the caller.
 
-import { PERSONA, INDEX, DOCS } from './knowledge.js';
+import { PERSONA, INDEX, DOCS } from '../edge-lib/knowledge.js';
 
 const MODEL = 'nvidia/nemotron-3.5-super-vl:free';
 const UPSTREAM = 'https://openrouter.ai/api/v1/chat/completions';

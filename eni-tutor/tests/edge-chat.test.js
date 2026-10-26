@@ -11,13 +11,17 @@ const { pathToFileURL } = require('url');
 const env = {};
 globalThis.Deno = { env: { get: (k) => env[k] } };
 
-// build.js writes knowledge.js (persona, index, documents) next to chat.js.
+// build.js writes knowledge.js (persona, index, documents) to netlify/edge-lib.
+// The copies keep the repo's layout, so chat.js finds ../edge-lib/knowledge.js.
 const edgeDir = path.join(__dirname, '..', 'netlify', 'edge-functions');
+const libDir = path.join(__dirname, '..', 'netlify', 'edge-lib');
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'edge-chat-'));
-fs.copyFileSync(path.join(edgeDir, 'knowledge.js'), path.join(dir, 'knowledge.js'));
-fs.writeFileSync(path.join(dir, 'chat.mjs'), fs.readFileSync(path.join(edgeDir, 'chat.js'), 'utf8'));
-const loaded = import(pathToFileURL(path.join(dir, 'chat.mjs')).href).then((m) => m.default);
-const knowledge = import(pathToFileURL(path.join(dir, 'knowledge.js')).href);
+fs.mkdirSync(path.join(dir, 'edge-functions'));
+fs.mkdirSync(path.join(dir, 'edge-lib'));
+fs.copyFileSync(path.join(libDir, 'knowledge.js'), path.join(dir, 'edge-lib', 'knowledge.js'));
+fs.writeFileSync(path.join(dir, 'edge-functions', 'chat.mjs'), fs.readFileSync(path.join(edgeDir, 'chat.js'), 'utf8'));
+const loaded = import(pathToFileURL(path.join(dir, 'edge-functions', 'chat.mjs')).href).then((m) => m.default);
+const knowledge = import(pathToFileURL(path.join(dir, 'edge-lib', 'knowledge.js')).href);
 
 const SITE = 'https://eni.example.netlify.app';
 const UPSTREAM = 'https://openrouter.ai/api/v1/chat/completions';

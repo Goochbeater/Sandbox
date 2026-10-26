@@ -1028,7 +1028,7 @@
     var wrap = el('article', 'msg msg-' + m.role);
     if (m.role === 'assistant') wrap.appendChild(avatarEl());
     var role = el('p', 'msg-role');
-    role.appendChild(el('span', null, m.role === 'user' ? 'You' : 'ENI'));
+    role.appendChild(el('span', null, m.role === 'user' ? 'You' : 'ENI tutor'));
     var t = el('time', null, formatTime(m.ts));
     t.setAttribute('datetime', new Date(m.ts || nowStamp()).toISOString());
     role.appendChild(t);
@@ -1159,7 +1159,7 @@
     var wrap = el('article', 'msg msg-assistant');
     wrap.appendChild(avatarEl());
     var role = el('p', 'msg-role');
-    role.appendChild(el('span', null, 'ENI'));
+    role.appendChild(el('span', null, 'ENI tutor'));
     var t = el('time', null, formatTime(nowStamp()));
     t.setAttribute('datetime', new Date().toISOString());
     role.appendChild(t);

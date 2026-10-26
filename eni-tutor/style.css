@@ -21,6 +21,7 @@
   --accent: #e0a34a;
   --accent-ink: #1a1206;
   --danger: #d4674f;
+  --pink: #ec8fb5;
   --radius: 12px;
   --display: 'Bonsai', 'Outfit', cursive;
   --sans: 'Outfit', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -74,7 +75,7 @@ button { font: inherit; }
 /* the context button: a filled circle with a lightbulb, so it never reads as a second menu */
 .context-btn {
   flex: none; width: 34px; height: 34px; margin: 0 3px; display: inline-grid; place-items: center;
-  border-radius: 50%; background: var(--raise); color: var(--accent);
+  border-radius: 50%; background: var(--raise); color: var(--pink);
   border: 1px solid var(--line); cursor: pointer;
 }
 .context-btn:hover { border-color: #3a322c; }

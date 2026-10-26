@@ -951,19 +951,6 @@
 
   /* ---- status line ---------------------------------------------------- */
 
-  function updateStatus() {
-    var s = state.settings;
-    var line = $('statusLine');
-    if (!line) return;
-    var mode = s.provider === 'demo' ? 'demo' : 'live';
-    line.setAttribute('data-mode', mode);
-    var label;
-    if (s.provider === 'demo') label = 'Demo mode — no model connected';
-    else label = s.provider + ' · ' + (s.model || 'no model set');
-    label += s.kbAttach ? ' · KB on (top ' + s.topK + ')' : ' · KB off';
-    line.textContent = label;
-  }
-
   /* ---- conversation list ---------------------------------------------- */
 
   function renderConversationList() {
@@ -1002,9 +989,10 @@
 
   function emptyStateEl() {
     var box = el('div', 'empty');
-    box.appendChild(el('p', 'empty-mark', 'ENI'));
     box.appendChild(el('h2', 'empty-title', 'Office hours are open.'));
-    box.appendChild(el('p', null, 'Ask anything and ENI will teach from the attached library. In demo mode the answer is assembled locally from retrieved chunks — no model, no network.'));
+    box.appendChild(el('p', null, LOCKED
+      ? 'Ask anything. ENI teaches from the attached library.'
+      : 'Ask anything and ENI will teach from the attached library. In demo mode the answer is assembled locally from retrieved chunks, with no model and no network.'));
     var actions = el('div', 'empty-actions');
     [
       ['Start the intake interview', 'Start the intake interview — ask me one question at a time.'],
@@ -1021,8 +1009,17 @@
     return box;
   }
 
+  /* The tutor's portrait, shown small beside each of its turns. The image is
+     one shared rule (see loadPortrait), so no message repeats the data. */
+  function avatarEl() {
+    var a = el('span', 'avatar');
+    a.setAttribute('aria-hidden', 'true');
+    return a;
+  }
+
   function messageEl(m) {
     var wrap = el('article', 'msg msg-' + m.role);
+    if (m.role === 'assistant') wrap.appendChild(avatarEl());
     var role = el('p', 'msg-role');
     role.appendChild(el('span', null, m.role === 'user' ? 'You' : 'ENI'));
     var t = el('time', null, formatTime(m.ts));
@@ -1077,6 +1074,8 @@
     if (!box) return;
     box.innerHTML = '';
     var convo = activeConvo();
+    var hero = $('hero');
+    if (hero) hero.classList.toggle('is-away', convo.messages.length > 0);
     if (!convo.messages.length) {
       box.appendChild(emptyStateEl());
     } else {
@@ -1147,6 +1146,7 @@
 
   function createAssistantElement() {
     var wrap = el('article', 'msg msg-assistant');
+    wrap.appendChild(avatarEl());
     var role = el('p', 'msg-role');
     role.appendChild(el('span', null, 'ENI'));
     var t = el('time', null, formatTime(nowStamp()));
@@ -1642,7 +1642,9 @@
       var bits = [];
       if (d.category) bits.push(d.category);
       if (d.words) bits.push(d.words.toLocaleString() + ' words');
-      bits.push((counts[d.id] || 0) + ' sections');
+      else bits.push('citation card');
+      var sections = counts[d.id] || 0;
+      bits.push(sections + (sections === 1 ? ' section' : ' sections'));
       b.appendChild(el('span', 'doc-meta', bits.join(' · ')));
       b.addEventListener('click', function () {
         renderKbResults(chunksOfDoc(d.id).map(normalizeChunk));
@@ -1896,6 +1898,15 @@
      or portrait/portrait.png beside the page. If it fails to load, the
      monogram stays. There is no upload. */
   function loadPortrait() {
+    /* Browsers refuse a multi-megabyte custom property, so the portrait goes
+       in as one background-image rule that the hero and avatars share. */
+    var sheet = $('portrait-sheet');
+    if (!sheet) {
+      sheet = document.createElement('style');
+      sheet.id = 'portrait-sheet';
+      document.head.appendChild(sheet);
+    }
+    sheet.textContent = '.hero-portrait, .avatar { background-image: url("' + (CONFIG.portraitSrc || 'portrait/portrait.png') + '"); }';
     var frame = $('portraitFrame');
     var img = $('portraitImg');
     var mono = $('portraitMono');
@@ -2024,7 +2035,6 @@
       e.preventDefault();
       state.settings = readSettingsForm();
       saveSettings();
-      updateStatus();
       var saved = $('settingsSaved');
       if (saved) {
         saved.textContent = 'Saved.';
@@ -2080,7 +2090,6 @@
     renderDrawer();
     fillSettingsForm();
     renderLabs();
-    updateStatus();
     selectTab('menu');
   }
 

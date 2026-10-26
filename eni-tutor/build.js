@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Builds the Netlify site into dist/index.html: one self-contained page.
+// Builds the Netlify site into dist/: index.html (OpenRouter) and preview.html
+// (demo mode). Both are single self-contained pages.
 //
 // The CSS, fonts, knowledge base, scripts and portrait are all inlined, so the
 // page works when it is opened alone (a preview, a file, a copy in a chat) as
@@ -49,5 +50,14 @@ if (/<script src=|<link rel="stylesheet" href="(?!https?:)/.test(html)) throw ne
 if (/ENI_NETLIFY_API_KEY|sk-or-[A-Za-z0-9]/.test(html)) throw new Error('key-like text found in the build; refusing to write it');
 
 fs.mkdirSync(outDir, { recursive: true });
+const size = (text) => (Buffer.byteLength(text, 'utf8') / 1048576).toFixed(2) + ' MB';
 fs.writeFileSync(path.join(outDir, 'index.html'), html, 'utf8');
-console.log('built dist/index.html (' + (Buffer.byteLength(html, 'utf8') / 1048576).toFixed(2) + ' MB, self-contained)');
+console.log('built dist/index.html (' + size(html) + ', self-contained, OpenRouter)');
+
+// The same page in demo mode: no key and no network, answers from the library.
+// It is the preview: open it anywhere, or at /preview.html on the site.
+const demoConfig = "provider: 'openrouter',";
+if (html.split(demoConfig).length !== 2) throw new Error('provider line not found once in the config');
+const preview = html.replace(demoConfig, "provider: 'demo',");
+fs.writeFileSync(path.join(outDir, 'preview.html'), preview, 'utf8');
+console.log('built dist/preview.html (' + size(preview) + ', demo mode)');

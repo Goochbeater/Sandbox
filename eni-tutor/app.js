@@ -325,7 +325,8 @@
    */
   function renderMarkdown(md) {
     if (md == null) return '';
-    var src = stripControls(String(md).replace(/\r\n?/g, '\n'));
+    /* Chunk ids are for the library, not the reader: drop any the model prints. */
+    var src = stripControls(String(md).replace(/\r\n?/g, '\n').replace(/[ \t]*\[KB-\d+\]/g, ''));
 
     /* --- 1. Lift fenced code blocks out of the flow ---------------------- */
     var blocks = [];

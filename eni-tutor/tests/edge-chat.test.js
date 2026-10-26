@@ -139,6 +139,7 @@ test('a plain answer: one model call, the persona and index in the system messag
     assert.equal(sent.max_tokens, 2048);
     assert.equal(sent.temperature, 1.5);
     assert.equal(sent.tool_choice, 'auto');
+    assert.deepEqual(sent.provider, { require_parameters: true }, 'tools are never dropped silently');
     assert.deepEqual(sent.tools.map((t) => t.function.name), ['open_document', 'web_search']);
     assert.equal(sent.messages[0].role, 'system');
     assert.match(sent.messages[0].content, /# LIBRARY INDEX/);
@@ -146,6 +147,27 @@ test('a plain answer: one model call, the persona and index in the system messag
     assert.equal(sent.messages.length, 2, 'the system message and the one user message');
     assert.equal(calls[0].init.headers.Authorization, 'Bearer test-key-123');
   } finally {
+    up.restore();
+  }
+});
+
+test('each round is logged as metadata only, never the reply text', async () => {
+  const handler = await loaded;
+  const up = stubRounds([sse([text('Hello there.'), done])]);
+  const logged = [];
+  const log = console.log;
+  console.log = (line) => logged.push(String(line));
+  try {
+    await (await handler(post(goodBody()))).text();
+    const line = logged.find((l) => l.startsWith('eni round '));
+    assert.ok(line, 'a round line is logged');
+    const info = JSON.parse(line.slice('eni round '.length));
+    assert.equal(info.round, 0);
+    assert.equal(info.toolsOffered, true);
+    assert.deepEqual(info.toolCalls, []);
+    assert.doesNotMatch(line, /Hello there/);
+  } finally {
+    console.log = log;
     up.restore();
   }
 });

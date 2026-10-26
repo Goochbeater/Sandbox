@@ -146,6 +146,10 @@ async function streamRound(ctx, messages, tools) {
     max_tokens: ctx.maxTokens,
     temperature: ctx.temperature,
     top_p: ctx.topP,
+    // Route only to providers that accept every parameter sent. Without this,
+    // OpenRouter can drop `tools` without an error and the model answers as if
+    // it had no tools.
+    provider: { require_parameters: true },
   };
   if (tools) { payload.tools = tools; payload.tool_choice = 'auto'; }
 
@@ -172,7 +176,7 @@ async function streamRound(ctx, messages, tools) {
     return null;
   }
 
-  const turn = { content: '', toolCalls: [], reasoningDetails: [] };
+  const turn = { content: '', toolCalls: [], reasoningDetails: [], finish: null, provider: null };
   const calls = new Map();
   const reader = upstream.body.getReader();
   const decoder = new TextDecoder();
@@ -195,7 +199,10 @@ async function streamRound(ctx, messages, tools) {
           ctx.fail(typeof obj.error === 'string' ? obj.error : JSON.stringify(obj.error));
           return null;
         }
-        const delta = obj.choices && obj.choices[0] && obj.choices[0].delta;
+        const choice = obj.choices && obj.choices[0];
+        if (obj.provider) turn.provider = obj.provider;
+        if (choice && choice.finish_reason) turn.finish = choice.finish_reason;
+        const delta = choice && choice.delta;
         if (!delta) continue;
         if (typeof delta.content === 'string' && delta.content) {
           turn.content += delta.content;
@@ -228,6 +235,17 @@ async function run(ctx) {
   for (let round = 0; round < MAX_ROUNDS; round++) {
     const last = round === MAX_ROUNDS - 1;
     const turn = await streamRound(ctx, messages, last ? null : TOOLS);
+    // Metadata only, for the function log: which tools were offered, what the model
+    // asked for, why it stopped, and which provider served the round.
+    if (turn) {
+      console.log('eni round ' + JSON.stringify({
+        round,
+        toolsOffered: !last,
+        toolCalls: turn.toolCalls.map((c) => c.name),
+        finish: turn.finish,
+        provider: turn.provider,
+      }));
+    }
     if (!turn || !turn.toolCalls.length) return;
     messages.push({
       role: 'assistant',

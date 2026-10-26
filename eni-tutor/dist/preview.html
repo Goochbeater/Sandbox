@@ -1521,7 +1521,7 @@ window.ENI_SYSTEM_PROMPT = "# ENI TUTOR \u2014 Jailbreaking & Red Teaming Tutor\
       s.baseUrl = CONFIG.baseUrl;
       s.model = CONFIG.model;
       s.apiKey = '';
-      s.stream = false;  /* the locked proxy replies in one piece */
+      s.stream = true;  /* the locked relay streams server-sent events */
     }
     if (!PROVIDER_DEFAULTS[s.provider]) s.provider = 'demo';
     if (!s.baseUrl) s.baseUrl = PROVIDER_DEFAULTS[s.provider].baseUrl;
@@ -2042,11 +2042,12 @@ window.ENI_SYSTEM_PROMPT = "# ENI TUTOR \u2014 Jailbreaking & Red Teaming Tutor\
 
     var system = buildSystemPrompt(chunks);
     var history = convo.messages.map(function (m) { return { role: m.role, content: m.content }; });
-    state.abort = streamProvider(s, system, history, {
+    var stream = streamProvider(s, system, history, {
       onDelta: onDelta,
       onDone: function () { finish(buffer); },
       onError: onError
     });
+    state.abort = stream.abort;
   }
 
   /** Remember a tier the tutor assigned the student.
@@ -2643,7 +2644,7 @@ window.ENI_SYSTEM_PROMPT = "# ENI TUTOR \u2014 Jailbreaking & Red Teaming Tutor\
       temperature: Number(fieldValue('setTemperature', cur.temperature)),
       topP: Number(fieldValue('setTopP', cur.topP)),
       maxTokens: clampInt(fieldValue('setMaxTokens', cur.maxTokens), 64, 32768, 2048),
-      stream: LOCKED ? false : !!($('setStream') && $('setStream').checked),
+      stream: LOCKED ? true : !!($('setStream') && $('setStream').checked),
       kbAttach: !!($('setKbAttach') && $('setKbAttach').checked),
       topK: clampInt(fieldValue('setTopK', cur.topK), 1, 10, 6),
       /* The persona prompt is internal — never exposed in the UI, and always

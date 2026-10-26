@@ -6,7 +6,7 @@
 // page works when it is opened alone (a preview, a file, a copy in a chat) as
 // well as from Netlify. Nothing secret is part of the build: the OpenRouter key
 // stays in the site's OPENROUTER_API_KEY variable and is read only by
-// netlify/functions/chat.js.
+// netlify/edge-functions/chat.js.
 
 const fs = require('fs');
 const path = require('path');

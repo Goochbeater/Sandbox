@@ -23,7 +23,7 @@ eni-tutor/
 │   ├── build_kb.py         kb/ -> data/kb.js
 │   ├── fetch_arxiv.py      ingests arXiv papers listed in arxiv_manifest.json
 │   └── arxiv_manifest.json candidate papers and how far each was verified
-├── netlify/functions/chat.js  OpenRouter relay; reads OPENROUTER_API_KEY
+├── netlify/edge-functions/chat.js  OpenRouter relay that streams replies; reads OPENROUTER_API_KEY
 ├── build.js                netlify-index.html -> dist/index.html (single file)
 ├── netlify.toml            publish dist/, build, function route, headers
 ├── dist/index.html         built page (committed so a drag-and-drop deploy works)
@@ -62,7 +62,8 @@ a page that contains key-shaped text.
 `nvidia/nemotron-3.5-super-vl:free` on OpenRouter. The function forces this model, so the page
 cannot select another. Limits set in the function:
 
-- replies are non-streamed and capped at 1536 tokens, to stay inside a synchronous function's time limit;
+- replies stream as they arrive, with a heartbeat while the model is still thinking, so no request sits idle long enough to hit a gateway timeout (the old synchronous function hit a 504 at about ten seconds);
+- replies are capped at 2048 tokens;
 - request bodies are capped at 64 KB, at most 40 messages, and 24,000 characters per message;
 - calls are accepted only from the site's own origin.
 

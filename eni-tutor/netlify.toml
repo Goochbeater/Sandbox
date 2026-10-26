@@ -2,15 +2,12 @@
 [build]
   publish = "dist"
   command = "npm run build"
-  functions = "netlify/functions"
 
-# The page posts to /api/v1/chat/completions. Send that to the OpenRouter relay,
-# which holds OPENROUTER_API_KEY server-side.
-[[redirects]]
-  from = "/api/v1/chat/completions"
-  to = "/.netlify/functions/chat"
-  status = 200
-  force = true
+# The page posts to /api/v1/chat/completions. The edge function relays it to
+# OpenRouter, reading OPENROUTER_API_KEY from the site's environment.
+[[edge_functions]]
+  path = "/api/v1/chat/completions"
+  function = "chat"
 
 # Single-page fallback for any deep link.
 [[redirects]]

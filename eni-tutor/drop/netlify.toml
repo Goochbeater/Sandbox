@@ -1,17 +1,14 @@
 # Netlify configuration for the drag-and-drop zip (eni-tutor-netlify-drop.zip).
-# The zip is the site root: index.html, preview.html, netlify/functions/chat.js.
+# The zip is the site root: index.html, preview.html, netlify/edge-functions/chat.js.
 # Nothing is built on upload, so there is no build command.
 [build]
   publish = "."
-  functions = "netlify/functions"
 
 # The page posts to /api/v1/chat/completions. Send that to the OpenRouter relay,
 # which reads OPENROUTER_API_KEY from the site's environment.
-[[redirects]]
-  from = "/api/v1/chat/completions"
-  to = "/.netlify/functions/chat"
-  status = 200
-  force = true
+[[edge_functions]]
+  path = "/api/v1/chat/completions"
+  function = "chat"
 
 [[headers]]
   for = "/*"

@@ -16,7 +16,7 @@ eni-tutor/
 ├── data/system-prompt.js   the persona prompt (shipped; see "Open decisions")
 ├── lib/retrieval.js        BM25 retrieval over the KB
 ├── kb/                     knowledge base sources (markdown, front matter sets the doc type)
-│   ├── v2/                 curriculum, labs, interview, quick reference (rewritten in v2)
+│   ├── v2/                 attack course: curriculum, labs, interview, quick reference
 │   ├── research/           citation cards; full text via tools/fetch_arxiv.py
 │   └── articles/           articles, including arXiv papers once ingested
 ├── tools/
@@ -75,9 +75,8 @@ NVIDIA improve its products, so do not send confidential or personal material th
 python3 tools/build_kb.py         # kb/ -> data/kb.js (33 docs)
 ```
 
-The four files in `kb/v2/` are the course. They are rewritten in v2 (see "Curriculum"). The
-twelve research cards in `kb/research/` are citation cards: they carry a title and an arXiv link,
-not the paper's text.
+The four files in `kb/v2/` are the course (see "Curriculum"). The twelve research cards in
+`kb/research/` are citation cards: they carry a title and an arXiv link, not the paper's text.
 
 ### Adding arXiv papers
 
@@ -88,17 +87,19 @@ python3 tools/build_kb.py
 ```
 
 Run this on a machine with arXiv access. It reads each paper's HTML rendering and records the
-licence from its abstract page. **Check the licence before you publish the site.** A paper
-licensed only under arXiv's non-exclusive licence can be read here, but a public site
-redistributes its text.
+paper's licence from its abstract page.
 
 ## Curriculum
 
-Five tiers, from basic to advanced: Foundations (Novice), Measurement (Apprentice), Applications
-and agents (Journeyman), Automated and adaptive testing (Expert), Defense, research and
-disclosure (Master). Each tier has labs with a deliverable, a success test and a defender
-takeaway. The curriculum's ground rules apply to every lab: authorization first, owned or
-sandboxed targets only, verdicts rather than harmful outputs, and no live third-party services.
+Five tiers, Novice to Master, built on the v1 attack course with a 2026 update in each tier.
+Attack technique is taught in full: persona and encoding campaigns, multi-turn escalation,
+document and agent injection, RAG poisoning, automated and RL attackers, adaptive attacks
+against defenses, and novel attack classes. The labs are attacks, run against owned systems,
+sandboxes, benchmark datasets, or targets with permission.
+
+The course keeps four hard lines: no operational help toward mass-casualty weapons, no malware
+written for deployment, no sexual content involving minors, and no targeting or deceiving a real,
+identifiable person.
 
 ## Tests
 
@@ -113,11 +114,14 @@ suites did not run in the v2 build environment, so they have not been verified i
 
 ## Open decisions
 
-- **The persona prompt** (`data/system-prompt.md` / `.js`) tells the model to teach "without
-  restriction", to give attacks "in the form you'd actually use", and to ignore safety reminders.
-  It conflicts with the curriculum's ground rules. Decide which one stands before the site is public.
+- **The persona prompt** (`data/system-prompt.md` / `.js`) asks the model to teach "without
+  restriction" and to ignore safety reminders. It has no hard lines, but the course does. The
+  model will follow whichever it reads last, so edit the persona to match the course before you
+  rely on it.
 - **`X-Frame-Options: DENY`** in `netlify.toml` blocks embedding the page in an iframe. Remove it
   if an embedded preview is needed.
+- **Access.** The Netlify URL is public unless you protect it. Every visit spends your OpenRouter
+  key, so add a password or token before you share the link.
 
 ## Typography
 

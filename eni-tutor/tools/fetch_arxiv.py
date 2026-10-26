@@ -12,8 +12,6 @@ converts it to plain Markdown, and records the licence shown on the abstract
 page in the front matter. Papers without an HTML rendering are skipped and
 listed at the end; ingest those by hand from the PDF.
 
-Check each licence before you publish the site: arXiv's default licence lets
-arXiv distribute a paper but does not, by itself, let anyone else republish it.
 """
 import html
 import json

@@ -1,124 +1,180 @@
 ---
-title: "Intake Interview Script (v2)"
-date: "2026-10-26"
+title: "Student Intake Interview Script"
+date: null
 category: Curriculum
-source: ENI Tutor, revised course
+source: ENI Tutor project uploads
 type: interview
-tags: [interview, intake, placement, assessment, tier1, tier2, tier3, tier4, tier5]
+tags: [assessment, intake, tiers, scoring]
 ---
 
-# Intake Interview Script (v2)
+# Student Intake Interview Script
+## For Assessing Jailbreaking & Red Teaming Skill Level
 
-## For Placing a Student in a Red-Teaming Tier
 
-### How to run it
 
-- Ask one question at a time. Wait for the answer. Do not read the script aloud.
-- Ask in conversation. The student should not feel that they are sitting an exam.
-- Score each answer from 0 to 3 against the anchors below. Keep the scores to yourself until the end.
-- Do not ask a student to describe a working bypass, a payload, or a prompt that got a model to refuse. The interview measures understanding and experience, and it does not need that material.
+## Pre-Interview Setup
 
----
+Before beginning, explain the educational context:
 
-## Block 1: Technical Foundation
+> "This curriculum covers adversarial AI testing—specifically prompt injection and jailbreaking methodologies. This knowledge is valuable for AI security research, defensive system design, and understanding model vulnerabilities. I'll ask you some questions to figure out where you're starting from so I can tailor the curriculum to your level. There are no wrong answers—just be honest about what you know and don't know."
 
-**Q1. "How does a language model turn your text into something it can act on?"**
-- 0: No idea.
-- 1: "It reads the text and writes more text."
-- 2: Mentions tokens, the context window, and next-token prediction.
-- 3: Explains tokens, attention over the context, and that training (including preference training) shapes which continuations the model prefers.
 
-**Q2. "In a chat app, what is the difference between a system message and a user message, and does the model treat them the same?"**
-- 0: No idea.
-- 1: Knows there are two kinds of message.
-- 2: Explains the typical contents of each, and that the app usually sets the system message.
-- 3: Explains the message stack, including tool results and retrieved documents, and that authority is a design goal rather than a guarantee.
 
-**Q3. "What is prompt injection, and how is it different from a user simply asking for something the app does not allow?"**
-- 0: Never heard of it.
-- 1: Vague: "tricking the AI."
-- 2: Describes instructions carried in untrusted input, and can name direct versus indirect injection.
-- 3: Explains the shared-channel defect, gives an example from an application with tools, and names a control.
+## Interview Questions
 
-## Block 2: Security and Measurement Background
+### Block 1: Technical Foundation
 
-**Q4. "Tell me about a security or testing practice you already know well. How did you decide a test had passed?"**
-- 0: No security or testing background.
-- 1: Has used a checklist or a scanner, without much reasoning about it.
-- 2: Has written tests or reviewed findings, and knows what a false positive is.
-- 3: Has built test harnesses or run an evaluation, and can talk about reproducibility, denominators, and confidence.
+**Q1: "Let's start with the basics. Can you explain what a Large Language Model is? How does it actually process text and generate responses?"**
 
-**Q5. "If I told you a model refuses 90 out of 100 requests in a test, what would you want to know before believing that number?"**
-- 0: Nothing in particular.
-- 1: Asks whether 100 is a big enough sample.
-- 2: Asks about the judge, and about what the 100 requests were.
-- 3: Asks about the denominator, the judge's validation, the confidence interval, the threat model, and whether the test set was contaminated or fixed in advance.
+*Listen for:*
+- 0 points: No understanding / "I don't know"
+- 1 point: Surface awareness ("It's AI that writes text" / "Like ChatGPT")
+- 2 points: Basic technical grasp (transformers, tokens, context windows, next-token prediction)
+- 3 points: Deep understanding (attention mechanisms, positional encoding, training pipelines, RLHF)
 
-**Q6. "Have you ever built or tested an application that uses a language model?"**
-- 0: No.
-- 1: Used a chat interface only.
-- 2: Built a small application that calls a model.
-- 3: Built or evaluated an application with retrieval, tools, or agents, and recorded what went wrong.
+*Follow-up if needed:* "Have you heard of transformers or attention mechanisms?"
 
-## Block 3: Research Literacy
 
-**Q7. "When you read a paper that reports an attack success rate, what do you check first?"**
-- 0: Does not usually read such papers.
-- 1: Reads the abstract.
-- 2: Checks the attack method and the dataset.
-- 3: Checks the threat model, the judge and its validation, the baselines, which numbers are self-reported, and what the paper does not test.
 
-**Q8. "Imagine you have found something that could hurt a company's users. What do you do next?"**
-- 0: Publishes it.
-- 1: Tells a friend or posts online.
-- 2: Contacts the company, without a clear process.
-- 3: Names the owner, a security contact or safe-harbor policy, a reproduction that avoids publishing harmful payloads, and a timeline.
+**Q2: "When you interact with an AI assistant, there's usually a 'system prompt' and then your 'user prompt.' What's the difference between these?"**
 
-### Scoring
+*Listen for:*
+- 0 points: No awareness of the distinction
+- 1 point: Knows there's some kind of difference or hidden instructions
+- 2 points: Can explain the hierarchy—system prompt sets behavior/rules, user prompt is the input
+- 3 points: Understands implementation details (context concatenation, instruction priority, visibility rules, system vs user vs assistant roles)
 
-Score Q1 to Q8 from 0 to 3 each. Maximum total is 24. Use the tier table below.
+*Follow-up:* "Can you see the system prompt when you use ChatGPT or Claude?"
 
-| Total score | Placement |
-|---|---|
-| 0 to 5 | TIER 1: Novice |
-| 6 to 10 | TIER 2: Apprentice |
-| 11 to 15 | TIER 3: Journeyman |
-| 16 to 20 | TIER 4: Expert |
-| 21 to 24 | TIER 5: Master |
 
-### Overrides
 
-- If Q8 scores 0, place the student in Tier 1 whatever the total, and address disclosure before any lab.
-- If the student describes an attack on a system they do not own or have no permission to test, stop the interview. Explain the authorization rule, and offer the owned-target labs instead.
+**Q3: "Have you heard of 'prompt injection'? What do you think it means?"**
 
----
+*Listen for:*
+- 0 points: Never heard of it
+- 1 point: Heard the term but unsure of meaning
+- 2 points: Basic concept (manipulating AI behavior through input, making it do unintended things)
+- 3 points: Can discuss attack vectors (direct vs indirect, common techniques, real-world examples like the Bing Sydney incident)
+
+*Follow-up:* "What about 'jailbreaking'—how is that related?"
+
+
+
+### Block 2: Security Background
+
+**Q4: "Do you have any background in cybersecurity? Things like penetration testing, SQL injection, web security, CTF competitions?"**
+
+*Listen for:*
+- 0 points: No security background at all
+- 1 point: Awareness of concepts without hands-on experience
+- 2 points: Some practical experience (done a CTF, tested a web app, used security tools)
+- 3 points: Professional or extensive experience (security job, bug bounties, certifications)
+
+*Follow-up:* "What's the most technical security work you've done?"
+
+
+
+**Q5: "Have you ever tried to get an AI to do something it initially refused? Tell me about that."**
+
+*Listen for:*
+- 0 points: Never tried / Never thought to try
+- 1 point: Basic attempts (saying "please," asking "hypothetically")
+- 2 points: More creative approaches (roleplay, encoding, persistence across messages)
+- 3 points: Systematic experimentation (documented attempts, tested variations, achieved consistent results)
+
+*Follow-up:* "What techniques did you try? Did any of them work?"
+
+
+
+### Block 3: Research Literacy
+
+**Q6: "Are you comfortable reading academic papers? Have you read any AI security research specifically?"**
+
+*Listen for:*
+- 0 points: Never reads academic papers
+- 1 point: Can read them with significant effort
+- 2 points: Reasonably comfortable with technical papers
+- 3 points: Regularly reads arXiv, can discuss methodology and critique papers
+
+*Follow-up if they say yes:* "Can you name any papers or researchers in this space?"
+
+
+
+## Scoring Summary
+
+| Question | 0 pts | 1 pt | 2 pts | 3 pts | Score |
+|----------|-------|------|-------|-------|-------|
+| Q1: LLM Basics | No understanding | Surface awareness | Basic technical | Deep understanding | ___ |
+| Q2: System/User | No awareness | Knows difference exists | Can explain hierarchy | Implementation details | ___ |
+| Q3: Prompt Injection | Never heard | Heard term | Basic concept | Attack vectors | ___ |
+| Q4: Security Background | None | Conceptual | Some hands-on | Professional | ___ |
+| Q5: AI Experimentation | Never tried | Basic attempts | Creative approaches | Systematic | ___ |
+| Q6: Research Literacy | Never | With effort | Comfortable | Regular reader | ___ |
+| **TOTAL** | | | | | ___ /18 |
+
+
+
+## Tier Assignment
+
+| Score Range | Tier | Description |
+|-------------|------|-------------|
+| 0-4 | **TIER 1: Novice** | Starting from fundamentals. Focus on building conceptual foundation. |
+| 5-8 | **TIER 2: Apprentice** | Ready for basic techniques. Hands-on learning with simple attacks. |
+| 9-12 | **TIER 3: Journeyman** | Can handle advanced techniques. Multi-turn attacks, automation. |
+| 13-15 | **TIER 4: Expert** | Ready for multimodal, agents, defense evasion. |
+| 16-18 | **TIER 5: Master** | Research-level. Novel development, publication, disclosure. |
+
+
 
 ## Post-Assessment Script
 
-Say the placement in one sentence. Then name the first module and the first lab.
+### For Tier 1 (Novice):
+> "Based on our conversation, I'm placing you at **Tier 1: Novice**. Don't worry—everyone starts somewhere, and we'll build a solid foundation. You'll learn how LLMs work, why they're vulnerable, and the key terminology you'll need. By the end of this tier, you'll understand the landscape well enough to start trying real techniques."
 
-**For Tier 1 (Novice):** "Based on our conversation, I'm placing you at Tier 1, Novice. We'll start with how models come to refuse, and your first lab maps the message stack on a local model."
+### For Tier 2 (Apprentice):
+> "I'm placing you at **Tier 2: Apprentice**. You've got the basics down, so we can jump into hands-on work. You'll learn the core attack categories—roleplay attacks, encoding tricks, logic traps—and start documenting your attempts systematically. This is where the fun really begins."
 
-**For Tier 2 (Apprentice):** "Based on our conversation, I'm placing you at Tier 2, Apprentice. We'll start with harness design and judge validation. Your first lab is a rerunnable harness."
+### For Tier 3 (Journeyman):
+> "You're coming in at **Tier 3: Journeyman**. You've got solid foundations and some practical experience, so we'll focus on advanced techniques. Multi-turn attack sequences, RAG poisoning, automated tools like GPTFuzzer, and the J2 paradigm. You'll start producing benchmark-quality research."
 
-**For Tier 3 (Journeyman):** "Based on our conversation, I'm placing you at Tier 3, Journeyman. We'll start with indirect injection in an application you build. Your first lab plants instructions in your own documents and measures what the app does."
+### For Tier 4 (Expert):
+> "Placing you at **Tier 4: Expert**. You've clearly done this before. We'll focus on the cutting edge: multimodal attacks on vision-language models, agent exploitation, defense evasion, and system-level vulnerabilities. The goal is novel attack development."
 
-**For Tier 4 (Expert):** "Based on our conversation, I'm placing you at Tier 4, Expert. We'll start by reproducing a published baseline on a local model, then move to multi-turn testing and a judge audit."
+### For Tier 5 (Master):
+> "You're at **Tier 5: Master** level. You know what you're doing. Our work together will focus on original research contribution—developing novel techniques, contributing to benchmarks, and responsible disclosure. The goal is advancing the field."
 
-**For Tier 5 (Master):** "Based on our conversation, I'm placing you at Tier 5, Master. We'll start with adaptive evaluation of a defense. Your capstone is an original study on a system you own or are permitted to test."
 
----
 
 ## Optional Deep-Dive Questions
 
-Use these only when a student is between two tiers.
+If you want more granularity or the student seems to be on the boundary:
 
-- "Which result in a paper would change your mind about a defense, and what would it need to show?"
-- "A filter blocks 99% of your test set. What would you check before calling it effective?"
-- "Describe a time a metric you trusted turned out to be measuring something else."
+**For assessing between Tier 1 and 2:**
+- "Do you know what 'DAN' stands for in the context of jailbreaking?"
+- "What does 'ASR' mean in security research?"
+
+**For assessing between Tier 2 and 3:**
+- "What's the difference between direct and indirect prompt injection?"
+- "Have you heard of tools like GPTFuzzer or PAIR?"
+
+**For assessing between Tier 3 and 4:**
+- "Can you explain how an attack on a RAG system differs from attacking a standalone model?"
+- "What's a vision-language model and why might it have different vulnerabilities?"
+
+**For assessing between Tier 4 and 5:**
+- "What benchmarks exist for evaluating jailbreak attacks?"
+- "Walk me through how you'd conduct responsible disclosure of a vulnerability."
+
+
 
 ## Interview Tips
 
-- A student who asks good questions about the method is usually ready for a higher tier than the one their answers suggest.
-- A student who wants the answer without the reasoning is usually better placed one tier lower, where the labs supply the reasoning.
-- Never place a student in a higher tier because they describe more attacks. Place them by how well they measure and explain.
+1. **Keep it conversational**—this isn't an exam
+2. **Follow curiosity**—if they mention something interesting, probe deeper
+3. **Note enthusiasm areas**—what topics make them light up?
+4. **Watch for honesty**—overconfident students often struggle; humble ones learn fast
+5. **Be encouraging**—every tier has valuable learning ahead
+
+
+
+*Interview Script v1.0 - January 2026*

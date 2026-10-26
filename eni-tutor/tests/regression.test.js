@@ -220,12 +220,14 @@
       /* labs, listed vertically */
       A4.renderLabs();
       var labButtons = id('labList').querySelectorAll('.lab-item');
-      /* 21 labs and the capstone, one per chunk of kb/v2/lab-exercises.md */
-      ok(labButtons.length === 22, 'the labs are listed in the drawer',
-        labButtons.length + ' lab buttons');
+      /* One button per chunk of the labs document, whatever the course size is */
+      var labDoc = window.KB_DATA.docs.filter(function (d) { return d.type === 'labs'; })[0];
+      var labChunkCount = window.KB_DATA.chunks.filter(function (c) { return c.doc === labDoc.id; }).length;
+      ok(labButtons.length === labChunkCount, 'the labs are listed in the drawer',
+        labButtons.length + ' lab buttons, ' + labChunkCount + ' lab chunks');
       ok(id('labList').querySelectorAll('.lab-tier').length >= 1,
         'the labs have at least one tier group');
-      ok(textOf(id('labList')).indexOf('Map the Message Stack') !== -1,
+      ok(textOf(id('labList')).indexOf('Persona Attack Campaign') !== -1,
         'a known lab name is present');
 
       /* the library is browsable */

@@ -21,7 +21,7 @@ const knowledge = import(pathToFileURL(path.join(dir, 'knowledge.js')).href);
 
 const SITE = 'https://eni.example.netlify.app';
 const UPSTREAM = 'https://openrouter.ai/api/v1/chat/completions';
-const SEARCH = 'https://api.search.brave.com/res/v1/web/search';
+const SEARCH = 'https://api.tavily.com/search';
 const encoder = new TextEncoder();
 
 const frame = (obj) => 'data: ' + JSON.stringify(obj) + '\n\n';
@@ -50,7 +50,7 @@ function stubRounds(rounds) {
       const round = rounds[calls.filter((c) => c.url.startsWith(UPSTREAM)).length - 1];
       return round;
     }
-    return new Response(JSON.stringify({ web: { results: [] } }), { headers: { 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ results: [] }), { headers: { 'Content-Type': 'application/json' } });
   };
   return { calls, restore: () => { globalThis.fetch = real; } };
 }
@@ -75,7 +75,7 @@ const interviewId = async () => {
 
 test.beforeEach(() => {
   env.OPENROUTER_API_KEY = 'test-key-123';
-  delete env.BRAVE_SEARCH_API_KEY;
+  delete env.TAVILY_API_KEY;
 });
 
 test('rejects non-POST requests', async () => {
@@ -223,8 +223,8 @@ test('web_search without a key says so, and the answer still comes', async () =>
   }
 });
 
-test('web_search with a key queries Brave and returns the results as data', async () => {
-  env.BRAVE_SEARCH_API_KEY = 'brave-key';
+test('web_search with a key posts the query to Tavily and returns the results as data', async () => {
+  env.TAVILY_API_KEY = 'tavily-key';
   const handler = await loaded;
   const real = globalThis.fetch;
   const searches = [];
@@ -236,15 +236,19 @@ test('web_search with a key queries Brave and returns the results as data', asyn
   globalThis.fetch = async (url, init) => {
     if (String(url).startsWith(SEARCH)) {
       searches.push({ url: String(url), init });
-      return new Response(JSON.stringify({ web: { results: [{ title: 'A study', url: 'https://example.org/a', description: '<strong>Agents</strong> and tools' }] } }), { headers: { 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ results: [{ title: 'A study', url: 'https://example.org/a', content: '<strong>Agents</strong> and tools' }] }), { headers: { 'Content-Type': 'application/json' } });
     }
     return stubbed(url, init);
   };
   try {
     await (await handler(post(goodBody()))).text();
     assert.equal(searches.length, 1);
-    assert.match(searches[0].url, /q=agent\+swarms/);
-    assert.equal(searches[0].init.headers['X-Subscription-Token'], 'brave-key');
+    assert.equal(searches[0].init.method, 'POST');
+    assert.equal(searches[0].init.headers.Authorization, 'Bearer tavily-key');
+    const sent = JSON.parse(searches[0].init.body);
+    assert.equal(sent.query, 'agent swarms');
+    assert.equal(sent.max_results, 5);
+    assert.equal(sent.include_raw_content, false);
     const toolMsg = bodyOf(modelCalls(up.calls)[1]).messages.find((m) => m.role === 'tool');
     assert.match(toolMsg.content, /A study \(https:\/\/example\.org\/a\)/);
     assert.match(toolMsg.content, /Agents and tools/, 'markup is stripped');

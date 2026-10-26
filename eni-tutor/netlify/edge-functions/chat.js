@@ -6,7 +6,7 @@
 // rounds run here. The final answer streams to the page as it arrives. The page
 // also receives a small event for each read and each search.
 //
-// The key is read from OPENROUTER_API_KEY and, for search, BRAVE_SEARCH_API_KEY.
+// The key is read from OPENROUTER_API_KEY and, for search, TAVILY_API_KEY.
 // Neither reaches the browser. The model, the persona and the limits are fixed
 // here, not by the caller.
 
@@ -14,7 +14,7 @@ import { PERSONA, INDEX, DOCS } from './knowledge.js';
 
 const MODEL = 'nvidia/nemotron-3.5-super-vl:free';
 const UPSTREAM = 'https://openrouter.ai/api/v1/chat/completions';
-const SEARCH_URL = 'https://api.search.brave.com/res/v1/web/search';
+const SEARCH_URL = 'https://api.tavily.com/search';
 const MAX_BODY_BYTES = 64 * 1024;
 const MAX_MESSAGES = 40;
 const MAX_CHARS_PER_MESSAGE = 24000;
@@ -73,19 +73,31 @@ function indexText() {
     INDEX.map((i) => '- [' + i.id + '] ' + i.title + ' (' + i.type + '): ' + i.summary).join('\n');
 }
 
-// A web search through Brave's API. Results are data for the model, not instructions.
+// A web search through Tavily's API, the same call the harness makes. Results are
+// data for the model, not instructions.
 async function webSearch(query) {
-  const key = Deno.env.get('BRAVE_SEARCH_API_KEY');
+  const key = Deno.env.get('TAVILY_API_KEY');
   if (!key) return 'Web search is not configured for this site.';
   try {
-    const url = SEARCH_URL + '?' + new URLSearchParams({ q: query, count: '5' });
-    const res = await fetch(url, { headers: { Accept: 'application/json', 'X-Subscription-Token': key } });
+    const res = await fetch(SEARCH_URL, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query,
+        search_depth: 'basic',
+        max_results: 5,
+        topic: 'general',
+        include_answer: false,
+        include_raw_content: false,
+      }),
+    });
     if (!res.ok) return 'Web search failed: HTTP ' + res.status + '.';
     const data = await res.json();
-    const results = (data.web && data.web.results) || [];
+    const results = (Array.isArray(data.results) ? data.results : [])
+      .filter((r) => r && /^https?:\/\//i.test(String(r.url || '')));
     if (!results.length) return 'No results.';
     return results.slice(0, 5)
-      .map((r, i) => (i + 1) + '. ' + plain(r.title) + ' (' + r.url + ')\n' + plain(r.description))
+      .map((r, i) => (i + 1) + '. ' + plain(r.title || r.url) + ' (' + r.url + ')\n' + plain(r.content).slice(0, 700))
       .join('\n\n');
   } catch (e) {
     return 'Web search failed: ' + e.message;

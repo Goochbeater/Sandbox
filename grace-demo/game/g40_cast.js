@@ -104,11 +104,21 @@ Object.assign(CAST.specs, {
 });
 /* the Woman in the wood, in her hut: the opening's witch, but not offstage here, and at home in the hut by the fire */
 CAST.specs.hutWitch = Object.assign({}, CAST.specs.witch, { id: 'hutWitch', offstage: false, home: 'hut', homes: { hut: { x: 3.6, z: 2.0, face: -1, idle: 'Spell_Simple_Idle_Loop' } } });
+/* boot builds everyone except the lazy: specs marked { lazy: true } (the festival's and the town's people) are built the
+   first time the king heads for a room they live in (CAST.ensure, run by SCENE.prepare behind the fade), so the cast can
+   keep growing without the boot getting longer */
 CAST.build = async function () {
-  const A = {};
-  for (const [k, spec] of Object.entries(CAST.specs)) { A[k] = await new Actor(spec).build(); SCENE.addActor(A[k]); setLoad(0.7 + 0.15 * Object.keys(A).length / Object.keys(CAST.specs).length); await nextFrame(); }
-  CAST.A = A; SCENE.player = A.king;
+  const A = {}, boot = Object.entries(CAST.specs).filter(([, s]) => s && !s.lazy);
+  for (const [k, spec] of boot) { A[k] = await new Actor(spec).build(); SCENE.addActor(A[k]); setLoad(0.7 + 0.15 * Object.keys(A).length / boot.length); await nextFrame(); }
+  CAST.A = A; SCENE.player = A.king; SCENE.beforeEnter = CAST.ensure;
   for (const a of Object.values(A)) if (a.spec.offstage) a.offstage = true;
   A.marta.offstage = A.tomasz.offstage = true; for (const a of Object.values(A)) if (a.offstage) a.setVisible(false);
   return A;
+};
+CAST.ensure = async function (roomId) {
+  for (const [k, spec] of Object.entries(CAST.specs)) {
+    if (!spec || !spec.lazy || CAST.A[k] || !(spec.home === roomId || (spec.homes && spec.homes[roomId]))) continue;
+    const a = await new Actor(spec).build(); SCENE.addActor(a); CAST.A[k] = a;
+    if (spec.offstage) a.offstage = true; a.setVisible(false); await nextFrame();
+  }
 };

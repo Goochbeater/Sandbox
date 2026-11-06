@@ -13,6 +13,12 @@
   #view { position: absolute; overflow: hidden; background: #050304; }
   #cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; outline: none; }
   #ui { position: absolute; inset: 0; pointer-events: none; }
+  /* the festival's timing meter (FEST.meter): a needle running along a track, the gold zone near the top */
+  .meter { position: absolute; left: 50%; bottom: 16%; transform: translateX(-50%); width: min(62vw, 440px); display: flex; flex-direction: column; align-items: center; gap: 8px; color: #f0e8d8; font-size: clamp(13px, 1.7vw, 18px); text-shadow: 0 1px 2px #000; }
+  .meter .track { position: relative; width: 100%; height: 16px; background: rgba(16, 11, 9, 0.85); border: 1px solid #8a6a3a; border-radius: 3px; }
+  .meter .track i { position: absolute; left: 66%; width: 34%; top: 0; bottom: 0; background: linear-gradient(90deg, rgba(232, 184, 64, 0.15), rgba(232, 184, 64, 0.55) 60%, rgba(232, 184, 64, 0.2)); }
+  .meter .track b { position: absolute; top: -4px; bottom: -4px; width: 4px; margin-left: -2px; background: #fff4d8; box-shadow: 0 0 6px #e3b75a; }
+  .meter.done .track b { background: #e3b75a; }
   .mk { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; pointer-events: auto; cursor: pointer; opacity: 0; transition: opacity 0.35s, transform 0.25s; }
   .mk.show { opacity: 0.9; }
   .mk.show.near { opacity: 1; transform: scale(1.25); }
@@ -54317,6 +54323,10 @@ SCENE.saveMove = function () { try { localStorage.setItem('grace.move', JSON.str
 SCENE.DOF0 = { uNear0: 0.8, uNearR: 3.2, uFar0: 3.0, uFarR: 10 };   // depth-of-field ramps (m) every room starts from; room.dof overrides
 SCENE.addRoom = function (room) { SCENE.rooms[room.id] = room; return room; };
 SCENE.addActor = function (a) { SCENE.actors.push(a); return a; };
+/* before a room is entered, the game may need to get it ready (the cast builds its lazy actors here: CAST.ensure). Every
+   way into a room awaits it: SCENE.go behind its fade, Continue, and a ?room= test link at boot */
+SCENE.beforeEnter = null;
+SCENE.prepare = async function (id) { if (SCENE.beforeEnter) await SCENE.beforeEnter(id); };
 /* switch rooms at once (used at boot and behind the fade) */
 SCENE.enter = function (id, at) {
   at = at || {};
@@ -54330,8 +54340,8 @@ SCENE.enter = function (id, at) {
   R.baseFov = room.cam.fov; R.cam.fov = room.cam.fov * R.fovK; R.cam.updateProjectionMatrix();
   for (const k in SCENE.DOF0) R.dofU[k].value = SCENE.DOF0[k]; for (const k in room.dof || {}) R.dofU[k].value = room.dof[k];
   const P = SCENE.player; if (P) { P.stand(); P.x = at.x !== undefined ? at.x : P.x; P.z = room.KZ; P.face = at.face || P.face; P.yaw = P.face * 1.0; P.target = null; P.v = 0; }
+  Actor.assignLayers(id, P);   // deal the layers first, so showing an actor never has to claim one
   for (const a of SCENE.actors) { if (a !== P) a.placeIn(id); a.setVisible(a === P ? !room.noPlayer : a.livesIn(id) && !a.offstage); }
-  Actor.assignLayers(id, P);
   SCENE.buildMarks(); SCENE.bubbleOff();
   R.r.shadowMap.needsUpdate = true;
   SCENE.camX = SCENE.camGoal(true);
@@ -54340,6 +54350,7 @@ SCENE.enter = function (id, at) {
 SCENE.go = async function (id, at) {
   SCENE.lock++; SCENE.dir = 0; if (SCENE.player) { SCENE.player.target = null; }
   const f = $('fade'); f.classList.remove('off'); await SCENE.wait(900);
+  await SCENE.prepare(id);
   SCENE.enter(id, at);
   R.r.compile(R.scene, R.cam); SCENE.render(); await nextFrame();
   f.classList.add('off'); await SCENE.wait(400); SCENE.lock--;
@@ -54506,7 +54517,7 @@ SCENE.step = function (n, dir) {
    Music: real recordings (public-domain tracks in audio/*.mp3), streamed by <audio> elements and cross-faded, so they
    work from file:// as well as when hosted. Ambience and effects are synthesised with WebAudio, so they cost no
    download and never loop audibly: rain (hiss + drops + rumble), rain on glass, wind, fire (roar + crackle), birds,
-   a murmuring crowd, a fountain, room tone; footsteps per floor surface, thunder, door, clang, thud, chime, page, click, drum, whoosh, coin; animals: purr, meow, pant.
+   a murmuring crowd, a fountain, room tone; footsteps per floor surface, thunder, door, clang, thud, chime, page, click, drum, whoosh, coin; animals: purr, meow, pant; the festival: cheer, fwoosh, fanfare, crack, hooves.
    Everything goes through a room reverb (generated impulse) sized per room.
    Use:  AUDIO.unlock() on the first tap · AUDIO.playMusic('throne') · AUDIO.ambience({ rain: 0.8, fire: 0.4 })
          AUDIO.acoustics({ size: 2.2, wet: 0.35 }) · AUDIO.sfx('thunder', { gain: 1 }) · AUDIO.step('stone', 0.8, pan)
@@ -54692,7 +54703,28 @@ AUDIO.sfx = function (name, o) {
     bp.frequency.setValueAtTime(800, t); bp.frequency.linearRampToValueAtTime(1700, t + d * 0.4); bp.frequency.linearRampToValueAtTime(900, t + d);
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.22 * gain, t + 0.06); g.gain.linearRampToValueAtTime(0.16 * gain, t + d * 0.7); g.gain.linearRampToValueAtTime(0, t + d);
     AUDIO.chain(os, bp, g, out); os.start(t); os.stop(t + d + 0.05); }
+  else if (name === 'snort') { const s = c.createBufferSource(); s.buffer = AUDIO.N.pink; const lp = AUDIO.filt('lowpass', 700, 1.2), g = c.createGain(), am = c.createGain(), lfo = c.createOscillator(), lg = c.createGain();
+    lfo.frequency.value = 38; lg.gain.value = 0.45; am.gain.value = 0.55; lfo.connect(lg); lg.connect(am.gain);   // a horse's blown breath, fluttering through the lips
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.7 * gain, t + 0.06); g.gain.exponentialRampToValueAtTime(0.001, t + 0.7); AUDIO.chain(s, lp, am, g, out); s.start(t, Math.random(), 0.8); lfo.start(t); lfo.stop(t + 0.8); }
   else if (name === 'pant') { for (let i = 0; i < 6; i++) AUDIO.burst(out, t + i * 0.2, 0.12, 'bandpass', i % 2 ? 1300 : 1700, 1.2, (i % 2 ? 0.16 : 0.22) * gain, AUDIO.N.pink); }
+  // the festival: a crowd's cheer (a swell of voices and claps), a fire-spitter's blast, a herald's fanfare, a lance
+  // breaking on a shield, a horse's hooves (one stride: call it per stride)
+  else if (name === 'cheer') { const d = o.dur || 2.6, s = c.createBufferSource(); s.buffer = AUDIO.N.pink; s.loop = true; const bp = AUDIO.filt('bandpass', 950, 0.55), g = c.createGain();
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.5 * gain, t + 0.35); g.gain.linearRampToValueAtTime(0.38 * gain, t + d * 0.55); g.gain.linearRampToValueAtTime(0, t + d);
+    AUDIO.chain(s, bp, g, out); s.start(t, Math.random() * 2); s.stop(t + d + 0.1);
+    for (let i = 0; i < 26; i++) AUDIO.burst(out, t + 0.2 + Math.random() * d * 0.8, 0.025, 'highpass', 1800 + Math.random() * 1500, 0.8, (0.12 + Math.random() * 0.12) * gain); }
+  else if (name === 'fwoosh') { const s = c.createBufferSource(); s.buffer = AUDIO.N.brown; const lp = AUDIO.filt('lowpass', 300, 0.8), g = c.createGain(), d = o.dur || 1.0;
+    lp.frequency.setValueAtTime(300, t); lp.frequency.exponentialRampToValueAtTime(2200, t + d * 0.3); lp.frequency.exponentialRampToValueAtTime(500, t + d);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(1.1 * gain, t + 0.08); g.gain.exponentialRampToValueAtTime(0.001, t + d); AUDIO.chain(s, lp, g, out); s.start(t, Math.random(), d + 0.1);
+    AUDIO.burst(out, t + 0.05, d * 0.7, 'bandpass', 3200, 0.7, 0.18 * gain, AUDIO.N.pink); }
+  else if (name === 'fanfare') { [[523, 0, 0.18], [659, 0.2, 0.18], [784, 0.4, 0.18], [1047, 0.62, 0.9]].forEach(([f, dt, d]) => {
+      const os = c.createOscillator(), lp = AUDIO.filt('lowpass', 2600, 0.7), g = c.createGain(), vib = c.createOscillator(), vg = c.createGain(); os.type = 'sawtooth'; os.frequency.value = f;
+      vib.frequency.value = 5.5; vg.gain.value = f * 0.006; vib.connect(vg); vg.connect(os.frequency);
+      g.gain.setValueAtTime(0, t + dt); g.gain.linearRampToValueAtTime(0.16 * gain, t + dt + 0.03); g.gain.setValueAtTime(0.16 * gain, t + dt + d - 0.04); g.gain.linearRampToValueAtTime(0, t + dt + d);
+      AUDIO.chain(os, lp, g, out); os.start(t + dt); os.stop(t + dt + d + 0.05); vib.start(t + dt); vib.stop(t + dt + d + 0.05); }); }
+  else if (name === 'crack') { for (let i = 0; i < 4; i++) AUDIO.burst(out, t + i * 0.012, 0.05, 'highpass', 2200 + i * 600, 0.9, 0.5 * gain);
+    AUDIO.burst(out, t, 0.18, 'lowpass', 240, 1, 0.9 * gain, AUDIO.N.brown); }
+  else if (name === 'hooves') { for (let i = 0; i < 3; i++) AUDIO.burst(out, t + i * 0.09 + Math.random() * 0.015, 0.07, 'lowpass', 300 + Math.random() * 80, 1, (0.5 - i * 0.08) * gain, AUDIO.N.brown); }
   else if (name === 'coin') { const a = new Audio(AUDIO.base + 'coin.mp3'); a.volume = clamp(0.8 * gain * AUDIO.vol.sfx, 0, 1); a.play().catch(() => {}); }
 };
 /* footsteps: called by actors on each foot contact; quieter and panned with distance from the frame's centre */
@@ -54953,6 +54985,35 @@ BUILD.pet = function (card, o) {
   });
   it.label = o.label || 'Pet the ' + o.id; it.pet = st; it.voice = voice;
   return it;
+};
+/* a card showing one frame of a painted strip (tex.userData.n frames side by side): { me, t, n, f, set(f) }. o.rate cycles
+   o.frames (default all) on its own, frames per second; a.paused stops it. o.basic with o.k > 1 makes it glow (fire).
+   Other options as BUILD.card. The card has its own material and isn't batched, so it can move */
+BUILD.anim = function (tex, x, y, z, o) {
+  o = o || {}; const n = tex.userData.n || 1, t = tex.clone(); t.needsUpdate = true; t.repeat.x = 1 / n; t.userData = Object.assign({}, tex.userData);
+  const m = o.basic ? new THREE.MeshBasicMaterial({ map: t, color: new THREE.Color(o.col || 0xffffff).multiplyScalar(o.k || 1), alphaTest: 0.5, side: THREE.DoubleSide })
+    : new THREE.MeshStandardMaterial({ map: t, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.85, color: new THREE.Color(o.col || 0xffffff) });
+  const me = BUILD.card(t, x, y, z, Object.assign({}, o, { mat: m, dyn: true }));
+  const A = { me, t, n, f: 0, paused: false, set(f) { A.f = f; t.offset.x = f / n; } };
+  if (o.rate) { const fr = o.frames || [...Array(n).keys()], ph = hash(x * 5, z * 5, 13) * 10; BUILD.room.tick.push((T) => { if (!A.paused) A.set(fr[Math.floor(T * o.rate + ph) % fr.length]); }); }
+  return A;
+};
+/* a round pavilion: canvas walls left open across the front by o.open radians (so the inside shows), a cone roof, a
+   scalloped valance at the eaves (o.valance: an awning texture), a pole and a pennant (o.pennant). wall and roof are
+   repeating canvas textures. Its footprint goes into room.solids as a circle */
+BUILD.tent = function (x, z, r, h, rh, wall, roof, o) {
+  o = o || {}; const open = o.open || 0, seg = o.seg || 18, T = {};
+  const g = new THREE.CylinderGeometry(r, r, h, seg, 1, true, open / 2, Math.PI * 2 - open); g.translate(x, h / 2, z);   // theta 0 faces the lens (+z)
+  BUILD.uvScale(g, wall, (Math.PI * 2 - open) * r, h);
+  T.walls = BUILD.add(new THREE.Mesh(g, BUILD.std(wall, { side: THREE.DoubleSide, rough: 0.9 })), { cast: true });
+  T.roof = BUILD.cone(x, z, h - 0.02, r * 1.1, rh, roof, { seg });
+  if (o.valance) { const vt = o.valance.clone(); vt.needsUpdate = true; vt.wrapS = THREE.RepeatWrapping; vt.repeat.x = Math.round(Math.PI * 2 * r * 1.1 / 2);
+    const vh = o.valance.userData.h / PX.D, vg = new THREE.CylinderGeometry(r * 1.11, r * 1.11, vh, seg * 2, 1, true); vg.translate(x, h - vh / 2 + 0.02, z);
+    T.valance = BUILD.add(new THREE.Mesh(vg, new THREE.MeshStandardMaterial({ map: vt, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.9 })), { cast: false, dyn: true }); }
+  BUILD.box(x - 0.05, x + 0.05, h + rh - 0.1, h + rh + 0.7, z - 0.05, z + 0.05, PX.T.woodPost, { cast: false });
+  if (o.pennant) T.pennant = BUILD.windCard(o.pennant, x + 1.32, h + rh + 0.2, z, 'wave', 0.12, { cast: false, s: o.pennantS || 1 });
+  BUILD.solid(x - r, x + r, 0, h, z - r, z + r, o, [x, z, r]);
+  return T;
 };
 /* a round pool of water (a fountain basin): an animated strip cycled like the flames, on a flat disc */
 BUILD.pool = function (tex, x, y, z, r, o) {
@@ -56943,6 +57004,313 @@ PX.def('cauldronPix', () => {   // an iron cauldron on three legs, the brew viol
   return p.outline(null, 0.7).tex();
 });
 
+/* ==== game/g18_paint_fest.js ==== */
+/* THE SWAN FESTIVAL — pixel painters for the three festival grounds (the fair, the lists, the pavilions). Midsummer
+   afternoon, the sun from the west (left): every painted thing is lit on its left and top edges. Bright, saturated
+   livery colours: Lodmir's swan blue and white, Krasna's red and white, the League's river teal and gold. */
+const FP = {
+  red: [0x4a0e0c, 0x7a1a16, 0xa82a24, 0xcc4436, 0xe8705a],
+  white: [0x9a9284, 0xbcb4a4, 0xdcd4c2, 0xf0e8d8, 0xfffaf0],
+  blue: [0x101a30, 0x1e2e52, 0x2c4478, 0x3c5ea0, 0x5a7cc0],
+  gold: [0x6a4410, 0x9a6a1c, 0xc8962a, 0xe8b840, 0xf8dc78],
+  green: [0x16300e, 0x244a18, 0x346a22, 0x4a8a2e, 0x6aaa42],
+  wood: [0x1e1208, 0x3a2414, 0x5a3a20, 0x7a522e, 0x9a6c3e, 0xbc8a52],
+  teal: [0x0c2a2a, 0x14404a, 0x1e5a5e, 0x2e7a78, 0x4a9a92],
+  steel: [0x22262e, 0x3e444e, 0x5e6670, 0x8a929c, 0xb8c0c8, 0xe8eef2],
+  black: [0x0c0c10, 0x16161c, 0x22222a, 0x30303a, 0x46465a],
+  skins: [0xf0c8a8, 0xd8a88a, 0xb88a6a, 0x8a5a3a, 0x5a3a24],
+};
+/* vertical stripes, a lit top and a shaded bottom; scallop: a dagged lower edge (an awning's valance) */
+PX.stripes = function (W, H, a, b, n, scallop) {
+  const p = new Pix(W, H), sw = W / n;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (scallop && y > H - 6) { const u = ((x % sw) / sw - 0.5) * 2; if (y - (H - 6) > 5 * (1 - u * u)) continue; }
+    const base = Math.floor(x / sw) % 2 ? b : a, fold = 0.92 + 0.14 * Math.sin((x % sw) / sw * Math.PI);   // each stripe a soft fold
+    p.set(x, y, C.mul(base, fold * (y < 2 ? 1.12 : y > H - 8 ? 0.84 : 1)));
+  }
+  return p;
+};
+/* a stall's counter: planks on top, a cloth skirt in front, a shadow under the lip */
+PX.counter = function (p, x0, x1, y0, H, skirt) {
+  const Wd = FP.wood;
+  for (let x = x0; x < x1; x++) { p.set(x, y0, Wd[5]); p.set(x, y0 + 1, Wd[4]); p.set(x, y0 + 2, Wd[2]); }
+  for (let y = y0 + 3; y < H; y++) for (let x = x0; x < x1; x++) { const k = (x - x0) % 6 === 0 ? 0.78 : 1; p.set(x, y, C.mul(skirt, k * (y === y0 + 3 ? 0.7 : 1))); }
+  for (let x = x0; x < x1; x += 4) p.set(x + 1, H - 1, C.mul(skirt, 0.6));
+};
+/* the dancing bear: on its hind legs (paws down or up), or sitting happy (petted) */
+PX.bear = function (pose, into, ox) {   // into/ox: draw into a strip at x offset ox (the dance frames), else a texture of its own
+  const W = 40, H = 56, base = into || new Pix(W, H), B = [0x1e120a, 0x3a2414, 0x5a3a20, 0x7a5230, 0x96683e], M = 0xb8946a;
+  const o = ox || 0, p = { ell: (x, y, rx, ry, c) => base.ell(o + x, y, rx, ry, c), disc: (x, y, r, c) => base.disc(o + x, y, r, c), rect: (x, y, w, h, c) => base.rect(o + x, y, w, h, c),
+    line: (x0, y0, x1, y1, c) => base.line(o + x0, y0, o + x1, y1, c), set: (x, y, c) => base.set(o + x, y, c), hl: (x0, x1, y, c) => base.hl(o + x0, o + x1, y, c) };
+  if (pose === 'sit') {
+    p.ell(20, 42, 12, 11, B[2]); p.ell(18, 40, 9, 8, B[3]); p.ell(20, 50, 13, 5, B[1]);
+    p.ell(10, 50, 4, 3, B[2]); p.ell(30, 50, 4, 3, B[2]);   // feet out in front
+    p.ell(20, 22, 8, 7.5, B[2]); p.ell(18, 20, 6, 5.5, B[3]); p.ell(20, 26, 4, 3, M); p.disc(20, 24.5, 1.5, B[0]);
+    p.disc(13, 15, 2.6, B[2]); p.disc(27, 15, 2.6, B[2]); p.set(16, 21, B[0]); p.set(24, 21, B[0]); p.hl(16, 17, 20, B[0]); p.hl(23, 24, 20, B[0]);   // ears, shut eyes
+    p.set(20, 29, 0xd86a7a); p.set(21, 29, 0xd86a7a);   // tongue
+    p.hl(13, 27, 31, 0xa82a24); p.hl(13, 27, 32, 0x7a1a16);   // the red collar
+  } else {
+    const up = pose === 'up';
+    p.ell(20, 34, 10, 13, B[2]); p.ell(18, 31, 7, 10, B[3]); p.ell(20, 40, 5, 6, M);   // body, the pale belly
+    for (const s of [-1, 1]) { p.rect(20 + s * 6 - 2, 44, 5, 11, B[1]); p.rect(20 + s * 6 - 3, 53, 7, 3, B[0]); }   // hind legs
+    for (const s of [-1, 1]) { if (up) p.line(20 + s * 8, 26, 20 + s * 13, 12, B[2]), p.line(20 + s * 9, 26, 20 + s * 14, 12, B[2]), p.disc(20 + s * 13.5, 11, 2.2, B[1]);
+      else p.line(20 + s * 8, 26, 20 + s * 12, 38, B[2]), p.line(20 + s * 9, 26, 20 + s * 13, 38, B[2]), p.disc(20 + s * 12.5, 39, 2.2, B[1]); }
+    p.ell(20, 15, 7, 6.5, B[2]); p.ell(18, 13, 5, 4.5, B[3]); p.ell(20, 19, 3.5, 2.6, M); p.disc(20, 18, 1.4, B[0]);
+    p.disc(14, 9, 2.4, B[2]); p.disc(26, 9, 2.4, B[2]); p.set(17, 14, 0x0e0a08); p.set(23, 14, 0x0e0a08);
+    p.hl(14, 26, 22, 0xa82a24); p.hl(14, 26, 23, 0x7a1a16); p.set(20, 24, 0x8a8a8a); p.set(20, 25, 0x6a6a6a);   // collar and the chain's ring
+  }
+  return into ? into : base.outline(null, 0.6).tex();
+};
+/* a horse standing in profile facing right; pose: 'rest', 'nuzzle' (head down toward the hand), 'ear' (an ear flicked) */
+PX.horse = function (coat, pose) {
+  const W = 80, H = 64, p = new Pix(W, H), c = coat, dk = C.mul(c[1], 0.8), mane = coat.mane || 0x1a1410;
+  p.ell(36, 32, 19, 10, c[2]); p.ell(34, 29, 16, 6, c[3]); p.ell(36, 39, 14, 3, c[1]);   // barrel, lit back, belly
+  p.ell(20, 31, 7, 9, c[2]); p.ell(52, 31, 7, 9, c[2]);   // haunch, shoulder
+  for (const [x, back] of [[16, 1], [24, 0], [48, 1], [55, 0]]) { const col = back ? c[1] : c[2]; p.rect(x, 38, 3, 20, col); p.rect(x - 1, 58, 5, 3, back ? dk : 0x2a2420); p.set(x, 48, C.mul(col, 0.85)); }
+  p.line(15, 26, 8, 44, mane); p.line(14, 27, 7, 46, mane); p.line(13, 27, 9, 47, C.mul(mane, 1.3));   // tail
+  const nuz = pose === 'nuzzle', hx = nuz ? 66 : 64, hy = nuz ? 30 : 14;
+  for (let i = 0; i <= 10; i++) { const t = i / 10; p.disc(lerp(54, hx - 4, t), lerp(26, hy + 4, t), 4.6 - t * 1.2, c[2]); p.set(lerp(53, hx - 6, t), lerp(22, hy, t), mane); p.set(lerp(52, hx - 7, t), lerp(23, hy + 1, t), mane); }   // neck and mane
+  p.ell(hx + 2, hy + 3, 7, 3.6, c[2]); p.ell(hx + 1, hy + 1.5, 5, 2, c[3]); p.ell(hx + 8, hy + 4.5, 2.4, 2.2, C.mul(c[1], 0.9)); p.set(hx + 9, hy + 3, 0x0e0a08);   // head, muzzle, nostril
+  p.set(hx, hy + 1, 0x0e0a08); p.set(hx - 1, hy, C.mul(c[3], 1.2));   // eye
+  const ear = pose === 'ear'; p.line(hx - 3, hy - 1, hx - (ear ? 7 : 4), hy - (ear ? 4 : 6), c[2]); p.line(hx - 1, hy - 1, hx - 1, hy - 6, c[2]);
+  p.hl(hx - 3, hx + 6, hy + 2, 0x3a2a1a); p.line(hx - 3, hy + 2, hx - 4, hy + 6, 0x3a2a1a);   // bridle
+  return p.outline(null, 0.6).tex();
+};
+FP.grey = [0x3a3a40, 0x6a6a72, 0x9a9aa2, 0xc4c4cc]; FP.grey.mane = 0xe8e8ec;
+FP.bay = [0x2a1408, 0x5a2e14, 0x7e4420, 0xa05e30]; FP.bay.mane = 0x14100c;
+FP.blackHorse = [0x0c0c10, 0x1a1a20, 0x2a2a32, 0x3e3e4a]; FP.blackHorse.mane = 0x0a0a0c;
+/* a jousting knight at the gallop, facing right: horse in a caparison of his colours, the rider couched behind his lance.
+   frame 0: legs reaching · 1: legs gathered · 2: the horse riderless (he's been unhorsed) */
+PX.jouster = function (p, ox, frame, liv) {
+  const c = liv.horse, mane = liv.horse.mane || 0x14100c, cap = liv.cap, S = FP.steel, gy = 83;
+  const legs = frame === 1 ? [[36, 60, 44, gy], [42, 60, 48, gy], [64, 60, 60, gy], [70, 60, 66, gy]] : [[34, 60, 18, gy - 4], [40, 60, 26, gy], [66, 60, 80, gy - 6], [72, 60, 86, gy - 2]];
+  for (const [x0, y0, x1, y1] of legs) { p.line(ox + x0, y0, ox + x1, y1, c[1]); p.line(ox + x0 + 1, y0, ox + x1 + 1, y1, c[2]); p.rect(ox + x1 - 1, y1 - 2, 4, 2, 0x2a2420); }
+  p.line(ox + 26, 44, ox + 10, 52 + frame * 4, mane); p.line(ox + 26, 45, ox + 11, 54 + frame * 4, mane);   // tail streaming
+  p.ell(ox + 52, 50, 24, 12, c[2]);   // barrel (mostly under the caparison)
+  for (let i = 0; i <= 12; i++) { const t = i / 12; p.disc(ox + lerp(70, 86, t), lerp(44, 26, t), 6 - t * 1.5, c[2]); }   // neck
+  p.ell(ox + 92, 28, 8, 4.5, c[2]); p.ell(ox + 99, 31, 3, 2.6, c[1]);   // head, muzzle
+  p.rect(ox + 86, 23, 9, 5, S[3]); p.hl(ox + 86, ox + 94, 23, S[4]);   // the chanfron (head armour)
+  p.line(ox + 84, 22, ox + 83, 16, c[2]); p.set(ox + 92, 26, 0x0e0a08);   // ear, eye
+  // the caparison: a cloth from the neck to the rump, hanging to the knees with a dagged hem, his colours and his charge on it
+  for (let y = 36; y <= 66; y++) { const l = 26 + Math.max(0, (44 - y)) * 0.6, r = 80 - Math.max(0, (44 - y)) * 0.4 + (y > 50 ? 4 : 0);
+    for (let x = Math.floor(l); x <= r; x++) { if (y > 64 && ((x >> 2) & 1)) continue;   // the dagged hem
+      let col = liv.striped && Math.floor(x / 7) % 2 ? cap[1] : cap[0];
+      if (y === 36 || x === Math.floor(l)) col = C.mul(col, 1.18); if (y > 62) col = C.mul(col, 0.82); p.set(ox + x, y, col); } }
+  if (liv.charge) liv.charge(p, ox + 50, 50);
+  if (frame === 2) return;
+  // the rider: tassets on the saddle, a breastplate leaning into the charge, a great helm and its crest
+  p.rect(ox + 44, 30, 14, 8, S[2]); p.rect(ox + 45, 30, 12, 3, S[4]); p.line(ox + 50, 38, ox + 58, 48, S[2]); p.line(ox + 51, 38, ox + 59, 48, S[3]);   // body, leg
+  p.ell(ox + 54, 22, 6, 7, S[3]); p.ell(ox + 52, 20, 4, 5, S[4]);   // breastplate
+  p.rect(ox + 54, 7, 8, 9, S[2]); p.rect(ox + 55, 7, 7, 3, S[4]); p.hl(ox + 57, ox + 61, 11, 0x0c0c10);   // the helm and its sight
+  liv.crest(p, ox + 57, 6);
+  // the lance couched under the arm, angled across the barrier; the vamplate (the cone guarding the hand)
+  for (let x = 46; x < 128; x++) { const y = 24 + (x - 46) * 0.06; p.set(ox + x, y, liv.lance[(x >> 2) & 1]); p.set(ox + x, y + 1, C.mul(liv.lance[(x >> 2) & 1], 0.75)); }
+  for (let k = 0; k < 5; k++) p.vl(ox + 62 + k, 22 - (4 - k), 27 + (4 - k), S[3 + (k & 1)]);
+  // the shield on the near arm, its heraldry toward us
+  for (let y = 0; y < 14; y++) { const hw = y < 7 ? 5 : 5 - (y - 7) * 0.7; for (let x = -Math.floor(hw); x <= hw; x++) p.set(ox + 46 + x, 22 + y, Math.abs(x) >= Math.floor(hw) ? S[1] : liv.shield(x, y)); }
+};
+FP.livery = {
+  krasna: { horse: FP.grey, cap: [0xa82a24, 0xf0e8d8], striped: true, lance: [0xa82a24, 0xf0e8d8],
+    crest: (p, x, y) => { for (let i = 0; i < 8; i++) p.set(x - 2 + Math.round(Math.sin(i * 0.7) * 2), y - i, i % 2 ? 0xcc4436 : 0xa82a24); p.disc(x, y - 7, 2, 0xcc4436); },
+    shield: (x, y) => ((x < 0) !== (y < 7) ? 0xa82a24 : 0xf0e8d8),
+    charge: null },
+  black: { horse: FP.blackHorse, cap: [0x16161c, 0x22222a], striped: false, lance: [0x16161c, 0x30303a],
+    crest: (p, x, y) => { p.ell(x, y - 3, 3.5, 2, 0x16161c); for (let i = 0; i < 6; i++) p.set(x - 3 + i * 0.2, y - 3 - i, 0x16161c); p.set(x - 2, y - 9, 0x8a6a1c); },   // a black swan on the helm
+    shield: (x, y) => (Math.hypot(x, y - 5) < 3 ? 0xd8d8e0 : 0x16161c),
+    charge: (p, cx, cy) => { for (const dx of [-14, 8]) { p.ell(cx + dx, cy, 4, 2.4, 0xc8c8d4); p.line(cx + dx - 3, cy - 1, cx + dx - 3, cy - 6, 0xc8c8d4); p.set(cx + dx - 4, cy - 6, 0xc8962a); } } },
+};
+/* a crowd: rows of heads and shoulders in market colours, lit from the left; arms up here and there (cheering) */
+PX.crowd = function (W, H, seed, rows) {
+  const p = new Pix(W, H), cloth = [0xa82a24, 0x2c4478, 0x346a22, 0xc8962a, 0x6a4a2a, 0xdcd4c2, 0x5a3a6a, 0x7a1a16, 0x8a6a3a];
+  for (let r = 0; r < (rows || 2); r++) {
+    const by = H - 2 - r * 9;
+    for (let x = -4 + r * 4; x < W + 6; x += 7 + Math.floor(hash(x, r, seed) * 4)) {
+      const sk = FP.skins[Math.floor(hash(x, r, seed + 1) * FP.skins.length)], cl = cloth[Math.floor(hash(x, r, seed + 2) * cloth.length)], hy = by - 12 - Math.floor(hash(x, r, seed + 3) * 3);
+      p.ell(x, by - 3, 5, 6, cl); p.ell(x - 1, by - 5, 3, 3, C.mul(cl, 1.2));
+      p.disc(x, hy, 2.8, sk); p.set(x - 1, hy - 1, C.mul(sk, 1.15));
+      const hat = hash(x, r, seed + 4); if (hat < 0.3) p.hl(x - 3, x + 3, hy - 2, cl === 0xdcd4c2 ? 0x3a2a1a : 0xdcd4c2); else if (hat < 0.6) { p.hl(x - 2, x + 2, hy - 3, 0x3a2414); p.hl(x - 2, x + 2, hy - 2, 0x5a3a20); }
+      if (hash(x, r, seed + 5) < 0.18) { p.line(x + 3, by - 6, x + 5, hy - 5, cl); p.disc(x + 5, hy - 6, 1, sk); }   // an arm up
+    }
+  }
+  return p.outline(null, 0.7);
+};
+/* a burst of fire blown from a fire-spitter's mouth, facing right: n frames from a lick of flame to a ball to smoke */
+PX.blastFrames = function (W, H, n) {
+  const p = new Pix(W * n, H), cols = [0x8a1a08, 0xc83a10, 0xf06a18, 0xffa02c, 0xffd250, 0xfff0a8];
+  for (let f = 0; f < n; f++) { const t = (f + 1) / n, ox = f * W, len = W * (0.25 + 0.75 * Math.min(1, t * 1.6)), rad = H * 0.48 * Math.min(1, t * 1.3), fade = t > 0.7 ? 1 - (t - 0.7) / 0.3 : 1;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const u = x / len; if (u > 1) continue; const r = rad * Math.sqrt(u) * (0.9 + 0.2 * noise1(x * 0.4 + f * 3, 931)), d = Math.abs(y - H / 2) / Math.max(1, r);
+      if (d > 1) continue; const heat = (1 - d) * (1 - u * 0.6) * fade + (noise1(x * 0.6 + y * 0.5 + f * 7, 932) - 0.5) * 0.35;
+      if (heat < 0.08) { if (t > 0.6 && hash(x, y, 933 + f) < 0.4) p.set(ox + x, y, 0x4a4040); continue; } p.set(ox + x, y, cols[clamp(Math.floor(heat * cols.length * 1.1), 0, cols.length - 1)]); } }
+  const tx = p.tex({ mip: false }); tx.userData.n = n; return tx;
+};
+for (const [k, f] of Object.entries({
+  skySummer: () => { const W = 512, H = 200, p = new Pix(W, H), S = [0x2a5ab0, 0x346ab8, 0x407ac0, 0x5088c8, 0x669ad0, 0x82b0da, 0xa2c6e2, 0xc4dcea, 0xdce8ee];   // high summer: deep blue, piled white cumulus
+    const cloud = (x, y) => { const n = noise1(x * 0.014 + noise1(y * 0.05, 812) * 1.4, 813) * 0.55 + noise1(x * 0.045 + 3.1, 814) * noise1(y * 0.07 + 1.3, 815) * 0.9; return n - (0.76 - 0.26 * Math.pow(Math.abs(y / H - 0.42) * 2, 2)); };   // mostly blue: a fair-weather sky
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const t = Math.pow(y / H, 1.15) * (S.length - 1.01); let c = S[clamp(Math.floor(t + (PX.dith(x, y) - 0.5) * 0.3), 0, S.length - 1)];
+      const cl = cloud(x, y); if (cl > 0) { const top = cloud(x, y - 2) <= 0, bot = cloud(x, y + 3) <= 0, CL = [0xa8b4c4, 0xc8d2dc, 0xe4eaf0, 0xf6f8fa, 0xffffff]; let i = cl > 0.12 ? 2 : 3; if (bot) i = cl > 0.05 ? 1 : 0; if (top || cloud(x - 2, y - 2) <= 0) i = 4; c = CL[i]; }
+      p.set(x, y, c); }
+    return p.tex({ mip: false }); },
+  fairGround: () => { const p = new Pix(64, 64), G = [0x2a4418, 0x36561e, 0x446a26, 0x547c2e, 0x688e38], D = [0x5a4630, 0x6e563a, 0x846a48], S = [0xa8904a, 0xc8ac5a];   // trampled meadow: worn earth where the crowd walks, straw, daisies
+    for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) { const wear = noise1(x * 0.07 + 2.3, 821) * noise1(y * 0.09 + 5.1, 822), g = hash(x >> 1, y, 823);
+      let c = G[clamp(2 + (PX.dith(x, y) < 0.5 ? 1 : 0) - (g < 0.25 ? 1 : 0) + (g > 0.9 ? 1 : 0), 0, 4)];
+      if (wear > 0.34) c = D[clamp(Math.floor((wear - 0.34) * 18 + PX.dith(x, y) * 0.8), 0, 2)]; else if (wear > 0.29) c = G[0];
+      const h = hash(x, y, 824); if (h < 0.03) c = S[h < 0.015 ? 0 : 1]; else if (h > 0.992) c = h > 0.996 ? 0xf8f8f0 : 0xf0d040;
+      p.set(x, y, c); }
+    return p.tex({ repeat: true, aniso: 4 }); },
+  awningRed: () => PX.stripes(64, 28, 0xb8302a, 0xf0e8d8, 8, true).tex({}),
+  awningBlue: () => PX.stripes(64, 28, 0x2c4478, 0xe8c040, 8, true).tex({}),
+  awningGreen: () => PX.stripes(64, 28, 0x2e6a3a, 0xf0e8d8, 8, true).tex({}),
+  canvasKrasna: () => PX.stripes(64, 64, 0xa82a24, 0xf0e8d8, 8, false).tex({ repeat: true }),
+  canvasLilac: () => PX.stripes(64, 64, 0x6a4a8a, 0xe8e0f0, 8, false).tex({ repeat: true }),
+  canvasBlack: () => PX.stripes(64, 64, 0x16161c, 0x24242c, 8, false).tex({ repeat: true }),
+  canvasTeal: () => PX.stripes(64, 64, 0x1e5a5e, 0xe8c040, 8, false).tex({ repeat: true }),
+  canvasSwan: () => PX.stripes(64, 64, 0x2c4478, 0xf0e8d8, 8, false).tex({ repeat: true }),
+  bunting: () => { const W = 128, H = 16, p = new Pix(W, H), cols = [0xb8302a, 0xf0e8d8, 0x2c4478, 0xe8b840, 0x346a22];   // flags on a sagging string
+    const sy = (x) => 2 + Math.sin(x / W * Math.PI) * 4;
+    for (let x = 0; x < W; x++) p.set(x, Math.round(sy(x)), 0x5a4a3a);
+    for (let i = 0; i < 16; i++) { const x0 = i * 8 + 1, c = cols[i % cols.length]; for (let dx = 0; dx < 6; dx++) { const y0 = Math.round(sy(x0 + dx)) + 1, len = 7 - Math.abs(dx - 2.5) * 2; for (let dy = 0; dy < len; dy++) p.set(x0 + dx, y0 + dy, dx < 2 ? C.mul(c, 1.12) : c); } }
+    return p.tex({}); },
+  stallHoney: () => { const W = 64, H = 40, p = new Pix(W, H);   // honey cakes, jars of amber honey, a beehive sign
+    PX.counter(p, 1, W - 1, 22, H, 0x2c4478);
+    for (let i = 0; i < 6; i++) { const x = 6 + i * 6, y = 19; p.ell(x, y, 2.6, 1.6, 0xc8862a); p.hl(x - 1, x + 1, y - 1, 0xe8b850); }
+    for (let i = 0; i < 4; i++) { const x = 44 + i * 5; p.rect(x, 13, 4, 8, 0xc8861a); p.rect(x, 13, 4, 2, 0xe8dcc0); p.vl(x, 15, 20, 0xf0b840); }
+    p.ell(32, 7, 6, 5, 0xc8962a); for (let k = 0; k < 4; k++) p.hl(27, 37, 4 + k * 2, 0x9a6a1c); p.rect(31, 9, 2, 2, 0x3a2414); p.vl(32, 0, 2, 0x5a4a3a);
+    return p.outline(null, 0.6).tex(); },
+  stallSausage: () => { const W = 64, H = 40, p = new Pix(W, H);   // the sausage grill: coals, sausages, strings of them hanging
+    PX.counter(p, 1, W - 1, 22, H, 0x7a1a16);
+    p.rect(8, 16, 30, 6, 0x2a2420); for (let x = 9; x < 37; x++) p.set(x, 20, hash(x, 1, 841) < 0.5 ? 0xf06a18 : 0xc83a10);
+    for (let i = 0; i < 6; i++) { p.rect(10 + i * 4, 15, 3, 2, 0x8a3a1a); p.set(10 + i * 4, 15, 0xb85a2a); }
+    for (let s = 0; s < 3; s++) for (let i = 0; i < 4; i++) { const x = 44 + s * 6, y = 2 + i * 4; p.ell(x, y + 2, 1.6, 2, 0x8a3a1a); p.set(x - 1, y + 1, 0xb85a2a); }
+    p.hl(40, 62, 1, 0x5a4a3a);
+    return p.outline(null, 0.6).tex(); },
+  stallRibbons: () => { const W = 64, H = 44, p = new Pix(W, H), cols = [0xb8302a, 0x2c4478, 0xe8b840, 0x346a22, 0xd8a8c8, 0xf0e8d8, 0x5a3a6a];   // ribbons hanging from a rail, bolts of cloth
+    p.hl(2, W - 3, 2, FP.wood[4]); p.hl(2, W - 3, 3, FP.wood[2]);
+    for (let i = 0; i < 14; i++) { const x = 4 + i * 4, c = cols[i % cols.length], len = 14 + Math.floor(hash(i, 1, 851) * 10); for (let y = 4; y < 4 + len; y++) { p.set(x + Math.sin(y * 0.4 + i) * 0.6, y, c); p.set(x + 1 + Math.sin(y * 0.4 + i) * 0.6, y, C.mul(c, 0.8)); } }
+    PX.counter(p, 1, W - 1, 30, H, 0x5a3a6a);
+    for (let i = 0; i < 5; i++) { const x = 6 + i * 11, c = cols[(i * 3) % cols.length]; p.ell(x, 27, 5, 3, c); p.ell(x - 1, 26, 3, 1.4, C.mul(c, 1.2)); }
+    return p.outline(null, 0.6).tex(); },
+  stallBread: () => { const W = 64, H = 40, p = new Pix(W, H);   // Marta's bread: loaves, plaited rings, a basket of rolls
+    PX.counter(p, 1, W - 1, 22, H, 0x6a5a3a);
+    for (let i = 0; i < 4; i++) { const x = 8 + i * 9; p.ell(x, 18, 4, 3, 0xa8702a); p.ell(x - 1, 17, 2.5, 1.5, 0xd09a48); p.set(x - 2, 17, 0xe8c070); p.set(x + 1, 18, 0x8a5a20); }
+    for (const x of [46, 55]) { for (let a = 0; a < 6.28; a += 0.3) p.set(x + Math.cos(a) * 3.5, 15 + Math.sin(a) * 2.5, 0xb8803a); p.set(x, 13, 0xe8c070); }
+    p.ell(30, 10, 6, 3, 0x8a6a3a); for (let i = 0; i < 4; i++) p.disc(27 + i * 2, 8, 1.4, 0xd09a48);
+    return p.outline(null, 0.6).tex(); },
+  stageCurtain: () => { const W = 96, H = 64, p = new Pix(W, H);   // the Salamanders' backcloth: red velvet in folds, gold fringe, a painted salamander in a sun
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const f = Math.sin(x / W * Math.PI * 9), k = 0.72 + 0.28 * (f * 0.5 + 0.5); p.set(x, y, C.mul(0xa82a24, k * (y < 6 ? 1.1 : 1))); }
+    for (let x = 0; x < W; x++) { p.set(x, H - 3, 0xe8b840); p.set(x, H - 2, x % 2 ? 0xc8962a : 0xe8b840); if (x % 3 === 0) p.set(x, H - 1, 0xc8962a); }
+    for (let a = 0; a < 6.28; a += 0.26) { for (let r = 11; r < 16; r++) p.set(48 + Math.cos(a) * r, 30 + Math.sin(a) * r * 0.9, r < 13 ? 0xf8dc78 : 0xe8b840); }
+    p.disc(48, 30, 10, 0xe8b840); p.disc(48, 30, 8, 0xf8dc78);
+    for (let i = 0; i < 16; i++) { const t = i / 15, x = 40 + t * 16, y = 30 + Math.sin(t * 6) * 3; p.disc(x, y, 1.6 - t * 0.6, 0x2a6a2a); }   // the salamander, curled in the sun
+    p.set(56, 29, 0x0e0a08); for (const [x, y] of [[43, 33], [45, 27], [51, 33], [53, 27]]) p.set(x, y, 0x2a6a2a);
+    return p.tex({}); },
+  puppetBooth: () => { const W = 48, H = 84, p = new Pix(W, H);   // a tall booth of striped cloth, a stage window at the top with its little curtains
+    for (let y = 22; y < H; y++) for (let x = 2; x < W - 2; x++) p.set(x, y, C.mul((x >> 2) % 2 ? 0xe8b840 : 0xa82a24, y > H - 4 ? 0.8 : 1));
+    for (let y = 2; y < 24; y++) for (let x = 2; x < W - 2; x++) { const inside = y > 6 && y < 22 && x > 6 && x < W - 7; p.set(x, y, inside ? 0x1a1214 : C.mul(0x2c4478, y < 5 ? 1.15 : 1)); }
+    for (let y = 7; y < 22; y++) { p.set(7, y, 0xa82a24); p.set(8, y, 0xa82a24); p.set(W - 9, y, 0xa82a24); p.set(W - 8, y, 0xa82a24); }
+    p.hl(4, W - 5, 21, 0xe8b840); p.hl(4, W - 5, 22, 0x9a6a1c);
+    for (let x = 4; x < W - 4; x += 4) { p.set(x, 0, 0xe8b840); p.set(x + 1, 1, 0xe8b840); }
+    return p.outline(null, 0.6).tex(); },
+  puppets: () => { const W = 30, H = 16, n = 3, p = new Pix(W * n, H);   // the king puppet (crown, beard) and the river-wife (blue, long hair), bobbing
+    for (let f = 0; f < n; f++) { const o = f * W, b1 = [0, 2, 1][f], b2 = [2, 0, 1][f];
+      p.rect(o + 5, 8 + b1, 7, 8 - b1, 0x2b2c38); p.disc(o + 8, 5 + b1, 3, 0xe8b896); p.hl(o + 6, o + 10, 1 + b1, 0xe8b840); p.set(o + 6, b1, 0xe8b840); p.set(o + 10, b1, 0xe8b840); p.hl(o + 6, o + 10, 7 + b1, 0x1a1210);
+      p.rect(o + 18, 8 + b2, 7, 8 - b2, 0x2c6aa0); p.disc(o + 21, 5 + b2, 3, 0xf0c8a8); p.vl(o + 18, 3 + b2, 12 + b2, 0x3a6a8a); p.vl(o + 24, 3 + b2, 12 + b2, 0x3a6a8a);
+      if (f === 2) p.line(o + 12, 9, o + 17, 9, 0xe8b896); }
+    const t = p.outline(null, 0.6).tex({ mip: false }); t.userData.n = n; return t; },
+  fortuneWagon: () => { const W = 96, H = 76, p = new Pix(W, H), Wd = FP.wood;   // a painted wagon: curved green roof, red body with gold scrolls, a lamp-lit window, wheels
+    for (let y = 12; y < 54; y++) for (let x = 10; x < 86; x++) { let c = 0x7a1a16; if (x < 13 || x > 82 || y > 51) c = 0x4a0e0c; if ((x - 10) % 18 === 0) c = 0xc8962a; p.set(x, y, c); }
+    for (let x = 6; x < 90; x++) { const top = 12 - Math.sin((x - 6) / 84 * Math.PI) * 9; for (let y = Math.floor(top); y < 13; y++) p.set(x, y, y < top + 2 ? 0x4a8a2e : 0x2e6a22); }
+    p.rect(52, 22, 14, 12, 0x3a2414); p.rect(53, 23, 12, 10, 0xf8c860); p.vl(59, 23, 32, 0x3a2414); p.hl(53, 64, 28, 0x3a2414);   // the lit window
+    p.rect(22, 20, 14, 31, 0x5a3a20); p.rect(23, 21, 12, 29, 0x7a522e); p.set(33, 36, 0xe8b840);   // the door
+    for (let i = 0; i < 6; i++) { p.set(70 + Math.cos(i) * 4, 40 + Math.sin(i) * 3, 0xe8b840); } p.disc(70, 40, 1.6, 0x2c4478); p.set(70, 40, 0xf0e8d8);   // an eye, painted
+    for (const cx of [26, 72]) { for (let a = 0; a < 6.283; a += 0.03) for (let r = 9; r < 12; r++) p.set(cx + Math.cos(a) * r, 62 + Math.sin(a) * r, r === 11 ? 0x2a2420 : Wd[4 - (r - 9)]);
+      for (let s = 0; s < 10; s++) { const a = s / 10 * 6.283; for (let r = 2; r < 9; r++) p.set(cx + Math.cos(a) * r, 62 + Math.sin(a) * r, 0xc8962a); } p.disc(cx, 62, 2, 0x5a3a20); }
+    for (let i = 0; i < 4; i++) p.hl(4 + i * 2, 12 - i, 54 + i * 4, Wd[3]);   // steps
+    p.vl(88, 20, 30, 0x3a3a3a); p.rect(86, 30, 5, 6, 0x3a3a3a); p.rect(87, 31, 3, 4, 0xf8c860);   // a lantern on a hook
+    return p.outline(null, 0.6).tex(); },
+  maypole: () => { const W = 16, H = 160, p = new Pix(W, H);   // the pole, a flower crown on top
+    for (let y = 10; y < H; y++) { p.set(7, y, FP.wood[4]); p.set(8, y, FP.wood[3]); p.set(9, y, FP.wood[2]); if ((y >> 3) % 2) p.set(8, y, 0xf0e8d8); }
+    for (let a = 0; a < 6.28; a += 0.25) { const x = 8 + Math.cos(a) * 6, y = 9 + Math.sin(a) * 2.4; p.disc(x, y, 1.4, [0xb8302a, 0xf0e8d8, 0xe8b840, 0xd8a8c8][Math.floor(a * 2) % 4]); }
+    p.disc(8, 4, 2.4, 0x2c4478); p.set(8, 1, 0xe8b840);
+    return p.outline(null, 0.6).tex(); },
+  ribbon: () => { const W = 6, H = 96, p = new Pix(W, H), c = [0xb8302a, 0x2c4478, 0xe8b840, 0x346a22, 0xd8a8c8, 0xf0e8d8];   // a fan of ribbons from the maypole's top (it waves)
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) p.set(x, y, C.mul(c[x], y > H - 4 ? 0.8 : 1));
+    return p.tex({}); },
+  festGate: () => { const W = 100, H = 108, p = new Pix(W, H), Wd = FP.wood;   // the meadow's gate: two poles wound with ribbon, an arched board with the swan in a garland, pennants on top
+    for (const x0 of [6, 88]) for (let y = 14; y < H; y++) { for (let k = 0; k < 6; k++) p.set(x0 + k, y, Wd[k < 2 ? 5 : k < 4 ? 4 : 2]); if (((y + x0) >> 2) % 3 === 0) for (let k = 0; k < 6; k++) p.set(x0 + k, y, k < 3 ? 0xb8302a : 0x8a1e1a); }
+    for (let x = 4; x < W - 4; x++) { const top = 24 - Math.sin((x - 4) / (W - 8) * Math.PI) * 14; for (let y = Math.floor(top); y < top + 9; y++) p.set(x, y, y < top + 2 ? Wd[5] : y > top + 7 ? Wd[1] : Wd[3]); }
+    for (let i = 0; i < 26; i++) { const x = 8 + i * 3.4, top = 24 - Math.sin((x - 4) / (W - 8) * Math.PI) * 14; p.disc(x, top + 10, 1.6, i % 3 ? 0x346a22 : [0xb8302a, 0xf0e8d8, 0xe8b840][i % 3]); }
+    p.ell(50, 15, 9, 6, 0x2c4478); p.ell(51, 16, 5, 2.6, 0xf0e8d8); p.vl(46, 9, 15, 0xf0e8d8); p.set(45, 9, 0xe8b840);   // the swan on blue
+    for (const x of [9, 91]) { p.vl(x, 0, 14, 0x3a2a1a); for (let i = 0; i < 9; i++) { const hw = 3 - i * 0.3; for (let k = 0; k <= hw; k++) { p.set(x + 1 + i, 2 + k, x < 50 ? 0xb8302a : 0x2c4478); p.set(x + 1 + i, 2 - k + 3, x < 50 ? 0xb8302a : 0x2c4478); } } }
+    return p.outline(null, 0.6).tex(); },
+  crowdA: () => PX.crowd(256, 40, 861, 2).tex({}),
+  crowdB: () => PX.crowd(256, 40, 871, 2).tex({}),
+  hurdle: () => { const W = 64, H = 24, p = new Pix(W, H), Wd = FP.wood;   // a woven hurdle fence
+    for (const x of [2, 31, 60]) for (let y = 0; y < H; y++) { p.set(x, y, Wd[4]); p.set(x + 1, y, Wd[2]); }
+    for (let r = 0; r < 4; r++) for (let x = 0; x < W; x++) { const y = 4 + r * 5 + Math.round(Math.sin((x + r * 7) * 0.2) * 1.2); p.set(x, y, Wd[(x + r) % 9 < 5 ? 4 : 3]); p.set(x, y + 1, Wd[2]); }
+    return p.outline(null, 0.6).tex({}); },
+  tiltCloth: () => { const W = 64, H = 26, p = new Pix(W, H);   // the tilt barrier: a timber rail hung with striped cloth to the ground
+    for (let x = 0; x < W; x++) { p.set(x, 0, FP.wood[5]); p.set(x, 1, FP.wood[4]); p.set(x, 2, FP.wood[2]); }
+    for (let y = 3; y < H; y++) for (let x = 0; x < W; x++) { const s = Math.floor((x + y * 0.6) / 8) % 2; p.set(x, y, C.mul(s ? 0xf0e8d8 : 0x2c4478, (y === 3 ? 0.75 : 1) * (0.92 + 0.08 * Math.sin(x * 0.4)))); }
+    return p.tex({ repeat: true }); },
+  canopy: () => { const W = 96, H = 30, p = new Pix(W, H);   // the royal stand's canopy valance: swan blue, gold swans, a dagged gold edge
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const u = ((x % 12) / 12 - 0.5) * 2; if (y > H - 7 && y - (H - 7) > 6 * (1 - u * u)) continue; p.set(x, y, y > H - 8 ? 0xe8b840 : C.mul(0x2c4478, y < 2 ? 1.2 : 1)); }
+    for (let i = 0; i < 4; i++) { const cx = 12 + i * 24; p.ell(cx, 12, 4, 2.4, 0xf0e8d8); p.vl(cx - 3, 6, 12, 0xf0e8d8); p.set(cx - 4, 6, 0xe8b840); }
+    return p.tex({}); },
+  bannerKrasna: () => { const W = 30, H = 70, p = new Pix(W, H);   // Krasna: a white eagle on red, gold fringe
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { if (y >= H - 8 && Math.abs(x - 14.5) < (y - (H - 8)) * 2) continue;   // a swallow tail at the foot
+      p.set(x, y, y === H - 1 || (y >= H - 8 && Math.abs(x - 14.5) < (y - (H - 9)) * 2) ? 0xe8b840 : C.mul(0xa82a24, x < 3 ? 1.15 : 1)); }
+    p.ell(15, 26, 4, 6, 0xf0e8d8); p.disc(15, 18, 2.6, 0xf0e8d8); p.set(17, 18, 0xe8b840);
+    for (const s of [-1, 1]) for (let i = 0; i < 8; i++) { p.line(15 + s * 3, 22 + i, 15 + s * (11 - i * 0.3), 16 + i * 1.6, 0xf0e8d8); }
+    p.line(13, 32, 11, 38, 0xf0e8d8); p.line(17, 32, 19, 38, 0xf0e8d8);
+    return p.outline(null, 0.65).tex(); },
+  bannerLeague: () => { const W = 30, H = 70, p = new Pix(W, H);   // the River League: teal, three gold waves
+    for (let y = 0; y < H - 4; y++) for (let x = 0; x < W; x++) p.set(x, y, C.mul(0x1e5a5e, x < 3 ? 1.15 : 1));
+    for (let k = 0; k < 3; k++) for (let x = 3; x < W - 3; x++) { const y = 18 + k * 14 + Math.round(Math.sin(x * 0.55) * 2); p.set(x, y, 0xe8b840); p.set(x, y + 1, 0xc8962a); }
+    for (let x = 0; x < W; x += 2) p.vl(x, H - 4, H - 1, 0xe8b840);
+    return p.outline(null, 0.65).tex(); },
+  pennantKrasna: () => PX.pennant(0xa82a24, 0xf0e8d8, 0xe8b840),
+  pennantBlack: () => PX.pennant(0x16161c, 0x5a5a6a, 0x3a3a46),
+  pennantLeague: () => PX.pennant(0x1e5a5e, 0xe8b840, 0xe8b840),
+  joustKrasna: () => { const W = 128, H = 86, n = 3, p = new Pix(W * n, H); for (let f = 0; f < n; f++) PX.jouster(p, f * W, f, FP.livery.krasna); const t = p.outline(null, 0.6).tex({ mip: false }); t.userData.n = n; return t; },
+  joustBlack: () => { const W = 128, H = 86, n = 3, p = new Pix(W * n, H); for (let f = 0; f < n; f++) PX.jouster(p, f * W, f, FP.livery.black); const t = p.outline(null, 0.6).tex({ mip: false }); t.userData.n = n; return t; },
+  knightDown: () => { const W = 64, H = 22, p = new Pix(W, H), S = FP.steel;   // the unhorsed knight in the dust, Krasna's red on his surcoat
+    p.ell(30, 15, 18, 5, 0xa82a24); p.ell(28, 13, 14, 3, 0xcc4436); p.rect(46, 11, 10, 7, S[3]); p.hl(47, 55, 11, S[4]); p.hl(49, 54, 14, 0x0c0c10);
+    p.line(12, 15, 2, 18, S[2]); p.line(12, 17, 3, 20, S[2]); p.line(40, 18, 44, 21, S[2]); for (let x = 6; x < 30; x++) p.set(x, 8, x % 4 < 2 ? 0xa82a24 : 0xf0e8d8);   // legs, the broken lance
+    return p.outline(null, 0.6).tex(); },
+  shard: () => { const p = new Pix(8, 3); p.hl(0, 7, 1, 0xf0e8d8); p.hl(1, 6, 0, 0xdcd4c2); p.hl(0, 5, 2, 0xa82a24); return p.tex({}); },
+  blast: () => PX.blastFrames(48, 28, 6),
+  bearDance: () => { const p = new Pix(80, 56); PX.bear('stand', p, 0); PX.bear('up', p, 40); const t = p.outline(null, 0.6).tex({ mip: false }); t.userData.n = 2; return t; },   // paws down, paws up
+  bearSit: () => PX.bear('sit'),
+  striker: () => { const W = 20, H = 140, p = new Pix(W, H), Wd = FP.wood;   // the strongman's high striker: a post with a painted scale, the bell on top, the pad at the foot
+    for (let y = 10; y < H - 6; y++) { p.set(8, y, Wd[5]); p.set(9, y, Wd[4]); p.set(10, y, Wd[4]); p.set(11, y, Wd[2]); if ((y - 10) % 12 === 0) p.hl(6, 13, y, [0xb8302a, 0xe8b840, 0x346a22, 0x2c4478][Math.floor((y - 10) / 12) % 4]); }
+    p.ell(10, 6, 5, 5, 0xc8962a); p.ell(9, 5, 3, 3, 0xf8dc78); p.hl(5, 15, 10, 0x9a6a1c);
+    p.rect(2, H - 6, 16, 6, Wd[3]); p.rect(5, H - 8, 10, 3, 0x6a3a2a); p.hl(5, 14, H - 8, 0x8a5a3a);
+    return p.outline(null, 0.6).tex(); },
+  puck: () => { const p = new Pix(8, 6); p.rect(0, 0, 8, 6, 0x5a5a62); p.rect(1, 1, 6, 2, 0x8a8a92); p.set(2, 1, 0xc8c8d0); return p.tex({}); },
+  horseGrey: () => PX.horse(FP.grey, 'rest'), horseGreyNuzzle: () => PX.horse(FP.grey, 'nuzzle'), horseGreyEar: () => PX.horse(FP.grey, 'ear'),
+  horseBay: () => PX.horse(FP.bay, 'rest'),
+  campTable: () => { const W = 64, H = 34, p = new Pix(W, H), Wd = FP.wood;   // the Krasnian king's table: a map weighted with a dagger, a jug, goblets, a candle
+    p.rect(0, 16, W, 3, Wd[4]); p.hl(0, W - 1, 19, Wd[1]); for (const x of [5, W - 7]) { p.line(x, 20, x - 3, H - 1, Wd[2]); p.line(x + 1, 20, x + 4, H - 1, Wd[3]); }
+    p.rect(14, 12, 26, 5, 0xe8dcc0); p.hl(14, 39, 12, 0xf8f0dc); for (let i = 0; i < 6; i++) p.set(18 + i * 3, 14 + (i % 2), 0x8a6a4a); p.line(20, 15, 34, 13, 0x2c6aa0);   // the map, a river on it
+    p.hl(24, 31, 12, 0xb8c0c8); p.set(23, 12, 0xc8962a);
+    p.rect(44, 7, 5, 9, 0x8a6a3a); p.rect(45, 6, 3, 2, 0x6a4a2a); for (const x of [51, 56]) { p.rect(x, 11, 3, 4, 0xc8962a); p.set(x + 1, 15, 0xc8962a); }
+    p.vl(8, 6, 15, 0xf0e8d8); p.set(8, 5, 0xffd250);
+    return p.outline(null, 0.6).tex(); },
+  barge: () => { const W = 160, H = 60, p = new Pix(W, H), Wd = FP.wood;   // the League's river barge: a long low hull, a cabin, barrels, a mast, the League's banner
+    for (let y = 36; y < 52; y++) { const l = 4 + Math.max(0, y - 44) * 1.2, r = W - 4 - Math.max(0, y - 40) * 1.6; for (let x = Math.floor(l); x <= r; x++) p.set(x, y, y === 36 ? Wd[5] : (y - 36) % 4 === 3 ? Wd[1] : Wd[y < 42 ? 3 : 2]); }
+    for (let y = 22; y < 36; y++) for (let x = 60; x < 104; x++) p.set(x, y, y < 25 ? 0x1e5a5e : x % 8 === 0 ? Wd[1] : Wd[3]);
+    p.rect(72, 27, 6, 5, 0xf8c860); p.rect(88, 27, 6, 5, 0xf8c860);
+    for (const x of [20, 30, 40, 118, 128]) { p.rect(x, 28, 8, 8, Wd[4]); p.hl(x, x + 7, 30, 0x3a3a3a); p.hl(x, x + 7, 34, 0x3a3a3a); }
+    for (let y = 0; y < 36; y++) p.set(112, y, Wd[2]); p.hl(104, 120, 6, Wd[3]);
+    for (let y = 2; y < 16; y++) for (let x = 113; x < 123; x++) p.set(x, y, (y - 2) % 5 === 3 ? 0xe8b840 : 0x1e5a5e);
+    return p.outline(null, 0.6).tex(); },
+  campfire: () => { const W = 30, H = 12, p = new Pix(W, H);   // a ring of stones round crossed logs
+    for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI, x = 15 - Math.cos(a) * 12; p.ell(x, 9 - Math.sin(a) * 2, 2.4, 2, i % 2 ? 0x6a645c : 0x8a847a); }
+    p.line(7, 8, 22, 4, 0x3a2414); p.line(8, 9, 23, 5, 0x5a3a20); p.line(22, 8, 8, 4, 0x3a2414); p.line(21, 9, 7, 5, 0x5a3a20);
+    for (let x = 11; x < 20; x++) p.set(x, 7, hash(x, 2, 881) < 0.5 ? 0xf06a18 : 0xc83a10);
+    return p.outline(null, 0.6).tex(); },
+})) PX.def(k, f);
+
 /* ==== game/g20_bedroom.js ==== */
 /* THE BEDCHAMBER — laid out from the reference frame. The king starts here; the crown waits on its cushion beside the
    standing mirror, and the door at the far right leads to the throne room once he's wearing it. */
@@ -57391,7 +57759,7 @@ TITLE.newGame = async function () {
 TITLE.cont = function () {
   const s = SAVE.get(); if (!s) return TITLE.newGame(); GAME.load(s);
   $('fade').classList.remove('off');
-  setTimeout(async () => { TITLE.hide(); SCENE.enter(s.room || 'bedroom', { x: s.x, face: 1, sound: true }); R.r.compile(R.scene, R.cam); SCENE.render(); await nextFrame(); $('fade').classList.add('off'); }, 800);
+  setTimeout(async () => { TITLE.hide(); await SCENE.prepare(s.room || 'bedroom'); SCENE.enter(s.room || 'bedroom', { x: s.x, face: 1, sound: true }); R.r.compile(R.scene, R.cam); SCENE.render(); await nextFrame(); $('fade').classList.add('off'); }, 800);
 };
 /* ---------------------------------------------------------------- the opening (see STORY.md §3) */
 const INTRO = [
@@ -57412,11 +57780,11 @@ const INTRO = [
 ];
 /* ---------------------------------------------------------------- the save slot */
 const GAME = {};
-GAME.reset = function () { SCENE.player.crownMesh.visible = false; COURT.reset(); CHAPEL.met = CHAPEL.queenMet = CHAPEL.priestMet = false; CHAPEL.flirt = CHAPEL.cold = 0; HUT.met = false; HUT.catPets = 0; WOOD.houndPets = 0; };
+GAME.reset = function () { SCENE.player.crownMesh.visible = false; COURT.reset(); CHAPEL.met = CHAPEL.queenMet = CHAPEL.priestMet = false; CHAPEL.flirt = CHAPEL.cold = 0; HUT.met = false; HUT.catPets = 0; HUT.bearSaid = false; WOOD.houndPets = 0; FEST.reset(); };
 GAME.state = function () { const K = SCENE.player, R0 = SCENE.room;
   return { room: R0 && R0.id !== 'exterior' ? R0.id : 'bedroom', x: K.x, crown: K.crownMesh.visible,
     court: { done: COURT.done, prosperity: COURT.prosperity, stats: COURT.stats, agents: COURT.agents.map((a) => ({ id: a.id, ap: a.ap, wound: a.wound })), items: COURT.items.map((i) => ({ id: i.id, n: i.n })) },
-    chapel: { met: CHAPEL.met, queenMet: CHAPEL.queenMet, priestMet: CHAPEL.priestMet, flirt: CHAPEL.flirt, cold: CHAPEL.cold }, hut: { met: HUT.met, catPets: HUT.catPets }, wood: { houndPets: WOOD.houndPets } }; };
+    chapel: { met: CHAPEL.met, queenMet: CHAPEL.queenMet, priestMet: CHAPEL.priestMet, flirt: CHAPEL.flirt, cold: CHAPEL.cold }, hut: { met: HUT.met, catPets: HUT.catPets, bearSaid: !!HUT.bearSaid }, wood: { houndPets: WOOD.houndPets }, fest: FEST.state() }; };
 GAME.save = function () { if (SCENE.room && SCENE.room.id !== 'exterior' && !CUT.playing) SAVE.put(GAME.state()); };
 GAME.load = function (s) {
   const K = SCENE.player; K.crownMesh.visible = !!s.crown;
@@ -57424,8 +57792,9 @@ GAME.load = function (s) {
     for (const a of s.court.agents || []) { const g = COURT.agents.find((q) => q.id === a.id); if (g) Object.assign(g, a); }
     for (const i of s.court.items || []) { const g = COURT.items.find((q) => q.id === i.id); if (g) g.n = i.n; } }
   if (s.chapel) { CHAPEL.met = !!s.chapel.met; CHAPEL.queenMet = !!s.chapel.queenMet; CHAPEL.priestMet = !!s.chapel.priestMet; CHAPEL.flirt = s.chapel.flirt || 0; CHAPEL.cold = s.chapel.cold || 0; }
-  if (s.hut) { HUT.met = !!s.hut.met; HUT.catPets = s.hut.catPets || 0; }
+  if (s.hut) { HUT.met = !!s.hut.met; HUT.catPets = s.hut.catPets || 0; HUT.bearSaid = !!s.hut.bearSaid; }
   if (s.wood) WOOD.houndPets = s.wood.houndPets || 0;
+  FEST.load(s.fest);
 };
 /* ---------------------------------------------------------------- credits */
 const CREDITS = {
@@ -58845,6 +59214,11 @@ WOOD.build = function () {
   BUILD.card(T.pell, 9.2, 0, 1.4, { s: 0.95 });
   BUILD.card(T.deerPix, -4.4, 0, 1.6, { s: 1.0, cast: false });
   room.interact('deer', -4.4, 1.6, KZ, 1.0, () => say('deer'));
+  /* the dancing bear, if the king bought his freedom at the fair (FEST.bearFreed): at the edge of the trees, glad of it */
+  room.bear = BUILD.anim(T.bearDance, -1.9, 0, -1.6, { cast: false }); room.bear.set(0);
+  room.bearPet = BUILD.pet(room.bear.me, { id: 'bear', label: 'Pet Wojciech', frames: [T.bearSit], sound: 'pant', soundO: { gain: 0.9 }, headY: 1.9, dur: 3.0, r: 1.0,
+    says: ['(He sits down in the bracken and leans on the king like a warm wall.)', 'Hrrmf.', '(He smells of blackberries now, not of the fair.)'],
+    lines: ['Wojciech. No chain, no music. You look ten years younger.', 'Kazik will want to know you’re well. You’re well.'] });
   room.interact('zofia', 9.2, 2.7, KZ, 1.0, () => talk('zofia', 'zofia')).label = 'Talk to Zofia';
   room.interact('kazik', 11.6, 2.7, KZ, 1.0, () => talk('kazik', 'kazik')).label = 'Talk to Kazik';
   room.interact('woodGuardL', -7.5, 3.0, KZ, 1.0, () => talk('woodGuardL', 'guardL')).label = 'Talk to the guard';
@@ -58872,6 +59246,7 @@ WOOD.onEnter = function () {
   if (!CUT.playing) SCENE.caption(...this.caption);
   const A = CAST.A;
   for (const id of ['woodGuardL', 'woodGuardR']) A[id].setVisible(true);
+  this.bear.me.visible = FEST.bearFreed; this.bearPet.hidden = !FEST.bearFreed; SCENE.buildMarks();   // the freed bear lives here now
 };
 
 /* ==== game/g35_hut.js ==== */
@@ -59001,10 +59376,665 @@ HUT.witch = async function () {
   SCENE.lock++;
   try {
     if (!HUT.met) { HUT.met = true; await SCENE.talk(T.first.map(([k, t]) => [who(k), t])); }
+    else if (FEST.bearFreed && !HUT.bearSaid) { HUT.bearSaid = true; await SCENE.talk([[W, 'Your bear came by. He sends his regards.'], [K, 'He’s not my bear.'], [W, 'He ate my honey as if he were. Kings and bears.']]); }
     else await SCENE.say(W, SCENE.cycle('witch', T.more));
   } finally { SCENE.lock--; }
 };
 HUT.met = false;
+
+/* ==== game/g36_fest.js ==== */
+/* THE SWAN FESTIVAL — three grounds on the meadow below the fortress (STORY.md §6): the fair (g37_fair.js), the lists
+   (g38_lists.js) and the pavilions (g39_camp.js), joined by gates at their ends; the Swan Meadow pin on the map leads to
+   the fair. This file holds what they share: the festival's state (saved by GAME.state), the meadow's backdrop and light,
+   stalls, bunting and the far tents, the camera moves for the shows, a speaker for things that aren't actors (puppets,
+   a crowd), the timing meter (the hammer, the arm-wrestling), and all the festival's talk. */
+const FEST = { bearFreed: false, cakes: 0, ribbon: null, puppets: null, fortune: 0, fires: 0, duels: 0, jousts: 0, favour: null, loveQueen: null, hammer: 0, wrestle: null, pact: null, met: {} };
+FEST.init0 = JSON.stringify(FEST);
+FEST.reset = function () { Object.assign(FEST, JSON.parse(FEST.init0)); };
+FEST.state = function () { const s = {}; for (const k of Object.keys(JSON.parse(FEST.init0))) s[k] = FEST[k]; return s; };
+FEST.load = function (s) { FEST.reset(); if (s) for (const k of Object.keys(JSON.parse(FEST.init0))) if (k in s) FEST[k] = s[k]; };
+/* every festival ground is the same kind of room: a 32 m strip of meadow, the walk line at z 3, the yard's lens */
+FEST.room = function (id, title, sub, more) {
+  return SCENE.addRoom(new Room(id, Object.assign({ X0: -16, X1: 16, CEIL: 40, KZ: 3.0, cam: { y: 3.0, look: 2.7, dist: 19.4, fov: 19 }, exposure: 1.0, reflK: 0.25, far: 420,
+    fog: [0xd8dcd0, 0.0024], music: 'garden', ambience: { crowd: 0.5, birds: 0.3, wind: 0.2 }, acoustics: { size: 1.6, wet: 0.08 }, surface: 'grass', caption: [title, sub] }, more || {})));
+};
+/* ---------------------------------------------------------------- the meadow: ground, sky, the fortress on its hill */
+FEST.backdrop = function (room, o) {
+  o = o || {}; const T = PX.T, RP = RAMP, D = 12;
+  BUILD.plane('y+', -150, 150, -300, 14, 0, T.fairGround);
+  BUILD.sky(T.skySummer, { z: -300, w: 760, h: 260, y: -50, k: 1.0 });
+  /* far trees in haze, the hill with the Swan Fortress on it, the near trees at its foot */
+  BUILD.card(T.forestFar, o.fx || 0, 0, -240, { w: 420, h: 52, basic: true, cast: false });
+  const hx = o.fx || 0, hz = -230;
+  BUILD.terrain({ x0: hx - 120, x1: hx + 120, z0: hz - 40, z1: hz + 70, step: 4, cast: false,
+    h: (x, z) => { const u = (x - hx) / 55, v = (z - hz) / 36; return 16 * Math.exp(-(u * u + v * v) * 1.4) - 0.5; },
+    cls: (x, z, ny) => (ny > 0.8 ? 'turf' : 'rock'), tex: { turf: T.turfPix, rock: T.cragPix }, side: { rock: true }, facet: { rock: true } });
+  const tile = { stone: PX.stoneTile(RP.stone, D, 901), keep: PX.stoneTile(RP.keep, D, 902), red: PX.tileRoof(RP.red, D, 903), slate: PX.tileRoof(RP.slate, D, 904) };
+  const F = (ramp, tl, seed, more) => Object.assign({ ramp, d: D, seed, tile: tl }, more || {}), y0 = 12, wz = hz + 10;
+  BUILD.facade(hx - 22, hx + 22, y0, y0 + 9, wz - 2, wz, F(RP.stone, tile.stone, 911, { grime: 0.35 }));   // the curtain wall
+  BUILD.crenels(hx - 22, wz, hx + 22, wz, y0 + 9, tile.stone, { w: 1.3, gap: 1.0, h: 1.3, t: 0.7 });
+  BUILD.facade(hx - 3.2, hx + 3.2, y0, y0 + 12, wz - 1, wz + 1.2, F(RP.stone, tile.stone, 912, { win: [[3.2, 9, 'lancet', 0]], grime: 0.3 }));   // the gatehouse
+  for (const [x, seed] of [[hx - 23, 921], [hx + 23, 922], [hx - 5.2, 923], [hx + 5.2, 924]]) { const big = Math.abs(x - hx) > 10, r = big ? 3.4 : 2.0, h = big ? 15 : 14;
+    BUILD.tower(x, wz - 0.5, y0, y0 + h, r, F(RP.stone, tile.stone, seed, { win: [[0.3, h - 4, 'lancet', 0], [0.3, h - 9, 'slit']] })); BUILD.coneRoof(x, wz - 0.5, y0 + h, r * 1.18, r * 2.2, RP.red, D, { seed: seed + 5 }); }
+  BUILD.roof(hx - 18, hx - 7, hz - 4, hz + 5, y0 + 10, 4.5, tile.red, { gable: tile.stone, over: 0.4 });   // the great hall
+  BUILD.facade(hx + 6, hx + 15, y0, y0 + 24, hz - 8, hz, F(RP.keep, tile.keep, 931, { bands: [8, 16], win: [[2.5, 6, 'tall', 0], [6.5, 6, 'tall', 0], [4.5, 14, 'lancet', 0], [2.5, 20, 'lancet', 0], [6.5, 20, 'lancet', 0]] }));   // the keep
+  BUILD.coneRoof(hx + 10.5, hz - 4, y0 + 24, 6.6, 8, RP.slate, D, { seg: 4, seed: 934 });
+  BUILD.tower(hx - 10, hz - 6, y0, y0 + 17, 1.8, F(RP.stone, tile.stone, 941, { win: [[0, 13, 'lancet', 0]] })); BUILD.coneRoof(hx - 10, hz - 6, y0 + 17, 2.2, 9, RP.slate, D, { seed: 942 });   // the chapel's spire
+  for (const [x, y, z, t] of [[hx - 23, y0 + 15 + 7.5, wz - 0.5, T.pennantBlue], [hx + 23, y0 + 15 + 7.5, wz - 0.5, T.pennantBlue], [hx + 10.5, y0 + 32, hz - 4, T.pennantRed]]) {
+    BUILD.box(x - 0.15, x + 0.15, y - 0.6, y + 3.4, z - 0.15, z + 0.15, T.woodPost, { cast: false }); BUILD.windCard(t, x + 4, y + 1.6, z, 'wave', 0.1, { cast: false, s: 3.2 }); }
+  BUILD.card(T.forestMid, hx - 70, 0, -170, { w: 128, h: 20, basic: true, cast: false }); BUILD.card(T.forestMid, hx + 80, 0, -175, { w: 128, h: 20, basic: true, cast: false });
+  BUILD.card(T.forestNear, hx, 0, -150, { w: 70, h: 12, basic: true, cast: false });
+  /* the town's roofs to the west, if this ground can see them */
+  if (o.town) for (const [x0, x1, z0, z1, hh, seed] of [[-78, -66, -96, -86, 7, 951], [-64, -54, -104, -92, 8, 952], [-92, -80, -110, -98, 6.5, 953], [-52, -44, -90, -82, 6, 954], [-70, -60, -120, -110, 9, 955]]) {
+    BUILD.facade(x0, x1, 0, hh, z0, z1, F(RP.inner, PX.stoneTile(RP.inner, D, seed), seed, { win: [[(x1 - x0) * 0.3, hh - 2.6, 'square', 0], [(x1 - x0) * 0.7, hh - 2.6, 'square', 0]], grime: 0.3 }));
+    BUILD.roof(x0, x1, z0, z1, hh, 3.6, tile.red, { gable: tile.stone, over: 0.4 }); }
+  /* a sea of tents behind the ground, flags on every one */
+  const cans = [T.canvasKrasna, T.canvasSwan, T.canvasTeal, T.canvasLilac], pens = [T.pennantRed, T.pennantBlue, T.pennantLeague, T.pennantKrasna];
+  for (const [x, z, r, i] of o.tents || []) BUILD.tent(x, z, r, r * 1.05, r * 0.9, cans[i % 4], cans[i % 4], { pennant: pens[i % 4], seg: 12 });
+  BUILD.flock(T.crow, [[-20, 26, -60, 12, 2, 0.3], [24, 30, -80, 16, 3, -0.25]], { s: 2.0 });
+};
+/* the afternoon sun from the west, with long shadows; a summer sky's fill; a warm bounce off the meadow */
+FEST.lights = function (room) {
+  BUILD.light(new THREE.HemisphereLight(0xb4ccec, 0x6a7440, 1.35), 0, 20, 0);
+  room.sun = BUILD.shadow(BUILD.light(new THREE.DirectionalLight(0xfff0d6, 3.3), -30, 15, 18), R.q === 'low' ? 1024 : 2048); room.sun.target.position.set(0, 0, 0);
+  Object.assign(room.sun.shadow.camera, { left: -26, right: 26, top: 16, bottom: -16, near: 1, far: 100 }); room.sun.shadow.camera.updateProjectionMatrix(); room.sun.shadow.bias = -0.0008;
+  const fill = BUILD.light(new THREE.DirectionalLight(0xc8d4e8, 0.45), 18, 7, 18); fill.target.position.set(0, 1, 0);
+  room.rim = [-20, 6, 5, 0.7, 60, 0xfff0d0, null]; room.shadowSrc = [-28, 11, 11, 80]; room.keyK = 0.95;
+};
+/* a stall: four poles, a striped awning sloping down to the front with its dagged edge, the painted counter and wares */
+FEST.stall = function (x, z, w, front, awning, o) {
+  o = o || {}; const T = PX.T, d = 1.5, h0 = 2.5, h1 = 2.05, x0 = x - w / 2, x1 = x + w / 2;
+  for (const px of [x0 + 0.06, x1 - 0.06]) for (const pz of [z - d / 2, z + d / 2]) BUILD.box(px - 0.05, px + 0.05, 0, pz < z ? h0 : h1, pz - 0.05, pz + 0.05, T.woodPost);
+  const g = new THREE.PlaneGeometry(w + 0.3, Math.hypot(d + 0.3, h0 - h1)); g.rotateX(-Math.PI / 2 + Math.atan2(h0 - h1, d + 0.3)); g.translate(x, (h0 + h1) / 2 + 0.03, z);
+  BUILD.planarUV(g, awning); BUILD.add(new THREE.Mesh(g, BUILD.std(awning, { side: THREE.DoubleSide, rough: 0.9 })), { cast: true });
+  BUILD.card(awning, x, h1 - 0.42, z + d / 2 + 0.16, { w: w + 0.3, h: 0.42, cast: false });   // the valance off the front edge, shallow enough to clear the wares
+  BUILD.card(front, x, 0, z + d / 2 - 0.12, { w: o.fw || w * 0.94, h: o.fh || (w * 0.94) * front.userData.h / front.userData.w, cast: true });
+  BUILD.solid(x0, x1, 0, h1, z - d / 2, z + d / 2);
+};
+/* smoke from a grill or a fire: soft puffs that rise, spread and fade, one after another */
+FEST.smoke = function (room, x, y, z, k) {
+  const puffs = []; for (let i = 0; i < 5; i++) { const m = new THREE.SpriteMaterial({ map: PX.T.smokeSoft, color: 0x8a8480, transparent: true, opacity: 0, depthWrite: false });
+    const s = new THREE.Sprite(m); BUILD.add(s, { cast: false }); puffs.push({ s, m, ph: i / 5 }); }
+  room.tick.push((T) => { for (const p of puffs) { const u = (T * 0.22 + p.ph) % 1; p.s.position.set(x + Math.sin(u * 5 + p.ph * 9) * 0.15 + u * 0.5, y + u * 2.2 * (k || 1), z);
+    p.s.scale.setScalar((0.35 + u * 1.3) * (k || 1)); p.m.opacity = 0.32 * Math.sin(u * Math.PI) * (k || 1); } });
+};
+/* bunting on two poles: o.y high; the flags sway */
+FEST.bunting = function (x0, x1, z, y) {
+  const T = PX.T; for (const x of [x0, x1]) BUILD.box(x - 0.05, x + 0.05, 0, y + 0.3, z - 0.05, z + 0.05, T.woodPost, { cast: false });
+  for (let x = x0; x < x1 - 0.5; x += 4) BUILD.windCard(T.bunting, x + 2, y - 0.5, z, 'wave', 0.06, { cast: false, w: Math.min(4, x1 - x), h: 0.5 });
+};
+/* ---------------------------------------------------------------- shows: the camera, voices, the meter */
+/* ease the lens to a new framing (focus x, dist, y, look) and back (to = null); resolves when it's there */
+FEST.cam = function (room, to, dur) {
+  const c = room.cam; if (!room.cam0) room.cam0 = { dist: c.dist, y: c.y, look: c.look };
+  const from = { focus: room.camFocus !== null && room.camFocus !== undefined ? room.camFocus : SCENE.camX, dist: c.dist, y: c.y, look: c.look }, goal = Object.assign({ focus: null }, room.cam0, to || {});
+  return new Promise((res) => { let t = 0; const f = (T, dt) => { t += dt; const u = smooth(0, 1, t / (dur || 1.2));
+    c.dist = lerp(from.dist, goal.dist, u); c.y = lerp(from.y, goal.y, u); c.look = lerp(from.look, goal.look, u);
+    room.camFocus = goal.focus === null ? (u >= 1 ? null : lerp(from.focus, SCENE.player.x, u)) : lerp(from.focus, goal.focus, u);
+    if (u >= 1) { room.tick = room.tick.filter((g) => g !== f); res(); } }; room.tick.push(f); });
+};
+/* walk the king to a place to watch from (out of the show's way), wait until he has stopped, and turn him to face it */
+FEST.stepTo = async function (x, lookX) {
+  const K = SCENE.player; if (Math.abs(K.x - x) > 0.1) await new Promise((res) => K.walkTo(x, res));
+  for (let i = 0; i < 60 && Math.abs(K.v) > 0.1; i++) await SCENE.wait(30);
+  if (lookX !== undefined) { K.faceTo(lookX); K.lookYaw = Math.sign(lookX - K.x) * 1.0; }
+};
+/* something that can speak a bubble but isn't an actor: a puppet, a voice from the crowd */
+FEST.voice = function (x, y, z) { const v = { x, y, z, v: 0, talking: false, visible: true, speakAt: (out) => out.set(v.x, v.y, v.z) }; return v; };
+/* the timing meter: a needle runs back and forth; E, Space or a tap stops it. Resolves 0..1 (1 = dead in the gold) */
+FEST.meter = function (label) {
+  return new Promise((res) => {
+    const el = document.createElement('div'); el.className = 'meter'; el.innerHTML = '<span></span><div class="track"><i></i><b></b></div>'; el.querySelector('span').textContent = label;
+    $('ui').appendChild(el); const knob = el.querySelector('b'), t0 = performance.now(); let done = false;
+    const pos = () => { const u = ((performance.now() - t0) / 1000) % 2; return u < 1 ? u : 2 - u; };
+    const loop = () => { if (done) return; knob.style.left = (pos() * 100).toFixed(1) + '%'; requestAnimationFrame(loop); }; loop();
+    const hit = (e) => { if (done || (e.type === 'keydown' && !['KeyE', 'Space', 'Enter'].includes(e.code))) return; e.preventDefault(); e.stopPropagation(); done = true;
+      window.removeEventListener('keydown', hit, true); window.removeEventListener('pointerdown', hit, true);
+      const p = pos(), score = clamp(1 - Math.abs(p - 0.86) / 0.4, 0, 1); el.classList.add('done'); knob.style.left = (p * 100).toFixed(1) + '%'; setTimeout(() => el.remove(), 700); res(score); };
+    setTimeout(() => { window.addEventListener('keydown', hit, true); window.addEventListener('pointerdown', hit, true); }, 250);   // the tap that opened it doesn't stop it
+  });
+};
+FEST.say = (who, key, lines) => SCENE.say(who, SCENE.cycle(key, lines));
+/* a choice under the picture, outside the adult scenes: NIGHT.ask's strip, which any conversation can use */
+FEST.ask = (opts) => NIGHT.ask(opts);
+/* talk to a festival actor: a fuller first meeting, then one line at a time. T: { first: [[who, text]], more: [...] } */
+FEST.talk = async function (id, T) {
+  const A = CAST.A, a = A[id], K = SCENE.player; if (!a) return;
+  K.faceTo(a.x); if (!a.sitting) { a.faceTo(K.x); a.lookYaw = Math.sign(K.x - a.x) * 0.8; }
+  const who = (k) => (k === 'king' ? K : k === id ? a : A[k] || a);
+  if (T.first && !FEST.met[id]) { FEST.met[id] = true; await SCENE.talk(T.first.map(([k, t]) => [who(k), t])); }
+  else await SCENE.say(a, SCENE.cycle('ft' + id, T.more));
+  if (!a.sitting) a.lookYaw = null;
+};
+/* put a talk marker over each named actor in the room (they don't wander, so the marker stays put) */
+FEST.talkers = function (room, list) {
+  for (const [id, label, fn] of list) { const a = CAST.A[id]; if (!a || room.inter.some((i) => i.id === id)) continue;
+    const hy = (a.curHome && a.curHome.sit ? a.curHome.sit.y - 0.5 : a.y) + (a.spec.headY || 2.05) + 0.45;   // over the head, standing or seated (in the stand, far off)
+    room.interact(id, a.x, hy, a.z, 0.8, fn || (() => FEST.talk(id, FEST.TALK[id]))).label = label || 'Talk to ' + (a.name || id); }
+  SCENE.buildMarks();
+};
+/* a wandering actor's talk marker follows them (call from the room's onUpdate) */
+FEST.follow = function (room) { for (const it of room.inter) { const a = CAST.A[it.id]; if (a && a.curHome && a.curHome.wander) { it.x = a.x; it.p.x = a.x; } } };
+/* ---------------------------------------------------------------- what everyone says */
+FEST.TALK = {
+  queen: { first: [['queen', 'You came. I had a wager with Zofia that you would spend the whole fair in the Krasnian tent.'], ['king', 'What did you wager?'],
+      ['queen', 'A honey cake. I’ve already eaten it.']],
+    more: ['Buy the boy a honey cake and stop looking at the pavilions. The pact will keep for an hour.', 'Half the town is here. The other half is picking the first half’s pockets.',
+      'Gniewomir kissed my hand for so long I thought he was reading my rings.'] },
+  kazik: { first: [['kazik', 'Father! Father, the bear has a name, it’s Wojciech, and he hates dancing. You can tell.'], ['king', 'How can you tell?'],
+      ['kazik', 'He looks at the ground the whole time. That’s what I do in dancing lessons.']],
+    more: ['If you bought him, he could live in the Wood. The Woman would let him. She lets the crows.', 'Wojciech is looking at me. I think he knows we’re talking about him.',
+      'Can the bear come to the castle? He could sleep in Ser Bogdan’s bed. Ser Bogdan sleeps in the yard anyway.'] },
+  martaFair: { first: [['martaFair', 'Your Grace! My mill’s flour, my hands, my oven. The Krasnians have bought half of it already.'], ['king', 'How is the mill road?'],
+      ['martaFair', 'Quiet, since the crown remembered us. My boys are here somewhere, drinking what I paid them.']],
+    more: ['Take a loaf for the queen. She won’t eat it, but she’ll like that you brought it.', 'The Krasnian cooks buy flour like they mean to feed an army.'] },
+  bartosz: { first: [['bartosz', 'Bartosz Kuglarz, Your Grace, master of the players and keeper of the finest bear in three kingdoms!'], ['king', 'He doesn’t look happy.'],
+      ['bartosz', 'He’s a bear, Your Grace. They never look happy. It’s the eyebrows.'], ['bartosz', 'The Salamanders go on when the crowd’s thick. Ask, and they’ll light the sky for you.']],
+    more: ['Three sisters, three mouths full of fire, not one burnt eyebrow in eleven years.', 'The bear? Bought him off a monk. Don’t ask what the monk wanted him for.',
+      'You’ve a kind face for a king. It’s bad for business, but it’s a kind face.'],
+    fire: ['Lords, ladies, and you lot at the back! The Salamanders of the South!', 'Mind your hats! The Salamanders!'] },
+  salA: { more: ['Mira. The eldest. I do the big one at the end.', 'Lamp oil, a mouthful of it, and a very good reason not to breathe in.'] },
+  salB: { more: ['Tessa. The middle one. The one who caught fire in Velka, once. Once.', 'The Krasnian prince asked if we do private shows. We told him the price. He went pale.'] },
+  salC: { more: ['Ola. The youngest. I juggle the torches while they do the hard part.', 'You should see it at night. In the day it’s only fire. At night it’s a wonder.'] },
+  fortune: { first: [['fortune', 'Sit, my king. No coin. The cards have already been paid for.'], ['king', 'By whom?'],
+      ['fortune', 'By you, a long time ago. Shall I turn one over?'], ['fortune', 'The Tower, and a cup. You’ll lose something at the feast.'], ['fortune', 'Not yours.']],
+    more: ['The cup again. It keeps coming up. I’d keep an eye on cups, if I were a king.', 'A bear in the Wood, a crow at a window, a king on the floor. The cards are in a mood today.',
+      'You’ve a cat’s hair on your sleeve. Black. I won’t ask whose.'] },
+  townA: { more: ['Sun for the festival. Seven days of it, they say. The priest says it’s a miracle. My wife says it’s witchcraft. I say it’s sun.', 'The Krasnian ale is weak and their songs are long.'] },
+  townB: { more: ['Your Grace! Oh — Your Grace. I didn’t, I’m sorry. Lovely day for it.', 'Did you see the Salamanders? I’ve never been so warm in my life.'] },
+  townC: { more: ['Three hundred Krasnian knights in the meadow and not one of them can dance.', 'My cousin says the masked knight is a ghost. My cousin also says the bear can talk.'] },
+  townD: { more: ['The saint’s blessing is at noon. I want a good spot. She looks right at you, they say.', 'Ribbons, Your Grace? For the queen? Or for — well. For the queen.'] },
+  fairGuard: { more: ['All quiet, Your Grace. Two pickpockets, one brawl, and a goose loose in the ale tent.', 'The bear’s chain is stronger than it looks. So is the bear.'] },
+  herald: { more: ['Hear ye, and so on, Your Grace. My voice goes at three. I’m saving it.', 'The Black Swan Knight gives no name. The rules allow it, if the Marshal does.'],
+    duel: ['My lords! Ser Bogdan, Commander of Lodmir, against Ser Ottokar Wilk, Champion of the Queen of Krasna!', 'Again, my lords! Bogdan of Lodmir, Ottokar of Krasna!'],
+    joust: ['Prince Mściwoj of Krasna! Against the Black Swan Knight, who gives no name!', 'Three courses, my lords! Prince Mściwoj, and the Black Swan!'] },
+  marshal: { first: [['marshal', 'Ser Dobiesław, Marshal of the Lists. Your Grace honours us.'], ['king', 'Who is the masked knight?'],
+      ['marshal', 'He paid his fee and swore the oath with his visor down. The old rules allow it. I didn’t write the old rules, Your Grace.']],
+    more: ['Blunted lances, Your Grace. Mostly blunted.', 'The Krasnian prince has broken eleven lances this morning and one squire.', 'If you would give a favour, Your Grace, the herald will carry it.'] },
+  zofia: { first: [['zofia', 'Father! Did you see? Two in the gold and one in the blue, and the Krasnian boy got one in the grass.'], ['king', 'You’re in the junior bouts?'],
+      ['zofia', 'The Marshal said the rules don’t say “boys”. Mother said the rules don’t say “princesses” either. So.']],
+    more: ['If I win, I want a real bow. With a name.', 'Ser Bogdan says I pull with my shoulder and not my back. Ser Bogdan pulls with his mouth.'] },
+  dorota: { first: [['dorota', 'Your Grace. The blessing went well, I think. They cheered the lances louder than God, but that’s tournaments.'], ['king', 'You were the most beautiful thing on the field.'],
+      ['dorota', 'Hush. The queen is twenty paces away, and the Canon is ten. Bless you, Your Grace. Loudly.']],
+    more: ['Every knight wanted me to touch his lance before the joust. I told them the saints are very busy.', 'Come to the chapel tonight. For confession. Bring a great deal to confess.',
+      'The Krasnian queen hasn’t taken her eyes off her champion. Interesting, isn’t it.'] },
+  commander: { more: ['A Krasnian, Your Grace. I’ve been waiting twelve years to hit one with permission.', 'Ottokar fights like a man with something to lose. I fight like a man with a pension.'] },
+  ottokar: { first: [['ottokar', 'Ser Ottokar Wilk. My queen’s shield. Your commander has a fine arm, Your Grace.'], ['king', 'You serve the queen, not the king?'],
+      ['ottokar', 'In Krasna that is a distinction with a difference. Excuse me.']],
+    more: ['My queen asks that you forgive her for not rising. The stand is high and her husband is watching.', 'I don’t talk about the black knight. Nobody in our camp does.'] },
+  gniewomir: { first: [['gniewomir', 'Bolesław’s boy! Look at you, with his chin and none of his temper. Sit, sit. Wine?'], ['king', 'You never came, in the siege.'],
+      ['gniewomir', 'No. I was a coward with a large army, and your father was a brave man with a small one. Let’s not do it that way again.'],
+      ['gniewomir', 'My pact, Radomir. My knights in your pass, my road through your mountains, and nobody from Hal ever darkens your gate again. Think on it. Not long.']],
+    more: ['I have one summer left in me, the physicians say. I’d like to spend it being thanked.', 'Your wife is cleverer than you. Mine is cleverer than me. It’s the way of things.',
+      'This Black Swan of yours — who pays for a mask like that? Somebody angry and rich.', 'Sign it at the feast, in front of everyone. A pact is a performance.'] },
+  wieslawa: { first: [['wieslawa', 'King Radomir. My husband talks of nothing but your pass. I am the other thing he talks about, now and then.'], ['king', 'You were born in Velka.'],
+      ['wieslawa', 'And married in Krasna. Your wife and I were girls at the same court. Ask her what I was like. Then ask her what I’m like now.']],
+    more: ['My cousin Jarek is on his barge counting things. He’ll be counting you next.', 'Ser Ottokar is my sworn shield. You will find him wherever I am. Most places.',
+      'The prince hates the pact. The king loves it. I love a quiet room, and there are none.'] },
+  msciwoj: { first: [['msciwoj', 'The host! Come to see if Krasna’s prince is as tall as they say? He is.'], ['king', 'And the pact?'],
+      ['msciwoj', 'My father’s pact. When I am king, I will want your friendship, not your mountains. Tell him I said it. He won’t listen.'],
+      ['msciwoj', 'Arm-wrestle me, Radomir. A king who won’t is a king who can’t.']],
+    more: ['That masked crow unseated three of my knights. Tomorrow he meets me.', 'My father is dying and pretending he isn’t. Kings are bad at both.', 'Again? Your arm is still attached, so we can go again.'] },
+  jarek: { first: [['jarek', 'Brother-in-law! You look poorer. Is that the festival, or the rain?'], ['king', 'You came in person.'],
+      ['jarek', 'For my sister. And because a road through your pass would empty my river. You understand. It’s nothing personal. It’s tolls.']],
+    more: ['Halina writes that you’re keeping a secret. She writes it in the margins, which is how she shouts.', 'Gniewomir’s road would cost the League thirty thousand a year. I mention it in passing.',
+      'Your toll-keepers at the Kalina ford are very honest men. Very honest. Don’t look at the books.'] },
+  squire: { first: [['squire', 'My knight sees no one, Your Grace. He apologises. He says he has seen you before.'], ['king', 'Where?'],
+      ['squire', 'He didn’t say. He asked me what the gate below the chapel tower is called now. I said I didn’t know. Do you?']],
+    more: ['My knight prays at night, facing the Wood. I don’t ask.', 'The black horse is called Ash. He bites everyone but my knight.'] },
+  groom: { more: ['That grey is the prince’s. Best horse in the meadow and he knows it. Mind his teeth — no, he likes you.', 'Hay, water, and nobody waving flags at them. That’s all a horse wants.'] },
+  kSoldierA: { more: ['Your Grace. The prince says we’re guests. The prince says a lot of things.', 'Your ale is better than ours. Don’t tell the prince.'] },
+  kSoldierB: { more: ['Twelve years since the siege. My father was in the army that didn’t come. He drinks about it.', 'Pretty country, Your Grace. Wet, though.'] },
+};
+FEST.LINES = {
+  road: ['The road back to the town, and the map.'], toLists: ['Through the gate to the lists.'], toFair: ['Back through the gate to the fair.'], toCamp: ['On along the river to the pavilions.'],
+  honey: ['Honey cakes. The bees are royal, technically. They live on crown land.', 'I’ll take three. One for Kazik, one for Halina, one for the walk.'],
+  sausage: ['Sausages on the coals. The smoke smells like every summer of my childhood.', 'A sausage, a king, a moment of peace.'],
+  ribbons: ['Ribbons for a lady’s sleeve, or a lady’s favourite. Silk from the south, dyed in Velka.'],
+  bread: ['Marta’s bread. Her mill, her flour, her oven, and a queue of Krasnian cooks.'],
+  ale: ['The ale tent. The noise from in there is half song and half argument.', 'Someone in there is singing about my father. The words are not kind. The tune is lovely.'],
+  stage: ['The Salamanders’ stage. The backcloth is scorched in three places.'],
+  puppetBooth: ['A puppet booth. The king puppet has my beard and somebody else’s belly.'],
+  wagon: ['A painted wagon with an eye on the door. The eye follows you. It’s only paint.'],
+  maypole: ['The maypole. The ribbons will be plaited by sunset, if the dancers don’t kill each other.'],
+  striker: ['The strongman’s hammer. Ring the bell and win a ribbon. Kings ring it more often than you’d think. Or it’s rigged.'],
+  tilt: ['The tilt: a barrier down the middle so the horses can’t meet head on. Only the lances do.'],
+  stand: ['The royal stand. Halina, Gniewomir, and Wiesława, in three chairs that don’t like each other.'],
+  stands: ['The town in its best clothes, on planks Bogdan swears will hold.'],
+  butts: ['The archery butts. Zofia’s arrows are the ones in the middle.'],
+  tower: ['The heralds’ tower. The herald climbs it to be heard and stays up there to be left alone.'],
+  pavilion: ['Gniewomir’s pavilion: red and white, bigger than my chapel, with a carpet in it.'],
+  barge: ['The League’s barge, moored where everyone can see it. Jarek does nothing by accident.'],
+  blackTent: ['A black tent with no banner. The squire guards it like there’s a body inside.'],
+  campfire: ['Krasnian soldiers round a fire, cooking something that used to be a goose.'],
+  horses: ['The horse lines. Destriers the size of houses, eating like it’s their last day.'],
+  river: ['The river, low and brown. Seven days of sun and it’s already shy.'],
+};
+
+/* ==== game/g37_fair.js ==== */
+/* THE FAIRGROUND — the west end of the Swan Meadow, where the town road comes in (STORY.md §6.1). Left to right: the gate
+   from the road · Marta's bread, the honey cakes, the sausage grill · the ale tent · the Salamanders' stage · ribbons · the
+   bear's pen (Bartosz, Kazik) · the puppet booth · the strongman's hammer · the fortune teller's wagon, the maypole · the
+   gate to the lists. Behind: bunting, the crowd, a sea of tents, and the Swan Fortress on its hill. */
+const FAIR = FEST.room('fair', 'The Swan Fair', 'Midsummer, and seven days without rain', { ambience: { crowd: 0.6, birds: 0.25, wind: 0.15, fire: 0.08 } });
+FAIR.ENTRY = -13.6;   // from the road (the map)
+FAIR.build = function () {
+  const room = BUILD.begin(this), T = PX.T, KZ = room.KZ, L = FEST.LINES;
+  const say = (k) => SCENE.say(SCENE.player, SCENE.cycle('fl' + k, L[k]));
+  FEST.backdrop(room, { town: true, fx: 8, tents: [[-26, -15, 2.4, 0], [-17, -22, 2.0, 1], [-7, -18, 2.6, 2], [4, -24, 2.2, 3], [14, -16, 2.4, 0], [24, -21, 2.0, 1], [33, -26, 2.6, 2]] });
+  /* the gate from the road, and the gate to the lists */
+  BUILD.card(T.festGate, -14.9, 0, 1.7, { cast: true });
+  room.interact('road', -14.6, 3.0, KZ, 1.0, () => MAP.open()).label = 'The road (the map)';
+  BUILD.card(T.festGate, 15.4, 0, 1.7, { cast: true });
+  room.interact('toLists', 15.0, 3.0, KZ, 1.0, () => { SCENE.lock++; SCENE.say(SCENE.player, L.toLists[0]).then(() => { SCENE.lock--; GAME.save(); SCENE.go('lists', { x: LISTS.ENTRY, face: 1 }); }); }).label = 'To the lists';
+  /* the food stalls */
+  FEST.stall(-12.6, 1.05, 2.4, T.stallBread, T.awningGreen); room.interact('bread', -12.6, 1.9, KZ, 0.9, () => say('bread'));
+  FEST.stall(-10.2, 1.05, 2.4, T.stallHoney, T.awningBlue);
+  room.interact('honey', -10.2, 1.9, KZ, 0.9, () => { FEST.cakes++; AUDIO.sfx('coin', { gain: 0.6 }); say('honey'); }).label = 'Buy honey cakes';
+  FEST.stall(-7.8, 1.05, 2.4, T.stallSausage, T.awningRed); room.interact('sausage', -7.8, 1.9, KZ, 0.9, () => say('sausage'));
+  BUILD.glow(-8.2, 1.25, 1.85, 1.1, 0xff7a2a, 0.35); BUILD.light(new THREE.PointLight(0xff8a3c, 1.4, 0, 2), -8.2, 1.3, 2.1, { flicker: 6 });
+  FEST.smoke(room, -8.3, 1.5, 1.6, 0.8);
+  /* the ale tent: barrels and a trestle inside, the flap open to the meadow */
+  BUILD.tent(-4.6, -0.3, 2.0, 2.3, 1.7, T.canvasSwan, T.canvasSwan, { open: 1.7, valance: T.awningBlue, pennant: T.pennantBlue });
+  for (const [x, z] of [[-5.5, -0.9], [-4.7, -1.2], [-3.9, -0.8]]) BUILD.card(T.barrel, x, 0, z, { s: 0.9 });
+  BUILD.box(-5.6, -3.6, 0.72, 0.8, 0.2, 0.7, T.woodDark); for (const x of [-5.4, -3.8]) BUILD.box(x - 0.05, x + 0.05, 0, 0.72, 0.3, 0.6, T.woodPost);
+  room.interact('ale', -4.6, 2.4, KZ, 1.0, () => say('ale'));
+  /* the Salamanders' stage: a plank platform, the scorched backcloth, a torch at each end */
+  const SX0 = -1.8, SX1 = 2.6, SH = 0.8; room.stageX = (SX0 + SX1) / 2;
+  BUILD.box(SX0, SX1, 0, SH, 0.0, 1.8, T.woodDark); BUILD.box(SX0, SX1, SH - 0.06, SH, 0.0, 1.85, T.woodRed);
+  BUILD.card(T.awningRed, room.stageX, 0.05, 1.86, { w: SX1 - SX0, h: SH - 0.05, cast: false });
+  BUILD.card(T.stageCurtain, room.stageX, SH, 0.06, { w: SX1 - SX0, h: (SX1 - SX0) * 64 / 96, cast: false });
+  for (const x of [SX0 + 0.12, SX1 - 0.12]) { BUILD.box(x - 0.05, x + 0.05, SH, SH + 2.0, 1.55, 1.65, T.woodPost); BUILD.flame(x, SH + 2.0, 1.62, 0.6); BUILD.glow(x, SH + 2.2, 1.65, 1.0, 0xffa050, 0.35);
+    BUILD.light(new THREE.PointLight(0xffa050, 2.0, 0, 2), x, SH + 2.2, 1.9, { flicker: 7 + x }); }
+  room.lights.flash = BUILD.light(new THREE.PointLight(0xffa040, 0, 0, 2), room.stageX, SH + 1.8, 2.0);
+  room.blasts = [-0.9, 0.4, 1.7].map(() => { const a = BUILD.anim(T.blast, 0, 0, 0, { basic: true, k: 3.2, cast: false, s: 1.0 }); a.me.visible = false; return a; });
+  room.interact('stage', room.stageX, 2.8, KZ, 1.4, () => FAIR.fire(room)).label = 'Watch the Salamanders';
+  /* ribbons */
+  FEST.stall(4.0, 1.05, 2.2, T.stallRibbons, T.awningGreen);
+  room.interact('ribbons', 4.0, 2.0, KZ, 0.9, () => FAIR.ribbons()).label = 'Buy a ribbon';
+  /* the bear's pen: woven hurdles, the bear dancing on his chain */
+  const BX0 = 5.6, BX1 = 8.4, BZ0 = 0.4, BZ1 = 2.0;
+  BUILD.card(T.hurdle, (BX0 + BX1) / 2, 0, BZ1, { w: BX1 - BX0, h: 0.75, ru: 1.4 }); BUILD.card(T.hurdle, (BX0 + BX1) / 2, 0, BZ0, { w: BX1 - BX0, h: 0.75, ru: 1.4 });
+  for (const x of [BX0, BX1]) BUILD.card(T.hurdle, x, 0, (BZ0 + BZ1) / 2, { w: BZ1 - BZ0, h: 0.75, ry: Math.PI / 2 });
+  BUILD.solid(BX0, BX1, 0, 0.75, BZ0, BZ1);
+  BUILD.box(7.0 - 0.05, 7.0 + 0.05, 0, 1.3, 0.6, 0.7, T.woodPost);   // the chain's stake
+  room.bear = BUILD.anim(T.bearDance, 7.0, 0, 1.2, { rate: 1.6, s: 1.0 });
+  room.bearPet = BUILD.pet(room.bear.me, { id: 'bear', label: 'Pet the bear', frames: [T.bearSit], sound: 'pant', soundO: { gain: 0.9 }, headY: 1.9, dur: 3.0, stand: 0.9,
+    says: ['(He sits down at once, the way he does when the music stops.)', 'Hrrmf.', '(He leans his whole head into the king’s hand. It’s like being leaned on by a door.)'],
+    lines: ['Hello, Wojciech. You don’t like dancing either, do you.', 'He smells of hay and old honey and something sad.'], onPet: () => FAIR.petBear() });
+  room.interact('bearFree', BX0 - 0.3, 1.6, KZ, 0.7, () => FAIR.freeBear(room)).label = 'Buy the bear his freedom';
+  /* the puppet booth, the puppets in its window */
+  BUILD.card(T.puppetBooth, 9.6, 0, 1.4);
+  room.puppets = BUILD.anim(T.puppets, 9.6, 1.96, 1.43, { cast: false }); room.puppets.paused = true;
+  room.interact('puppetBooth', 9.6, 2.9, KZ, 0.8, () => FAIR.puppetShow(room)).label = 'Watch the puppet play';
+  /* the strongman's hammer: the post, the puck that flies up it, the bell */
+  BUILD.card(T.striker, 11.2, 0, 1.3, { cast: true });
+  room.puck = BUILD.card(T.puck, 11.2, 0.15, 1.33, { cast: false, dyn: true });
+  room.bell = BUILD.glow(11.2, 4.2, 1.35, 1.2, 0xffe080, 0); room.bell.visible = false;
+  room.interact('striker', 11.2, 2.6, KZ, 0.8, () => FAIR.hammer(room)).label = 'Swing the hammer';
+  /* the fortune teller's wagon, the maypole behind it */
+  BUILD.card(T.fortuneWagon, 12.8, 0, 0.3); BUILD.card(T.lantern, 14.0, 1.6, 0.9, { cast: false, s: 0.7 }); BUILD.glow(14.0, 1.8, 0.95, 0.9, 0xffb060, 0.4);
+  BUILD.card(T.maypole, 14.3, 0, -1.4, { cast: true });
+  for (const [dx, ry] of [[-0.25, 0.4], [0.2, -0.3], [0.05, 1.2], [-0.1, -1.0]]) BUILD.windCard(T.ribbon, 14.3 + dx, 1.9, -1.35, 'wave', 0.1, { cast: false, ry });
+  room.interact('maypole', 14.3, 3.4, KZ, 0.6, () => say('maypole'));
+  /* the meadow's dressing: bunting, the crowd beyond the stalls, the near side's barrels and hurdles */
+  FEST.bunting(-15.5, -6.2, -0.7, 4.6); FEST.bunting(-6.2, 6.2, -2.2, 5.3); FEST.bunting(6.2, 16, -0.6, 4.8);
+  for (const [x, z, t] of [[-9, -3.0, T.crowdA], [-1, -3.4, T.crowdB], [7, -3.0, T.crowdA], [14, -4.2, T.crowdB], [-15, -4.6, T.crowdB]]) BUILD.card(t, x, 0, z, { w: 8, h: 1.25, cast: false });
+  BUILD.card(T.hay, -9.5, 0, 7.4, { s: 1.0, cast: false }); BUILD.card(T.barrel, -3.6, 0, 7.2, { s: 1.1, cast: false }); BUILD.card(T.barrel, -2.9, 0, 7.6, { s: 1.1, cast: false });
+  BUILD.card(T.hurdle, 2.6, 0, 7.2, { w: 2.6, h: 0.8, cast: false }); BUILD.card(T.cartWheel, 9.4, 0, 7.4, { s: 1.1, cast: false, rx: -0.12 }); BUILD.card(T.crate, 12.6, 0, 7.0, { s: 0.9, cast: false });
+  FEST.lights(room);
+  BUILD.motes({ n: 60, boxes: [[-15, 15, 0.4, 3.6, 0.5, 3.6, 0.5]], col: 0xfff0c0 });
+  room.update(0, 0);
+  return BUILD.end();
+};
+FAIR.TALKERS = [['queen', 'Talk to Halina'], ['kazik', 'Talk to Kazik'], ['martaFair', 'Talk to Marta'], ['bartosz', 'Talk to Bartosz'], ['salA', 'Talk to Mira'], ['salB', 'Talk to Tessa'], ['salC', 'Talk to Ola'],
+  ['fortune', 'Have your fortune told'], ['townA', 'Talk to the townsman'], ['townB', 'Talk to the townswoman'], ['townC', 'Talk to the townsman'], ['townD', 'Talk to the townswoman'], ['fairGuard', 'Talk to the guard']];
+FAIR.onEnter = function () {
+  if (!CUT.playing) SCENE.caption(...this.caption);
+  FEST.talkers(this, FAIR.TALKERS);
+  if (FEST.bearFreed) { this.bear.me.visible = false; for (const id of ['bear', 'bearFree']) { const it = this.inter.find((i) => i.id === id); if (it) it.hidden = true; } }
+};
+FAIR.onUpdate = function () { FEST.follow(this); };
+/* ---------------------------------------------------------------- the Salamanders */
+FAIR.fire = async function (room) {
+  const A = CAST.A, S = [A.salA, A.salB, A.salC], K = SCENE.player; if (!S.every(Boolean)) return;
+  SCENE.lock++;
+  try {
+    await FEST.stepTo(room.stageX - 2.9, room.stageX);   // stand to one side: the stage is the show
+    await FEST.cam(room, { focus: room.stageX, dist: 12.5, y: 2.6, look: 2.2 }, 1.3);
+    await FEST.say(A.bartosz, 'fireIntro', FEST.TALK.bartosz.fire);
+    for (let i = 0; i < 3; i++) { FAIR.blast(room, i, 1.0); await SCENE.wait(1500); }
+    for (let i = 0; i < 3; i++) FAIR.blast(room, i, 1.35);
+    await SCENE.wait(900); AUDIO.sfx('cheer', { gain: 0.9, dur: 3.2 });
+    FEST.fires++;
+    await SCENE.say(K, SCENE.cycle('fireK', ['I’ve seen sieges with less fire in them.', 'Halina will say it’s dangerous. Halina will also have been watching.', 'Pay them double. Quietly.']));
+  } finally { K.lookYaw = null; await FEST.cam(room, null, 1.0); SCENE.lock--; }
+};
+/* one sister's blast: she leans back and blows, a plume of fire rolls up and out from her mouth, the stage lights up */
+FAIR.blast = function (room, i, big) {
+  const s = [CAST.A.salA, CAST.A.salB, CAST.A.salC][i], b = room.blasts[i], f = s.face || 1;
+  s.act('Interact', 0, null);
+  // the card pivots on its bottom centre; put the plume's root (its left middle, before the flip) at her mouth, angled up and out
+  const mx = s.x + f * 0.22, my = s.y + 1.6, th = f * 0.55, lx = -f * big * 1.5 / 2, ly = big * 0.875 / 2;
+  b.me.scale.set(f * big, big, 1); b.me.rotation.z = th;
+  b.me.position.set(mx - (lx * Math.cos(th) - ly * Math.sin(th)), my - (lx * Math.sin(th) + ly * Math.cos(th)), s.z + 0.15);
+  b.me.visible = true; b.set(0); AUDIO.sfx('fwoosh', { gain: 0.8 * big, pan: clamp((s.x - R.cam.position.x) / 8, -0.8, 0.8) });
+  let t = 0; const tick = (T, dt) => { t += dt; const fr = Math.floor(t / 0.11); room.lights.flash.intensity = 26 * big * Math.max(0, 1 - t / 0.8);
+    if (fr >= b.n) { b.me.visible = false; room.lights.flash.intensity = 0; room.tick = room.tick.filter((g) => g !== tick); } else b.set(fr); };
+  room.tick.push(tick);
+};
+/* ---------------------------------------------------------------- the bear */
+FAIR.petBear = function () {
+  const z = CAST.A.kazik; FEST.met.bearPets = (FEST.met.bearPets || 0) + 1;
+  if (FEST.met.bearPets === 1 && z && z.visible) return [[z, 'He LIKES you. Bartosz! He likes the king!'], [CAST.A.bartosz, 'He likes anyone with honey on their fingers, little lord.']];
+  return null;
+};
+FAIR.freeBear = async function (room) {
+  const A = CAST.A, K = SCENE.player; SCENE.lock++;
+  try {
+    await SCENE.say(A.bartosz, 'Sell him? He’s the best dancer in my company, Your Grace. Also the only one who doesn’t drink.', { wait: true });
+    const i = await FEST.ask(['Buy him, and let him go in the Wood', 'Not today']);
+    if (i === 1) { await SCENE.say(K, 'Another day, Bartosz.', { wait: true }); return; }
+    COURT.stats.gold = Math.max(0, COURT.stats.gold - 1); AUDIO.sfx('coin', { gain: 0.8 });
+    await SCENE.talk([[K, 'Name your price, and then take a third off it, because I’m the king.'], [A.bartosz, 'For a king, the price is the price. For a little prince, it’s half.'],
+      [A.kazik, 'Does that mean he’s FREE?'], [K, 'It means Bogdan’s men walk him to the Wood tonight, and the Woman can explain herself to him.']]);
+    FEST.bearFreed = true; await NIGHT.fade(true); room.bear.me.visible = false;
+    for (const id of ['bear', 'bearFree']) { const it = room.inter.find((x) => x.id === id); if (it) it.hidden = true; } SCENE.buildMarks(); await NIGHT.fade(false);
+    await SCENE.say(A.kazik, 'Thank you, Father. I’ll visit him. With honey.', { wait: true });
+    GAME.save();
+  } finally { SCENE.lock--; }
+};
+/* ---------------------------------------------------------------- ribbons */
+FAIR.ribbons = async function () {
+  const K = SCENE.player; SCENE.lock++;
+  try {
+    if (FEST.ribbon) { await SCENE.say(K, FEST.ribbon === 'halina' ? 'Halina’s already wearing the blue one. She pretends she bought it herself.' : FEST.ribbon === 'dorota' ? 'The white ribbon went in my sleeve, for the chapel. Nobody saw.' : 'One ribbon a festival. I’m a king, not a magpie.'); return; }
+    await SCENE.say(K, 'Silk from the south, dyed in Velka. One for…', { wait: true });
+    const i = await FEST.ask(['Halina (the blue)', 'The saint (the white, hidden in my sleeve)', 'Nobody, I’m only looking']);
+    FEST.ribbon = ['halina', 'dorota', 'none'][i]; if (i < 2) AUDIO.sfx('coin', { gain: 0.6 });
+    await SCENE.say(K, ['Blue, for the queen. She’ll say it clashes with something. She’ll wear it anyway.', 'White. For later. Nobody needs to know which saint.', 'Only looking. The stallholder has stopped believing me.'][i], { wait: true });
+  } finally { SCENE.lock--; }
+};
+/* ---------------------------------------------------------------- the puppet play */
+FAIR.puppetShow = async function (room) {
+  const K = SCENE.player, kingP = FEST.voice(9.42, 2.6, 1.45), riverP = FEST.voice(9.82, 2.6, 1.45); SCENE.lock++;
+  try {
+    await FEST.stepTo(8.0, 9.6); await FEST.cam(room, { focus: 9.6, dist: 11, y: 2.4, look: 2.2 }, 1.2);
+    room.puppets.paused = false; const timer = (T) => { if (!room.puppets.paused) room.puppets.set(Math.floor(T * 3) % 3); }; room.tick.push(timer);
+    await SCENE.talk([[kingP, 'I am King Radish! I rule the mountains, the rain, and whatever my wife lets me!'], [riverP, 'You rule the rain, husband? Then stop it.'],
+      [kingP, 'I can’t. I made a bargain with it.'], [riverP, 'A bargain? With whom? For what? Who pays?'], [kingP, 'Ask me after the festival!']]);
+    AUDIO.sfx('cheer', { gain: 0.6, dur: 2.2 });
+    room.puppets.paused = true; room.tick = room.tick.filter((g) => g !== timer);
+    if (!FEST.puppets) {
+      const i = await FEST.ask(['Laugh with the crowd', 'Have it stopped']); FEST.puppets = i === 0 ? 'laughed' : 'stopped';
+      if (i === 0) { COURT.stats.mood = Math.min(20, COURT.stats.mood + 1); await SCENE.talk([[K, 'King Radish. I’ve been called worse, and by better puppets.'], [CAST.A.bartosz || K, 'The king laughs! You hear? The king laughs!']]); }
+      else await SCENE.talk([[K, 'That’s enough. Pack it away.'], [CAST.A.bartosz || K, 'As Your Grace commands. The booth comes down.'], [K, 'Who wrote that? Nobody’s supposed to know about any bargain.']]);
+    } else await SCENE.say(K, FEST.puppets === 'laughed' ? 'Again. I want to see what Radish says next.' : 'They’ve put it back up. With a different king. He looks like Gniewomir.', { wait: true });
+  } finally { K.lookYaw = null; await FEST.cam(room, null, 1.0); SCENE.lock--; }
+};
+/* ---------------------------------------------------------------- the strongman's hammer */
+FAIR.hammer = async function (room) {
+  const K = SCENE.player; SCENE.lock++;
+  try {
+    K.faceTo(11.2); await FEST.cam(room, { focus: 11.2, dist: 11, y: 2.6, look: 2.4 }, 0.9);
+    const k = await FEST.meter('Swing! (E or tap, in the gold)');
+    K.act('Sword_Attack', 0, null); await SCENE.wait(500); AUDIO.sfx('thud', { gain: 0.9 });
+    const top = 4.05, peak = 0.15 + (top - 0.15) * Math.min(1, k * 1.08), dur = 0.35 + k * 0.35;
+    await new Promise((res) => { let t = 0; const f = (T, dt) => { t += dt; const u = Math.min(1, t / (dur * 2)), y = u < 0.5 ? lerp(0.15, peak, 1 - (1 - u * 2) ** 2) : lerp(peak, 0.15, ((u - 0.5) * 2) ** 2);
+      room.puck.position.y = y; if (u >= 1) { room.tick = room.tick.filter((g) => g !== f); res(); } }; room.tick.push(f); });
+    FEST.hammer = Math.max(FEST.hammer, k);
+    if (peak >= top - 0.05) { AUDIO.sfx('chime', { gain: 0.9 }); room.bell.visible = true; room.bell.material.color.set(0xffe080).multiplyScalar(0.8); setTimeout(() => { room.bell.visible = false; }, 1200);
+      AUDIO.sfx('cheer', { gain: 0.8, dur: 2.4 }); await SCENE.say(K, SCENE.cycle('hamWin', ['Ding. The bell, the crowd, and my shoulder will remember it tomorrow.', 'The bell again. I think it is rigged in my favour. I hope it is.']), { wait: true }); }
+    else await SCENE.say(K, k > 0.5 ? 'Close. The strongman says close counts for a ribbon. The strongman is being kind.' : 'The puck barely moved. A little girl in the crowd is laughing at me. It might be Zofia.', { wait: true });
+  } finally { await FEST.cam(room, null, 0.8); SCENE.lock--; }
+};
+
+/* ==== game/g38_lists.js ==== */
+/* THE LISTS — the middle of the Swan Meadow (STORY.md §6.1). Left to right: the gate from the fair · the heralds' tower
+   and the herald · the commons' stands · the tiltyard, with the near field where knights fight on foot, the tilt barrier
+   behind it where they joust, and the royal stand under its canopy at the back (Halina, King Gniewomir, Queen Wiesława) ·
+   the other stands · the Marshal · the archery butts and Zofia · the gate to the pavilions.
+   The joust is painted: horses can't be actors (the kit has none), so each rider is a strip of gallop frames on a card. */
+const LISTS = FEST.room('lists', 'The Lists', 'Lances, sand and the whole town shouting', { ambience: { crowd: 0.75, birds: 0.2, wind: 0.2 } });
+LISTS.ENTRY = -13.8;
+LISTS.JX = 4.6;   // where the lances meet: right of the middle, clear of the duellists and the gap in the rail
+LISTS.build = function () {
+  const room = BUILD.begin(this), T = PX.T, KZ = room.KZ, L = FEST.LINES;
+  const say = (k) => SCENE.say(SCENE.player, SCENE.cycle('ll' + k, L[k]));
+  FEST.backdrop(room, { fx: -4, tents: [[-22, -16, 2.4, 0], [-11, -24, 2.0, 1], [17, -19, 2.6, 3], [27, -24, 2.2, 2], [6, -28, 2.0, 0]] });
+  /* the gates */
+  BUILD.card(T.festGate, -15.4, 0, 1.7); room.interact('toFair', -15.0, 3.0, KZ, 1.0, () => { SCENE.lock++; SCENE.say(SCENE.player, L.toFair[0]).then(() => { SCENE.lock--; GAME.save(); SCENE.go('fair', { x: 13.8, face: -1 }); }); }).label = 'Back to the fair';
+  BUILD.card(T.festGate, 15.4, 0, 1.7); room.interact('toCamp', 15.0, 3.0, KZ, 1.0, () => { SCENE.lock++; SCENE.say(SCENE.player, L.toCamp[0]).then(() => { SCENE.lock--; GAME.save(); SCENE.go('camp', { x: CAMP.ENTRY, face: 1 }); }); }).label = 'To the pavilions';
+  /* the field: sand from the near rail to the royal stand */
+  BUILD.rug(T.sand, -12.5, 12.5, -9.6, 2.2, { ru: 12, rv: 6, y: 0.004 }).material.color = new THREE.Color(0xe0d0b0);
+  /* the near rail (open in the middle, where the knights come in) */
+  for (const [x0, x1] of [[-12.5, -2.2], [2.2, 12.5]]) { for (const y of [0.5, 1.0]) BUILD.box(x0, x1, y - 0.05, y + 0.04, 2.18, 2.28, T.woodPost, { cast: false });
+    for (let x = x0; x <= x1 + 0.01; x += (x1 - x0) / Math.round((x1 - x0) / 2)) BUILD.box(x - 0.06, x + 0.06, 0, 1.06, 2.17, 2.29, T.woodPost); }
+  /* the tilt: a timber rail on posts, hung with striped cloth on both faces */
+  BUILD.box(-11, 11, 1.25, 1.36, -3.06, -2.94, T.woodPost); for (let x = -11; x <= 11; x += 2.2) BUILD.box(x - 0.07, x + 0.07, 0, 1.36, -3.07, -2.93, T.woodPost);
+  BUILD.card(T.tiltCloth, 0, 0.02, -2.9, { w: 22, h: 1.25, ru: 11, cast: false }); BUILD.card(T.tiltCloth, 0, 0.02, -3.1, { w: 22, h: 1.25, ru: 11, ry: Math.PI, cast: false });
+  room.interact('tilt', -6.4, 1.8, KZ, 0.7, () => say('tilt'));
+  /* the royal stand: a platform, four chairs, a canopy with its valance, the swan and Krasna's eagle on poles */
+  BUILD.box(-5, 5, 0, 1.4, -9, -6.8, T.woodRed); BUILD.box(-5.1, 5.1, 1.36, 1.44, -9.05, -6.75, T.woodDark);
+  BUILD.box(-1.1, 1.1, 0, 0.46, -6.8, -6.1, T.woodDark); BUILD.box(-1.1, 1.1, 0, 0.92, -6.8, -6.45, T.woodDark);
+  BUILD.card(T.folkWide, 0, 0.1, -6.74, { w: 9.6, h: 1.2, cast: false, col: 0x8aa0d8 });
+  for (const x of [-2.9, -1.2, 1.2, 2.9]) BUILD.card(T.chair, x, 1.4, -7.75, { s: 1.0 });
+  for (const x of [-5, 5]) for (const z of [-9, -6.8]) BUILD.box(x - 0.08, x + 0.08, 1.4, 4.6, z - 0.08, z + 0.08, T.woodPost);
+  { const g = new THREE.PlaneGeometry(10.6, 2.8); g.rotateX(-Math.PI / 2 + 0.22); g.translate(0, 4.75, -7.9); BUILD.planarUV(g, T.canvasSwan); BUILD.add(new THREE.Mesh(g, BUILD.std(T.canvasSwan, { side: THREE.DoubleSide })), { cast: true }); }
+  BUILD.card(T.canopy, 0, 3.55, -6.7, { w: 10.6, h: 0.95, cast: false });
+  for (const [x, t] of [[-5.7, T.bannerBlue], [5.7, T.bannerKrasna]]) { BUILD.box(x - 0.06, x + 0.06, 0, 6.4, -6.7, -6.6, T.woodPost); BUILD.windCard(t, x, 3.6, -6.55, 'wave', 0.08, { cast: false, s: 1.15 }); }
+  room.interact('stand', -3.6, 3.6, KZ, 0.6, () => say('stand'));
+  /* the commons' stands: three tiers each, the town on every one */
+  for (const [x0, x1, seed] of [[-12, -6.2, 0], [6.2, 12, 1]]) {
+    for (const [y, za, zb] of [[0.45, -5.0, -4.4], [0.9, -6.0, -5.0], [1.35, -7.4, -6.0]]) { BUILD.box(x0, x1, 0, y, za, zb, T.woodDark); BUILD.box(x0, x1, y - 0.04, y, za, zb + 0.02, T.woodRed); }
+    for (const [y, z, k] of [[0.45, -4.68, 0], [0.9, -5.5, 1], [1.35, -6.7, 0]]) BUILD.card((k + seed) % 2 ? T.crowdA : T.crowdB, (x0 + x1) / 2, y, z, { w: x1 - x0, h: 1.25, cast: false });
+    room.interact('stands' + seed, (x0 + x1) / 2, 2.4, KZ, 0.6, () => say('stands')); }
+  /* the heralds' tower */
+  BUILD.box(-13.4, -11.8, 0, 5.2, -2.3, -0.7, T.woodRed); BUILD.box(-13.6, -11.6, 5.2, 5.32, -2.5, -0.5, T.woodDark);
+  for (const x of [-13.5, -11.7]) BUILD.box(x - 0.05, x + 0.05, 5.32, 6.1, -0.58, -0.48, T.woodPost);
+  BUILD.cone(-12.6, -1.5, 6.1, 1.4, 1.5, T.canvasSwan, { seg: 8 }); BUILD.card(T.bannerBlue, -12.6, 2.2, -0.66, { s: 0.9, cast: false });
+  room.interact('tower', -12.6, 4.0, KZ, 0.5, () => say('tower'));
+  /* the archery butts at the far end */
+  BUILD.card(T.butt, 13.6, 0, 0.5, { s: 0.95 }); BUILD.card(T.butt, 14.8, 0, -0.3, { s: 0.85 }); room.interact('butts', 14.0, 2.4, KZ, 0.6, () => say('butts'));
+  /* the jousters at the ends of their lanes, the dust they'll raise, the lance shards, the unhorsed knight */
+  room.riders = [BUILD.anim(T.joustKrasna, LISTS.JX - 13.6, 0, -2.35, { cast: false }), BUILD.anim(T.joustBlack, LISTS.JX + 13.6, 0, -3.65, { cast: false })];   // waiting at their lanes' ends
+  room.riders[0].set(1); room.riders[1].set(1); room.riders[1].me.scale.x = -1;
+  room.shards = []; for (let i = 0; i < 12; i++) { const s = BUILD.card(T.shard, 0, 0, 0, { cast: false, dyn: true, s: 1.4 }); s.visible = false; room.shards.push({ me: s, v: new THREE.Vector3(), spin: 0 }); }
+  room.downed = BUILD.card(T.knightDown, 0, 0, -2.0, { cast: false, dyn: true }); room.downed.visible = false;
+  room.interact('joust', 4.6, 2.8, KZ, 0.8, () => LISTS.joust(room)).label = 'Watch the joust';
+  room.interact('duel', 0.0, 2.8, KZ, 0.7, () => LISTS.duel(room)).label = 'Watch the duel';
+  room.interact('favour', 7.2, 2.6, KZ, 0.6, () => LISTS.favour()).label = 'Give your favour to a knight';
+  room.interact('loveQueen', -10.2, 2.6, KZ, 0.6, () => LISTS.loveQueen()).label = 'Crown the Queen of Love and Beauty';
+  /* bunting high over the stands, the near side's racks and barrels */
+  FEST.bunting(-14, -6, -8.4, 5.6); FEST.bunting(6, 14, -8.4, 5.6);
+  BUILD.card(T.crowdA, -2, 0, -10.6, { w: 14, h: 1.25, cast: false });
+  BUILD.card(T.halberds, -7.2, 0, 7.2, { s: 1.0, cast: false }); BUILD.card(T.barrel, 6.4, 0, 7.4, { s: 1.1, cast: false }); BUILD.card(T.barrel, 7.1, 0, 7.0, { s: 1.1, cast: false });
+  BUILD.card(T.hay, 11.2, 0, 7.3, { s: 1.0, cast: false }); BUILD.card(T.hurdle, -12.4, 0, 7.0, { w: 2.6, h: 0.8, cast: false });
+  FEST.lights(room);
+  BUILD.motes({ n: 70, boxes: [[-12, 12, 0.2, 2.6, -8, 2, 1]], col: 0xf0e0c0 });
+  room.update(0, 0);
+  return BUILD.end();
+};
+LISTS.TALKERS = [['queen', 'Call up to Halina'], ['gniewomir', 'Call up to King Gniewomir'], ['wieslawa', 'Call up to Queen Wiesława'], ['zofia', 'Talk to Zofia'], ['dorota', 'Talk to the saint'],
+  ['bogdanLists', 'Talk to Ser Bogdan'], ['ottokar', 'Talk to Ser Ottokar'], ['herald', 'Talk to the herald'], ['marshal', 'Talk to the Marshal']];
+FEST.TALK.bogdanLists = FEST.TALK.commander;
+LISTS.onEnter = function () { if (!CUT.playing) SCENE.caption(...this.caption); FEST.talkers(this, LISTS.TALKERS); };
+LISTS.onUpdate = function () { FEST.follow(this); };
+/* ---------------------------------------------------------------- the duel on foot: Bogdan against Ottokar */
+LISTS.duel = async function (room) {
+  const A = CAST.A, a = A.bogdanLists, b = A.ottokar, K = SCENE.player; if (!a || !b) return;
+  SCENE.lock++;
+  try {
+    await FEST.stepTo(-2.9, 0); await FEST.cam(room, { focus: 0, dist: 11.5, y: 2.3, look: 1.7 }, 1.2);
+    AUDIO.sfx('fanfare', { gain: 0.7 }); await FEST.say(A.herald, 'hdl', FEST.TALK.herald.duel);
+    a.lookYaw = 1.25; b.lookYaw = -1.25; a.faceTo(b.x); b.faceTo(a.x);
+    const pan = clamp((0 - R.cam.position.x) / 10, -0.8, 0.8);
+    const bout = (att, def, combo) => new Promise((res) => { att.act(combo ? 'Sword_Regular_Combo' : 'Sword_Attack', 0, null); const hits = combo ? [0.55, 1.2, 1.95] : [0.75];
+      let t = 0; const q = hits.flatMap((h) => [[h - 0.32, () => def.act('Sword_Block', 0, null)], [h, () => AUDIO.sfx('clang', { gain: 0.5, pan })]]);
+      const f = (T, dt) => { t += dt; while (q.length && t >= q[0][0]) q.shift()[1](); if (t > (combo ? 2.9 : 1.7)) { room.tick = room.tick.filter((g) => g !== f); res(); } }; room.tick.push(f); });
+    for (let i = 0; i < 4; i++) { await bout(i % 2 ? b : a, i % 2 ? a : b, i !== 1); if (i === 1) AUDIO.sfx('cheer', { gain: 0.45, dur: 1.6 }); await SCENE.wait(350); }
+    const bogdanWins = FEST.favour === 'bogdan', win = bogdanWins ? a : b, lose = bogdanWins ? b : a;
+    win.act('Sword_Attack', 0.7, () => { AUDIO.sfx('clang', { gain: 0.7, pan }); lose.act('Fixing_Kneeling', 0, null); });
+    await SCENE.wait(1800); AUDIO.sfx('cheer', { gain: 0.95, dur: 3.2 }); FEST.duels++;
+    await SCENE.talk(bogdanWins ? [[A.herald, 'Ser Bogdan of Lodmir!'], [a, 'Twelve years, Your Grace. Worth every one.'], [K, 'Your favour won it, Bogdan. Mine, I mean.']]
+      : [[A.herald, 'Ser Ottokar of Krasna!'], [b, 'Your commander yields like a gentleman. He fights like a bear.'], [K, 'He’ll be unbearable at supper.']]);
+  } finally { a.lookYaw = null; b.lookYaw = null; K.lookYaw = null; await FEST.cam(room, null, 1.0); SCENE.lock--; }
+};
+/* ---------------------------------------------------------------- the joust: three courses, the black knight unhorses the prince on the third */
+LISTS.joust = async function (room) {
+  const A = CAST.A, K = SCENE.player, [r1, r2] = room.riders; SCENE.lock++;
+  try {
+    await FEST.stepTo(LISTS.JX - 3.4, LISTS.JX); await FEST.cam(room, { focus: LISTS.JX, dist: 16.5, y: 3.9, look: 1.6 }, 1.4);   // close enough that the riders fill the frame as they cross
+    AUDIO.sfx('fanfare', { gain: 0.8 }); if (A.herald) await FEST.say(A.herald, 'hjo', FEST.TALK.herald.joust);
+    for (let pass = 0; pass < 3; pass++) {
+      const dir = pass % 2 ? -1 : 1;   // the prince rides right on the first course, left on the second…
+      await LISTS.course(room, r1, r2, dir, pass === 2);
+      if (pass < 2) { AUDIO.sfx('cheer', { gain: 0.7, dur: 2.2 }); await SCENE.wait(700); }
+    }
+    AUDIO.sfx('cheer', { gain: 1.0, dur: 3.6 }); FEST.jousts++;
+    await SCENE.talk([[A.herald || K, 'The Black Swan unhorses the Prince of Krasna!'], [K, SCENE.cycle('joK', ['Gniewomir is laughing. Mściwoj is not. Somebody will pay for that at the feast.', 'Whoever is under that mask, he rides like a man who’s been angry for twelve years.'])]]);
+    await NIGHT.fade(true);   // reset the lists behind a blink
+    room.downed.visible = false; r1.me.position.x = LISTS.JX - 13.6; r1.me.scale.x = 1; r1.set(1); r2.me.position.x = LISTS.JX + 13.6; r2.me.scale.x = -1; r2.set(1);
+    await NIGHT.fade(false);
+  } finally { K.lookYaw = null; await FEST.cam(room, null, 1.0); SCENE.lock--; }
+};
+/* one course: the riders gallop at each other down their lanes, lances meet over the barrier, shards fly. unhorse: the
+   prince's horse runs on without him and he lands in the sand */
+LISTS.course = function (room, r1, r2, dir, unhorse) {
+  const D = 3.0, X = 13.6, J = LISTS.JX; r1.me.scale.x = dir; r2.me.scale.x = -dir;
+  return new Promise((res) => { let t = 0, hit = false, step = 0;
+    const f = (T, dt) => { t += dt; const u = Math.min(1, t / D), x = J + lerp(-X * dir, X * dir, u), fr = Math.floor(t * 7) % 2;
+      r1.me.position.x = x; r2.me.position.x = 2 * J - x; if (!(hit && unhorse)) r1.set(fr); else r1.set(2); r2.set(fr);   // they cross at J
+      if (t > step) { step += 0.3; AUDIO.sfx('hooves', { gain: 0.5, pan: clamp((x - R.cam.position.x) / 9, -0.8, 0.8) }); }
+      if (!hit && u >= 0.48) { hit = true; AUDIO.sfx('crack', { gain: 0.9 }); LISTS.shatter(room, J, 2.4, -3.0);
+        if (unhorse) { const d = room.downed; d.position.set(J + dir * 1.2, 1.4, -2.05); d.rotation.z = 0; d.visible = true; d.scale.x = dir; d.userData.fall = 0; } }
+      if (hit && unhorse && room.downed.userData.fall !== undefined && room.downed.userData.fall < 0.5) { const d = room.downed; d.userData.fall += dt; const k = Math.min(1, d.userData.fall / 0.5);
+        d.position.y = 1.4 * (1 - k * k); d.position.x += dir * dt * 2.5; if (k >= 1) AUDIO.sfx('thud', { gain: 1.0 }); }
+      if (u >= 1) { room.tick = room.tick.filter((g) => g !== f); res(); } };
+    room.tick.push(f); });
+};
+LISTS.shatter = function (room, x, y, z) {
+  for (const s of room.shards) { s.me.visible = true; s.me.position.set(x + (Math.random() - 0.5) * 0.6, y, z); s.v.set((Math.random() - 0.5) * 7, 1.5 + Math.random() * 4.5, (Math.random() - 0.5) * 2); s.spin = (Math.random() - 0.5) * 18; }
+  let t = 0; const f = (T, dt) => { t += dt; for (const s of room.shards) { s.v.y -= 9.8 * dt; s.me.position.addScaledVector(s.v, dt); s.me.rotation.z += s.spin * dt; if (s.me.position.y < 0.02) { s.me.position.y = 0.02; s.v.set(0, 0, 0); s.spin = 0; } }
+    if (t > 1.6) { for (const s of room.shards) s.me.visible = false; room.tick = room.tick.filter((g) => g !== f); } };
+  room.tick.push(f);
+};
+/* ---------------------------------------------------------------- favours and the crown of love and beauty */
+LISTS.favour = async function () {
+  const A = CAST.A, K = SCENE.player; SCENE.lock++;
+  try {
+    await SCENE.say(K, FEST.favour ? 'My favour’s given. A king who takes it back is a king who can’t be trusted with a ribbon.' : 'A favour, for the knight I want to win. Mine to give, and everyone watching.', { wait: true });
+    if (FEST.favour) return;
+    const i = await FEST.ask(['Ser Bogdan', 'Ser Ottokar of Krasna', 'Prince Mściwoj', 'The Black Swan Knight']); FEST.favour = ['bogdan', 'ottokar', 'msciwoj', 'black'][i];
+    await SCENE.talk([[A.marshal || K, ['To Ser Bogdan of Lodmir, the king’s favour!', 'To Ser Ottokar of Krasna, the king’s favour! A courtesy to our guests.', 'To Prince Mściwoj, the king’s favour! Krasna cheers!', 'To… the Black Swan Knight, the king’s favour.'][i]],
+      [K, ['Bogdan will be insufferable. Good.', 'Wiesława looked at me when the herald said his name. Only for a moment.', 'Gniewomir is laughing and slapping his knee. The prince is pretending he isn’t pleased.', 'The crowd’s gone quiet. Halina is looking at me like I’ve set fire to something.'][i]]]);
+  } finally { SCENE.lock--; }
+};
+LISTS.loveQueen = async function () {
+  const A = CAST.A, K = SCENE.player; SCENE.lock++;
+  try {
+    if (FEST.loveQueen) { await SCENE.say(K, 'The crown of flowers is given. It’s wilting already, as they do.', { wait: true }); return; }
+    await SCENE.say(A.herald || K, 'Your Grace! The lists await the Queen of Love and Beauty. The crown of flowers is yours to give.', { wait: true });
+    const i = await FEST.ask(['Halina', 'Queen Wiesława of Krasna', 'Saintess Dorota', 'Marta the miller’s widow']); FEST.loveQueen = ['halina', 'wieslawa', 'dorota', 'marta'][i];
+    if (i === 3) COURT.stats.mood = Math.min(20, COURT.stats.mood + 2);
+    await SCENE.talk([[A.herald || K, ['The Queen of Lodmir!', 'Queen Wiesława of Krasna!', 'Saintess Dorota of the lower town!', 'Marta… of the mill! Marta of the mill, my lords!'][i]],
+      [K, ['Halina didn’t smile. Then she did, when she thought I wasn’t looking.', 'Gniewomir roars and claps. Halina doesn’t move at all. That will cost me tonight.', 'The town cheers its saint. The Canon looks like he swallowed a wasp. Halina looks at the sky.', 'The whole meadow is on its feet. Marta is crying into the flowers and her sons are carrying her round the lists.'][i]]]);
+  } finally { SCENE.lock--; }
+};
+
+/* ==== game/g39_camp.js ==== */
+/* THE PAVILIONS — the east end of the Swan Meadow, along the river (STORY.md §6.1). Left to right: the gate from the
+   lists · the Krasnian soldiers' tents and their fire · the River League's barge at the bank, and Jarek · King Gniewomir's
+   great pavilion, open at the front, the king at his maps · Prince Mściwoj at his arming stand · Queen Wiesława's tent and
+   Ser Ottokar · the horse lines and the groom · the black tent with no banner, and the masked knight's squire. */
+const CAMP = FEST.room('camp', 'The Pavilions', 'Krasna’s camp, the League’s barge, and a black tent', { ambience: { crowd: 0.25, birds: 0.35, wind: 0.25, fire: 0.2, fountain: 0.25 } });
+CAMP.ENTRY = -13.8;
+CAMP.build = function () {
+  const room = BUILD.begin(this), T = PX.T, KZ = room.KZ, L = FEST.LINES;
+  const say = (k) => SCENE.say(SCENE.player, SCENE.cycle('cl' + k, L[k]));
+  FEST.backdrop(room, { fx: 34, tents: [[-24, -16, 2.2, 0], [-14, -20, 2.0, 0], [24, -15, 2.4, 0]] });
+  /* the river along the back: moving water from bank to bank, the far bank's trees */
+  { const t = T.water.clone(); t.needsUpdate = true; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(60 / T.water.userData.n, 8); t.userData = Object.assign({}, T.water.userData);
+    const g = new THREE.PlaneGeometry(300, 34); g.rotateX(-Math.PI / 2); g.translate(0, 0.03, -22);
+    BUILD.add(new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: t, color: new THREE.Color(0x8ab0c8), roughness: 0.2, metalness: 0.1, emissive: 0xffffff, emissiveMap: t, emissiveIntensity: 0.18 })), { cast: false, dyn: true });
+    room.tick.push((Tm) => { t.offset.x = Tm * 0.02; t.offset.y = Tm * 0.004; }); }   // the current: the whole strip drifts downstream
+  BUILD.card(T.forestNear, -20, 0, -40, { w: 70, h: 12, basic: true, cast: false }); BUILD.card(T.forestNear, 40, 0, -42, { w: 70, h: 12, basic: true, cast: false });
+  room.interact('river', -2.0, 1.4, KZ, 0.5, () => say('river'));
+  /* the gate from the lists */
+  BUILD.card(T.festGate, -15.4, 0, 1.7); room.interact('toLists', -15.0, 3.0, KZ, 1.0, () => { SCENE.lock++; SCENE.say(SCENE.player, L.toLists[0].replace('to the lists', 'back to the lists')).then(() => { SCENE.lock--; GAME.save(); SCENE.go('lists', { x: 13.8, face: -1 }); }); }).label = 'Back to the lists';
+  /* the Krasnian soldiers: two tents, a fire, a log to sit on */
+  BUILD.tent(-12.4, -0.2, 1.5, 1.7, 1.3, T.canvasKrasna, T.canvasKrasna, { pennant: T.pennantKrasna, seg: 12 });
+  BUILD.tent(-9.4, -1.8, 1.5, 1.7, 1.3, T.canvasKrasna, T.canvasKrasna, { pennant: T.pennantKrasna, seg: 12 });
+  BUILD.card(T.campfire, -10.4, 0, 1.6, { s: 1.0 }); BUILD.flame(-10.4, 0.2, 1.62, 0.9, true); BUILD.glow(-10.4, 0.7, 1.65, 1.6, 0xff8a2a, 0.35);
+  BUILD.light(new THREE.PointLight(0xff8a3c, 3.0, 0, 2), -10.4, 0.9, 1.9, { flicker: 7 }); FEST.smoke(room, -10.4, 0.9, 1.5, 1.0);
+  BUILD.box(-11.6, -10.9, 0, 0.32, 0.6, 0.95, T.woodPost); room.interact('campfire', -10.4, 1.4, KZ, 0.8, () => say('campfire'));
+  /* the League: the barge moored at the bank, a gangplank, crates of river goods, the League's banner */
+  BUILD.card(T.barge, -6.0, 0, -6.2, { cast: true }); BUILD.box(-6.3, -5.5, 0.05, 0.12, -5.6, -3.0, T.woodDark, { cast: false });
+  for (const [x, z, t] of [[-4.0, 0.8, T.crate], [-3.4, 1.3, T.barrel], [-7.6, 1.0, T.sacks]]) BUILD.card(t, x, 0, z, { s: 0.9 });
+  BUILD.box(-7.25, -7.15, 0, 4.2, 0.45, 0.55, T.woodPost); BUILD.windCard(T.bannerLeague, -7.2, 1.9, 0.6, 'wave', 0.08, { cast: false });
+  room.interact('barge', -6.0, 1.6, KZ, 0.6, () => say('barge'));
+  /* King Gniewomir's pavilion: red and white, open at the front, a carpet, his table of maps, Krasna's eagle at the door */
+  BUILD.tent(0.2, -0.95, 2.7, 2.6, 2.1, T.canvasKrasna, T.canvasKrasna, { open: 1.9, valance: T.awningRed, pennant: T.pennantKrasna });
+  BUILD.rug(T.rugA, -1.6, 2.0, -2.6, 0.9, { y: 0.01 });
+  BUILD.card(T.campTable, 0.2, 0, -0.75, { s: 1.0 }); BUILD.card(T.chair, 0.2, 0, -1.45, { s: 1.0 });
+  BUILD.card(T.candleStand, -1.4, 0, -1.6, { s: 0.8 }); BUILD.flame(-1.4, 1.35, -1.58, 0.25); BUILD.light(new THREE.PointLight(0xffb070, 1.6, 0, 2), -1.2, 1.5, -1.0, { flicker: 6 });
+  for (const x of [-2.7, 3.1]) { BUILD.box(x - 0.06, x + 0.06, 0, 4.4, 1.55, 1.65, T.woodPost); BUILD.windCard(T.bannerKrasna, x, 2.0, 1.7, 'wave', 0.08, { cast: false }); }
+  room.interact('pavilion', 1.8, 3.4, KZ, 0.6, () => say('pavilion'));
+  room.interact('pact', -0.9, 2.6, KZ, 0.6, () => CAMP.pact()).label = 'Discuss the pact';
+  /* Prince Mściwoj's arming stand, and a barrel to arm-wrestle on */
+  BUILD.card(T.swordRack, 5.0, 0, 0.9, { s: 1.0 }); BUILD.card(T.barrel, 3.4, 0, 1.45, { s: 1.0 });
+  room.interact('wrestle', 3.4, 1.9, KZ, 0.6, () => CAMP.wrestle(room)).label = 'Arm-wrestle the prince';
+  /* Queen Wiesława's tent: lilac and white, the flap half open */
+  BUILD.tent(7.2, -0.6, 1.8, 2.1, 1.6, T.canvasLilac, T.canvasLilac, { open: 1.1, valance: T.awningBlue, pennant: T.pennantKrasna });
+  /* the horse lines: a rail, the prince's grey (he can be petted) and a bay, hay, buckets */
+  BUILD.box(9.6, 13.0, 0.95, 1.05, 0.25, 0.35, T.woodPost); for (const x of [9.7, 11.3, 12.9]) BUILD.box(x - 0.06, x + 0.06, 0, 1.05, 0.24, 0.36, T.woodPost);
+  const grey = BUILD.card(T.horseGrey, 10.6, 0, 0.75, { s: 1.0 });
+  BUILD.pet(grey, { id: 'horse', label: 'Pet the grey destrier', frames: [T.horseGreyNuzzle, T.horseGreyEar], rate: 2, dur: 3.0, sound: 'snort', headY: 2.0, stand: 1.75,
+    says: ['(He lowers his great head and blows warm air into the king’s palm.)', '(Hrrrff.)', '(He leans into the hand, then tries to eat the king’s sleeve.)'],
+    lines: ['The prince’s horse. Better manners than the prince.', 'You’re carrying him tomorrow. Carry him gently.'] });
+  BUILD.card(T.horseBay, 12.3, 0, 0.55, { s: 1.0 }); BUILD.card(T.hay, 13.6, 0, 0.3, { s: 0.8 }); BUILD.card(T.bucket, 11.4, 0, 1.4); BUILD.card(T.bucket, 9.4, 0, 1.2);
+  room.interact('horses', 12.3, 2.4, KZ, 0.6, () => say('horses'));
+  /* the black tent: no banner, no pennant, the flap laced shut */
+  BUILD.tent(14.8, -0.7, 1.6, 2.0, 1.5, T.canvasBlack, T.canvasBlack, { seg: 12 });
+  room.interact('blackTent', 14.8, 3.0, KZ, 0.6, () => say('blackTent'));
+  /* the near side: barrels, hay, a weapon rack, a fence */
+  BUILD.card(T.barrel, -12.4, 0, 7.2, { s: 1.1, cast: false }); BUILD.card(T.hay, 2.8, 0, 7.4, { s: 1.0, cast: false }); BUILD.card(T.halberds, 9.2, 0, 7.2, { s: 1.0, cast: false });
+  BUILD.card(T.hurdle, -4.6, 0, 7.1, { w: 2.6, h: 0.8, cast: false }); BUILD.card(T.cartWheel, 13.6, 0, 7.4, { s: 1.1, cast: false, rx: -0.12 });
+  FEST.lights(room);
+  BUILD.motes({ n: 50, boxes: [[-14, 14, 0.3, 3.4, 0.5, 3.6, 0.6]], col: 0xfff0c0 });
+  room.update(0, 0);
+  return BUILD.end();
+};
+CAMP.TALKERS = [['gniewomir', 'Talk to King Gniewomir'], ['msciwoj', 'Talk to Prince Mściwoj'], ['wieslawa', 'Talk to Queen Wiesława'], ['ottokar', 'Talk to Ser Ottokar'], ['jarek', 'Talk to Jarek'],
+  ['squire', 'Talk to the squire'], ['groom', 'Talk to the groom'], ['kSoldierA', 'Talk to the soldier'], ['kSoldierB', 'Talk to the soldier']];
+CAMP.onEnter = function () { if (!CUT.playing) SCENE.caption(...this.caption); FEST.talkers(this, CAMP.TALKERS); };
+CAMP.onUpdate = function () { FEST.follow(this); };
+/* ---------------------------------------------------------------- the pact */
+CAMP.pact = async function () {
+  const A = CAST.A, G = A.gniewomir, K = SCENE.player; if (!G) return; SCENE.lock++;
+  try {
+    if (FEST.pact) { await SCENE.say(G, { tonight: 'Signed in my head already, boy. At the feast we do it with ink.', after: 'After the feast, then. I’ll drink to it first. I always do.', refuse: 'You refused me. I’ve not been refused since my mother. I find I don’t mind it as much as I should.' }[FEST.pact], { wait: true }); return; }
+    await SCENE.talk([[G, 'My knights in your two pass-forts. My road toll-free through your mountains. Your levies at my call, if Hal comes. And Hal will never come.'], [K, 'And Lodmir under your thumb.'],
+      [G, 'Under my shield, boy. Thumbs are for small kings.']]);
+    const i = await FEST.ask(['Sign it at the feast tonight', 'Sign after the feast, with changes', 'Refuse it']); FEST.pact = ['tonight', 'after', 'refuse'][i];
+    await SCENE.talk([[K, ['At the feast, then. In front of everyone.', 'After the feast. One fort, not two. No levies. Ten years, not forever.', 'No. Lodmir has kept its own pass for three hundred years.'][i]],
+      [G, ['Ha! A performance! You’re learning, Radomir.', 'One fort, ten years. You bargain like your wife. We’ll argue it over the wine.', 'Your father said the same, the year before Hal came. Think on that, and come back.'][i]]]);
+  } finally { SCENE.lock--; }
+};
+/* ---------------------------------------------------------------- arm-wrestling the prince: two pulls on the meter */
+CAMP.wrestle = async function (room) {
+  const A = CAST.A, M = A.msciwoj, K = SCENE.player; if (!M) return; SCENE.lock++;
+  try {
+    await FEST.cam(room, { focus: 3.6, dist: 10, y: 2.3, look: 1.8 }, 1.0);
+    await SCENE.say(M, FEST.wrestle ? 'Again? Good. My arm was getting bored.' : 'Elbow on the barrel. Don’t be gentle, I’ll be offended.', { wait: true });
+    K.faceTo(M.x); M.faceTo(K.x); K.act('Interact', 0, null); M.act('Interact', 0, null);
+    const a = await FEST.meter('Pull! (E or tap, in the gold)'); AUDIO.sfx('thud', { gain: 0.6 });
+    const b = await FEST.meter('And again!'); AUDIO.sfx('thud', { gain: 0.8 });
+    const won = (a + b) / 2 > 0.62; FEST.wrestle = won ? 'won' : 'lost';
+    if (won) { AUDIO.sfx('cheer', { gain: 0.5, dur: 1.8 }); await SCENE.talk([[M, 'Ha! Ha! By the eagle, a mountain king with an arm on him. Don’t tell my father.'], [K, 'I’ll tell everyone.']]); }
+    else await SCENE.talk([[M, 'There. Krasna wins. Again, by tradition. You lasted longer than the last king.'], [K, 'How long did the last one last?'], [M, 'He was eight. He cried.']]);
+  } finally { await FEST.cam(room, null, 0.8); SCENE.lock--; }
+};
 
 /* ==== game/g40_cast.js ==== */
 /* THE CAST — every character is an Actor spec: a base body (rmale / rfemale), outfit pieces with dye colours
@@ -59113,14 +60143,108 @@ Object.assign(CAST.specs, {
 });
 /* the Woman in the wood, in her hut: the opening's witch, but not offstage here, and at home in the hut by the fire */
 CAST.specs.hutWitch = Object.assign({}, CAST.specs.witch, { id: 'hutWitch', offstage: false, home: 'hut', homes: { hut: { x: 3.6, z: 2.0, face: -1, idle: 'Spell_Simple_Idle_Loop' } } });
+/* boot builds everyone except the lazy: specs marked { lazy: true } (the festival's and the town's people) are built the
+   first time the king heads for a room they live in (CAST.ensure, run by SCENE.prepare behind the fade), so the cast can
+   keep growing without the boot getting longer */
 CAST.build = async function () {
-  const A = {};
-  for (const [k, spec] of Object.entries(CAST.specs)) { A[k] = await new Actor(spec).build(); SCENE.addActor(A[k]); setLoad(0.7 + 0.15 * Object.keys(A).length / Object.keys(CAST.specs).length); await nextFrame(); }
-  CAST.A = A; SCENE.player = A.king;
+  const A = {}, boot = Object.entries(CAST.specs).filter(([, s]) => s && !s.lazy);
+  for (const [k, spec] of boot) { A[k] = await new Actor(spec).build(); SCENE.addActor(A[k]); setLoad(0.7 + 0.15 * Object.keys(A).length / boot.length); await nextFrame(); }
+  CAST.A = A; SCENE.player = A.king; SCENE.beforeEnter = CAST.ensure;
   for (const a of Object.values(A)) if (a.spec.offstage) a.offstage = true;
   A.marta.offstage = A.tomasz.offstage = true; for (const a of Object.values(A)) if (a.offstage) a.setVisible(false);
   return A;
 };
+CAST.ensure = async function (roomId) {
+  for (const [k, spec] of Object.entries(CAST.specs)) {
+    if (!spec || !spec.lazy || CAST.A[k] || !(spec.home === roomId || (spec.homes && spec.homes[roomId]))) continue;
+    const a = await new Actor(spec).build(); SCENE.addActor(a); CAST.A[k] = a;
+    if (spec.offstage) a.offstage = true; a.setVisible(false); await nextFrame();
+  }
+};
+
+/* ==== game/g41_cast_fest.js ==== */
+/* THE FESTIVAL'S PEOPLE (STORY.md §2, §6). Every spec here is lazy: built the first time the king heads for a festival
+   ground (CAST.ensure), so the boot doesn't grow. Positions are per ground (homes). Where a returning character's usual
+   actor can't be there, the festival has its own copy: Marta (a petitioner, offstage everywhere else) and Bogdan (he needs
+   a sword in the lists). All of the guests are adults; the only children at the festival are Zofia and Kazik, as themselves. */
+const krasnaGuard = (id, x, wander) => { const g = guard(id, x); g.lazy = true; g.home = 'camp'; g.homes = { camp: { x, z: 2.45, face: 1, wander } };
+  g.parts = g.parts.map((p) => (p[2] && p[2].G === 0x6a1418 ? [p[0], p[1], Object.assign({}, p[2], { G: 0xa82a24 })] : p));
+  g.robe = Object.assign({}, g.robe, { col: 0xa82a24 }); g.tabard = Object.assign({}, g.tabard, { emblem: 0xa82a24 }); return g; };
+const sister = (id, name, skin, hair, x, face) => ({ id, name, lazy: true, bind: 'rfemale', s: 0.98, skin, skinK: 0.92, headY: 2.0, x, z: 0.9, face, box: [1.5, 2.4],
+  homes: { fair: { x, z: 0.9, y: 0.8, face } },
+  parts: [part(P_F('Body'), { L: 0xc83a10, P: 0xe8b840 }), part(P_F('Arms'), { L: 0xc83a10, P: 0xc83a10 }), part(P_F('Legs'), { L: 0x5a160c, P: 0x5a160c }), part(P_F('Feet'), { L: 0x2a140c, P: 0x3a1a10 })],
+  brows: 0x1a1210, hair: [['Hair_Long', hair]], robe: { col: 0xb8300c, top: 0.95, bot: 0.42, rx: [0.15, 0.3], rz: [0.12, 0.26], trim: 0xe8b840, band: 0xe8b840, leg: 0.55 } });
+const townsman = (id, body, hair, beard, homes) => ({ id, lazy: true, bind: 'rmale', s: 1.0, skin: 0xd8a888, skinK: 0.92, headY: 2.08, walk: 'Walk_Loop', speed: 0.85, homes,
+  parts: [part(P_M('Body'), { L: body, P: 0xd8c8a8 }), part(P_M('Arms'), { L: body, P: body }), part(P_M('Arms'), 'skin'), part(P_M('Legs'), { L: 0x3a2e22, P: 0x3a2e22 }), part(P_M('Feet'), { L: 0x2a1a10, P: 0x3a2a1a })],
+  brows: hair, hair: beard ? [['Hair_Buzzed', hair], ['Hair_Beard', hair]] : [['Hair_SimpleParted', hair]] });
+const townswoman = (id, dress, hair, style, homes) => ({ id, lazy: true, bind: 'rfemale', s: 0.97, skin: 0xe6bca2, skinK: 0.94, headY: 1.98, walk: 'Walk_Loop', speed: 0.85, homes,
+  parts: [part(P_F('Body'), { L: dress, P: 0xe8dcc0 }), part(P_F('Arms'), { L: dress, P: 0xd8ccb0 }), part(P_F('Legs'), { L: 0x3a2a1c, P: 0x3a2a1c }), part(P_F('Feet'), { L: 0x2a1a10, P: 0x3a2a1a })],
+  brows: 0x4a3424, hair: [[style, hair]], robe: { col: C.mul(dress, 0.9), top: 0.95, bot: 0.05, rx: [0.15, 0.32], rz: [0.12, 0.27], leg: 0.45 } });
+Object.assign(CAST.specs, {
+  /* the guests */
+  gniewomir: { id: 'gniewomir', name: 'King Gniewomir', lazy: true, bind: 'rmale', s: 1.1, skin: 0xd8a890, skinK: 0.9, headY: 2.25, x: 1.2, z: -7.6, face: 1,
+    homes: { lists: { x: 1.2, z: -7.6, face: 1, sit: { x: 1.2, y: 1.87, z: -7.6, yaw: 0.12, cardDz: 0.3 } }, camp: { x: 0.2, z: -1.35, face: 1, sit: { x: 0.2, y: 0.47, z: -1.35, yaw: 0, cardDz: 0.35 } } },
+    parts: [part(P_M('Body'), { L: 0x7a1a16, P: 0xa82a24 }), part(P_M('Arms'), { L: 0x7a1a16, P: 0x7a1a16 }), part(P_M('Arms'), 'skin'), part(P_M('Legs'), { L: 0x3a1a14, P: 0x3a1a14 }), part(P_M('Feet'), { L: 0x1a120c, P: 0x2a1a10 })],
+    brows: 0xd8d0c4, hair: [['Hair_Buzzed', 0xc8c0b4], ['Hair_Beard', 0xe0d8cc]],
+    robe: { col: 0x8a1e1a, top: 1.0, bot: 0.03, rx: [0.2, 0.4], rz: [0.16, 0.34], trim: 0xd8a43a, band: 0xd8a43a, leg: 0.45 },
+    collar: { pal: [0xc8c0b0, 0xe0d8c8, 0xf0ece0, 0xfffaf0], y: 1.46, rx: 0.22, rz: 0.16, thick: 0.07 }, crown: { worn: true, k: 1.05 } },
+  msciwoj: Object.assign(knight('msciwoj', 0xa82a24, 4.4, -1), { name: 'Prince Mściwoj', lazy: true, s: 1.08, headY: 2.28, idle: 'Idle_FoldArms_Loop', helmet: undefined, prop: undefined,
+    hair: [['Hair_SimpleParted', 0x9a7a40]], homes: { camp: { x: 4.4, z: 2.1, face: -1, idle: 'Idle_FoldArms_Loop' } } }),
+  ottokar: Object.assign(knight('ottokar', 0xa82a24, 0.9, -1), { name: 'Ser Ottokar', lazy: true, hair: [['Hair_Beard', 0x2a1c12]],
+    homes: { lists: { x: 0.9, z: 1.1, face: -1, idle: 'Sword_Idle' }, camp: { x: 8.6, z: 2.1, face: -1, idle: 'Idle_Loop' } } }),
+  wieslawa: { id: 'wieslawa', name: 'Queen Wiesława', lazy: true, bind: 'rfemale', s: 1.0, skin: 0xe8c4ac, skinK: 0.95, headY: 2.02, x: 2.9, z: -7.6, face: 1,
+    homes: { lists: { x: 2.9, z: -7.6, face: 1, sit: { x: 2.9, y: 1.87, z: -7.6, yaw: -0.1, cardDz: 0.3 } }, camp: { x: 6.0, z: 2.1, face: 1, idle: 'Idle_FoldArms_Loop' } },
+    parts: [part(P_F('Body'), { L: 0x4a1430, P: 0x7a3a5a }), part(P_F('Arms'), { L: 0x4a1430, P: 0x5a2040 }), part(P_F('Legs'), { L: 0x2a1020, P: 0x2a1020 }), part(P_F('Feet'), { L: 0x1a1010, P: 0x2a1818 })],
+    brows: 0x1a1214, hair: [['Hair_Buns', 0x1a1214]],
+    robe: { col: 0x5a1a3a, top: 0.95, bot: 0.03, rx: [0.15, 0.36], rz: [0.12, 0.3], trim: 0xd8a43a, band: 0xd8a43a, leg: 0.4 },
+    collar: { pal: [0x8a7a6a, 0xb8a890, 0xd8ccb8, 0xf0e8d8], y: 1.41, rx: 0.17, rz: 0.12, thick: 0.05 }, crown: { worn: true, k: 0.82, y: 0.165 } },
+  jarek: { id: 'jarek', name: 'Jarek of Velka', lazy: true, bind: 'rmale', s: 1.02, skin: 0xe0b498, skinK: 0.93, headY: 2.1, x: -5.6, z: 2.2, face: 1, homes: { camp: { x: -5.6, z: 2.2, face: 1 } },
+    parts: [part(P_M('Body'), { L: 0x1e5a5e, P: 0xd8c8a0 }), part(P_M('Arms'), { L: 0x1e4a4e, P: 0x1e4a4e }), part(P_M('Arms'), 'skin'), part(P_M('Legs'), { L: 0x2a2620, P: 0x2a2620 }), part(P_M('Feet'), { L: 0x2a1a10, P: 0x3a2a1a })],
+    brows: 0x4a2c1a, hair: [['Hair_SimpleParted', 0x4a2c1a], ['Hair_Beard', 0x4a2c1a]],
+    robe: { col: 0x1e4a4e, top: 1.0, bot: 0.5, rx: [0.17, 0.27], rz: [0.13, 0.22], trim: 0xd8a43a, leg: 0.6 }, collar: { pal: [0x3a2a1a, 0x4a3624, 0x5a442e, 0x6a5238] } },
+  squire: { id: 'squire', name: 'the squire', lazy: true, bind: 'rmale', s: 0.98, skin: 0xd8a888, skinK: 0.9, headY: 2.05, x: 13.6, z: 2.1, face: -1, homes: { camp: { x: 13.6, z: 2.1, face: -1 } },
+    parts: [part(R_M('Body'), { G: 0x16161c, L: 0x22222a, P: 0x5a5a6a }), part(R_M('Arms'), { G: 0x16161c, L: 0x22222a, P: 0x5a5a6a }), part(R_M('Arms'), 'skin'), part(R_M('Legs'), { G: 0x16161c, L: 0x22222a }),
+      part(R_M('Feet_Boots'), { L: 0x141010, G: 0x141010, P: 0x3a3a40 }), part(R_M('Head_Hood'), { G: 0x16161c, L: 0x16161c, P: 0x22222a })],
+    brows: 0x2a1c12, hair: [['Hair_Buzzed', 0x2a1c12]] },
+  groom: { id: 'groom', name: 'the groom', lazy: true, bind: 'rmale', s: 0.98, skin: 0xc89070, skinK: 0.9, headY: 2.05, x: 11.6, z: 2.1, face: -1, homes: { camp: { x: 11.6, z: 2.1, face: -1 } },
+    parts: [part(P_M('Body'), { L: 0x5a4a2a, P: 0xc8b890 }), part(P_M('Arms'), { L: 0x5a4a2a, P: 0x5a4a2a }), part(P_M('Arms'), 'skin'), part(P_M('Legs'), { L: 0x3a2e22, P: 0x3a2e22 }), part(P_M('Feet'), { L: 0x2a1a10, P: 0x3a2a1a })],
+    brows: 0x5a3a22, hair: [['Hair_Buzzed', 0x5a3a22]] },
+  kSoldierA: krasnaGuard('kSoldierA', -12.6, { x0: -13.8, x1: -8.6, pause: [3, 7] }),
+  kSoldierB: krasnaGuard('kSoldierB', -8.8, { x0: -13.0, x1: -7.6, pause: [4, 8] }),
+  /* the fair */
+  bartosz: { id: 'bartosz', name: 'Bartosz Kuglarz', lazy: true, bind: 'rmale', s: 1.04, skin: 0xd8a080, skinK: 0.9, headY: 2.12, x: 5.0, z: 2.35, face: 1, homes: { fair: { x: 5.0, z: 2.35, face: 1, idle: 'Idle_Talking_Loop' } },
+    parts: [part(P_M('Body'), { L: 0xa82a24, P: 0xe8b840 }), part(P_M('Arms'), { L: 0xe8b840, P: 0xa82a24 }), part(P_M('Arms'), 'skin'), part(P_M('Legs'), { L: 0x2c4478, P: 0x2c4478 }), part(P_M('Feet'), { L: 0x2a1a10, P: 0x3a2a1a })],
+    brows: 0xa8602a, hair: [['Hair_Buzzed', 0xa8602a], ['Hair_Beard', 0xa8602a]], tabard: { col: 0x2c4478, trim: 0xe8b840, w: 0.09, top: 1.38, from: P_M('Body') } },
+  salA: sister('salA', 'Mira', 0xa8785a, 0x1a1210, -0.9, -1), salB: sister('salB', 'Tessa', 0x8a5a3a, 0x3a120c, 0.4, 1), salC: sister('salC', 'Ola', 0xc08a68, 0x1a1210, 1.7, 1),
+  fortune: { id: 'fortune', name: 'the fortune teller', lazy: true, bind: 'rfemale', s: 0.96, skin: 0xd8c4b4, skinK: 0.9, headY: 1.98, x: 13.2, z: 2.2, face: -1, idle: 'Spell_Simple_Idle_Loop',
+    homes: { fair: { x: 13.2, z: 2.2, face: -1, idle: 'Spell_Simple_Idle_Loop' } },
+    parts: [part(P_F('Body'), { L: 0x3a1a4a, P: 0x5a3a6a }), part(P_F('Arms'), { L: 0x3a1a4a, P: 0x4a2a5a }), part(P_F('Legs'), { L: 0x24142e, P: 0x24142e }), part(P_F('Feet'), { L: 0x141014, P: 0x1e1a1e }),
+      part(['rf_ranger', 'Female_Ranger_Head_Hood'], { G: 0x4a2a5a, L: 0x4a2a5a, P: 0x5a3a6a })],
+    brows: 0x6a6460, hair: [['Hair_Long', 0x9a948a]], robe: { col: 0x3a1a4a, top: 0.95, bot: 0.02, rx: [0.15, 0.36], rz: [0.12, 0.32], trim: 0xc8962a, leg: 0.4 } },
+  martaFair: Object.assign({}, CAST.specs.marta, { id: 'martaFair', name: 'Marta', lazy: true, home: 'fair', homes: { fair: { x: -12.6, z: 2.25, face: 1 } } }),
+  townA: townsman('townA', 0x6a4a2a, 0x5a3a22, true, { fair: { x: -6.6, z: 2.5, face: 1, wander: { x0: -9.0, x1: -5.2, pause: [3, 7] } } }),
+  townB: townswoman('townB', 0x2e6a3a, 0xd8b060, 'Hair_Long', { fair: { x: 3.0, z: 2.55, face: -1, wander: { x0: 1.6, x1: 4.6, pause: [4, 8] } } }),
+  townC: townsman('townC', 0x2c4478, 0x1a1410, false, { fair: { x: -13.0, z: 2.55, face: 1, wander: { x0: -14.4, x1: -11.0, pause: [3, 6] } } }),
+  townD: townswoman('townD', 0x8a3a5a, 0x5a3a22, 'Hair_Buns', { fair: { x: 11.8, z: 2.3, face: 1 } }),
+  fairGuard: Object.assign(guard('fairGuard', 9.6), { lazy: true, home: 'fair', homes: { fair: { x: 9.6, z: 2.6, face: 1, wander: { x0: 9.2, x1: 12.6, pause: [4, 8] } } } }),
+  /* the lists */
+  bogdanLists: Object.assign({}, CAST.specs.commander, { id: 'bogdanLists', name: 'Ser Bogdan', lazy: true, prop: 'sword', idle: 'Sword_Idle', box: [1.9, 2.6], home: 'lists',
+    homes: { lists: { x: -0.9, z: 1.1, face: 1, idle: 'Sword_Idle' } } }),
+  herald: { id: 'herald', name: 'the herald', lazy: true, bind: 'rmale', s: 1.0, skin: 0xd8a888, skinK: 0.92, headY: 2.08, x: -11.4, z: 2.1, face: 1, prop: 'scroll', homes: { lists: { x: -11.4, z: 2.1, face: 1 } },
+    parts: [part(P_M('Body'), { L: 0x2c4478, P: 0xf0e8d8 }), part(P_M('Arms'), { L: 0x2c4478, P: 0x2c4478 }), part(P_M('Arms'), 'skin'), part(P_M('Legs'), { L: 0xf0e8d8, P: 0xf0e8d8 }), part(P_M('Feet'), { L: 0x2a1a10, P: 0x3a2a1a })],
+    brows: 0x6a4a2a, hair: [['Hair_SimpleParted', 0x6a4a2a]], tabard: { col: 0xf0e8d8, emblem: 0x2c4478, top: 1.4, w: 0.09, trim: 0xe8b840, from: P_M('Body') } },
+  marshal: { id: 'marshal', name: 'Ser Dobiesław', lazy: true, bind: 'rmale', s: 1.04, skin: 0xc89878, skinK: 0.9, headY: 2.18, x: 8.4, z: 2.1, face: -1, prop: 'spear', homes: { lists: { x: 8.4, z: 2.1, face: -1 } },
+    parts: [part(R_M('Body'), { G: 0x2c4478, L: 0x2a1e16, P: 0x8a8e98 }), part(R_M('Arms'), { G: 0x2c4478, L: 0x2a1e16, P: 0x8a8e98 }), part(R_M('Arms'), 'skin'), part(R_M('Legs'), { G: 0x2a2a30, L: 0x2a1e16 }),
+      part(R_M('Feet_Boots'), { L: 0x1a1410, G: 0x1a1410, P: 0x4a4a50 }), part(R_M('Body_Belt_1'), { L: 0x1e1610, P: 0xb8a060 })],
+    brows: 0xb8b2a8, hair: [['Hair_Buzzed', 0xb8b2a8], ['Hair_Beard', 0xc8c2b8]], collar: { pal: [0x2a2018, 0x3a2c20, 0x4a3a2a, 0x5a4a38], y: 1.46, rx: 0.21, rz: 0.15 } },
+});
+/* the household at the festival: Halina at the honey stall and in the royal stand, Kazik by the bear, Zofia at the butts,
+   the saint by the lists' rail */
+CAST.specs.queen.homes.fair = { x: -10.2, z: 2.3, face: 1, idle: 'Idle_Loop' };
+CAST.specs.queen.homes.lists = { x: -1.2, z: -7.6, face: 1, idle: 'Idle_Loop', sit: { x: -1.2, y: 1.87, z: -7.6, yaw: 0.12, cardDz: 0.3 } };
+CAST.specs.kazik.homes.fair = { x: 8.8, z: 2.5, face: -1, wander: { x0: 8.6, x1: 9.2, pause: [2, 5] } };
+CAST.specs.zofia.homes.lists = { x: 12.6, z: 2.1, face: 1, idle: 'Idle_Loop' };
+CAST.specs.dorota.homes = { chapel: { x: 1.8, z: 2.2, face: -1, idle: 'Idle_Loop' }, lists: { x: -5.4, z: 2.15, face: 1, idle: 'Idle_Loop' } };   // she had one home; with two, each needs its spot
 
 /* ==== game/g50_court.js ==== */
 /* COURT — holding court from the throne. The steward announces each petitioner, they walk in through the great doors
@@ -59395,6 +60519,7 @@ WORLD.places = [   // at3: a point in the fortress diorama (exterior room coordi
   { id: 'yard', name: 'Training Yard', sub: 'Ser Bogdan', at3: [25, 8, -38], side: 'r', room: 'yard', at: { x: -10.2, face: 1 } },
   { id: 'chapel', name: 'Chapel', sub: 'the lower bailey', at3: [-21.2, 22, -33.3], side: 'l', room: 'chapel', at: { x: -9.6, face: 1 } },
   { id: 'town', name: 'Lower Town', sub: 'not yet', x: 378, y: 222, locked: true },
+  { id: 'meadow', name: 'Swan Meadow', sub: 'the festival', x: 318, y: 270, side: 'l', room: 'fair', at: { x: FAIR.ENTRY, face: 1 } },
   { id: 'wood', name: 'The Wood', sub: 'the clearing', x: 64, y: 164, room: 'wood', at: { x: -9.8, face: 1 } },
 ];
 WORLD.init = function () {
@@ -59423,7 +60548,7 @@ async function boot() {
   if (f.room && SCENE.rooms[f.room]) {   // straight into a room, for testing
     if (f.crown || f.room === 'throne') K.crownMesh.visible = true;
     const entry = { throne: THRONE.ENTRY, bedroom: -1.6 }[f.room];
-    SCENE.enter(f.room, { x: f.x !== undefined ? +f.x : entry !== undefined ? entry : 0, face: 1, sound: true });
+    await SCENE.prepare(f.room); SCENE.enter(f.room, { x: f.x !== undefined ? +f.x : entry !== undefined ? entry : 0, face: 1, sound: true });
   } else TITLE.show();
   SCENE.update(0.016); SCENE.room.update(0, 0.016);
   R.r.compile(R.scene, R.cam); SCENE.render(); await nextFrame(); SCENE.render();

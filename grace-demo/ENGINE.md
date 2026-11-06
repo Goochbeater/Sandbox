@@ -35,6 +35,7 @@ Contents
 13e. Outdoor backdrops, dark interiors, and the walking line (the wood and the hut)
 13f. Animals you can pet (`BUILD.pet`)
 13g. Moving the king: pace, jogging, the Settings
+13h. The Swan Festival: three connected grounds, shows, a lazy cast
 14. Credits and licences
 
 ---
@@ -359,6 +360,12 @@ rows, Bogdan's archery butts, the fishing hole with a dock, Halina's blanket und
 **The Woman's hut** (`g35_hut.js`): wattle walls, a stone hearth with a violet cauldron, a runed rug, herbs on cords, a shelf
 of jars, a crystal orb, a skull, the barrel with the black cat (pettable), cobwebs, lanterns and candle stands, the window
 onto a moon that isn't the moon. Only the king goes there. §13e, §13f.
+
+**The Swan Festival** (`g36`–`g39`, painters `g18_paint_fest.js`, people `g41_cast_fest.js`): three grounds on the meadow
+below the fortress. The fair (stalls, the ale tent, the Salamanders' stage, the bear's pen, the puppet booth, the hammer,
+the fortune teller's wagon, the maypole); the lists (the tiltyard, the royal stand under its canopy, the commons' stands,
+the heralds' tower, the archery butts); the pavilions (the river and the League's barge, Gniewomir's pavilion, Wiesława's
+tent, the horse lines, the black tent). §13h.
 
 **The cast** (`g40_cast.js`): the king (dark coat, fur collar, white tabard, the crown once he takes it), the queen
 (blue gown and shawl, small crown, arms folded), the steward (long green robe, gold sash, a scroll), two guards (red
@@ -685,6 +692,86 @@ Rules learned building it:
   (`walkSpd`, `jogBtn`); the toggle shares a row with Quality and Effects, so the panel still fits a 360 px-tall phone.
 - Measured headlessly in the throne room: walking 1.0 m/s; Shift, and a tap 16 m away, both ramp to 1.75×; the slider
   at 150 % gives 1.5×; under a scene lock, Shift has no effect.
+
+## 13h. The Swan Festival: three connected grounds, shows, a lazy cast
+
+**Files.** `game/g18_paint_fest.js` (painters), `g36_fest.js` (`FEST`: what the grounds share, the state, all the talk),
+`g37_fair.js` (`FAIR`), `g38_lists.js` (`LISTS`), `g39_camp.js` (`CAMP`), `g41_cast_fest.js` (the festival's people). The
+story is `STORY.md` §6. The map's **Swan Meadow** pin leads to the fair; gates at each ground's ends lead to the next
+(fair ↔ lists ↔ pavilions), each a `SCENE.go` to the other ground's near end.
+
+**One kind of room, made three times.** `FEST.room(id, title, sub, more)` makes a 32 m meadow strip with the yard's lens
+(walk line z 3, `dist` 19.4, `fov` 19), haze, `far` 420 for the backdrop. Then:
+- `FEST.backdrop(room, { fx, town, tents })`: the meadow, a summer sky (`skySummer`, mostly blue: a cloud threshold of 0.76),
+  a haze row of trees, the hill (`BUILD.terrain`, 16 m high at z −230) with the Swan Fortress on it, built with the yard's
+  architecture kit (curtain wall, crenels, gatehouse, four drum towers with red cones, the hall's roof, the keep, the
+  chapel's spire, pennants), trees at its foot, the town's roofs to the west (`town`), and a sea of tents with flags.
+  Distances follow §13e: at 250 m the frame's top is about 44 m up, so a 16 m hill with a 24 m keep fills the upper half
+  and leaves sky either side.
+- `FEST.lights(room)`: the garden's sun rig (hemisphere 1.35, a shadow-casting sun 3.3 from the west, a fill), plus point
+  lights only where something burns (the stage's torches, the grill, the campfire, the pavilion's candle).
+- Stalls (`FEST.stall`: four poles, a sloping striped awning, a shallow valance — 0.42 m, so it clears the wares — and
+  the painted counter), bunting (`FEST.bunting`), smoke (`FEST.smoke`: sprite puffs that rise and fade; `smokeSoft` is a
+  sprite texture with no pixel size, and as a card it made NaN geometry), tents (`BUILD.tent`).
+- Painted crowds (`PX.crowd`: heads and shoulders in market colours, some arms up) on every tier and behind every stall.
+  They're what makes a ground feel full; actors are expensive, painted people are free.
+
+**New engine helpers** (`engine/e08_outdoor.js`):
+- `BUILD.anim(tex, x, y, z, o)`: a card showing one frame of a strip (`tex.userData.n`), `set(f)`, or `o.rate` to cycle on
+  its own. The bear's dance, the puppets, the jousters' gallop, the fire blasts.
+- `BUILD.tent(x, z, r, h, rh, wall, roof, o)`: a round pavilion, open at the front by `o.open` radians so the inside shows,
+  a cone roof, an optional scalloped valance and pennant; its footprint goes into `room.solids` as a circle.
+- Sounds: `cheer`, `fwoosh`, `fanfare`, `crack`, `hooves`, `snort`.
+
+**The cast is lazy.** Every festival spec has `lazy: true`. `CAST.build` skips them at boot; `CAST.ensure(roomId)` builds
+the lazy actors who live in a room the first time the king heads there. The engine calls it through `SCENE.prepare(id)`
+(`SCENE.beforeEnter`), which every way into a room awaits: `SCENE.go` behind its fade, Continue, and a `?room=` link at
+boot. The boot is no longer than before the festival; the first entry to a ground waits behind the fade while its people
+are built. With per-room layers (§3), a ground can hold 29 actors; the fair holds 14.
+
+**Returning characters.** An actor's `offstage` is global, and its props are fixed when it's built. So Marta, a petitioner
+(offstage everywhere but court), has a festival copy `martaFair`, and Bogdan has `bogdanLists`, with a sword. The pattern
+is `hutWitch`'s: `Object.assign({}, CAST.specs.x, { id, lazy, home, homes, … })`. An actor with a `home` and no `homes`
+(Dorota) needs a `homes` entry for every room once it gets a second one, or it keeps the last room's position.
+
+**Shows.** Each activity is an async function that takes the lock and gives it back in `finally`:
+1. `FEST.stepTo(x, lookX)` walks the king to the side first. Standing where he was, he blocked the duel and the stage.
+2. `FEST.cam(room, { focus, dist, y, look }, dur)` eases the lens in; `FEST.cam(room, null)` eases it back.
+3. Everything a show shows is built with the room and hidden (the fire blasts, the lance shards, the unhorsed knight):
+   `BUILD.*` only works inside `build()`, because it adds to `BUILD.room`.
+4. Timing runs in the room's `tick` (game time); a tick removes itself with `room.tick = room.tick.filter((g) => g !== f)`.
+5. Choices use `NIGHT.ask` (`FEST.ask`), which works outside the adult scenes. Speakers that aren't actors (the puppets)
+   are `FEST.voice(x, y, z)`. The timing games use `FEST.meter(label)`, which resolves 0..1 (the gold zone is at 86 %).
+
+What there is to do, by ground:
+- **Fair:** the Salamanders spit fire (three blasts, then all three; each blast is a `blast` strip on a basic card at
+  k 3.2, pivoted so its root sits at the sister's mouth, and a flash light on the stage); the puppet play (King Radish and
+  the river-wife; laugh or have it stopped); the strongman's hammer (the meter; the puck flies; the bell); the bear (pet him,
+  or buy his freedom for Kazik: he turns up in the wood, pettable, and the Woman mentions him); ribbons (for Halina, for the
+  saint, or nobody); honey cakes; the fortune teller (the Woman in another face); Marta, Bartosz, the sisters, the town.
+- **Lists:** the duel on foot (Bogdan against Ottokar, the yard's bout choreography; whoever holds the king's favour wins);
+  the joust (three courses of painted riders; the black knight unhorses the prince on the third); the king's favour; the
+  Queen of Love and Beauty; the royal stand (Halina, Gniewomir and Wiesława seated far back: their talk markers sit at their
+  own z, over their heads).
+- **Pavilions:** the Pact (sign tonight, sign after the feast with changes, or refuse); arm-wrestling the prince (two pulls
+  on the meter); the grey destrier (pettable); Jarek, Wiesława and Ottokar, the squire, the soldiers.
+
+**The joust is painted.** The kit has no horses, so each rider is a three-frame strip (`PX.jouster`: two gallop frames and
+the horse riderless), 128 × 86 px, the horse in a caparison of his colours, the knight couched behind his lance with his
+shield toward us. The riders gallop along lanes either side of the tilt (z −2.35, −3.65) and cross at `LISTS.JX` (4.6),
+right of the middle: in the middle, the duellists and the king hid the moment the lances met. At the crossing: `crack`,
+twelve shards with gravity, and on the third course the prince's strip switches to its riderless frame while
+`knightDown` falls into the sand.
+
+**Measured** with §13b's eval: fair 102 meshes, 7 lights, 439 draw calls; lists 82, 3, 349; pavilions 75, 5, 360 (throne
+84, 18, 294). Outdoors the sun does the throne's torches' work, so fewer lights is right; the draw calls are mostly the
+actors' sprites (about ten each). `SCENE.walkCheck()` is `[]` on all three.
+
+**Testing a ground's activities headlessly.** A small driver in the page (written for these tests: `use(id)` runs an
+interaction, `until(cond)` waits for a state, `finish()` clicks through bubbles, picks the first choice and stops meters
+until `SCENE.lock` is 0) ran every activity on every ground to the end, with screenshots at the show's key moment (a blast
+visible, the lances' shards in the air, the knight falling), and walked the gates round (fair → lists → pavilions → lists
+→ fair), the map pin, and the bear's return to the wood.
 
 ## 14. Credits and licences
 

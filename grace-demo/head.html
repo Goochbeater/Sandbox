@@ -13,6 +13,12 @@
   #view { position: absolute; overflow: hidden; background: #050304; }
   #cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; outline: none; }
   #ui { position: absolute; inset: 0; pointer-events: none; }
+  /* the festival's timing meter (FEST.meter): a needle running along a track, the gold zone near the top */
+  .meter { position: absolute; left: 50%; bottom: 16%; transform: translateX(-50%); width: min(62vw, 440px); display: flex; flex-direction: column; align-items: center; gap: 8px; color: #f0e8d8; font-size: clamp(13px, 1.7vw, 18px); text-shadow: 0 1px 2px #000; }
+  .meter .track { position: relative; width: 100%; height: 16px; background: rgba(16, 11, 9, 0.85); border: 1px solid #8a6a3a; border-radius: 3px; }
+  .meter .track i { position: absolute; left: 66%; width: 34%; top: 0; bottom: 0; background: linear-gradient(90deg, rgba(232, 184, 64, 0.15), rgba(232, 184, 64, 0.55) 60%, rgba(232, 184, 64, 0.2)); }
+  .meter .track b { position: absolute; top: -4px; bottom: -4px; width: 4px; margin-left: -2px; background: #fff4d8; box-shadow: 0 0 6px #e3b75a; }
+  .meter.done .track b { background: #e3b75a; }
   .mk { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; pointer-events: auto; cursor: pointer; opacity: 0; transition: opacity 0.35s, transform 0.25s; }
   .mk.show { opacity: 0.9; }
   .mk.show.near { opacity: 1; transform: scale(1.25); }

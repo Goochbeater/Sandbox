@@ -87,6 +87,11 @@ WOOD.build = function () {
   BUILD.card(T.pell, 9.2, 0, 1.4, { s: 0.95 });
   BUILD.card(T.deerPix, -4.4, 0, 1.6, { s: 1.0, cast: false });
   room.interact('deer', -4.4, 1.6, KZ, 1.0, () => say('deer'));
+  /* the dancing bear, if the king bought his freedom at the fair (FEST.bearFreed): at the edge of the trees, glad of it */
+  room.bear = BUILD.anim(T.bearDance, -1.9, 0, -1.6, { cast: false }); room.bear.set(0);
+  room.bearPet = BUILD.pet(room.bear.me, { id: 'bear', label: 'Pet Wojciech', frames: [T.bearSit], sound: 'pant', soundO: { gain: 0.9 }, headY: 1.9, dur: 3.0, r: 1.0,
+    says: ['(He sits down in the bracken and leans on the king like a warm wall.)', 'Hrrmf.', '(He smells of blackberries now, not of the fair.)'],
+    lines: ['Wojciech. No chain, no music. You look ten years younger.', 'Kazik will want to know you’re well. You’re well.'] });
   room.interact('zofia', 9.2, 2.7, KZ, 1.0, () => talk('zofia', 'zofia')).label = 'Talk to Zofia';
   room.interact('kazik', 11.6, 2.7, KZ, 1.0, () => talk('kazik', 'kazik')).label = 'Talk to Kazik';
   room.interact('woodGuardL', -7.5, 3.0, KZ, 1.0, () => talk('woodGuardL', 'guardL')).label = 'Talk to the guard';
@@ -114,4 +119,5 @@ WOOD.onEnter = function () {
   if (!CUT.playing) SCENE.caption(...this.caption);
   const A = CAST.A;
   for (const id of ['woodGuardL', 'woodGuardR']) A[id].setVisible(true);
+  this.bear.me.visible = FEST.bearFreed; this.bearPet.hidden = !FEST.bearFreed; SCENE.buildMarks();   // the freed bear lives here now
 };

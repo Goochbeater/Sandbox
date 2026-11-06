@@ -124,6 +124,7 @@ HUT.witch = async function () {
   SCENE.lock++;
   try {
     if (!HUT.met) { HUT.met = true; await SCENE.talk(T.first.map(([k, t]) => [who(k), t])); }
+    else if (FEST.bearFreed && !HUT.bearSaid) { HUT.bearSaid = true; await SCENE.talk([[W, 'Your bear came by. He sends his regards.'], [K, 'He’s not my bear.'], [W, 'He ate my honey as if he were. Kings and bears.']]); }
     else await SCENE.say(W, SCENE.cycle('witch', T.more));
   } finally { SCENE.lock--; }
 };

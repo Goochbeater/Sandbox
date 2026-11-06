@@ -96,6 +96,7 @@ WORLD.places = [   // at3: a point in the fortress diorama (exterior room coordi
   { id: 'yard', name: 'Training Yard', sub: 'Ser Bogdan', at3: [25, 8, -38], side: 'r', room: 'yard', at: { x: -10.2, face: 1 } },
   { id: 'chapel', name: 'Chapel', sub: 'the lower bailey', at3: [-21.2, 22, -33.3], side: 'l', room: 'chapel', at: { x: -9.6, face: 1 } },
   { id: 'town', name: 'Lower Town', sub: 'not yet', x: 378, y: 222, locked: true },
+  { id: 'meadow', name: 'Swan Meadow', sub: 'the festival', x: 318, y: 270, side: 'l', room: 'fair', at: { x: FAIR.ENTRY, face: 1 } },
   { id: 'wood', name: 'The Wood', sub: 'the clearing', x: 64, y: 164, room: 'wood', at: { x: -9.8, face: 1 } },
 ];
 WORLD.init = function () {

@@ -12,7 +12,7 @@ async function boot() {
   if (f.room && SCENE.rooms[f.room]) {   // straight into a room, for testing
     if (f.crown || f.room === 'throne') K.crownMesh.visible = true;
     const entry = { throne: THRONE.ENTRY, bedroom: -1.6 }[f.room];
-    SCENE.enter(f.room, { x: f.x !== undefined ? +f.x : entry !== undefined ? entry : 0, face: 1, sound: true });
+    await SCENE.prepare(f.room); SCENE.enter(f.room, { x: f.x !== undefined ? +f.x : entry !== undefined ? entry : 0, face: 1, sound: true });
   } else TITLE.show();
   SCENE.update(0.016); SCENE.room.update(0, 0.016);
   R.r.compile(R.scene, R.cam); SCENE.render(); await nextFrame(); SCENE.render();

@@ -39,7 +39,7 @@ TITLE.newGame = async function () {
 TITLE.cont = function () {
   const s = SAVE.get(); if (!s) return TITLE.newGame(); GAME.load(s);
   $('fade').classList.remove('off');
-  setTimeout(async () => { TITLE.hide(); SCENE.enter(s.room || 'bedroom', { x: s.x, face: 1, sound: true }); R.r.compile(R.scene, R.cam); SCENE.render(); await nextFrame(); $('fade').classList.add('off'); }, 800);
+  setTimeout(async () => { TITLE.hide(); await SCENE.prepare(s.room || 'bedroom'); SCENE.enter(s.room || 'bedroom', { x: s.x, face: 1, sound: true }); R.r.compile(R.scene, R.cam); SCENE.render(); await nextFrame(); $('fade').classList.add('off'); }, 800);
 };
 /* ---------------------------------------------------------------- the opening (see STORY.md §3) */
 const INTRO = [
@@ -60,11 +60,11 @@ const INTRO = [
 ];
 /* ---------------------------------------------------------------- the save slot */
 const GAME = {};
-GAME.reset = function () { SCENE.player.crownMesh.visible = false; COURT.reset(); CHAPEL.met = CHAPEL.queenMet = CHAPEL.priestMet = false; CHAPEL.flirt = CHAPEL.cold = 0; HUT.met = false; HUT.catPets = 0; WOOD.houndPets = 0; };
+GAME.reset = function () { SCENE.player.crownMesh.visible = false; COURT.reset(); CHAPEL.met = CHAPEL.queenMet = CHAPEL.priestMet = false; CHAPEL.flirt = CHAPEL.cold = 0; HUT.met = false; HUT.catPets = 0; HUT.bearSaid = false; WOOD.houndPets = 0; FEST.reset(); };
 GAME.state = function () { const K = SCENE.player, R0 = SCENE.room;
   return { room: R0 && R0.id !== 'exterior' ? R0.id : 'bedroom', x: K.x, crown: K.crownMesh.visible,
     court: { done: COURT.done, prosperity: COURT.prosperity, stats: COURT.stats, agents: COURT.agents.map((a) => ({ id: a.id, ap: a.ap, wound: a.wound })), items: COURT.items.map((i) => ({ id: i.id, n: i.n })) },
-    chapel: { met: CHAPEL.met, queenMet: CHAPEL.queenMet, priestMet: CHAPEL.priestMet, flirt: CHAPEL.flirt, cold: CHAPEL.cold }, hut: { met: HUT.met, catPets: HUT.catPets }, wood: { houndPets: WOOD.houndPets } }; };
+    chapel: { met: CHAPEL.met, queenMet: CHAPEL.queenMet, priestMet: CHAPEL.priestMet, flirt: CHAPEL.flirt, cold: CHAPEL.cold }, hut: { met: HUT.met, catPets: HUT.catPets, bearSaid: !!HUT.bearSaid }, wood: { houndPets: WOOD.houndPets }, fest: FEST.state() }; };
 GAME.save = function () { if (SCENE.room && SCENE.room.id !== 'exterior' && !CUT.playing) SAVE.put(GAME.state()); };
 GAME.load = function (s) {
   const K = SCENE.player; K.crownMesh.visible = !!s.crown;
@@ -72,8 +72,9 @@ GAME.load = function (s) {
     for (const a of s.court.agents || []) { const g = COURT.agents.find((q) => q.id === a.id); if (g) Object.assign(g, a); }
     for (const i of s.court.items || []) { const g = COURT.items.find((q) => q.id === i.id); if (g) g.n = i.n; } }
   if (s.chapel) { CHAPEL.met = !!s.chapel.met; CHAPEL.queenMet = !!s.chapel.queenMet; CHAPEL.priestMet = !!s.chapel.priestMet; CHAPEL.flirt = s.chapel.flirt || 0; CHAPEL.cold = s.chapel.cold || 0; }
-  if (s.hut) { HUT.met = !!s.hut.met; HUT.catPets = s.hut.catPets || 0; }
+  if (s.hut) { HUT.met = !!s.hut.met; HUT.catPets = s.hut.catPets || 0; HUT.bearSaid = !!s.hut.bearSaid; }
   if (s.wood) WOOD.houndPets = s.wood.houndPets || 0;
+  FEST.load(s.fest);
 };
 /* ---------------------------------------------------------------- credits */
 const CREDITS = {

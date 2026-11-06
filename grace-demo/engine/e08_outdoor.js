@@ -249,6 +249,35 @@ BUILD.pet = function (card, o) {
   it.label = o.label || 'Pet the ' + o.id; it.pet = st; it.voice = voice;
   return it;
 };
+/* a card showing one frame of a painted strip (tex.userData.n frames side by side): { me, t, n, f, set(f) }. o.rate cycles
+   o.frames (default all) on its own, frames per second; a.paused stops it. o.basic with o.k > 1 makes it glow (fire).
+   Other options as BUILD.card. The card has its own material and isn't batched, so it can move */
+BUILD.anim = function (tex, x, y, z, o) {
+  o = o || {}; const n = tex.userData.n || 1, t = tex.clone(); t.needsUpdate = true; t.repeat.x = 1 / n; t.userData = Object.assign({}, tex.userData);
+  const m = o.basic ? new THREE.MeshBasicMaterial({ map: t, color: new THREE.Color(o.col || 0xffffff).multiplyScalar(o.k || 1), alphaTest: 0.5, side: THREE.DoubleSide })
+    : new THREE.MeshStandardMaterial({ map: t, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.85, color: new THREE.Color(o.col || 0xffffff) });
+  const me = BUILD.card(t, x, y, z, Object.assign({}, o, { mat: m, dyn: true }));
+  const A = { me, t, n, f: 0, paused: false, set(f) { A.f = f; t.offset.x = f / n; } };
+  if (o.rate) { const fr = o.frames || [...Array(n).keys()], ph = hash(x * 5, z * 5, 13) * 10; BUILD.room.tick.push((T) => { if (!A.paused) A.set(fr[Math.floor(T * o.rate + ph) % fr.length]); }); }
+  return A;
+};
+/* a round pavilion: canvas walls left open across the front by o.open radians (so the inside shows), a cone roof, a
+   scalloped valance at the eaves (o.valance: an awning texture), a pole and a pennant (o.pennant). wall and roof are
+   repeating canvas textures. Its footprint goes into room.solids as a circle */
+BUILD.tent = function (x, z, r, h, rh, wall, roof, o) {
+  o = o || {}; const open = o.open || 0, seg = o.seg || 18, T = {};
+  const g = new THREE.CylinderGeometry(r, r, h, seg, 1, true, open / 2, Math.PI * 2 - open); g.translate(x, h / 2, z);   // theta 0 faces the lens (+z)
+  BUILD.uvScale(g, wall, (Math.PI * 2 - open) * r, h);
+  T.walls = BUILD.add(new THREE.Mesh(g, BUILD.std(wall, { side: THREE.DoubleSide, rough: 0.9 })), { cast: true });
+  T.roof = BUILD.cone(x, z, h - 0.02, r * 1.1, rh, roof, { seg });
+  if (o.valance) { const vt = o.valance.clone(); vt.needsUpdate = true; vt.wrapS = THREE.RepeatWrapping; vt.repeat.x = Math.round(Math.PI * 2 * r * 1.1 / 2);
+    const vh = o.valance.userData.h / PX.D, vg = new THREE.CylinderGeometry(r * 1.11, r * 1.11, vh, seg * 2, 1, true); vg.translate(x, h - vh / 2 + 0.02, z);
+    T.valance = BUILD.add(new THREE.Mesh(vg, new THREE.MeshStandardMaterial({ map: vt, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.9 })), { cast: false, dyn: true }); }
+  BUILD.box(x - 0.05, x + 0.05, h + rh - 0.1, h + rh + 0.7, z - 0.05, z + 0.05, PX.T.woodPost, { cast: false });
+  if (o.pennant) T.pennant = BUILD.windCard(o.pennant, x + 1.32, h + rh + 0.2, z, 'wave', 0.12, { cast: false, s: o.pennantS || 1 });
+  BUILD.solid(x - r, x + r, 0, h, z - r, z + r, o, [x, z, r]);
+  return T;
+};
 /* a round pool of water (a fountain basin): an animated strip cycled like the flames, on a flat disc */
 BUILD.pool = function (tex, x, y, z, r, o) {
   o = o || {}; const t = tex.clone(); t.needsUpdate = true; t.repeat.x = 1 / tex.userData.n; t.userData = Object.assign({}, tex.userData);

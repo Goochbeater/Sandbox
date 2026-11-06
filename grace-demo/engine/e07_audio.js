@@ -2,7 +2,7 @@
    Music: real recordings (public-domain tracks in audio/*.mp3), streamed by <audio> elements and cross-faded, so they
    work from file:// as well as when hosted. Ambience and effects are synthesised with WebAudio, so they cost no
    download and never loop audibly: rain (hiss + drops + rumble), rain on glass, wind, fire (roar + crackle), birds,
-   a murmuring crowd, a fountain, room tone; footsteps per floor surface, thunder, door, clang, thud, chime, page, click, drum, whoosh, coin; animals: purr, meow, pant.
+   a murmuring crowd, a fountain, room tone; footsteps per floor surface, thunder, door, clang, thud, chime, page, click, drum, whoosh, coin; animals: purr, meow, pant; the festival: cheer, fwoosh, fanfare, crack, hooves.
    Everything goes through a room reverb (generated impulse) sized per room.
    Use:  AUDIO.unlock() on the first tap · AUDIO.playMusic('throne') · AUDIO.ambience({ rain: 0.8, fire: 0.4 })
          AUDIO.acoustics({ size: 2.2, wet: 0.35 }) · AUDIO.sfx('thunder', { gain: 1 }) · AUDIO.step('stone', 0.8, pan)
@@ -188,7 +188,28 @@ AUDIO.sfx = function (name, o) {
     bp.frequency.setValueAtTime(800, t); bp.frequency.linearRampToValueAtTime(1700, t + d * 0.4); bp.frequency.linearRampToValueAtTime(900, t + d);
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.22 * gain, t + 0.06); g.gain.linearRampToValueAtTime(0.16 * gain, t + d * 0.7); g.gain.linearRampToValueAtTime(0, t + d);
     AUDIO.chain(os, bp, g, out); os.start(t); os.stop(t + d + 0.05); }
+  else if (name === 'snort') { const s = c.createBufferSource(); s.buffer = AUDIO.N.pink; const lp = AUDIO.filt('lowpass', 700, 1.2), g = c.createGain(), am = c.createGain(), lfo = c.createOscillator(), lg = c.createGain();
+    lfo.frequency.value = 38; lg.gain.value = 0.45; am.gain.value = 0.55; lfo.connect(lg); lg.connect(am.gain);   // a horse's blown breath, fluttering through the lips
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.7 * gain, t + 0.06); g.gain.exponentialRampToValueAtTime(0.001, t + 0.7); AUDIO.chain(s, lp, am, g, out); s.start(t, Math.random(), 0.8); lfo.start(t); lfo.stop(t + 0.8); }
   else if (name === 'pant') { for (let i = 0; i < 6; i++) AUDIO.burst(out, t + i * 0.2, 0.12, 'bandpass', i % 2 ? 1300 : 1700, 1.2, (i % 2 ? 0.16 : 0.22) * gain, AUDIO.N.pink); }
+  // the festival: a crowd's cheer (a swell of voices and claps), a fire-spitter's blast, a herald's fanfare, a lance
+  // breaking on a shield, a horse's hooves (one stride: call it per stride)
+  else if (name === 'cheer') { const d = o.dur || 2.6, s = c.createBufferSource(); s.buffer = AUDIO.N.pink; s.loop = true; const bp = AUDIO.filt('bandpass', 950, 0.55), g = c.createGain();
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.5 * gain, t + 0.35); g.gain.linearRampToValueAtTime(0.38 * gain, t + d * 0.55); g.gain.linearRampToValueAtTime(0, t + d);
+    AUDIO.chain(s, bp, g, out); s.start(t, Math.random() * 2); s.stop(t + d + 0.1);
+    for (let i = 0; i < 26; i++) AUDIO.burst(out, t + 0.2 + Math.random() * d * 0.8, 0.025, 'highpass', 1800 + Math.random() * 1500, 0.8, (0.12 + Math.random() * 0.12) * gain); }
+  else if (name === 'fwoosh') { const s = c.createBufferSource(); s.buffer = AUDIO.N.brown; const lp = AUDIO.filt('lowpass', 300, 0.8), g = c.createGain(), d = o.dur || 1.0;
+    lp.frequency.setValueAtTime(300, t); lp.frequency.exponentialRampToValueAtTime(2200, t + d * 0.3); lp.frequency.exponentialRampToValueAtTime(500, t + d);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(1.1 * gain, t + 0.08); g.gain.exponentialRampToValueAtTime(0.001, t + d); AUDIO.chain(s, lp, g, out); s.start(t, Math.random(), d + 0.1);
+    AUDIO.burst(out, t + 0.05, d * 0.7, 'bandpass', 3200, 0.7, 0.18 * gain, AUDIO.N.pink); }
+  else if (name === 'fanfare') { [[523, 0, 0.18], [659, 0.2, 0.18], [784, 0.4, 0.18], [1047, 0.62, 0.9]].forEach(([f, dt, d]) => {
+      const os = c.createOscillator(), lp = AUDIO.filt('lowpass', 2600, 0.7), g = c.createGain(), vib = c.createOscillator(), vg = c.createGain(); os.type = 'sawtooth'; os.frequency.value = f;
+      vib.frequency.value = 5.5; vg.gain.value = f * 0.006; vib.connect(vg); vg.connect(os.frequency);
+      g.gain.setValueAtTime(0, t + dt); g.gain.linearRampToValueAtTime(0.16 * gain, t + dt + 0.03); g.gain.setValueAtTime(0.16 * gain, t + dt + d - 0.04); g.gain.linearRampToValueAtTime(0, t + dt + d);
+      AUDIO.chain(os, lp, g, out); os.start(t + dt); os.stop(t + dt + d + 0.05); vib.start(t + dt); vib.stop(t + dt + d + 0.05); }); }
+  else if (name === 'crack') { for (let i = 0; i < 4; i++) AUDIO.burst(out, t + i * 0.012, 0.05, 'highpass', 2200 + i * 600, 0.9, 0.5 * gain);
+    AUDIO.burst(out, t, 0.18, 'lowpass', 240, 1, 0.9 * gain, AUDIO.N.brown); }
+  else if (name === 'hooves') { for (let i = 0; i < 3; i++) AUDIO.burst(out, t + i * 0.09 + Math.random() * 0.015, 0.07, 'lowpass', 300 + Math.random() * 80, 1, (0.5 - i * 0.08) * gain, AUDIO.N.brown); }
   else if (name === 'coin') { const a = new Audio(AUDIO.base + 'coin.mp3'); a.volume = clamp(0.8 * gain * AUDIO.vol.sfx, 0, 1); a.play().catch(() => {}); }
 };
 /* footsteps: called by actors on each foot contact; quieter and panned with distance from the frame's centre */

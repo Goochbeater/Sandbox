@@ -12,6 +12,10 @@ SCENE.saveMove = function () { try { localStorage.setItem('grace.move', JSON.str
 SCENE.DOF0 = { uNear0: 0.8, uNearR: 3.2, uFar0: 3.0, uFarR: 10 };   // depth-of-field ramps (m) every room starts from; room.dof overrides
 SCENE.addRoom = function (room) { SCENE.rooms[room.id] = room; return room; };
 SCENE.addActor = function (a) { SCENE.actors.push(a); return a; };
+/* before a room is entered, the game may need to get it ready (the cast builds its lazy actors here: CAST.ensure). Every
+   way into a room awaits it: SCENE.go behind its fade, Continue, and a ?room= test link at boot */
+SCENE.beforeEnter = null;
+SCENE.prepare = async function (id) { if (SCENE.beforeEnter) await SCENE.beforeEnter(id); };
 /* switch rooms at once (used at boot and behind the fade) */
 SCENE.enter = function (id, at) {
   at = at || {};
@@ -25,8 +29,8 @@ SCENE.enter = function (id, at) {
   R.baseFov = room.cam.fov; R.cam.fov = room.cam.fov * R.fovK; R.cam.updateProjectionMatrix();
   for (const k in SCENE.DOF0) R.dofU[k].value = SCENE.DOF0[k]; for (const k in room.dof || {}) R.dofU[k].value = room.dof[k];
   const P = SCENE.player; if (P) { P.stand(); P.x = at.x !== undefined ? at.x : P.x; P.z = room.KZ; P.face = at.face || P.face; P.yaw = P.face * 1.0; P.target = null; P.v = 0; }
+  Actor.assignLayers(id, P);   // deal the layers first, so showing an actor never has to claim one
   for (const a of SCENE.actors) { if (a !== P) a.placeIn(id); a.setVisible(a === P ? !room.noPlayer : a.livesIn(id) && !a.offstage); }
-  Actor.assignLayers(id, P);
   SCENE.buildMarks(); SCENE.bubbleOff();
   R.r.shadowMap.needsUpdate = true;
   SCENE.camX = SCENE.camGoal(true);
@@ -35,6 +39,7 @@ SCENE.enter = function (id, at) {
 SCENE.go = async function (id, at) {
   SCENE.lock++; SCENE.dir = 0; if (SCENE.player) { SCENE.player.target = null; }
   const f = $('fade'); f.classList.remove('off'); await SCENE.wait(900);
+  await SCENE.prepare(id);
   SCENE.enter(id, at);
   R.r.compile(R.scene, R.cam); SCENE.render(); await nextFrame();
   f.classList.add('off'); await SCENE.wait(400); SCENE.lock--;

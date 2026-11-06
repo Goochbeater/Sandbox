@@ -1810,8 +1810,12 @@
   }
 
   function renderTheme() {
-    var sw = $('themeSwitch');
-    if (sw) sw.setAttribute('aria-checked', String(isLightTheme()));
+    var btn = $('btnTheme');
+    if (!btn) return;
+    var light = isLightTheme();
+    btn.setAttribute('aria-pressed', String(light));
+    btn.setAttribute('aria-label', light ? 'Switch to dark mode' : 'Switch to light mode');
+    btn.title = light ? 'Dark mode' : 'Light mode';
   }
 
   function setTheme(light) {
@@ -2472,8 +2476,8 @@
     if (btnCloseDrawer) btnCloseDrawer.addEventListener('click', function () { setDrawer(false); });
 
     /* --- appearance -------------------------------------------------------- */
-    var themeSwitch = $('themeSwitch');
-    if (themeSwitch) themeSwitch.addEventListener('click', function () { setTheme(!isLightTheme()); });
+    var btnTheme = $('btnTheme');
+    if (btnTheme) btnTheme.addEventListener('click', function () { setTheme(!isLightTheme()); });
 
     /* --- Mini-ENI: notes and scratchpad ----------------------------------- */
     var btnScribe = $('btnScribe');

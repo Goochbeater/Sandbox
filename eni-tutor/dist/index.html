@@ -51,6 +51,7 @@
   --shadow-soft: rgba(0, 0, 0, 0.35);
   --fade-to: rgba(12, 10, 9, 0.55);
   --ring: rgba(255, 255, 255, 0.06);
+  --theme-icon: #a9b9e8;
 }
 
 /* Light mode: the same tokens, a warm paper palette. Set by data-theme on <html>. */
@@ -80,6 +81,7 @@
   --shadow-soft: rgba(60, 40, 20, 0.12);
   --fade-to: rgba(247, 244, 239, 0.6);
   --ring: rgba(0, 0, 0, 0.05);
+  --theme-icon: #b9770f;
 }
 
 /* The HTML `hidden` attribute must always win. */
@@ -135,9 +137,12 @@ button { font: inherit; }
 .context-btn:hover { border-color: var(--hover-line); }
 .scribe-btn { color: var(--green); }
 
-/* Appearance: the light-mode switch in the menu */
-.menu-row { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--text); }
-.menu-row .switch { margin-left: auto; }
+/* Light/dark toggle in the top bar: a moon in dark mode, a sun in light mode. */
+.theme-btn { color: var(--theme-icon); }
+.theme-btn .icon-sun { display: none; }
+:root[data-theme="light"] .theme-btn .icon-moon { display: none; }
+:root[data-theme="light"] .theme-btn .icon-sun { display: block; }
+.theme-btn svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .context-btn svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .icon-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 
@@ -493,6 +498,10 @@ button { font: inherit; }
     <button type="button" class="context-btn scribe-btn" id="btnScribe" aria-controls="scribe" aria-expanded="false" aria-label="Mini-ENI session notes">
       <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
     </button>
+    <button type="button" class="context-btn theme-btn" id="btnTheme" aria-label="Switch to light mode">
+      <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+      <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6"/></svg>
+    </button>
     <button type="button" class="icon-btn" id="btnNewChat" aria-label="New conversation">
       <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"/></svg>
     </button>
@@ -555,16 +564,6 @@ button { font: inherit; }
       <ul class="lab-list" id="labList" aria-label="Lab exercises"></ul>
     </section>
 
-
-    <section class="sect">
-      <h2 class="sect-h">Appearance</h2>
-      <div class="menu-row">
-        <span>Light mode</span>
-        <button type="button" class="switch" id="themeSwitch" role="switch" aria-checked="false" aria-label="Light mode">
-          <span class="switch-track"><span class="switch-dot"></span></span>
-        </button>
-      </div>
-    </section>
 
   </div>
 
@@ -2735,8 +2734,12 @@ window.ENI_SYSTEM_PROMPT = "# ENI TUTOR — Jailbreaking & Red Teaming Tutor\n\n
   }
 
   function renderTheme() {
-    var sw = $('themeSwitch');
-    if (sw) sw.setAttribute('aria-checked', String(isLightTheme()));
+    var btn = $('btnTheme');
+    if (!btn) return;
+    var light = isLightTheme();
+    btn.setAttribute('aria-pressed', String(light));
+    btn.setAttribute('aria-label', light ? 'Switch to dark mode' : 'Switch to light mode');
+    btn.title = light ? 'Dark mode' : 'Light mode';
   }
 
   function setTheme(light) {
@@ -3397,8 +3400,8 @@ window.ENI_SYSTEM_PROMPT = "# ENI TUTOR — Jailbreaking & Red Teaming Tutor\n\n
     if (btnCloseDrawer) btnCloseDrawer.addEventListener('click', function () { setDrawer(false); });
 
     /* --- appearance -------------------------------------------------------- */
-    var themeSwitch = $('themeSwitch');
-    if (themeSwitch) themeSwitch.addEventListener('click', function () { setTheme(!isLightTheme()); });
+    var btnTheme = $('btnTheme');
+    if (btnTheme) btnTheme.addEventListener('click', function () { setTheme(!isLightTheme()); });
 
     /* --- Mini-ENI: notes and scratchpad ----------------------------------- */
     var btnScribe = $('btnScribe');

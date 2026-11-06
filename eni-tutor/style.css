@@ -38,6 +38,7 @@
   --shadow-soft: rgba(0, 0, 0, 0.35);
   --fade-to: rgba(12, 10, 9, 0.55);
   --ring: rgba(255, 255, 255, 0.06);
+  --theme-icon: #a9b9e8;
 }
 
 /* Light mode: the same tokens, a warm paper palette. Set by data-theme on <html>. */
@@ -67,6 +68,7 @@
   --shadow-soft: rgba(60, 40, 20, 0.12);
   --fade-to: rgba(247, 244, 239, 0.6);
   --ring: rgba(0, 0, 0, 0.05);
+  --theme-icon: #b9770f;
 }
 
 /* The HTML `hidden` attribute must always win. */
@@ -122,9 +124,12 @@ button { font: inherit; }
 .context-btn:hover { border-color: var(--hover-line); }
 .scribe-btn { color: var(--green); }
 
-/* Appearance: the light-mode switch in the menu */
-.menu-row { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--text); }
-.menu-row .switch { margin-left: auto; }
+/* Light/dark toggle in the top bar: a moon in dark mode, a sun in light mode. */
+.theme-btn { color: var(--theme-icon); }
+.theme-btn .icon-sun { display: none; }
+:root[data-theme="light"] .theme-btn .icon-moon { display: none; }
+:root[data-theme="light"] .theme-btn .icon-sun { display: block; }
+.theme-btn svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .context-btn svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .icon-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 

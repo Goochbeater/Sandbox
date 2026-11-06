@@ -12,7 +12,6 @@ WOOD.LINES = {
   butts: ['Bogdan’s butts. Zofia has put three arrows in the gold this week, and her mother pretends not to be proud.'],
   pond: ['The fishing hole. Carp as old as the Margrave, the grooms say. Nobody has landed one since the siege.'],
   deer: ['A red deer at the edge of the trees, standing as though it is waiting to be asked something.'],
-  hound: ['Bogdan’s hound. It has never been taught anything except sleeping in the sun.'],
   basket: ['Bread, pears and a jug of something cold. Halina says the one dry afternoon of the week belongs to her.'],
   oak: ['An old oak with a rope swing Kazik is not allowed to use, and uses every day.'],
   zofia: ['Watch, Father! Three in the gold, and a fourth in the post.', 'Bogdan says I shoot like a squire. I told him squires don’t shoot at all.'],
@@ -20,6 +19,19 @@ WOOD.LINES = {
   guardL: ['Halt. Nobody goes down the path without the Woman’s leave, and nobody has ever had it.'],
   guardR: ['The deer comes every afternoon. We have decided not to shoot it, which Bogdan does not understand.'],
   queen: ['Sit down, Radomir. Close your eyes for once. The children are not drowning, nobody is shooting at anybody, and the rain has the decency to stay away.', 'You are doing it again. Watching the trees as if they owe you money.']
+};
+/* Bogdan's hound in the sun: the king kneels and pets him (BUILD.pet), the tail wags. Kazik has a word the second time if
+   he's in the wood; WOOD.houndPets is kept in the save */
+WOOD.HOUND = {
+  says: ['(Thump. Thump. Thump.)', 'Hff. Hff. Hff.', '(He rolls over for his belly.)', '(He licks the king’s whole wrist.)'],
+  lines: ['Bogdan’s hound. He has never been taught anything except sleeping in the sun.', 'Good dog. Nobody trained you, and look how well you turned out.',
+    'You would sell the whole kingdom for a pear, wouldn’t you.', 'Don’t look at me like that. The basket is Halina’s.']
+};
+WOOD.houndPets = 0;
+WOOD.petHound = function () {
+  WOOD.houndPets++; const z = CAST.A.kazik;
+  if (WOOD.houndPets === 2 && z && z.visible && z.livesIn && z.livesIn('wood')) return [[z, 'He likes you best. Don’t tell Ser Bogdan.']];
+  return null;
 };
 WOOD.build = function () {
   const room = BUILD.begin(this), T = PX.T, X0 = room.X0, X1 = room.X1, KZ = room.KZ, L = room.LINES;
@@ -65,10 +77,11 @@ WOOD.build = function () {
   /* Halina's blanket under the oak, the basket of bread and pears beside it, the hound asleep in the sun */
   BUILD.rug(T.rugA, 4.4, 7.2, 2.0, 3.6, { y: 0.02 });
   BUILD.card(T.basket, 7.4, 0.02, 2.4, { s: 0.9 });
-  BUILD.card(T.houndPix, 8.4, 0.02, 1.9, { s: 0.9 });
+  const hound = BUILD.card(T.houndPix, 8.4, 0.02, 1.9, { s: 0.9 });
+  BUILD.pet(hound, { id: 'hound', label: 'Pet the hound', kneel: true, frames: [T.houndWagA, T.houndWagB], rate: 8, dur: 3.2, sound: 'pant', headY: 0.65,
+    says: WOOD.HOUND.says, lines: WOOD.HOUND.lines, onPet: () => WOOD.petHound() });
   room.interact('queen', 5.6, 2.7, KZ, 1.0, () => talk('queen', 'queen')).label = 'Talk to Halina';
   room.interact('basket', 7.4, 1.0, KZ, 1.0, () => say('basket'));
-  room.interact('hound', 8.4, 0.9, KZ, 1.0, () => say('hound'));
   room.interact('oak', 6.6, 3.2, KZ, 1.0, () => say('oak'));
   /* Zofia's post, and the deer at the edge of the trees */
   BUILD.card(T.pell, 9.2, 0, 1.4, { s: 0.95 });

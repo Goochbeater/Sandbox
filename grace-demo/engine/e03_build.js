@@ -76,8 +76,12 @@ BUILD.add = function (obj, o) {
   (o.parent || BUILD.room.group).add(obj); return obj;
 };
 /* box spanning x0..x1, y0..y1, z0..z1. o: { taper: [kx, kz] (narrow the top), front: material for the +z face, col, rough, cast } */
+/* every solid's footprint is kept in room.solids as [x0, x1, y0, y1, z0, z1, circle], so SCENE.walkCheck() can find anything
+   that stands on a walking line. circle = [x, z, r] for round things (BUILD.cyl), which are tested as circles, not boxes.
+   Pieces built into a parent group move with it, so they are left out */
+BUILD.solid = function (x0, x1, y0, y1, z0, z1, o, circle) { const r = BUILD.room; if (!r || (o && o.parent)) return; (r.solids || (r.solids = [])).push([x0, x1, y0, y1, z0, z1, circle || null]); };
 BUILD.box = function (x0, x1, y0, y1, z0, z1, tex, o) {
-  o = o || {};
+  o = o || {}; BUILD.solid(x0, x1, y0, y1, z0, z1, o);
   const g = new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0); g.translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
   if (o.taper) { const P = g.attributes.position, cx = (x0 + x1) / 2, cz = z0; for (let i = 0; i < P.count; i++) if (P.getY(i) > (y0 + y1) / 2) { P.setX(i, cx + (P.getX(i) - cx) * o.taper[0]); P.setZ(i, cz + (P.getZ(i) - cz) * o.taper[1]); } g.computeVertexNormals(); }
   tex = tex || PX.T.woodDark; BUILD.planarUV(g, tex);

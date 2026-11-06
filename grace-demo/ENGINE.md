@@ -5,6 +5,16 @@ runs in a browser (phone or desktop) as **one self-contained HTML file**. It exp
 make the look work, and the recipes for adding rooms, props, characters, conversations and petitions, so a new session
 (human or Claude) can pick it up cold.
 
+**House rules for every change** (they are why the rooms look the way they do; `CLAUDE.md` in this folder repeats them):
+1. **Write it down here.** Every new room, system, helper or rule gets its section in this file in the same commit, with the
+   numbers that made it work and the mistakes that were made on the way. A future session must be able to build the next
+   room from this file alone.
+2. **The throne room is the bar.** Measure every new room against it with the eval in §13b and look at the frames side by side.
+3. **Nothing stands on a walking line.** `SCENE.walkCheck()` must return `[]` in every room (§13e).
+4. **Look before you claim.** Render the default framing, a close view and the far side of the room headlessly (§11),
+   read the page log for errors, and drive every new interaction to its end (`SCENE.lock` back to 0).
+5. **Adult content stays inside its rules** (§13c): adults only, behind the 18+ gate, the king's penis never shown.
+
 Contents
 1. What it is, in one paragraph
 2. Folder map and build
@@ -22,6 +32,9 @@ Contents
 13b. Matching the throne room's quality (how the chapel was made)
 13c. Adult scenes and poses (the night, the confessional)
 13d. Who can see what: partitions, scene light, separate sprites
+13e. Outdoor backdrops, dark interiors, and the walking line (the wood and the hut)
+13f. Animals you can pet (`BUILD.pet`)
+13g. Moving the king: pace, jogging, the Settings
 14. Credits and licences
 
 ---
@@ -325,6 +338,19 @@ the throne; the council table with a map, a candle, books and a goblet; the grea
 a shield display; two iron chandeliers; a red runner the length of the hall; marble floor; foreground columns and a
 brazier.
 
+**The chapel** (`g28_chapel.js`, painters `g16_paint_chapel.js`; the confessional scene in `g29_confessional.js`): nave
+with flagstones, damask walls, pilasters with torches and banners, statue niches, lancet windows and a rose, the reredos and
+altar, pews, a stoup, the confession screen and the confessor's desk. Saintess Dorota, the priest, the queen and two castle
+guards. Reached from the garden cloister. §13b, §13c, §13d.
+
+**The wood** (`g34_wood.js`, painters `g17_paint_wood.js`): an afternoon clearing west of the castle. Three painted forest
+rows, Bogdan's archery butts, the fishing hole with a dock, Halina's blanket under the old oak with a basket, Bogdan's hound
+(pettable), a red deer, Zofia's post, Kazik, two guards on their rounds, a fence. The path at the far left leads to the hut.
+
+**The Woman's hut** (`g35_hut.js`): wattle walls, a stone hearth with a violet cauldron, a runed rug, herbs on cords, a shelf
+of jars, a crystal orb, a skull, the barrel with the black cat (pettable), cobwebs, lanterns and candle stands, the window
+onto a moon that isn't the moon. Only the king goes there. §13e, §13f.
+
 **The cast** (`g40_cast.js`): the king (dark coat, fur collar, white tabard, the crown once he takes it), the queen
 (blue gown and shawl, small crown, arms folded), the steward (long green robe, gold sash, a scroll), two guards (red
 livery over mail, white tabard with the green swan, kettle hats, spears), Ser Bogdan the commander (fur collar,
@@ -370,8 +396,19 @@ ranger and peasant outfits for both bodies, 8 hairstyles.
   returns the player's state, for exact positioning.
 - Driving a conversation from a test:
   `(async()=>{ for(let i=0;i<160 && !SCENE.modal;i++){ SCENE.advance(); await new Promise(r=>setTimeout(r,400)); } })()`.
-- URL flags: `?room=throne`, `?x=3.2`, `?crown`, `?q=low`, `?nofx`, `?fps`, `?nooutline`.
-- Draw calls: `R.r.info.autoReset = false; R.r.info.reset(); SCENE.render(); R.r.info.render`.
+- URL flags: `?room=throne`, `?x=3.2`, `?crown`, `?q=low`, `?nofx`, `?fps`, `?nooutline`; `?room=bedroom&night`
+  (or `&night=ride|missionary|behind`) starts the night scene at once. Without `&night` the bedroom loads normally.
+- Draw calls: `R.r.info.autoReset = false; R.r.info.reset(); SCENE.render(); R.r.info.render`. Reading
+  `R.r.info.render.calls` after the frame gives 1 (the post pass resets it), so always use the reset-and-render form.
+- **Wait on the game's own state, not on a timer.** Headless frames are slow and game time lags real time, so a
+  `["wait", ms]` can land before or after the moment you want. Poll instead, in one `eval` that returns a promise:
+  `new Promise(r => { const f = () => (cond() ? r(JSON.stringify(state())) : setTimeout(f, 50)); f(); })`.
+- **Use an interaction from a test:** `SCENE.use(SCENE.room.inter.find(i => i.id === 'cat'))` runs it as if tapped (it
+  skips the lock check that real input has, so don't call it while another interaction is running).
+- **Sound runs headlessly:** `AUDIO.unlock()` gives a `running` context in headless Chromium, so a new synthesised
+  effect can be called once to prove it doesn't throw.
+- **Panels on a phone:** check a new menu row at `W=780 H=360 TOUCH=1` and compare the panel's `scrollHeight` with
+  its `clientHeight`; the game is landscape-only, so portrait shows a "turn your phone" card.
 
 ## 11b. The outdoor kit, families and the map (added with the garden and the yard)
 
@@ -419,8 +456,9 @@ calls into a 48×77 target), bloom, the final pass.
 - Characters don't cast real shadows into the room's shadow maps (by design, §3); they have contact shadows and a
   projected silhouette from one source per room.
 - Sitting uses one generic clip; the seat offset (`seat.drop`, `cardDz`) is tuned by eye for the throne.
-- No audio yet. Music and room ambience would go in a small `engine/e07_audio.js` started from the first tap.
-- No saving: the week's numbers live in memory. `localStorage` would hold a save slot.
+- Audio (`engine/e07_audio.js`) and the save slot (`engine/e10_save.js`, `GAME.state` / `GAME.load` in `g22_title.js`)
+  exist. Every new piece of story state must be added to `GAME.reset`, `GAME.state` and `GAME.load`, or it is lost on reload.
+- The character kit has 15 clips (§6): no horses, no eating, no dancing. Anything else is a painted card or a pose.
 - Petitions, agents, items and their numbers are first-pass placeholders, as are all the lines.
 - Next rooms that fit the engine as is: the council chamber from the reference (bookcases, green window, the queen and
   agents at a table), a courtyard (open sky = a gradient card behind the arches), the town gate.
@@ -545,6 +583,98 @@ point), with `cardDz` nudging its card toward the lens. Two rules keep this clea
 - Restore everything when the scene ends: `frame = null`, `reframe()`, `cardDz = 0`, `hostInto(null)`, `POSE.release` on
   both bodies, `dress()`, `setVisible(true)` for those who stay, removal of the scene's tick from `room.tick`, and the
   scene lock released (`SCENE.lock--`).
+
+## 13e. Outdoor backdrops, dark interiors, and the walking line (the wood and the hut)
+
+**The wood's forest (`game/g34_wood.js`, painters in `game/g17_paint_wood.js`).** The first pass put nine swaying pine
+cards a few metres behind the clearing over a pale haze. It read as flat cut-outs on a wash. What works is painted rows of
+trees, standing on the ground at three depths, each lower than the one behind it:
+
+| Row | Painter | Card at | Size (w × h, m) | Tree tops | Colours |
+|---|---|---|---|---|---|
+| far | `forestFar` (1024×128) | z −160 | 288 × 36 | 11–26 m | haze blue-grey 0x7f9aaa, lit edge 0x9cb6c4 |
+| middle | `forestMid` (1024×160) | z −100 | 128 × 20 | 8–17 m | green 0x3f5e58 / 0x5c7c6c |
+| near | `forestNear` (1024×200), twice | z −40, −36 | 56 × 11 | 5–10 m | dark 0x1c3626 / 0x3c5c42 |
+
+- `PX.treeRow(W, H, dark, lit, seed, spacing, hMin, hMax)` paints a row of conifers: ragged tiers on a short trunk, the
+  left edge lit (the sun is in the west). Keep each card at its texture's aspect (w = h × W / H).
+- **The sizes come from the lens.** With `fov` 19 the frame's half-height at distance d is d × tan 9.5° ≈ 0.167 d, centred
+  near the look height. Distances run from the camera at z ≈ KZ + dist (22.4 here): the far row is 182 m away (frame top
+  ≈ 33 m), the middle 122 m (≈ 24 m), the near 62 m (≈ 13 m). Each row's tallest trees stop below the frame top at its
+  depth, so the sky shows between the tops. Lower rows in front and taller ones behind is what reads as depth.
+- The rows are `basic` (unlit) cards: shaded by the sun they went muddy. The fog fades them further with distance.
+- In front: two swaying pines at the edges (`BUILD.windCard`), and bushes (`bushPix`, s 2.2–2.6) a few metres behind the
+  clearing, so the near row has something at its feet.
+
+**The hut's light (`game/g35_hut.js`).** Violet light alone made a murky room: a near-black sky colour on the hemisphere,
+violet point lights, and glows that read as smudges. The fix is the throne room's rig, with the colour kept in the accents:
+- a warm, shadow-casting spot over the hearth (`SpotLight(0xffd8a8, 150, 0, 0.6, 0.8, 2)` at (0.4, 5.0, 2.8), aimed at the
+  hearth), and a gold point light for the fire on the faces (`0xffa860`, 7);
+- a hemisphere of 2.2 with a lilac sky (0x6a5aa8), and a lilac fill from the front (0xb8a8e8, 0.9), as the throne's
+  blue fill;
+- the violet stays in the brew, the orb, the window's moon spot (0xb4a0ff, 130), the lanterns and the shelf;
+- a floor tint light enough to catch the light (0xb49ad4 on dark wood). A dark material under any light stays dark.
+The hut went from 5 lights to 13. Faces now read warm, and the room still reads purple.
+
+**Things that are black need a rim.** The black cat vanished against the dark wall, and the orb's bloom washed her out.
+`PX.cat` paints a lilac rim on every edge that faces up or right (the light's side), and she sits on the barrel, away from
+the orb. Keep small dark props out of a bright glow's bloom.
+
+**The walking line.** The king walks at `room.KZ`; actors who wander walk at their home's `z`. A solid that crosses either
+line puts people inside it: the first pond's rim reached z 4.1 and the guard (z 2.45) and the king (z 3.0) waded through
+it; the hut's barrel (z 2.4–3.2) hid the king's legs. Rules:
+- Keep a solid's front at least 0.15 m behind the line it stands behind (the hut's table: front 2.4, line 2.6), or put it
+  well in front as foreground framing (≥ 3.5 m, §13b).
+- `BUILD.box` and `BUILD.cyl` record every footprint in `room.solids` (cylinders as circles). **`SCENE.walkCheck()` lists
+  every solid standing on the king's line or a wanderer's line; it must return `[]`.** All nine rooms pass (the wood and
+  the hut only after the pond and the barrel were moved). A seated actor's bench is left out (they are meant to be on it), and so are things overhead (above 1.6 m).
+
+## 13f. Animals you can pet (`BUILD.pet`)
+
+`BUILD.pet(card, o)` (in `engine/e08_outdoor.js`) turns any animal card into one the king can pet:
+
+```js
+const cat = BUILD.card(T.catPix, -3.5, 1.1, 1.7, { s: 1.0, cast: false });
+BUILD.pet(cat, { id: 'cat', label: 'Pet the cat', frames: [T.catPetPix], sound: 'purr', soundO: { dur: 2.6 }, headY: 0.85, dur: 2.8,
+  says: HUT.CAT.says, lines: HUT.CAT.lines, onPet: () => HUT.petCat() });
+```
+
+What it does, in order: the king steps 0.8 m to one side of the animal (`o.stand`), so his body doesn't cover it; he
+waits until he has stopped; he reaches (`Interact`) or kneels (`o.kneel`, `Fixing_Kneeling`); when the hand arrives, the
+card swaps to its petted frames (cycled at `o.rate` per second for `o.dur` s) and leans and shivers, and the sound plays;
+the animal "says" a line over its head (`o.says`); then `o.onPet()` may return its own conversation (the Woman on the first,
+third and seventh pet, Kazik on the second pet of the hound), or else the king says one of `o.lines`.
+
+Rules learned building it:
+- **An actor moving faster than 0.2 m/s drops a one-shot clip** (`Actor.update`). Anything that walks the king and then
+  acts must wait for him to stop, or the clip is dropped. The first version of `BUILD.pet` waited forever on a reach that
+  had been dropped, and locked the game.
+- **Sequence on the clip's own event, not on timers.** `act(clip, at, fn)` calls `fn` at `at` seconds of game time. A
+  real-time `SCENE.wait` drifts from game time whenever frames are slow, so the bubble came before the hand. The helper
+  also goes on if the clip is cancelled, so it can never hang.
+- The card gets its own material and leaves the static batch (`userData.dyn`), so changing its frame touches nothing else.
+  Petted frames must be the same pixel size as the card's texture: draw the animal in one function with options
+  (`PX.cat(pet)`, `PX.hound(tail, happy)`) and register each frame with `PX.def`.
+- Pet counts are story state: `HUT.catPets` and `WOOD.houndPets` are saved (`GAME.state`). So is `HUT.met`, which was
+  not saved before, so the Woman's first talk replayed after every reload.
+- Sounds: `purr` (brown noise under a 260 Hz low-pass, beaten at about 25 Hz, in two breaths), `meow` (a sawtooth whose
+  pitch and formant rise and fall; `o.pitch`), `pant` (paired breaths of filtered noise). The hut plays a meow as you walk in.
+
+## 13g. Moving the king: pace, jogging, the Settings
+
+- **Speed.** `Actor.speedK` multiplies an actor's speed; it is 1 for everyone except the player. Each frame
+  `SCENE.update` eases the king's toward `walkK × jog`, where `walkK` is the Settings slider (70–160 %, step 5).
+- **Jogging (×1.75, `SCENE.JOG`):** while Shift is held; on touch, by how far from the king the finger is held
+  (`smooth(0.22, 0.38, distance / view width)`, so a hold near him walks and a hold near the screen's edge runs); and,
+  with "Long walks: Jog" on, on the way to a tapped spot more than 3.5 m away (he slows to a walk for the last stretch).
+- **Scenes keep their own pace.** While `SCENE.lock`, a modal or a cutscene is on, `speedK` eases back to 1, so scripted
+  walks and their timing are untouched.
+- **The jog clip.** Past a brisk walk, `Jog_Fwd_Loop` blends in by ground speed (`smooth(1.55, 2.1, speed)`), with its
+  own phase matched to ground speed as the walk's is.
+- **Stored** in localStorage under `grace.move` (`{ walkK, autoJog }`). The slider and the toggle are in Settings
+  (`walkSpd`, `jogBtn`); the toggle shares a row with Quality and Effects, so the panel still fits a 360 px-tall phone.
+- Measured headlessly in the throne room: walking 1.0 m/s; Shift, and a tap 16 m away, both ramp to 1.75×; the slider
+  at 150 % gives 1.5×; under a scene lock, Shift has no effect.
 
 ## 14. Credits and licences
 

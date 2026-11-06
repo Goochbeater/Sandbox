@@ -2,7 +2,7 @@
    Music: real recordings (public-domain tracks in audio/*.mp3), streamed by <audio> elements and cross-faded, so they
    work from file:// as well as when hosted. Ambience and effects are synthesised with WebAudio, so they cost no
    download and never loop audibly: rain (hiss + drops + rumble), rain on glass, wind, fire (roar + crackle), birds,
-   a murmuring crowd, a fountain, room tone; footsteps per floor surface, thunder, door, clang, thud, chime, page, click, drum, whoosh, coin.
+   a murmuring crowd, a fountain, room tone; footsteps per floor surface, thunder, door, clang, thud, chime, page, click, drum, whoosh, coin; animals: purr, meow, pant.
    Everything goes through a room reverb (generated impulse) sized per room.
    Use:  AUDIO.unlock() on the first tap · AUDIO.playMusic('throne') · AUDIO.ambience({ rain: 0.8, fire: 0.4 })
          AUDIO.acoustics({ size: 2.2, wet: 0.35 }) · AUDIO.sfx('thunder', { gain: 1 }) · AUDIO.step('stone', 0.8, pan)
@@ -177,6 +177,18 @@ AUDIO.sfx = function (name, o) {
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.16 * gain, t + 0.04); g.gain.linearRampToValueAtTime(0, t + d); AUDIO.chain(os, bp, g, out); os.start(t); os.stop(t + d + 0.05); }
   else if (name === 'kiss') { AUDIO.burst(out, t, 0.035, 'bandpass', 2600, 2, 0.3 * gain); AUDIO.burst(out, t + 0.05, 0.05, 'bandpass', 1700, 1.5, 0.18 * gain, AUDIO.N.pink); }
   else if (name === 'skin') { AUDIO.burst(out, t, 0.05, 'lowpass', 700 + Math.random() * 300, 1, 0.4 * gain, AUDIO.N.pink); AUDIO.burst(out, t, 0.03, 'bandpass', 2400, 1.2, 0.08 * gain); }
+  // animals: a cat's purr (brown noise under a low filter, beaten at ~25 Hz, in two breaths), a meow (a sawtooth whose pitch
+  // and formant rise and fall), a dog's panting (paired breaths of filtered noise)
+  else if (name === 'purr') { const d = o.dur || 2.2, s = c.createBufferSource(); s.buffer = AUDIO.N.brown; s.loop = true; const lp = AUDIO.filt('lowpass', 260, 0.7), am = c.createGain(), g = c.createGain(), lfo = c.createOscillator(), lg = c.createGain();
+    lfo.frequency.value = 23 + Math.random() * 5; lg.gain.value = 0.5; am.gain.value = 0.5; lfo.connect(lg); lg.connect(am.gain);
+    g.gain.setValueAtTime(0, t); for (let i = 0; i < 2; i++) { const t0 = t + i * d / 2; g.gain.linearRampToValueAtTime(0.9 * gain, t0 + d * 0.18); g.gain.linearRampToValueAtTime(0.35 * gain, t0 + d * 0.45); }
+    g.gain.linearRampToValueAtTime(0, t + d); AUDIO.chain(s, lp, am, g, out); s.start(t, Math.random() * 2); s.stop(t + d + 0.1); lfo.start(t); lfo.stop(t + d + 0.1); }
+  else if (name === 'meow') { const os = c.createOscillator(), bp = AUDIO.filt('bandpass', 1100, 3), g = c.createGain(), d = 0.55, p = o.pitch || 1; os.type = 'sawtooth';
+    os.frequency.setValueAtTime(420 * p, t); os.frequency.linearRampToValueAtTime(700 * p, t + d * 0.35); os.frequency.linearRampToValueAtTime(380 * p, t + d);
+    bp.frequency.setValueAtTime(800, t); bp.frequency.linearRampToValueAtTime(1700, t + d * 0.4); bp.frequency.linearRampToValueAtTime(900, t + d);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.22 * gain, t + 0.06); g.gain.linearRampToValueAtTime(0.16 * gain, t + d * 0.7); g.gain.linearRampToValueAtTime(0, t + d);
+    AUDIO.chain(os, bp, g, out); os.start(t); os.stop(t + d + 0.05); }
+  else if (name === 'pant') { for (let i = 0; i < 6; i++) AUDIO.burst(out, t + i * 0.2, 0.12, 'bandpass', i % 2 ? 1300 : 1700, 1.2, (i % 2 ? 0.16 : 0.22) * gain, AUDIO.N.pink); }
   else if (name === 'coin') { const a = new Audio(AUDIO.base + 'coin.mp3'); a.volume = clamp(0.8 * gain * AUDIO.vol.sfx, 0, 1); a.play().catch(() => {}); }
 };
 /* footsteps: called by actors on each foot contact; quieter and panned with distance from the frame's centre */

@@ -3,7 +3,12 @@
    conversations, the pause menu. Game code talks to it through:
      SCENE.addRoom(room)  SCENE.addActor(actor)  SCENE.go(id, { x, face })  SCENE.say(actor, text)
      SCENE.talk([[actor, text], …])  SCENE.cycle(key, lines)  SCENE.caption(title, sub)  SCENE.lock / SCENE.modal / SCENE.menu */
-const SCENE = { rooms: {}, room: null, actors: [], player: null, lock: 0, modal: false, near: null, marks: [], camX: 0, dir: 0, bubble: null, lineIdx: {}, touch: false, moved: false, ft: [], autoQ: false };
+const SCENE = { rooms: {}, room: null, actors: [], player: null, lock: 0, modal: false, near: null, marks: [], camX: 0, dir: 0, bubble: null, lineIdx: {}, touch: false, moved: false, ft: [], autoQ: false,
+  walkK: 1, autoJog: true, JOG: 1.75, jogKey: false, holdK: 1 };
+/* how the king moves (Settings, remembered in this browser): walkK scales his walking speed (0.7–1.6); he jogs at JOG times
+   that while Shift is held, while a touch is held far from him, or (autoJog) on the way to a spot more than 3.5 m off */
+try { const m = JSON.parse(localStorage.getItem('grace.move') || 'null'); if (m) { SCENE.walkK = clamp(+m.walkK || 1, 0.7, 1.6); SCENE.autoJog = m.autoJog !== false; } } catch (e) { /* storage may be blocked */ }
+SCENE.saveMove = function () { try { localStorage.setItem('grace.move', JSON.stringify({ walkK: SCENE.walkK, autoJog: SCENE.autoJog })); } catch (e) { /* */ } };
 SCENE.DOF0 = { uNear0: 0.8, uNearR: 3.2, uFar0: 3.0, uFarR: 10 };   // depth-of-field ramps (m) every room starts from; room.dof overrides
 SCENE.addRoom = function (room) { SCENE.rooms[room.id] = room; return room; };
 SCENE.addActor = function (a) { SCENE.actors.push(a); return a; };
@@ -74,13 +79,13 @@ SCENE.initInput = function () {
     if (SCENE.menu) return;   // a title screen or other full-screen menu owns the keys
     if (e.code === 'Escape' || e.code === 'KeyP') { if (!SCENE.modal) SCENE.pause(!G.paused); e.preventDefault(); return; }
     if (G.paused) return;
-    keys[e.code] = true;
+    keys[e.code] = true; SCENE.jogKey = !!(keys.ShiftLeft || keys.ShiftRight);
     if (e.code === 'KeyE' || e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); if (SCENE.advance()) return; if (!SCENE.lock && !SCENE.modal && SCENE.near) SCENE.use(SCENE.near); return; }
     SCENE.dir = dirFromKeys(); if (SCENE.dir && !SCENE.lock && !SCENE.modal) { SCENE.player.target = null; SCENE.player.onArrive = null; SCENE.onMove(); }
     if (e.code.startsWith('Arrow')) e.preventDefault();
   });
-  window.addEventListener('keyup', (e) => { keys[e.code] = false; SCENE.dir = dirFromKeys(); });
-  window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; SCENE.dir = 0; });
+  window.addEventListener('keyup', (e) => { keys[e.code] = false; SCENE.jogKey = !!(keys.ShiftLeft || keys.ShiftRight); SCENE.dir = dirFromKeys(); });
+  window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; SCENE.dir = 0; SCENE.jogKey = false; });
   // touch / mouse: hold to walk toward the pointer, a quick tap walks to the spot (or to the nearest marker)
   const view = $('view'); let hold = null;
   view.addEventListener('pointerdown', (e) => {
@@ -93,23 +98,28 @@ SCENE.initInput = function () {
   view.addEventListener('pointermove', (e) => { if (hold && hold.id === e.pointerId) { hold.x = e.clientX; hold.y = e.clientY; } });
   const up = (e) => { if (!hold || hold.id !== e.pointerId) return;
     if (!hold.held && !SCENE.lock) { const r = view.getBoundingClientRect(); SCENE.tap(hold.x - r.left, hold.y - r.top); }
-    hold = null; SCENE.dir = dirFromKeys(); };
+    hold = null; SCENE.holdK = 1; SCENE.dir = dirFromKeys(); };
   view.addEventListener('pointerup', up); view.addEventListener('pointercancel', up);
   SCENE.holdTick = () => { if (!hold) return; if (SCENE.lock || SCENE.modal) { hold = null; SCENE.dir = 0; return; }
     if (!hold.held && performance.now() - hold.t > 170) { hold.held = true; SCENE.player.target = null; SCENE.player.onArrive = null; }
-    if (hold.held) { const r = view.getBoundingClientRect(), P = SCENE.player, k = R.toView(new THREE.Vector3(P.x, 1 + P.y, P.z), {}); const dx = hold.x - r.left - k.x; SCENE.dir = Math.abs(dx) < 14 ? 0 : Math.sign(dx); if (SCENE.dir) SCENE.onMove(); } };
+    if (hold.held) { const r = view.getBoundingClientRect(), P = SCENE.player, k = R.toView(new THREE.Vector3(P.x, 1 + P.y, P.z), {}); const dx = hold.x - r.left - k.x; SCENE.dir = Math.abs(dx) < 14 ? 0 : Math.sign(dx); if (SCENE.dir) SCENE.onMove();
+      SCENE.holdK = SCENE.autoJog ? 1 + (SCENE.JOG - 1) * smooth(0.22, 0.38, Math.abs(dx) / r.width) : 1; } };   // the farther the finger from the king, the faster he goes
   $('pauseBtn').addEventListener('click', () => { if (!SCENE.modal && !CUT.playing) SCENE.pause(true); });
   $('skipBtn').addEventListener('click', () => { CUT.skip = true; });
   Actor.onStep = (a) => { const rm = SCENE.room; AUDIO.step(rm.surfaceAt ? rm.surfaceAt(a.x, a.z) : rm.surface || 'stone', a.x, a.z); };
   $('resumeBtn').addEventListener('click', () => SCENE.pause(false));
   $('qualBtn').addEventListener('click', () => { R.q = R.q === 'high' ? 'low' : 'high'; R.resize(); SCENE.labels(); });
   $('fxBtn').addEventListener('click', () => { R.fx = !R.fx; SCENE.labels(); });
+  const ws = $('walkSpd'); ws.value = Math.round(SCENE.walkK * 100);
+  ws.addEventListener('input', () => { SCENE.walkK = clamp(ws.value / 100, 0.7, 1.6); SCENE.saveMove(); SCENE.labels(); });
+  $('jogBtn').addEventListener('click', () => { SCENE.autoJog = !SCENE.autoJog; SCENE.saveMove(); SCENE.labels(); });
   SCENE.labels(); SCENE.hint();
 };
 SCENE.labels = function () { $('qualBtn').textContent = 'Quality: ' + (R.q === 'high' ? 'High' : 'Low'); $('fxBtn').textContent = 'Effects: ' + (R.fx ? 'On' : 'Off');
-  $('helpTxt').textContent = 'Walk with the arrow keys or A and D, or hold either side of the king. Tap a diamond, or press E beside it, to look closer. Tap or press E to move a conversation on.'; };
+  $('walkLbl').textContent = 'Walk ' + Math.round(SCENE.walkK * 100) + '%'; $('jogBtn').textContent = 'Long walks: ' + (SCENE.autoJog ? 'Jog' : 'Walk');
+  $('helpTxt').textContent = 'Walk with the arrow keys or A and D (hold Shift to jog), or hold either side of the king: the farther out you hold, the faster he goes. Tap a diamond, or press E beside it, to look closer. Tap or press E to move a conversation on. Walking speed is in Settings.'; };
 SCENE.hint = function () { const h = $('hint'); if (!h || SCENE.moved) return;
-  h.textContent = SCENE.touch || matchMedia('(pointer: coarse)').matches ? 'Hold beside the king to walk  ·  tap a diamond to look closer' : '←  →  to walk  ·  E to look closer  ·  Esc to pause'; };
+  h.textContent = SCENE.touch || matchMedia('(pointer: coarse)').matches ? 'Hold beside the king to walk, farther out to jog  ·  tap a diamond to look closer' : '←  →  to walk  ·  Shift to jog  ·  E to look closer  ·  Esc to pause'; };
 SCENE.onMove = function () { if (!SCENE.moved) { SCENE.moved = true; setTimeout(() => { $('hint').style.opacity = '0'; }, 2500); } };
 SCENE.pause = function (on) { G.paused = on; $('pause').hidden = !on; SCENE.dir = 0; if (on) $('resumeBtn').focus(); else $('cv').focus(); };
 /* a tap: on/near a marker → go and look; otherwise walk to that spot on the king's line */
@@ -131,6 +141,9 @@ SCENE.update = function (dt) {
   SCENE.holdTick();
   P.dir = SCENE.lock || SCENE.modal ? 0 : SCENE.dir;
   if (P.dir) { P.target = null; P.onArrive = null; }
+  // the pace: the Settings speed, times the jog when he's asked to hurry. Scenes and cutscenes walk him at his own pace
+  const free = !SCENE.lock && !SCENE.modal && !CUT.playing, far = SCENE.autoJog && P.target !== null && Math.abs(P.target - P.x) > 3.5;
+  P.speedK = damp(P.speedK, free ? SCENE.walkK * Math.max(SCENE.jogKey ? SCENE.JOG : 1, P.dir ? SCENE.holdK : 1, far ? SCENE.JOG : 1) : 1, 3, dt);
   for (const a of SCENE.actors) if (a.visible) a.update(dt);
   const x0 = room.X0 + 1.0, x1 = room.X1 - 0.9; if (!P.sitting && (P.x < x0 || P.x > x1)) { P.x = clamp(P.x, x0, x1); P.v = 0; }
   if (room.onUpdate) room.onUpdate(dt);
@@ -155,6 +168,18 @@ SCENE.update = function (dt) {
     b.style.left = bl + 'px'; b.style.top = Math.max(bp.y - 6, b.offsetHeight + 6) + 'px'; b.style.setProperty('--tail', clamp(bp.x - bl + bw / 2, 14, bw - 14) + 'px'); }
 };
 SCENE.render = function () { const room = SCENE.room; for (const a of SCENE.actors) a.render(room); R.frame(G.t); };
+/* test hook: solids standing on a walking line, where someone would walk through them. The lines are the king's (room.KZ,
+   the whole floor) and each wandering actor's (its z, over its wander range). A solid counts when it rises above 0.15 m,
+   starts below 1.6 m, and its depth reaches within 0.15 m of the line. Run it in every room you build: it should return [] */
+SCENE.walkCheck = function () {
+  const room = SCENE.room, out = [], lines = [{ who: 'king', z: room.KZ, x0: room.X0 + 1, x1: room.X1 - 0.9 }];
+  for (const a of SCENE.actors) { const w = a !== SCENE.player && a.visible && !a.sitting && a.curHome && a.curHome.wander; if (w) lines.push({ who: a.spec.id, z: a.z, x0: w.x0 - 0.4, x1: w.x1 + 0.4 }); }
+  for (const [x0, x1, y0, y1, z0, z1, c] of room.solids || []) { if (y1 < 0.15 || y0 > 1.6) continue;
+    for (const L of lines) { if (!(z1 > L.z - 0.15 && z0 < L.z + 0.15)) continue;
+      let a = x0, b = x1; if (c) { const dz = Math.max(0, Math.abs(L.z - c[1]) - 0.15), w = dz < c[2] ? Math.sqrt(c[2] * c[2] - dz * dz) : 0; a = c[0] - w; b = c[0] + w; }   // a circle's chord along the line
+      if (b > L.x0 && a < L.x1 && b > a) out.push({ who: L.who, line: +L.z.toFixed(2), solid: [x0, x1, y0, y1, z0, z1].map((v) => +v.toFixed(2)) }); } }
+  return out;
+};
 /* drop to low quality once if the first seconds run slow */
 SCENE.perf = function (ms) {
   if (SCENE.autoQ || G.flags.q) return; SCENE.ft.push(ms); if (SCENE.ft.length < 120) return;

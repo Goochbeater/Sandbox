@@ -13,7 +13,7 @@ class Actor {
   constructor(spec) {
     this.spec = spec; this.id = spec.id; this.layer = Actor.nextLayer++;
     this.x = spec.x || 0; this.y = 0; this.z = spec.z || 2.6; this.v = 0; this.dir = 0; this.face = spec.face || 1; this.yaw = this.face * 0.42;
-    this.target = null; this.onArrive = null; this.speed = spec.speed || 1.1; this.lookYaw = null;
+    this.target = null; this.onArrive = null; this.speed = spec.speed || 1.1; this.speedK = 1; this.jogPhase = 0; this.lookYaw = null;
     this.idleT = hash(this.layer, 3) * 10; this.phase = 0; this.talk = 0; this.talking = false; this.actClip = null; this.actT = 0; this.actEv = null;
     this.sitting = null; this.sitK = 0; this.path = null; this.visible = true; this.home = spec.home || null; this.cardDz = 0; this.baseY = spec.y || 0; this.y = this.baseY;
     [this.VW, this.VH] = spec.box || [1.5, 2.4];
@@ -218,7 +218,7 @@ class Actor {
       if (Math.abs(d) < 0.06) { this.target = null; const cb = this.onArrive; this.onArrive = null; if (cb) cb(this); }
       else dir = Math.sign(d) * Math.min(1, Math.abs(d) / 0.35 + 0.25); }
     if (this.sitting || this.path) dir = 0;
-    this.v = damp(this.v, dir * this.speed, dir ? 5 : 8, dt); this.x += this.v * dt;
+    this.v = damp(this.v, dir * this.speed * this.speedK, dir ? 5 : 8, dt); this.x += this.v * dt;   // speedK: the player's pace (Settings, jogging); 1 for everyone else
     let sp = Math.abs(this.v), pathYaw = null;
     if (this.path) { const P = this.path; P.t += dt; const u = clamp(P.t / P.dur, 0, 1);
       this.x = lerp(P.x0, P.x1, u); this.y = lerp(P.y0, P.y1, u); this.z = lerp(P.z0, P.z1, u); sp = u < 1 ? Math.hypot(P.x1 - P.x0, P.z1 - P.z0) / P.dur : 0; pathYaw = P.yaw; this.v = 0;
@@ -236,7 +236,10 @@ class Actor {
     this.sitK = damp(this.sitK, this.sitting ? 1 : 0, 5, dt);
     const H2 = this.curHome || {}, ir = H2.idleRange || S.idleRange, it = ir ? ir[0] + this.idleT % (ir[1] - ir[0]) : this.idleT;   // idleRange: loop only part of a clip (hold a kneel)
     // layer weights are normalised, so the idle has to give way as the sit comes in
-    const L = [[S.idle || 'Idle_Loop', it, 1 - this.sitK * 0.999], ['Sitting_Idle_Loop', this.idleT, this.sitK], ['Idle_Talking_Loop', this.idleT * 0.9, this.talk * 0.85 * (1 - this.sitK)], [walk, this.phase, smooth(0.04, 0.55, sp)]];
+    // past a brisk walk the jog comes in (its own phase, matched to ground speed like the walk's)
+    const jog = S.jog || 'Jog_Fwd_Loop', jw = QA.clips[jog] ? smooth(1.55, 2.1, sp) : 0; if (jw > 0) this.jogPhase += dt * sp / QA.speed(jog);
+    const L = [[S.idle || 'Idle_Loop', it, 1 - this.sitK * 0.999], ['Sitting_Idle_Loop', this.idleT, this.sitK], ['Idle_Talking_Loop', this.idleT * 0.9, this.talk * 0.85 * (1 - this.sitK)], [walk, this.phase, smooth(0.04, 0.55, sp) * (1 - jw)]];
+    if (jw > 0) L.push([jog, this.jogPhase, jw]);
     if (this.actClip) { this.actT += dt; const c = QA.clips[this.actClip], w = smooth(0, 0.25, this.actT) * smooth(c.dur, c.dur - 0.35, this.actT);
       L.push([this.actClip, Math.min(this.actT, c.dur - 0.02), w * 0.9]);
       if (this.actEv && this.actT >= this.actEv.at) { const f = this.actEv.fn; this.actEv = null; f(this); }

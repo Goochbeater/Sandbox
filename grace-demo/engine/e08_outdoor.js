@@ -105,7 +105,7 @@ BUILD.uvScale = function (g, tex, um, vm) { const D = tex.userData.d || PX.D, uv
   for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * su, uv.getY(i) * sv); return g; };
 /* a round tower or column standing at (x, z) from y0 to y1; o.top narrows the top (a batter), o.seg facets */
 BUILD.cyl = function (x, z, y0, y1, r, tex, o) {
-  o = o || {}; const g = new THREE.CylinderGeometry(r * (o.top || 1), r, y1 - y0, o.seg || 20, 1, !!o.open); g.translate(x, (y0 + y1) / 2, z);
+  o = o || {}; BUILD.solid(x - r, x + r, y0, y1, z - r, z + r, o, [x, z, r]); const g = new THREE.CylinderGeometry(r * (o.top || 1), r, y1 - y0, o.seg || 20, 1, !!o.open); g.translate(x, (y0 + y1) / 2, z);
   if (!o.wrap) BUILD.uvScale(g, tex, Math.PI * 2 * r, y1 - y0);   // o.wrap: the texture was painted to go once round (PX.towerWrap)
   return BUILD.add(new THREE.Mesh(g, o.mat || BUILD.std(tex, { col: o.col !== undefined ? o.col : tex.userData.tint, rough: o.rough })), o);
 };
@@ -211,6 +211,43 @@ BUILD.critters = function (tex, spots, o) {
         else frame(c, r < 0.6 ? 1 : r < 0.8 ? 2 : 0); }
     } });
   return list;
+};
+/* a pettable animal: a card the king walks up to and pets. He reaches out (or kneels, o.kneel), the card swaps to its
+   petted frames (o.frames, cycled at o.rate: a tail wagging, eyes shut) and leans and shivers for o.dur seconds, the animal
+   makes its sound (o.sound) and says one of o.says over its head, then the king says one of o.lines. o.onPet(n) is told the
+   running count and may answer with its own lines instead ([[actor, text], ...]), so the game can remember the count and
+   change what's said. The card gets its own material and is kept out of the static batch, so it can move and change frame
+   without touching anything else that uses the same texture. Frames must be the same size as the card's texture. */
+BUILD.pet = function (card, o) {
+  const room = BUILD.room, rest = card.material.map, base = card.scale.clone(), p = card.position, frames = o.frames || [rest], hy = o.headY || 0.8;
+  card.material = card.material.clone(); card.userData.dyn = true;
+  const voice = { x: p.x, y: p.y + hy, z: p.z, v: 0, talking: false, visible: true, speakAt: (out) => out.set(voice.x, voice.y, voice.z) };
+  const st = { t: -1, n: 0 };
+  room.tick.push((T, dt) => { if (st.t < 0) return; st.t += dt; const u = st.t / (o.dur || 2.4);
+    const map = u < 1 ? frames[Math.floor(st.t * (o.rate || 6)) % frames.length] : rest; if (card.material.map !== map) { card.material.map = map; card.material.needsUpdate = true; }
+    const k = u < 1 ? Math.sin(u * Math.PI) : 0;   // a slow lean into the hand, with a quick shiver on top
+    card.scale.set(base.x * (1 + 0.05 * k), base.y * (1 - 0.06 * k + 0.02 * k * Math.sin(st.t * 18)), base.z);
+    if (u >= 1) { st.t = -1; card.scale.copy(base); } });
+  const it = room.interact(o.id, p.x, p.y + hy + 0.2, room.KZ, o.r || 0.9, async () => {
+    const K = SCENE.player; if (st.busy) return; st.busy = true; SCENE.lock++;
+    try {
+      const side = Math.sign(K.x - p.x) || 1, sx = p.x + side * (o.stand || 0.8);   // step to one side first, so his body doesn't cover the animal
+      if (Math.abs(K.x - sx) > 0.08) await new Promise((res) => K.walkTo(sx, res));
+      for (let i = 0; i < 100 && Math.abs(K.v) > 0.1; i++) await SCENE.wait(30);   // an actor moving faster than 0.2 drops a one-shot clip, so stop first
+      K.faceTo(p.x); st.n++;
+      const clip = o.kneel ? 'Fixing_Kneeling' : 'Interact';
+      await new Promise((res) => { let hand = false; K.act(clip, o.at || (o.kneel ? 1.1 : 0.7), () => { hand = true; });   // the hand arrives…
+        const poll = () => { if (!hand && K.actClip === clip) { setTimeout(poll, 30); return; }   // …or the reach was cancelled: go on regardless
+          st.t = 0; if (o.sound) AUDIO.sfx(o.sound, Object.assign({ gain: 0.7, pan: clamp((p.x - R.cam.position.x) / 10, -0.8, 0.8) }, o.soundO)); res(); };
+        poll(); });
+      await SCENE.wait(400);
+      if (o.says) await SCENE.say(voice, SCENE.cycle(o.id + '.says', o.says));
+      const extra = o.onPet ? o.onPet(st.n) : null;
+      if (extra && extra.length) await SCENE.talk(extra); else if (o.lines) await SCENE.say(K, SCENE.cycle(o.id + '.lines', o.lines));
+    } finally { SCENE.lock--; st.busy = false; }
+  });
+  it.label = o.label || 'Pet the ' + o.id; it.pet = st; it.voice = voice;
+  return it;
 };
 /* a round pool of water (a fountain basin): an animated strip cycled like the flames, on a flat disc */
 BUILD.pool = function (tex, x, y, z, r, o) {

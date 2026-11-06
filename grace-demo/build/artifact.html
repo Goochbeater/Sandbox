@@ -201,7 +201,8 @@
     <h2 id="setTitle">Settings</h2>
     <label class="slider">Music <input type="range" id="volMusic" min="0" max="100" step="5"></label>
     <label class="slider">Sound <input type="range" id="volSfx" min="0" max="100" step="5"></label>
-    <div class="row"><button class="btn" id="qualBtn">Quality: High</button><button class="btn" id="fxBtn">Effects: On</button></div>
+    <label class="slider"><span id="walkLbl">Walk 100%</span><input type="range" id="walkSpd" min="70" max="160" step="5" aria-label="Walking speed"></label>
+    <div class="row"><button class="btn" id="jogBtn">Long walks: Jog</button><button class="btn" id="qualBtn">Quality: High</button><button class="btn" id="fxBtn">Effects: On</button></div>
     <div class="row"><button class="btn gold" id="setBack">Back</button></div>
   </div>
   <div class="panel" id="credits" hidden role="dialog" aria-labelledby="credTitle">
@@ -53689,8 +53690,12 @@ BUILD.add = function (obj, o) {
   (o.parent || BUILD.room.group).add(obj); return obj;
 };
 /* box spanning x0..x1, y0..y1, z0..z1. o: { taper: [kx, kz] (narrow the top), front: material for the +z face, col, rough, cast } */
+/* every solid's footprint is kept in room.solids as [x0, x1, y0, y1, z0, z1, circle], so SCENE.walkCheck() can find anything
+   that stands on a walking line. circle = [x, z, r] for round things (BUILD.cyl), which are tested as circles, not boxes.
+   Pieces built into a parent group move with it, so they are left out */
+BUILD.solid = function (x0, x1, y0, y1, z0, z1, o, circle) { const r = BUILD.room; if (!r || (o && o.parent)) return; (r.solids || (r.solids = [])).push([x0, x1, y0, y1, z0, z1, circle || null]); };
 BUILD.box = function (x0, x1, y0, y1, z0, z1, tex, o) {
-  o = o || {};
+  o = o || {}; BUILD.solid(x0, x1, y0, y1, z0, z1, o);
   const g = new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0); g.translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
   if (o.taper) { const P = g.attributes.position, cx = (x0 + x1) / 2, cz = z0; for (let i = 0; i < P.count; i++) if (P.getY(i) > (y0 + y1) / 2) { P.setX(i, cx + (P.getX(i) - cx) * o.taper[0]); P.setZ(i, cz + (P.getZ(i) - cz) * o.taper[1]); } g.computeVertexNormals(); }
   tex = tex || PX.T.woodDark; BUILD.planarUV(g, tex);
@@ -53889,7 +53894,7 @@ class Actor {
   constructor(spec) {
     this.spec = spec; this.id = spec.id; this.layer = Actor.nextLayer++;
     this.x = spec.x || 0; this.y = 0; this.z = spec.z || 2.6; this.v = 0; this.dir = 0; this.face = spec.face || 1; this.yaw = this.face * 0.42;
-    this.target = null; this.onArrive = null; this.speed = spec.speed || 1.1; this.lookYaw = null;
+    this.target = null; this.onArrive = null; this.speed = spec.speed || 1.1; this.speedK = 1; this.jogPhase = 0; this.lookYaw = null;
     this.idleT = hash(this.layer, 3) * 10; this.phase = 0; this.talk = 0; this.talking = false; this.actClip = null; this.actT = 0; this.actEv = null;
     this.sitting = null; this.sitK = 0; this.path = null; this.visible = true; this.home = spec.home || null; this.cardDz = 0; this.baseY = spec.y || 0; this.y = this.baseY;
     [this.VW, this.VH] = spec.box || [1.5, 2.4];
@@ -54094,7 +54099,7 @@ class Actor {
       if (Math.abs(d) < 0.06) { this.target = null; const cb = this.onArrive; this.onArrive = null; if (cb) cb(this); }
       else dir = Math.sign(d) * Math.min(1, Math.abs(d) / 0.35 + 0.25); }
     if (this.sitting || this.path) dir = 0;
-    this.v = damp(this.v, dir * this.speed, dir ? 5 : 8, dt); this.x += this.v * dt;
+    this.v = damp(this.v, dir * this.speed * this.speedK, dir ? 5 : 8, dt); this.x += this.v * dt;   // speedK: the player's pace (Settings, jogging); 1 for everyone else
     let sp = Math.abs(this.v), pathYaw = null;
     if (this.path) { const P = this.path; P.t += dt; const u = clamp(P.t / P.dur, 0, 1);
       this.x = lerp(P.x0, P.x1, u); this.y = lerp(P.y0, P.y1, u); this.z = lerp(P.z0, P.z1, u); sp = u < 1 ? Math.hypot(P.x1 - P.x0, P.z1 - P.z0) / P.dur : 0; pathYaw = P.yaw; this.v = 0;
@@ -54112,7 +54117,10 @@ class Actor {
     this.sitK = damp(this.sitK, this.sitting ? 1 : 0, 5, dt);
     const H2 = this.curHome || {}, ir = H2.idleRange || S.idleRange, it = ir ? ir[0] + this.idleT % (ir[1] - ir[0]) : this.idleT;   // idleRange: loop only part of a clip (hold a kneel)
     // layer weights are normalised, so the idle has to give way as the sit comes in
-    const L = [[S.idle || 'Idle_Loop', it, 1 - this.sitK * 0.999], ['Sitting_Idle_Loop', this.idleT, this.sitK], ['Idle_Talking_Loop', this.idleT * 0.9, this.talk * 0.85 * (1 - this.sitK)], [walk, this.phase, smooth(0.04, 0.55, sp)]];
+    // past a brisk walk the jog comes in (its own phase, matched to ground speed like the walk's)
+    const jog = S.jog || 'Jog_Fwd_Loop', jw = QA.clips[jog] ? smooth(1.55, 2.1, sp) : 0; if (jw > 0) this.jogPhase += dt * sp / QA.speed(jog);
+    const L = [[S.idle || 'Idle_Loop', it, 1 - this.sitK * 0.999], ['Sitting_Idle_Loop', this.idleT, this.sitK], ['Idle_Talking_Loop', this.idleT * 0.9, this.talk * 0.85 * (1 - this.sitK)], [walk, this.phase, smooth(0.04, 0.55, sp) * (1 - jw)]];
+    if (jw > 0) L.push([jog, this.jogPhase, jw]);
     if (this.actClip) { this.actT += dt; const c = QA.clips[this.actClip], w = smooth(0, 0.25, this.actT) * smooth(c.dur, c.dur - 0.35, this.actT);
       L.push([this.actClip, Math.min(this.actT, c.dur - 0.02), w * 0.9]);
       if (this.actEv && this.actT >= this.actEv.at) { const f = this.actEv.fn; this.actEv = null; f(this); }
@@ -54278,7 +54286,12 @@ Actor.helmet = function (col) {
    conversations, the pause menu. Game code talks to it through:
      SCENE.addRoom(room)  SCENE.addActor(actor)  SCENE.go(id, { x, face })  SCENE.say(actor, text)
      SCENE.talk([[actor, text], …])  SCENE.cycle(key, lines)  SCENE.caption(title, sub)  SCENE.lock / SCENE.modal / SCENE.menu */
-const SCENE = { rooms: {}, room: null, actors: [], player: null, lock: 0, modal: false, near: null, marks: [], camX: 0, dir: 0, bubble: null, lineIdx: {}, touch: false, moved: false, ft: [], autoQ: false };
+const SCENE = { rooms: {}, room: null, actors: [], player: null, lock: 0, modal: false, near: null, marks: [], camX: 0, dir: 0, bubble: null, lineIdx: {}, touch: false, moved: false, ft: [], autoQ: false,
+  walkK: 1, autoJog: true, JOG: 1.75, jogKey: false, holdK: 1 };
+/* how the king moves (Settings, remembered in this browser): walkK scales his walking speed (0.7–1.6); he jogs at JOG times
+   that while Shift is held, while a touch is held far from him, or (autoJog) on the way to a spot more than 3.5 m off */
+try { const m = JSON.parse(localStorage.getItem('grace.move') || 'null'); if (m) { SCENE.walkK = clamp(+m.walkK || 1, 0.7, 1.6); SCENE.autoJog = m.autoJog !== false; } } catch (e) { /* storage may be blocked */ }
+SCENE.saveMove = function () { try { localStorage.setItem('grace.move', JSON.stringify({ walkK: SCENE.walkK, autoJog: SCENE.autoJog })); } catch (e) { /* */ } };
 SCENE.DOF0 = { uNear0: 0.8, uNearR: 3.2, uFar0: 3.0, uFarR: 10 };   // depth-of-field ramps (m) every room starts from; room.dof overrides
 SCENE.addRoom = function (room) { SCENE.rooms[room.id] = room; return room; };
 SCENE.addActor = function (a) { SCENE.actors.push(a); return a; };
@@ -54349,13 +54362,13 @@ SCENE.initInput = function () {
     if (SCENE.menu) return;   // a title screen or other full-screen menu owns the keys
     if (e.code === 'Escape' || e.code === 'KeyP') { if (!SCENE.modal) SCENE.pause(!G.paused); e.preventDefault(); return; }
     if (G.paused) return;
-    keys[e.code] = true;
+    keys[e.code] = true; SCENE.jogKey = !!(keys.ShiftLeft || keys.ShiftRight);
     if (e.code === 'KeyE' || e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); if (SCENE.advance()) return; if (!SCENE.lock && !SCENE.modal && SCENE.near) SCENE.use(SCENE.near); return; }
     SCENE.dir = dirFromKeys(); if (SCENE.dir && !SCENE.lock && !SCENE.modal) { SCENE.player.target = null; SCENE.player.onArrive = null; SCENE.onMove(); }
     if (e.code.startsWith('Arrow')) e.preventDefault();
   });
-  window.addEventListener('keyup', (e) => { keys[e.code] = false; SCENE.dir = dirFromKeys(); });
-  window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; SCENE.dir = 0; });
+  window.addEventListener('keyup', (e) => { keys[e.code] = false; SCENE.jogKey = !!(keys.ShiftLeft || keys.ShiftRight); SCENE.dir = dirFromKeys(); });
+  window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; SCENE.dir = 0; SCENE.jogKey = false; });
   // touch / mouse: hold to walk toward the pointer, a quick tap walks to the spot (or to the nearest marker)
   const view = $('view'); let hold = null;
   view.addEventListener('pointerdown', (e) => {
@@ -54368,23 +54381,28 @@ SCENE.initInput = function () {
   view.addEventListener('pointermove', (e) => { if (hold && hold.id === e.pointerId) { hold.x = e.clientX; hold.y = e.clientY; } });
   const up = (e) => { if (!hold || hold.id !== e.pointerId) return;
     if (!hold.held && !SCENE.lock) { const r = view.getBoundingClientRect(); SCENE.tap(hold.x - r.left, hold.y - r.top); }
-    hold = null; SCENE.dir = dirFromKeys(); };
+    hold = null; SCENE.holdK = 1; SCENE.dir = dirFromKeys(); };
   view.addEventListener('pointerup', up); view.addEventListener('pointercancel', up);
   SCENE.holdTick = () => { if (!hold) return; if (SCENE.lock || SCENE.modal) { hold = null; SCENE.dir = 0; return; }
     if (!hold.held && performance.now() - hold.t > 170) { hold.held = true; SCENE.player.target = null; SCENE.player.onArrive = null; }
-    if (hold.held) { const r = view.getBoundingClientRect(), P = SCENE.player, k = R.toView(new THREE.Vector3(P.x, 1 + P.y, P.z), {}); const dx = hold.x - r.left - k.x; SCENE.dir = Math.abs(dx) < 14 ? 0 : Math.sign(dx); if (SCENE.dir) SCENE.onMove(); } };
+    if (hold.held) { const r = view.getBoundingClientRect(), P = SCENE.player, k = R.toView(new THREE.Vector3(P.x, 1 + P.y, P.z), {}); const dx = hold.x - r.left - k.x; SCENE.dir = Math.abs(dx) < 14 ? 0 : Math.sign(dx); if (SCENE.dir) SCENE.onMove();
+      SCENE.holdK = SCENE.autoJog ? 1 + (SCENE.JOG - 1) * smooth(0.22, 0.38, Math.abs(dx) / r.width) : 1; } };   // the farther the finger from the king, the faster he goes
   $('pauseBtn').addEventListener('click', () => { if (!SCENE.modal && !CUT.playing) SCENE.pause(true); });
   $('skipBtn').addEventListener('click', () => { CUT.skip = true; });
   Actor.onStep = (a) => { const rm = SCENE.room; AUDIO.step(rm.surfaceAt ? rm.surfaceAt(a.x, a.z) : rm.surface || 'stone', a.x, a.z); };
   $('resumeBtn').addEventListener('click', () => SCENE.pause(false));
   $('qualBtn').addEventListener('click', () => { R.q = R.q === 'high' ? 'low' : 'high'; R.resize(); SCENE.labels(); });
   $('fxBtn').addEventListener('click', () => { R.fx = !R.fx; SCENE.labels(); });
+  const ws = $('walkSpd'); ws.value = Math.round(SCENE.walkK * 100);
+  ws.addEventListener('input', () => { SCENE.walkK = clamp(ws.value / 100, 0.7, 1.6); SCENE.saveMove(); SCENE.labels(); });
+  $('jogBtn').addEventListener('click', () => { SCENE.autoJog = !SCENE.autoJog; SCENE.saveMove(); SCENE.labels(); });
   SCENE.labels(); SCENE.hint();
 };
 SCENE.labels = function () { $('qualBtn').textContent = 'Quality: ' + (R.q === 'high' ? 'High' : 'Low'); $('fxBtn').textContent = 'Effects: ' + (R.fx ? 'On' : 'Off');
-  $('helpTxt').textContent = 'Walk with the arrow keys or A and D, or hold either side of the king. Tap a diamond, or press E beside it, to look closer. Tap or press E to move a conversation on.'; };
+  $('walkLbl').textContent = 'Walk ' + Math.round(SCENE.walkK * 100) + '%'; $('jogBtn').textContent = 'Long walks: ' + (SCENE.autoJog ? 'Jog' : 'Walk');
+  $('helpTxt').textContent = 'Walk with the arrow keys or A and D (hold Shift to jog), or hold either side of the king: the farther out you hold, the faster he goes. Tap a diamond, or press E beside it, to look closer. Tap or press E to move a conversation on. Walking speed is in Settings.'; };
 SCENE.hint = function () { const h = $('hint'); if (!h || SCENE.moved) return;
-  h.textContent = SCENE.touch || matchMedia('(pointer: coarse)').matches ? 'Hold beside the king to walk  ·  tap a diamond to look closer' : '←  →  to walk  ·  E to look closer  ·  Esc to pause'; };
+  h.textContent = SCENE.touch || matchMedia('(pointer: coarse)').matches ? 'Hold beside the king to walk, farther out to jog  ·  tap a diamond to look closer' : '←  →  to walk  ·  Shift to jog  ·  E to look closer  ·  Esc to pause'; };
 SCENE.onMove = function () { if (!SCENE.moved) { SCENE.moved = true; setTimeout(() => { $('hint').style.opacity = '0'; }, 2500); } };
 SCENE.pause = function (on) { G.paused = on; $('pause').hidden = !on; SCENE.dir = 0; if (on) $('resumeBtn').focus(); else $('cv').focus(); };
 /* a tap: on/near a marker → go and look; otherwise walk to that spot on the king's line */
@@ -54406,6 +54424,9 @@ SCENE.update = function (dt) {
   SCENE.holdTick();
   P.dir = SCENE.lock || SCENE.modal ? 0 : SCENE.dir;
   if (P.dir) { P.target = null; P.onArrive = null; }
+  // the pace: the Settings speed, times the jog when he's asked to hurry. Scenes and cutscenes walk him at his own pace
+  const free = !SCENE.lock && !SCENE.modal && !CUT.playing, far = SCENE.autoJog && P.target !== null && Math.abs(P.target - P.x) > 3.5;
+  P.speedK = damp(P.speedK, free ? SCENE.walkK * Math.max(SCENE.jogKey ? SCENE.JOG : 1, P.dir ? SCENE.holdK : 1, far ? SCENE.JOG : 1) : 1, 3, dt);
   for (const a of SCENE.actors) if (a.visible) a.update(dt);
   const x0 = room.X0 + 1.0, x1 = room.X1 - 0.9; if (!P.sitting && (P.x < x0 || P.x > x1)) { P.x = clamp(P.x, x0, x1); P.v = 0; }
   if (room.onUpdate) room.onUpdate(dt);
@@ -54430,6 +54451,18 @@ SCENE.update = function (dt) {
     b.style.left = bl + 'px'; b.style.top = Math.max(bp.y - 6, b.offsetHeight + 6) + 'px'; b.style.setProperty('--tail', clamp(bp.x - bl + bw / 2, 14, bw - 14) + 'px'); }
 };
 SCENE.render = function () { const room = SCENE.room; for (const a of SCENE.actors) a.render(room); R.frame(G.t); };
+/* test hook: solids standing on a walking line, where someone would walk through them. The lines are the king's (room.KZ,
+   the whole floor) and each wandering actor's (its z, over its wander range). A solid counts when it rises above 0.15 m,
+   starts below 1.6 m, and its depth reaches within 0.15 m of the line. Run it in every room you build: it should return [] */
+SCENE.walkCheck = function () {
+  const room = SCENE.room, out = [], lines = [{ who: 'king', z: room.KZ, x0: room.X0 + 1, x1: room.X1 - 0.9 }];
+  for (const a of SCENE.actors) { const w = a !== SCENE.player && a.visible && !a.sitting && a.curHome && a.curHome.wander; if (w) lines.push({ who: a.spec.id, z: a.z, x0: w.x0 - 0.4, x1: w.x1 + 0.4 }); }
+  for (const [x0, x1, y0, y1, z0, z1, c] of room.solids || []) { if (y1 < 0.15 || y0 > 1.6) continue;
+    for (const L of lines) { if (!(z1 > L.z - 0.15 && z0 < L.z + 0.15)) continue;
+      let a = x0, b = x1; if (c) { const dz = Math.max(0, Math.abs(L.z - c[1]) - 0.15), w = dz < c[2] ? Math.sqrt(c[2] * c[2] - dz * dz) : 0; a = c[0] - w; b = c[0] + w; }   // a circle's chord along the line
+      if (b > L.x0 && a < L.x1 && b > a) out.push({ who: L.who, line: +L.z.toFixed(2), solid: [x0, x1, y0, y1, z0, z1].map((v) => +v.toFixed(2)) }); } }
+  return out;
+};
 /* drop to low quality once if the first seconds run slow */
 SCENE.perf = function (ms) {
   if (SCENE.autoQ || G.flags.q) return; SCENE.ft.push(ms); if (SCENE.ft.length < 120) return;
@@ -54450,7 +54483,7 @@ SCENE.step = function (n, dir) {
    Music: real recordings (public-domain tracks in audio/*.mp3), streamed by <audio> elements and cross-faded, so they
    work from file:// as well as when hosted. Ambience and effects are synthesised with WebAudio, so they cost no
    download and never loop audibly: rain (hiss + drops + rumble), rain on glass, wind, fire (roar + crackle), birds,
-   a murmuring crowd, a fountain, room tone; footsteps per floor surface, thunder, door, clang, thud, chime, page, click, drum, whoosh, coin.
+   a murmuring crowd, a fountain, room tone; footsteps per floor surface, thunder, door, clang, thud, chime, page, click, drum, whoosh, coin; animals: purr, meow, pant.
    Everything goes through a room reverb (generated impulse) sized per room.
    Use:  AUDIO.unlock() on the first tap · AUDIO.playMusic('throne') · AUDIO.ambience({ rain: 0.8, fire: 0.4 })
          AUDIO.acoustics({ size: 2.2, wet: 0.35 }) · AUDIO.sfx('thunder', { gain: 1 }) · AUDIO.step('stone', 0.8, pan)
@@ -54625,6 +54658,18 @@ AUDIO.sfx = function (name, o) {
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.16 * gain, t + 0.04); g.gain.linearRampToValueAtTime(0, t + d); AUDIO.chain(os, bp, g, out); os.start(t); os.stop(t + d + 0.05); }
   else if (name === 'kiss') { AUDIO.burst(out, t, 0.035, 'bandpass', 2600, 2, 0.3 * gain); AUDIO.burst(out, t + 0.05, 0.05, 'bandpass', 1700, 1.5, 0.18 * gain, AUDIO.N.pink); }
   else if (name === 'skin') { AUDIO.burst(out, t, 0.05, 'lowpass', 700 + Math.random() * 300, 1, 0.4 * gain, AUDIO.N.pink); AUDIO.burst(out, t, 0.03, 'bandpass', 2400, 1.2, 0.08 * gain); }
+  // animals: a cat's purr (brown noise under a low filter, beaten at ~25 Hz, in two breaths), a meow (a sawtooth whose pitch
+  // and formant rise and fall), a dog's panting (paired breaths of filtered noise)
+  else if (name === 'purr') { const d = o.dur || 2.2, s = c.createBufferSource(); s.buffer = AUDIO.N.brown; s.loop = true; const lp = AUDIO.filt('lowpass', 260, 0.7), am = c.createGain(), g = c.createGain(), lfo = c.createOscillator(), lg = c.createGain();
+    lfo.frequency.value = 23 + Math.random() * 5; lg.gain.value = 0.5; am.gain.value = 0.5; lfo.connect(lg); lg.connect(am.gain);
+    g.gain.setValueAtTime(0, t); for (let i = 0; i < 2; i++) { const t0 = t + i * d / 2; g.gain.linearRampToValueAtTime(0.9 * gain, t0 + d * 0.18); g.gain.linearRampToValueAtTime(0.35 * gain, t0 + d * 0.45); }
+    g.gain.linearRampToValueAtTime(0, t + d); AUDIO.chain(s, lp, am, g, out); s.start(t, Math.random() * 2); s.stop(t + d + 0.1); lfo.start(t); lfo.stop(t + d + 0.1); }
+  else if (name === 'meow') { const os = c.createOscillator(), bp = AUDIO.filt('bandpass', 1100, 3), g = c.createGain(), d = 0.55, p = o.pitch || 1; os.type = 'sawtooth';
+    os.frequency.setValueAtTime(420 * p, t); os.frequency.linearRampToValueAtTime(700 * p, t + d * 0.35); os.frequency.linearRampToValueAtTime(380 * p, t + d);
+    bp.frequency.setValueAtTime(800, t); bp.frequency.linearRampToValueAtTime(1700, t + d * 0.4); bp.frequency.linearRampToValueAtTime(900, t + d);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.22 * gain, t + 0.06); g.gain.linearRampToValueAtTime(0.16 * gain, t + d * 0.7); g.gain.linearRampToValueAtTime(0, t + d);
+    AUDIO.chain(os, bp, g, out); os.start(t); os.stop(t + d + 0.05); }
+  else if (name === 'pant') { for (let i = 0; i < 6; i++) AUDIO.burst(out, t + i * 0.2, 0.12, 'bandpass', i % 2 ? 1300 : 1700, 1.2, (i % 2 ? 0.16 : 0.22) * gain, AUDIO.N.pink); }
   else if (name === 'coin') { const a = new Audio(AUDIO.base + 'coin.mp3'); a.volume = clamp(0.8 * gain * AUDIO.vol.sfx, 0, 1); a.play().catch(() => {}); }
 };
 /* footsteps: called by actors on each foot contact; quieter and panned with distance from the frame's centre */
@@ -54742,7 +54787,7 @@ BUILD.uvScale = function (g, tex, um, vm) { const D = tex.userData.d || PX.D, uv
   for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * su, uv.getY(i) * sv); return g; };
 /* a round tower or column standing at (x, z) from y0 to y1; o.top narrows the top (a batter), o.seg facets */
 BUILD.cyl = function (x, z, y0, y1, r, tex, o) {
-  o = o || {}; const g = new THREE.CylinderGeometry(r * (o.top || 1), r, y1 - y0, o.seg || 20, 1, !!o.open); g.translate(x, (y0 + y1) / 2, z);
+  o = o || {}; BUILD.solid(x - r, x + r, y0, y1, z - r, z + r, o, [x, z, r]); const g = new THREE.CylinderGeometry(r * (o.top || 1), r, y1 - y0, o.seg || 20, 1, !!o.open); g.translate(x, (y0 + y1) / 2, z);
   if (!o.wrap) BUILD.uvScale(g, tex, Math.PI * 2 * r, y1 - y0);   // o.wrap: the texture was painted to go once round (PX.towerWrap)
   return BUILD.add(new THREE.Mesh(g, o.mat || BUILD.std(tex, { col: o.col !== undefined ? o.col : tex.userData.tint, rough: o.rough })), o);
 };
@@ -54848,6 +54893,43 @@ BUILD.critters = function (tex, spots, o) {
         else frame(c, r < 0.6 ? 1 : r < 0.8 ? 2 : 0); }
     } });
   return list;
+};
+/* a pettable animal: a card the king walks up to and pets. He reaches out (or kneels, o.kneel), the card swaps to its
+   petted frames (o.frames, cycled at o.rate: a tail wagging, eyes shut) and leans and shivers for o.dur seconds, the animal
+   makes its sound (o.sound) and says one of o.says over its head, then the king says one of o.lines. o.onPet(n) is told the
+   running count and may answer with its own lines instead ([[actor, text], ...]), so the game can remember the count and
+   change what's said. The card gets its own material and is kept out of the static batch, so it can move and change frame
+   without touching anything else that uses the same texture. Frames must be the same size as the card's texture. */
+BUILD.pet = function (card, o) {
+  const room = BUILD.room, rest = card.material.map, base = card.scale.clone(), p = card.position, frames = o.frames || [rest], hy = o.headY || 0.8;
+  card.material = card.material.clone(); card.userData.dyn = true;
+  const voice = { x: p.x, y: p.y + hy, z: p.z, v: 0, talking: false, visible: true, speakAt: (out) => out.set(voice.x, voice.y, voice.z) };
+  const st = { t: -1, n: 0 };
+  room.tick.push((T, dt) => { if (st.t < 0) return; st.t += dt; const u = st.t / (o.dur || 2.4);
+    const map = u < 1 ? frames[Math.floor(st.t * (o.rate || 6)) % frames.length] : rest; if (card.material.map !== map) { card.material.map = map; card.material.needsUpdate = true; }
+    const k = u < 1 ? Math.sin(u * Math.PI) : 0;   // a slow lean into the hand, with a quick shiver on top
+    card.scale.set(base.x * (1 + 0.05 * k), base.y * (1 - 0.06 * k + 0.02 * k * Math.sin(st.t * 18)), base.z);
+    if (u >= 1) { st.t = -1; card.scale.copy(base); } });
+  const it = room.interact(o.id, p.x, p.y + hy + 0.2, room.KZ, o.r || 0.9, async () => {
+    const K = SCENE.player; if (st.busy) return; st.busy = true; SCENE.lock++;
+    try {
+      const side = Math.sign(K.x - p.x) || 1, sx = p.x + side * (o.stand || 0.8);   // step to one side first, so his body doesn't cover the animal
+      if (Math.abs(K.x - sx) > 0.08) await new Promise((res) => K.walkTo(sx, res));
+      for (let i = 0; i < 100 && Math.abs(K.v) > 0.1; i++) await SCENE.wait(30);   // an actor moving faster than 0.2 drops a one-shot clip, so stop first
+      K.faceTo(p.x); st.n++;
+      const clip = o.kneel ? 'Fixing_Kneeling' : 'Interact';
+      await new Promise((res) => { let hand = false; K.act(clip, o.at || (o.kneel ? 1.1 : 0.7), () => { hand = true; });   // the hand arrives…
+        const poll = () => { if (!hand && K.actClip === clip) { setTimeout(poll, 30); return; }   // …or the reach was cancelled: go on regardless
+          st.t = 0; if (o.sound) AUDIO.sfx(o.sound, Object.assign({ gain: 0.7, pan: clamp((p.x - R.cam.position.x) / 10, -0.8, 0.8) }, o.soundO)); res(); };
+        poll(); });
+      await SCENE.wait(400);
+      if (o.says) await SCENE.say(voice, SCENE.cycle(o.id + '.says', o.says));
+      const extra = o.onPet ? o.onPet(st.n) : null;
+      if (extra && extra.length) await SCENE.talk(extra); else if (o.lines) await SCENE.say(K, SCENE.cycle(o.id + '.lines', o.lines));
+    } finally { SCENE.lock--; st.busy = false; }
+  });
+  it.label = o.label || 'Pet the ' + o.id; it.pet = st; it.voice = voice;
+  return it;
 };
 /* a round pool of water (a fountain basin): an animated strip cycled like the flames, on a flat disc */
 BUILD.pool = function (tex, x, y, z, r, o) {
@@ -56741,14 +56823,23 @@ PX.def('deerPix', () => {   // a red deer standing in profile, facing right: a l
   p.rect(16, 21, 2, 3, L);
   return p.outline(null, 0.6).tex();
 });
-PX.def('houndPix', () => {   // a grey-brown hound lying with its head up, in profile facing right
-  const p = new Pix(40, 26), B = 0x8a7050, D = 0x3a2a1c;
-  p.ell(18, 17, 12, 5, B); p.ell(18, 15, 10, 2.5, C.mul(B, 1.2));
-  p.ell(31, 11, 4.5, 3.5, B); p.ell(35, 12, 2.5, 1.8, D); p.set(33, 10, 0x0e0a08); p.ell(27, 9, 1.8, 3, D);
-  p.rect(9, 19, 2, 4, D); p.rect(13, 20, 2, 3, D); p.rect(22, 20, 2, 3, D); p.rect(26, 20, 2, 3, D);
-  p.hl(3, 9, 15, B);
+/* a grey-brown hound lying with its head up, in profile facing right. tail: 0 flat on the grass, 1 up, -1 down (the two
+   wag frames); happy: tongue out. The frames share one drawing so BUILD.pet can swap them on the same card */
+PX.hound = function (tail, happy) {   // lying like a sphinx: haunch tucked, forelegs out in front, head up, a dark saddle and a pale chest
+  const p = new Pix(40, 26), B = 0x9a7a52, S = 0x5a4228, L = 0xd8b88e, D = 0x2e2016;
+  p.line(6, 17, 1, 17 - 5 * tail, B); p.line(6, 18, 1, 18 - 5 * tail, B); p.set(1, 17 - 5 * tail, L);   // tail (the tip pale)
+  p.ell(18, 18, 12, 4.5, B); p.ell(17, 15.5, 9, 2.2, S); p.ell(19, 21.5, 8, 1.2, L);                       // body, saddle, belly
+  p.ell(9, 18, 5, 4.5, B); p.ell(8, 15.8, 3.2, 1.8, S); p.rect(9, 22, 7, 2, B); p.set(15, 23, D);            // haunch and hind paw
+  p.rect(25, 21, 11, 2, B); p.rect(26, 23, 11, 1, C.mul(B, 0.8)); p.rect(35, 21, 2, 3, L);                  // forelegs, paws
+  p.ell(28, 14, 3.5, 4.5, B); p.ell(29.5, 17, 2.2, 3, L);                                                   // neck, chest
+  p.ell(31, 9, 4, 3.2, B); p.rect(33, 9, 5, 3, B); p.rect(33, 11, 5, 1, C.mul(B, 0.85)); p.rect(37, 9, 2, 2, D);   // head, snout, nose
+  p.ell(29.2, 10.5, 1.6, 3.4, D); p.set(32, 8, 0x0e0a08); p.set(33, 7, C.mul(B, 1.25));                      // ear, eye, brow
+  if (happy) { p.set(35, 12, 0xd86a7a); p.set(36, 12, 0xd86a7a); p.set(36, 13, 0xc85868); }
   return p.outline(null, 0.6).tex();
-});
+};
+PX.def('houndPix', () => PX.hound(0, false));
+PX.def('houndWagA', () => PX.hound(1, true));
+PX.def('houndWagB', () => PX.hound(-1, true));
 /* ---- the hut */
 PX.def('hutWall', () => {   // purple-black wattle: staves of woven wood, eight texels to a stave, so the weave reads at the lens
   const p = new Pix(64, 64).fill(0x1e1430);
@@ -56758,15 +56849,19 @@ PX.def('hutWall', () => {   // purple-black wattle: staves of woven wood, eight 
   }
   return p.tex({ repeat: true });
 });
-PX.def('catPix', () => {   // a black cat sitting in profile, its tail round its feet; a lilac rim on the edges that face up and
-  const p = new Pix(18, 24), K = 0x1c1424, rim = 0x8a70b8;   // right, so the black reads against the dark wall, and green eyes
+/* the hut's black cat, sitting in profile. A lilac rim on the edges that face up and right, so the black reads against the
+   dark wall. pet: being petted — eyes shut, tail straight up with the tip hooked; otherwise green eyes, tail round her feet */
+PX.cat = function (pet) {
+  const p = new Pix(18, 24), K = 0x1c1424, rim = 0x8a70b8;
   p.ell(9, 16, 5, 6.5, K); p.ell(9, 7, 3.5, 3.2, K); p.set(7, 2, K); p.set(7, 1, K); p.set(11, 2, K); p.set(11, 1, K);
-  p.ell(13, 22, 5, 1.5, K);
+  if (pet) { p.rect(14, 9, 2, 10, K); p.set(13, 8, K); p.set(13, 7, K); } else p.ell(13, 22, 5, 1.5, K);
   const edge = []; for (let y = 0; y < 24; y++) for (let x = 0; x < 18; x++) if (p.a(x, y) && (!p.a(x, y - 1) || !p.a(x + 1, y))) edge.push([x, y]);
   for (const [x, y] of edge) p.set(x, y, rim);
-  p.set(8, 7, 0xc8ff6a); p.set(10, 7, 0xc8ff6a);
+  if (pet) { p.set(8, 7, 0x6a5a80); p.set(10, 7, 0x6a5a80); } else { p.set(8, 7, 0xc8ff6a); p.set(10, 7, 0xc8ff6a); }
   return p.tex({});
-});
+};
+PX.def('catPix', () => PX.cat(false));
+PX.def('catPetPix', () => PX.cat(true));
 PX.def('jarPix', () => {   // a glass jar of violet liquid with a wooden lid and a name on it, the highlight on the glass
   const p = new Pix(14, 24);
   p.rect(3, 0, 8, 3, 0x6a4a2a);
@@ -57294,11 +57389,11 @@ const INTRO = [
 ];
 /* ---------------------------------------------------------------- the save slot */
 const GAME = {};
-GAME.reset = function () { SCENE.player.crownMesh.visible = false; COURT.reset(); CHAPEL.met = CHAPEL.queenMet = CHAPEL.priestMet = false; CHAPEL.flirt = CHAPEL.cold = 0; };
+GAME.reset = function () { SCENE.player.crownMesh.visible = false; COURT.reset(); CHAPEL.met = CHAPEL.queenMet = CHAPEL.priestMet = false; CHAPEL.flirt = CHAPEL.cold = 0; HUT.met = false; HUT.catPets = 0; WOOD.houndPets = 0; };
 GAME.state = function () { const K = SCENE.player, R0 = SCENE.room;
   return { room: R0 && R0.id !== 'exterior' ? R0.id : 'bedroom', x: K.x, crown: K.crownMesh.visible,
     court: { done: COURT.done, prosperity: COURT.prosperity, stats: COURT.stats, agents: COURT.agents.map((a) => ({ id: a.id, ap: a.ap, wound: a.wound })), items: COURT.items.map((i) => ({ id: i.id, n: i.n })) },
-    chapel: { met: CHAPEL.met, queenMet: CHAPEL.queenMet, priestMet: CHAPEL.priestMet, flirt: CHAPEL.flirt, cold: CHAPEL.cold } }; };
+    chapel: { met: CHAPEL.met, queenMet: CHAPEL.queenMet, priestMet: CHAPEL.priestMet, flirt: CHAPEL.flirt, cold: CHAPEL.cold }, hut: { met: HUT.met, catPets: HUT.catPets }, wood: { houndPets: WOOD.houndPets } }; };
 GAME.save = function () { if (SCENE.room && SCENE.room.id !== 'exterior' && !CUT.playing) SAVE.put(GAME.state()); };
 GAME.load = function (s) {
   const K = SCENE.player; K.crownMesh.visible = !!s.crown;
@@ -57306,6 +57401,8 @@ GAME.load = function (s) {
     for (const a of s.court.agents || []) { const g = COURT.agents.find((q) => q.id === a.id); if (g) Object.assign(g, a); }
     for (const i of s.court.items || []) { const g = COURT.items.find((q) => q.id === i.id); if (g) g.n = i.n; } }
   if (s.chapel) { CHAPEL.met = !!s.chapel.met; CHAPEL.queenMet = !!s.chapel.queenMet; CHAPEL.priestMet = !!s.chapel.priestMet; CHAPEL.flirt = s.chapel.flirt || 0; CHAPEL.cold = s.chapel.cold || 0; }
+  if (s.hut) { HUT.met = !!s.hut.met; HUT.catPets = s.hut.catPets || 0; }
+  if (s.wood) WOOD.houndPets = s.wood.houndPets || 0;
 };
 /* ---------------------------------------------------------------- credits */
 const CREDITS = {
@@ -58650,7 +58747,6 @@ WOOD.LINES = {
   butts: ['Bogdan’s butts. Zofia has put three arrows in the gold this week, and her mother pretends not to be proud.'],
   pond: ['The fishing hole. Carp as old as the Margrave, the grooms say. Nobody has landed one since the siege.'],
   deer: ['A red deer at the edge of the trees, standing as though it is waiting to be asked something.'],
-  hound: ['Bogdan’s hound. It has never been taught anything except sleeping in the sun.'],
   basket: ['Bread, pears and a jug of something cold. Halina says the one dry afternoon of the week belongs to her.'],
   oak: ['An old oak with a rope swing Kazik is not allowed to use, and uses every day.'],
   zofia: ['Watch, Father! Three in the gold, and a fourth in the post.', 'Bogdan says I shoot like a squire. I told him squires don’t shoot at all.'],
@@ -58658,6 +58754,19 @@ WOOD.LINES = {
   guardL: ['Halt. Nobody goes down the path without the Woman’s leave, and nobody has ever had it.'],
   guardR: ['The deer comes every afternoon. We have decided not to shoot it, which Bogdan does not understand.'],
   queen: ['Sit down, Radomir. Close your eyes for once. The children are not drowning, nobody is shooting at anybody, and the rain has the decency to stay away.', 'You are doing it again. Watching the trees as if they owe you money.']
+};
+/* Bogdan's hound in the sun: the king kneels and pets him (BUILD.pet), the tail wags. Kazik has a word the second time if
+   he's in the wood; WOOD.houndPets is kept in the save */
+WOOD.HOUND = {
+  says: ['(Thump. Thump. Thump.)', 'Hff. Hff. Hff.', '(He rolls over for his belly.)', '(He licks the king’s whole wrist.)'],
+  lines: ['Bogdan’s hound. He has never been taught anything except sleeping in the sun.', 'Good dog. Nobody trained you, and look how well you turned out.',
+    'You would sell the whole kingdom for a pear, wouldn’t you.', 'Don’t look at me like that. The basket is Halina’s.']
+};
+WOOD.houndPets = 0;
+WOOD.petHound = function () {
+  WOOD.houndPets++; const z = CAST.A.kazik;
+  if (WOOD.houndPets === 2 && z && z.visible && z.livesIn && z.livesIn('wood')) return [[z, 'He likes you best. Don’t tell Ser Bogdan.']];
+  return null;
 };
 WOOD.build = function () {
   const room = BUILD.begin(this), T = PX.T, X0 = room.X0, X1 = room.X1, KZ = room.KZ, L = room.LINES;
@@ -58703,10 +58812,11 @@ WOOD.build = function () {
   /* Halina's blanket under the oak, the basket of bread and pears beside it, the hound asleep in the sun */
   BUILD.rug(T.rugA, 4.4, 7.2, 2.0, 3.6, { y: 0.02 });
   BUILD.card(T.basket, 7.4, 0.02, 2.4, { s: 0.9 });
-  BUILD.card(T.houndPix, 8.4, 0.02, 1.9, { s: 0.9 });
+  const hound = BUILD.card(T.houndPix, 8.4, 0.02, 1.9, { s: 0.9 });
+  BUILD.pet(hound, { id: 'hound', label: 'Pet the hound', kneel: true, frames: [T.houndWagA, T.houndWagB], rate: 8, dur: 3.2, sound: 'pant', headY: 0.65,
+    says: WOOD.HOUND.says, lines: WOOD.HOUND.lines, onPet: () => WOOD.petHound() });
   room.interact('queen', 5.6, 2.7, KZ, 1.0, () => talk('queen', 'queen')).label = 'Talk to Halina';
   room.interact('basket', 7.4, 1.0, KZ, 1.0, () => say('basket'));
-  room.interact('hound', 8.4, 0.9, KZ, 1.0, () => say('hound'));
   room.interact('oak', 6.6, 3.2, KZ, 1.0, () => say('oak'));
   /* Zofia's post, and the deer at the edge of the trees */
   BUILD.card(T.pell, 9.2, 0, 1.4, { s: 0.95 });
@@ -58768,6 +58878,21 @@ HUT.TALK = {
     'Have you thought about what you hold dearest? Do not answer. I already know it is not the crown.',
     'Your wife bakes bread on a Sunday and prays for you on the others. The saints are fond of her. I am fond of her too.']
 };
+/* the cat on the barrel: the king can pet her (BUILD.pet). The Woman has something to say the first, third and seventh time;
+   otherwise it's the king's own line. HUT.catPets is kept in the save */
+HUT.CAT = {
+  says: ['Prrrrrrr.', 'Mrrp?', 'Prrrr… prrrrrrr.', '(She shoves her whole head into his hand.)', 'Mrrrrrow.'],
+  lines: ['There. Who’s a terrible little omen. You are.', 'If you are a curse, you are a very soft one.', 'You smell of smoke and lavender. So does everything in here.',
+    'Don’t tell the crows about this.'],
+  talk: { 1: [['witch', 'She has bitten two kings and a bishop. Apparently not you.'], ['king', 'What’s her name?'], ['witch', 'She hasn’t told me. Ask her yourself. She might.']],
+    3: [['witch', 'Careful. She has decided you are hers now. In this house, that is not nothing.']],
+    7: [['witch', 'If you came all this way to pet my cat, Radomir, you could have said so.'], ['king', 'I came all this way to pet your cat.']] }
+};
+HUT.catPets = 0;
+HUT.petCat = function () {
+  HUT.catPets++; const t = HUT.CAT.talk[HUT.catPets], W = CAST.A.hutWitch;
+  return t && W && W.visible ? t.map(([k, s]) => [k === 'witch' ? W : SCENE.player, s]) : null;
+};
 HUT.build = function () {
   const room = BUILD.begin(this), T = PX.T, X0 = room.X0, X1 = room.X1, CE = room.CEIL, KZ = room.KZ, L = room.LINES;
   const say = (k) => SCENE.say(SCENE.player, SCENE.cycle(k, L[k]));
@@ -58818,7 +58943,9 @@ HUT.build = function () {
   /* the dressing: jars on the shelf, a skull on the table, a black cat on the barrel, cobwebs in the corners, a stool,
      lanterns and candles, and a hanging over the hearth */
   for (const x of [-6.2, -5.6, -5.0, -4.4]) BUILD.card(T.jarPix, x, 2.6, 0.45, { s: 1.0, cast: false });
-  BUILD.card(T.catPix, -3.5, 1.1, 1.7, { s: 1.0, cast: false });   // on the barrel, clear of the orb's glow
+  const cat = BUILD.card(T.catPix, -3.5, 1.1, 1.7, { s: 1.0, cast: false });   // on the barrel, clear of the orb's glow
+  BUILD.pet(cat, { id: 'cat', label: 'Pet the cat', frames: [T.catPetPix], sound: 'purr', soundO: { dur: 2.6 }, headY: 0.85, dur: 2.8,
+    says: HUT.CAT.says, lines: HUT.CAT.lines, onPet: () => HUT.petCat() });
   BUILD.card(T.skullPix, 5.8, 0.95, 2.2, { s: 1.0 });
   BUILD.card(T.cobwebPix, -9.6, 4.2, 0.08, { s: 2.2, cast: false }); BUILD.card(T.cobwebPix, 9.4, 4.4, 0.08, { s: 2.2, cast: false });
   BUILD.box(2.9, 3.5, 0, 0.45, 1.5, 2.0, T.woodDark, { col: 0x8a70b0 });
@@ -58843,7 +58970,7 @@ HUT.build = function () {
   room.update(0, 0);
   return BUILD.end();
 };
-HUT.onEnter = function () { if (!CUT.playing) SCENE.caption(...this.caption); };
+HUT.onEnter = function () { if (CUT.playing) return; SCENE.caption(...this.caption); AUDIO.sfx('meow', { delay: 1.4, gain: 0.45, pan: -0.5 }); };   // the cat on the barrel notices him
 /* the Woman by the fire: a fuller talk the first time, then one line at a time, and the king's own lines are only the player's */
 HUT.witch = async function () {
   const K = SCENE.player, W = CAST.A.hutWitch, T = HUT.TALK, who = (k) => (k === 'witch' ? W : K);

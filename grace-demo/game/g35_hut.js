@@ -24,6 +24,21 @@ HUT.TALK = {
     'Have you thought about what you hold dearest? Do not answer. I already know it is not the crown.',
     'Your wife bakes bread on a Sunday and prays for you on the others. The saints are fond of her. I am fond of her too.']
 };
+/* the cat on the barrel: the king can pet her (BUILD.pet). The Woman has something to say the first, third and seventh time;
+   otherwise it's the king's own line. HUT.catPets is kept in the save */
+HUT.CAT = {
+  says: ['Prrrrrrr.', 'Mrrp?', 'Prrrr… prrrrrrr.', '(She shoves her whole head into his hand.)', 'Mrrrrrow.'],
+  lines: ['There. Who’s a terrible little omen. You are.', 'If you are a curse, you are a very soft one.', 'You smell of smoke and lavender. So does everything in here.',
+    'Don’t tell the crows about this.'],
+  talk: { 1: [['witch', 'She has bitten two kings and a bishop. Apparently not you.'], ['king', 'What’s her name?'], ['witch', 'She hasn’t told me. Ask her yourself. She might.']],
+    3: [['witch', 'Careful. She has decided you are hers now. In this house, that is not nothing.']],
+    7: [['witch', 'If you came all this way to pet my cat, Radomir, you could have said so.'], ['king', 'I came all this way to pet your cat.']] }
+};
+HUT.catPets = 0;
+HUT.petCat = function () {
+  HUT.catPets++; const t = HUT.CAT.talk[HUT.catPets], W = CAST.A.hutWitch;
+  return t && W && W.visible ? t.map(([k, s]) => [k === 'witch' ? W : SCENE.player, s]) : null;
+};
 HUT.build = function () {
   const room = BUILD.begin(this), T = PX.T, X0 = room.X0, X1 = room.X1, CE = room.CEIL, KZ = room.KZ, L = room.LINES;
   const say = (k) => SCENE.say(SCENE.player, SCENE.cycle(k, L[k]));
@@ -74,7 +89,9 @@ HUT.build = function () {
   /* the dressing: jars on the shelf, a skull on the table, a black cat on the barrel, cobwebs in the corners, a stool,
      lanterns and candles, and a hanging over the hearth */
   for (const x of [-6.2, -5.6, -5.0, -4.4]) BUILD.card(T.jarPix, x, 2.6, 0.45, { s: 1.0, cast: false });
-  BUILD.card(T.catPix, -3.5, 1.1, 1.7, { s: 1.0, cast: false });   // on the barrel, clear of the orb's glow
+  const cat = BUILD.card(T.catPix, -3.5, 1.1, 1.7, { s: 1.0, cast: false });   // on the barrel, clear of the orb's glow
+  BUILD.pet(cat, { id: 'cat', label: 'Pet the cat', frames: [T.catPetPix], sound: 'purr', soundO: { dur: 2.6 }, headY: 0.85, dur: 2.8,
+    says: HUT.CAT.says, lines: HUT.CAT.lines, onPet: () => HUT.petCat() });
   BUILD.card(T.skullPix, 5.8, 0.95, 2.2, { s: 1.0 });
   BUILD.card(T.cobwebPix, -9.6, 4.2, 0.08, { s: 2.2, cast: false }); BUILD.card(T.cobwebPix, 9.4, 4.4, 0.08, { s: 2.2, cast: false });
   BUILD.box(2.9, 3.5, 0, 0.45, 1.5, 2.0, T.woodDark, { col: 0x8a70b0 });
@@ -99,7 +116,7 @@ HUT.build = function () {
   room.update(0, 0);
   return BUILD.end();
 };
-HUT.onEnter = function () { if (!CUT.playing) SCENE.caption(...this.caption); };
+HUT.onEnter = function () { if (CUT.playing) return; SCENE.caption(...this.caption); AUDIO.sfx('meow', { delay: 1.4, gain: 0.45, pan: -0.5 }); };   // the cat on the barrel notices him
 /* the Woman by the fire: a fuller talk the first time, then one line at a time, and the king's own lines are only the player's */
 HUT.witch = async function () {
   const K = SCENE.player, W = CAST.A.hutWitch, T = HUT.TALK, who = (k) => (k === 'witch' ? W : K);

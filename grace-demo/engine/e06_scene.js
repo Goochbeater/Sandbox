@@ -36,6 +36,7 @@ SCENE.enter = function (id, at) {
   R.r.shadowMap.needsUpdate = true;
   SCENE.camX = SCENE.camGoal(true);
   if (room.onEnter) room.onEnter(at);
+  if (SCENE.afterEnter) SCENE.afterEnter(room, at);   // the game's word on every room (the calendar: rain on the glass in the crisis weeks)
 };
 SCENE.go = async function (id, at) {
   SCENE.lock++; SCENE.dir = 0; if (SCENE.player) { SCENE.player.target = null; }

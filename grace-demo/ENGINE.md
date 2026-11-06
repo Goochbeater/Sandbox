@@ -38,6 +38,8 @@ Contents
 13h. The Swan Festival: three connected grounds, shows, a lazy cast
 13i. The House of the Lantern: a disguise, a second bed, the night scene as a stage
 13j. Animals: CC0 models through the people's sprite pass
+13k. The calendar
+13l. The feast
 14. Credits and licences
 
 ---
@@ -375,6 +377,10 @@ The common room (the cellar arch, the counter and bottles, two tables of drinker
 window, the gallery with six painted doors and the stair) and a woman's room upstairs, dressed for whoever he goes up
 with. Wanda, Róża, Nadia, Hanna, Lena, Agata, a docker and a League clerk. §13i.
 
+**The feast** (`g46_feast.js`, people `g47_cast_feast.js`): the throne room's hall dressed for the festival's last night: the
+high table on the dais, the lower tables, the sideboard, the Swan Cup, the Salamanders in the hall, the death of King
+Gniewomir. Reached through the bedchamber's door on festival day 3. §13k, §13l.
+
 **The cast** (`g40_cast.js`): the king (dark coat, fur collar, white tabard, the crown once he takes it), the queen
 (blue gown and shawl, small crown, arms folded), the steward (long green robe, gold sash, a scroll), two guards (red
 livery over mail, white tabard with the green swan, kettle hats, spears), Ser Bogdan the commander (fur collar,
@@ -417,7 +423,11 @@ ranger and peasant outfits for both bodies, 8 hairstyles.
   Steps: `["wait", ms]`, `["key", code, holdMs]`, `["press", code]`, `["tap", x, y]`, `["eval", "js"]`, `["shot", "name"]`.
   Env: `W`, `H` (CSS px), `DPR`, `TOUCH=1`. Console messages and page errors are printed.
 - `?test` keeps the drawing buffer and runs the game clock in fixed 1/60 s steps to keep pace with real time
-  (software WebGL runs at a few frames per second). `SCENE.step(n, dir)` advances n steps with a held direction and
+  (software WebGL runs at a few frames per second). It catches up at most 0.5 s per frame; at full size a software frame
+  takes about 1.5 s, so long scenes (the feast) run three times slower than real time. `&catchup=4` lets a frame step up
+  to 4 s, and `W=800 H=357 DPR=1` makes frames several times cheaper: use both for anything scripted and long, and run it
+  in the background. A screenshot itself takes a second or more, so fast motion (the joust at 9 m/s) has left the frame
+  by the time it's grabbed: slow the motion for the test (`LISTS.COURSE_S`) rather than trusting the frame. `SCENE.step(n, dir)` advances n steps with a held direction and
   returns the player's state, for exact positioning.
 - Driving a conversation from a test:
   `(async()=>{ for(let i=0;i<160 && !SCENE.modal;i++){ SCENE.advance(); await new Promise(r=>setTimeout(r,400)); } })()`.
@@ -979,6 +989,95 @@ inner group's z. Signs were found by eye on this rig; another rig needs its own.
 pet with the marker (`DRV.use(id)`), wait for `beast.held || beast.one` and shoot the reaction, then run it out with the lock
 back to 0. For the skinning, compare the rest box (`beast.rest`) with the skinned box of the live pose: a box hundreds of
 metres wide is the bind matrix.
+
+## 13k. The calendar (`game/g45_cal.js`)
+
+`CAL` holds which day it is and what kind: `phase` (`'court'` the demo's first day · `'festival'` days 1–3 · `'crisis'` the
+twelve days after the feast), `day`, `fest`, `crisis`, and the feast's results (`feastDone`, `konrad`, `fire`, `toast`,
+`doors`). All saved (`GAME.state.cal`); a save from before the calendar that has festival state loads as festival day 1.
+- **A day ends in the bed.** The bedchamber's bed is `CAL.bed()`: a choice strip of *Sleep until morning*, *Go to bed with
+  Halina (18+)* (the crown goes back on its cushion first; then `NIGHT.start`, the 18+ gate as ever), *Not yet*. Both ways
+  call `CAL.next()` inside the fade (`CAL.sleep`, or `NIGHT.end` when the night was slept), then `CAL.morning()` puts up
+  the day's caption after it. From the court day the next morning is festival day 1, with a bridging card ("Four weeks
+  later…"): chapters 1–2's weeks aren't built.
+- **The festival's days.** `CAL.notYet(what)` says what isn't on today: the melee and the archery from day 2, the joust and
+  the Queen of Love and Beauty on day 3 (the lists' interactions go through it; the marshal says when). Outside the festival
+  phase, e.g. a `?room=lists` test link, everything is open. The throne room has no court in festival week
+  (`COURT.sit` declines, the caption says so).
+- **The feast is day 3's night.** On day 3 the bed declines and the bedchamber's door opens on `FEAST` (§13l) instead of
+  the throne room. The feast's end sets `phase 'crisis'`, `crisis 1`, and wakes the king in the bedchamber.
+- **The map by phase.** `MAP.onOpen(places)` (an engine hook in `e11_map.js`, called each time the map opens) locks the
+  meadow pin on the court day, labels it, and in the crisis sends it to the Krasnian camp instead of the fair.
+- **The weather.** `SCENE.afterEnter(room)` (an engine hook at the end of `SCENE.enter`) adds rain in the crisis: rain on
+  the glass indoors (`rainGlass` 0.75), rain outdoors (`rain` 0.8, no birds).
+
+## 13l. The feast (`game/g46_feast.js`, `g47_cast_feast.js`, painters in `g11_paint_throne.js`)
+
+**One hall, two rooms.** The throne room's construction is now `THRONE.hall(room, o)`; `THRONE.build` calls it, and so does
+`FEAST.build`, a room of its own (`'feast'`, the same dimensions), with `o.feast` leaving out the steward's lectern and its
+candle stand and the council table, where the feast puts the sideboard and a lower table. The hall's interactions are
+filtered after (`window`, `books`, `banner`, `doors`, `halberds` stay; no `arch` out, no `throne`, no `map`). Its own
+`onEnter`, its own cast homes, nothing shared with court at runtime.
+
+**The dressing** (`FEAST.dress`):
+- the high table on the dais, x −1.3..4.3, z 1.75..2.35, top 1.23: a `BUILD.box` from the floor through the dais steps,
+  whose front face is a painted cloth (`feastFrontHigh`, 180 × 40 px for the whole 5.6 × 1.23 m face: `BUILD.box`'s
+  `front` stretches 0..1 over it, so the painter draws it at full size: linen folds, a scalloped hem, the red runner with
+  a gold border and the swan); `feastFoodHigh` (a 178 × 16 strip of loaves, fruit, roasts, gold cups, a jug, a pie) stands
+  on the cloth behind the cup; three candles and a warm point light;
+- two lower tables in the side bays (x −10.4..−6.0 and 6.8..10.8, z 1.0..1.5, top 0.78) with `feastFrontLow` and
+  `feastFoodLow`, two candles and a light each; painted townsfolk (`crowdA`) at the right-hand one;
+- the cupbearer's sideboard where the lectern stood (x −4.5..−3.3), Krasna's banners beside the swan's, two lute players
+  by the great doors;
+- the Swan Cup (`FEAST.makeCup`): a gilt lathe bowl on a stem with a handle each side (the two lips), 0.35 m (larger than
+  life, so it reads at 32 px/m), added to the room's group *after* `BUILD.end`, because it moves (`FEAST.lift`);
+- the fire-spitters' three blast cards and the flash light (so `FAIR.blast` works here as on the fair's stage), and a cold
+  `storm` light for the lightning.
+
+**Seats.** A seat is a home with `sit` (`g47`): the high table's at z 1.45 on the dais's top step (0.48) with 0.45 stools
+(`sit.y` 0.93); the lower tables' at z 0.72 on the floor (0.47). The table's cloth front, 0.9 m nearer the lens, hides the
+legs. Halina, Dorota, Gniewomir and Wiesława at the high table either side of the king's place (x 1.5, in front of the
+throne); Bogdan, Jarek and the masked Konrad at the left table; Mściwoj and Ottokar at the right; Ilka standing by the
+sideboard, Jacek the cupbearer beside it, the steward at the dais's right. Ilka and the steward had a single `home`; with a
+second they need both in `homes` (as Dorota did, §13h). The Salamanders wait by the doors, hidden until their turn.
+Konrad's half-mask is `spec.mask` (`Actor.mask`, a black band at the eyes with a nose-guard, `actor.maskMesh`): hide it to
+unmask. 16 actors in the room.
+
+**The night** (`FEAST.play`): the king walks the hall talking to everyone (`FEAST.TALK`, two lines each), then *Take your
+seat*: behind a fade he is seated (`Actor.sit` on `FEAST.SEAT`), the lens set to the high table (`SCENE.lens`: focus 1.5,
+dist 15.5, y 2.35, look 1.75, fov 17). Seated, he sees only seated markers, so the hall's markers drop out for the night by
+themselves. Then, each beat a few lines and the player's choice where the king speaks (`FEAST.pick`: the strip, then the
+king says what was picked):
+1. the steward: guest-right for the masked knight (*let him eat* / *send him out*, who then walks out of the hall) → `CAL.konrad`;
+   the fire-spitters indoors (*let them* / *not indoors*) → `CAL.fire` (STORY.md §6.3: these change which clues exist);
+2. the first course; Gniewomir's cough;
+3. the distraction: Ilka is hidden from her place for its length. The fire: the sisters walk in from the doors, three blasts
+   and then all three (`FAIR.blast`), out again. The unmasking: Konrad walks round his table's end to the floor, takes off
+   the mask on the reach's event (a gasp), names himself; Mściwoj stands; the player answers. Neither: a song.
+4. the loving cup: Jacek fills it; *host first, the left lip*; the player's toast (`CAL.toast`); the cup comes up to the king
+   (`FEAST.lift`: up, a tilt toward the drinker, down where he sets it), then to Gniewomir; he laughs, coughs, and dies:
+   `FEAST.die`, a puppet on the sitting clip (below). Music out, the crowd out, a thud, a gasp; Wiesława; thunder, the
+   `storm` light flashed twice, rain on the glass, the caption.
+5. Mściwoj crosses the hall to his father; the doors (`CAL.doors`: *close them* / *open them*, and the guests who leave);
+   twelve days; the king's answer; fade; *Chapter Four · The Dead King*; Gniewomir offstage everywhere from now; morning.
+
+**A death on the sitting clip** (`FEAST.die`). The puppet samples `Sitting_Idle_Loop` into `D` (each bone's world-space turn
+from the bind pose) and then turns, about the body's X axis, every bone in a subtree: spine_01's (+0.78 rad: he folds
+forward over the table), neck_01's (+0.45 more: the head drops), the right upper arm's (−0.75: the arm forward along the
+cloth toward the cup). Turning *every* bone of a subtree by the same premultiplied quaternion moves the subtree rigidly
+about its root joint; turning only its root would leave the children's world rotations where they were. `FEAST.sub(i)`
+lists a bone's subtree from the skeleton's parents once.
+
+**Measured** with §13b's eval: 100 meshes, 22 lights (2 shadow), 475 draw calls, sixteen people in the hall (the throne room,
+built by the same `THRONE.hall`, still measures 84, 18, 286 after the refactor). Headless, the whole night ran from the seat
+to the bedchamber with the first choice at every strip: the fire, the unmasking, the toast, the death, the doors, the
+ultimatum, `CAL` saved as `crisis 1`, the lock back at 0.
+
+**Testing it.** `?test&room=feast&catchup=4` with `CAL.phase = 'festival'; CAL.fest = 3`, then `DRV.use('seat')` and run the
+strip with the first choice each time until `CAL.feastDone` and the bedchamber. The night is long in game time (walks across
+the hall), and game time runs at real time only if the loop can catch up: `&catchup=N` (g90) lets a test frame step up to
+N seconds of game time where the default is 0.5, which a software renderer at 1.5 s a frame needs. Run it at
+`W=800 H=357 DPR=1` and in the background.
 
 ## 14. Credits and licences
 

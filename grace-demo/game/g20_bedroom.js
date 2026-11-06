@@ -68,7 +68,7 @@ BEDROOM.build = function () {
   // the two front curtains can be tied back to the posts (BEDROOM.tieBack), so they're kept out of the static batch
   room.bedCurtains = [[BUILD.card(T.goldCurtain, B0 + 0.28, 0, BZ1 + 0.04, { h: BT - 0.05, w: 0.7, dyn: true }), B0 + 0.28, -1], [BUILD.card(T.goldCurtain, B1 - 0.28, 0, BZ1 + 0.04, { h: BT - 0.05, w: 0.7, dyn: true }), B1 - 0.28, 1]];
   BUILD.card(T.goldCurtain, B1 + 0.05, 0, BZ0 + 0.35, { h: BT - 0.05, w: 0.6, ry: Math.PI / 2 });
-  room.interact('bed', -7.0, 1.5, room.KZ, 1.1, () => { if (!SCENE.player.crownMesh.visible) NIGHT.start(); else say('bed'); }).label = 'Retire for the night (18+)';
+  room.interact('bed', -7.0, 1.5, room.KZ, 1.1, () => CAL.bed()).label = 'Go to bed (end the day)';   // sleep, or the night with Halina (18+): CAL (g45)
   // night only: a candle on the bedside chest, lit when the queen comes to bed
   room.lights.bedside = BUILD.light(new THREE.PointLight(0xffa050, 0, 0, 2), -5.55, 1.35, 2.25, { flicker: 8.1 }); room.lights.bedside.userData.night = 6.5;
 
@@ -138,6 +138,8 @@ BEDROOM.build = function () {
   room.interact('door', 10.4, 2.4, room.KZ, 1.0, () => {
     const K = SCENE.player;
     if (!K.crownMesh.visible) { say('doorNo'); SCENE.pulse(room.crownIt); return; }
+    if (CAL.festival() && CAL.fest === 3 && !CAL.feastDone) {   // the festival's last night: the hall is dressed for the feast (g46)
+      SCENE.lock++; SCENE.say(K, 'The feast. Two kings, one cup, and three hundred Krasnians who want to see if we can hold our wine.').then(() => { SCENE.lock--; SCENE.go('feast', { x: FEAST.ENTRY, face: 1 }); }); return; }
     SCENE.lock++; SCENE.say(K, L.doorGo[0]).then(() => { SCENE.lock--; SCENE.go('throne', { x: THRONE.ENTRY, face: 1 }); });
   });
 

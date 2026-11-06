@@ -194,6 +194,19 @@ AUDIO.sfx = function (name, o) {
   else if (name === 'pant') { for (let i = 0; i < 6; i++) AUDIO.burst(out, t + i * 0.2, 0.12, 'bandpass', i % 2 ? 1300 : 1700, 1.2, (i % 2 ? 0.16 : 0.22) * gain, AUDIO.N.pink); }
   // the festival: a crowd's cheer (a swell of voices and claps), a fire-spitter's blast, a herald's fanfare, a lance
   // breaking on a shield, a horse's hooves (one stride: call it per stride)
+  else if (name === 'cough') {   // a dry cough: three short bursts of throat noise, each with a falling pitched edge
+    for (let i = 0; i < (o.n || 3); i++) { const ti = t + i * (0.22 + Math.random() * 0.06), os = c.createOscillator(), g = c.createGain(); os.type = 'sawtooth';
+      os.frequency.setValueAtTime(150 * (o.pitch || 1), ti); os.frequency.exponentialRampToValueAtTime(95 * (o.pitch || 1), ti + 0.14);
+      g.gain.setValueAtTime(0.0001, ti); g.gain.linearRampToValueAtTime(0.16 * gain, ti + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, ti + 0.16);
+      const bp = AUDIO.filt('bandpass', 700, 1.2); AUDIO.chain(os, bp, g, out); os.start(ti); os.stop(ti + 0.18);
+      AUDIO.burst(out, ti, 0.13, 'bandpass', 1500 + Math.random() * 500, 0.9, 0.55 * gain, AUDIO.N.pink); } }
+  else if (name === 'gasp') {   // a hall drawing breath at once: a quick swell of breathy noise that stops dead
+    const d = o.dur || 0.7, s = c.createBufferSource(); s.buffer = AUDIO.N.pink; const bp = AUDIO.filt('bandpass', 1300, 0.7), g = c.createGain();
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.55 * gain, t + d * 0.6); g.gain.linearRampToValueAtTime(0, t + d);
+    AUDIO.chain(s, bp, g, out); s.start(t, Math.random()); s.stop(t + d + 0.05); }
+  else if (name === 'clink') {   // two cups, or a cup on a board: bright pings that ring and fade
+    for (const [f, dl] of [[2350, 0], [3120, 0.012], [4700, 0.004]]) { const os = c.createOscillator(), g = c.createGain(); os.type = 'sine'; os.frequency.value = f * (o.pitch || 1);
+      g.gain.setValueAtTime(0.0001, t + dl); g.gain.linearRampToValueAtTime(0.12 * gain, t + dl + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + dl + 0.6); os.connect(g); g.connect(out); os.start(t + dl); os.stop(t + dl + 0.65); } }
   else if (name === 'cheer') { const d = o.dur || 2.6, s = c.createBufferSource(); s.buffer = AUDIO.N.pink; s.loop = true; const bp = AUDIO.filt('bandpass', 950, 0.55), g = c.createGain();
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.5 * gain, t + 0.35); g.gain.linearRampToValueAtTime(0.38 * gain, t + d * 0.55); g.gain.linearRampToValueAtTime(0, t + d);
     AUDIO.chain(s, bp, g, out); s.start(t, Math.random() * 2); s.stop(t + d + 0.1);

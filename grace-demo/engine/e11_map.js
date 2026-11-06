@@ -17,6 +17,7 @@ MAP.open = function () {
   if (MAP.open_ || !MAP.places.length) return;
   if (!MAP.painted) { const p = new Pix(MAP.W, MAP.H), cv = $('mapCanvas'); MAP.paint(p); cv.width = MAP.W; cv.height = MAP.H; cv.getContext('2d').putImageData(new ImageData(p.d, MAP.W, MAP.H), 0, 0); MAP.painted = true;
     for (const pl of MAP.places) { pl.el.style.left = (pl.x / MAP.W * 100) + '%'; pl.el.style.top = (pl.y / MAP.H * 100) + '%'; } }   // the painter may move pins (onto the photographed castle)
+  if (MAP.onOpen) MAP.onOpen(MAP.places);   // the game can lock or relabel pins for the day (the calendar: the meadow only in the festival)
   MAP.open_ = true; SCENE.modal = true; $('map').hidden = false; AUDIO.sfx('page', { gain: 0.8 });
   MAP.cur = SCENE.room && SCENE.room.id; for (const pl of MAP.places) { pl.el.classList.toggle('here', pl.room === MAP.cur); pl.el.disabled = !!pl.locked; }
   MAP.prev = AUDIO.cur && AUDIO.cur.name; if (MAP.music) AUDIO.playMusic(MAP.music, 1.2);

@@ -49,10 +49,12 @@ LISTS.build = function () {
   // the jousters are animals and knights of the cast (game/g44): LISTS.mount puts each knight in his saddle
   room.shards = []; for (let i = 0; i < 12; i++) { const s = BUILD.card(T.shard, 0, 0, 0, { cast: false, dyn: true, s: 1.4 }); s.visible = false; room.shards.push({ me: s, v: new THREE.Vector3(), spin: 0 }); }
   room.downed = BUILD.card(T.knightDown, 0, 0, -2.0, { cast: false, dyn: true }); room.downed.visible = false;
-  room.interact('joust', 4.6, 2.8, KZ, 0.8, () => LISTS.joust(room)).label = 'Watch the joust';
-  room.interact('duel', 0.0, 2.8, KZ, 0.7, () => LISTS.duel(room)).label = 'Watch the duel';
+  // each bout has its day in the festival week (CAL.notYet, g45): before it, the marshal says when
+  const when = (what, fn) => () => { const no = CAL.notYet(what); if (no) { SCENE.say(CAST.A.marshal || SCENE.player, no); return; } fn(); };
+  room.interact('joust', 4.6, 2.8, KZ, 0.8, when('joust', () => LISTS.joust(room))).label = 'Watch the joust';
+  room.interact('duel', 0.0, 2.8, KZ, 0.7, when('duel', () => LISTS.duel(room))).label = 'Watch the duel';
   room.interact('favour', 7.2, 2.6, KZ, 0.6, () => LISTS.favour()).label = 'Give your favour to a knight';
-  room.interact('loveQueen', -10.2, 2.6, KZ, 0.6, () => LISTS.loveQueen()).label = 'Crown the Queen of Love and Beauty';
+  room.interact('loveQueen', -10.2, 2.6, KZ, 0.6, when('loveQueen', () => LISTS.loveQueen())).label = 'Crown the Queen of Love and Beauty';
   /* bunting high over the stands, the near side's racks and barrels */
   FEST.bunting(-14, -6, -8.4, 5.6); FEST.bunting(6, 14, -8.4, 5.6);
   BUILD.card(T.crowdA, -2, 0, -10.6, { w: 14, h: 1.25, cast: false });

@@ -53949,7 +53949,8 @@ class Actor {
     if (S.tabard) this.tabard(S.tabard);
     this.outer = inner.children.slice(n0); this.clothes.push(...this.outer);
     this.crownMesh = Actor.crown(S.crown && S.crown.k || 1); this.attachHead(this.crownMesh, S.crown && S.crown.y || 0.135); this.crownMesh.visible = !!(S.crown && S.crown.worn);
-    if (S.helmet) { const hm = Actor.helmet(S.helmet.col); this.attachHead(hm, 0.11); }
+    if (S.helmet) { const hm = Actor.helmet(S.helmet.col); this.attachHead(hm, 0.11); this.helmetMesh = hm; }
+    if (S.mask) { this.maskMesh = Actor.mask(S.mask.col); this.attachHead(this.maskMesh, S.mask.y || 0.07); }   // a half-mask over the eyes (the Black Swan Knight at the feast); hide it to unmask
     if (S.prop) this.prop(S.prop);
     if (S.child) { bones[I.Head].scale.setScalar(S.child.head || 1.2); if (S.child.neck) bones[I.neck_01].scale.setScalar(S.child.neck); }   // children: a bigger head on a smaller body
     root.traverse((o) => o.layers.set(this.layer)); root.visible = true; if (this.propObj) this.propObj.traverse((o) => o.layers.set(this.layer));
@@ -54319,6 +54320,12 @@ Actor.crown = function (k) {
   const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.014), new THREE.MeshStandardMaterial({ color: 0xc02020, roughness: 0.2, emissive: 0x400000 })); gem.position.set(0, 0.0, 0.108); grp.add(gem);
   grp.scale.setScalar(k); return grp;
 };
+Actor.mask = function (col) {   // a black half-mask: a band round the front of the head at the eyes, with a little beak of a nose-guard
+  const grp = new THREE.Group(), m = new THREE.MeshStandardMaterial({ color: col || 0x111114, roughness: 0.4, metalness: 0.3, side: THREE.DoubleSide });
+  const band = new THREE.Mesh(new THREE.CylinderGeometry(0.104, 0.1, 0.07, 14, 1, true, -1.25, 2.5), m); grp.add(band);
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.018, 0.06, 4), m); nose.rotation.x = Math.PI / 2 + 0.5; nose.position.set(0, -0.02, 0.105); grp.add(nose);
+  return grp;
+};
 Actor.helmet = function (col) {
   const grp = new THREE.Group(), steel = new THREE.MeshStandardMaterial({ color: col || 0x9aa2ae, roughness: 0.35, metalness: 0.8 });
   const dome = new THREE.Mesh(new THREE.SphereGeometry(0.118, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), steel); grp.add(dome);
@@ -54366,6 +54373,7 @@ SCENE.enter = function (id, at) {
   R.r.shadowMap.needsUpdate = true;
   SCENE.camX = SCENE.camGoal(true);
   if (room.onEnter) room.onEnter(at);
+  if (SCENE.afterEnter) SCENE.afterEnter(room, at);   // the game's word on every room (the calendar: rain on the glass in the crisis weeks)
 };
 SCENE.go = async function (id, at) {
   SCENE.lock++; SCENE.dir = 0; if (SCENE.player) { SCENE.player.target = null; }
@@ -54740,6 +54748,19 @@ AUDIO.sfx = function (name, o) {
   else if (name === 'pant') { for (let i = 0; i < 6; i++) AUDIO.burst(out, t + i * 0.2, 0.12, 'bandpass', i % 2 ? 1300 : 1700, 1.2, (i % 2 ? 0.16 : 0.22) * gain, AUDIO.N.pink); }
   // the festival: a crowd's cheer (a swell of voices and claps), a fire-spitter's blast, a herald's fanfare, a lance
   // breaking on a shield, a horse's hooves (one stride: call it per stride)
+  else if (name === 'cough') {   // a dry cough: three short bursts of throat noise, each with a falling pitched edge
+    for (let i = 0; i < (o.n || 3); i++) { const ti = t + i * (0.22 + Math.random() * 0.06), os = c.createOscillator(), g = c.createGain(); os.type = 'sawtooth';
+      os.frequency.setValueAtTime(150 * (o.pitch || 1), ti); os.frequency.exponentialRampToValueAtTime(95 * (o.pitch || 1), ti + 0.14);
+      g.gain.setValueAtTime(0.0001, ti); g.gain.linearRampToValueAtTime(0.16 * gain, ti + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, ti + 0.16);
+      const bp = AUDIO.filt('bandpass', 700, 1.2); AUDIO.chain(os, bp, g, out); os.start(ti); os.stop(ti + 0.18);
+      AUDIO.burst(out, ti, 0.13, 'bandpass', 1500 + Math.random() * 500, 0.9, 0.55 * gain, AUDIO.N.pink); } }
+  else if (name === 'gasp') {   // a hall drawing breath at once: a quick swell of breathy noise that stops dead
+    const d = o.dur || 0.7, s = c.createBufferSource(); s.buffer = AUDIO.N.pink; const bp = AUDIO.filt('bandpass', 1300, 0.7), g = c.createGain();
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.55 * gain, t + d * 0.6); g.gain.linearRampToValueAtTime(0, t + d);
+    AUDIO.chain(s, bp, g, out); s.start(t, Math.random()); s.stop(t + d + 0.05); }
+  else if (name === 'clink') {   // two cups, or a cup on a board: bright pings that ring and fade
+    for (const [f, dl] of [[2350, 0], [3120, 0.012], [4700, 0.004]]) { const os = c.createOscillator(), g = c.createGain(); os.type = 'sine'; os.frequency.value = f * (o.pitch || 1);
+      g.gain.setValueAtTime(0.0001, t + dl); g.gain.linearRampToValueAtTime(0.12 * gain, t + dl + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + dl + 0.6); os.connect(g); g.connect(out); os.start(t + dl); os.stop(t + dl + 0.65); } }
   else if (name === 'cheer') { const d = o.dur || 2.6, s = c.createBufferSource(); s.buffer = AUDIO.N.pink; s.loop = true; const bp = AUDIO.filt('bandpass', 950, 0.55), g = c.createGain();
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.5 * gain, t + 0.35); g.gain.linearRampToValueAtTime(0.38 * gain, t + d * 0.55); g.gain.linearRampToValueAtTime(0, t + d);
     AUDIO.chain(s, bp, g, out); s.start(t, Math.random() * 2); s.stop(t + d + 0.1);
@@ -55131,6 +55152,7 @@ MAP.open = function () {
   if (MAP.open_ || !MAP.places.length) return;
   if (!MAP.painted) { const p = new Pix(MAP.W, MAP.H), cv = $('mapCanvas'); MAP.paint(p); cv.width = MAP.W; cv.height = MAP.H; cv.getContext('2d').putImageData(new ImageData(p.d, MAP.W, MAP.H), 0, 0); MAP.painted = true;
     for (const pl of MAP.places) { pl.el.style.left = (pl.x / MAP.W * 100) + '%'; pl.el.style.top = (pl.y / MAP.H * 100) + '%'; } }   // the painter may move pins (onto the photographed castle)
+  if (MAP.onOpen) MAP.onOpen(MAP.places);   // the game can lock or relabel pins for the day (the calendar: the meadow only in the festival)
   MAP.open_ = true; SCENE.modal = true; $('map').hidden = false; AUDIO.sfx('page', { gain: 0.8 });
   MAP.cur = SCENE.room && SCENE.room.id; for (const pl of MAP.places) { pl.el.classList.toggle('here', pl.room === MAP.cur); pl.el.disabled = !!pl.locked; }
   MAP.prev = AUDIO.cur && AUDIO.cur.name; if (MAP.music) AUDIO.playMusic(MAP.music, 1.2);
@@ -56295,6 +56317,41 @@ PX.def('bench', () => PX.drawers(60, 14, 1, 0x4a2616));
 /* the runner turned 90°, for the strip of carpet that climbs the dais */
 PX.def('runnerZ', () => { const src = PX.T.runner.image, cv = document.createElement('canvas'); cv.width = 32; cv.height = 32; const g = cv.getContext('2d');
   g.translate(16, 16); g.rotate(Math.PI / 2); g.drawImage(src, -16, -16); const p = new Pix(32, 32); p.d.set(g.getImageData(0, 0, 32, 32).data); return p.tex({ repeat: true, aniso: 4 }); });
+/* ---- the feast (game/g46): the great hall dressed for the festival's last night. Linen to the floor with a red runner and
+   a gold swan, food along the tables at 32 px/m, the sideboard where the cupbearer keeps the wine */
+PX.feastFront = function (W, H, runner) {   // a tablecloth's front, W x H px for the whole face of the table box
+  const p = new Pix(W, H), lin = [0xb8ae98, 0xd4ccb6, 0xe8e0cc, 0xf4eedc];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const fold = Math.sin(x * 0.55 + Math.sin(y * 0.2) * 0.6), k = y < 3 ? 3 : fold > 0.75 ? 3 : fold < -0.7 ? 0 : fold < -0.2 ? 1 : 2;
+    p.set(x, y, lin[k]); }
+  for (let x = 0; x < W; x++) { p.set(x, 0, 0xfaf6ea); p.set(x, 3, 0xa89e88); if (x % 6 < 3) p.set(x, H - 1, 0x9a907a); else p.set(x, H - 2, 0xc8c0aa); }   // the top edge, a scalloped hem
+  if (runner) { const cx = W / 2 | 0, rw = runner;   // the runner down the middle, gold-bordered, a swan on it
+    for (let y = 0; y < H - 3; y++) for (let x = cx - rw; x <= cx + rw; x++) p.set(x, y, Math.abs(x - cx) >= rw - 1 ? 0xd8a43a : C.mul(0x9a1a1e, 0.9 + 0.1 * hash(x, y, 77)));
+    for (let x = cx - rw; x <= cx + rw; x++) p.set(x, H - 3, x % 2 ? 0xd8a43a : 0x6a1014);
+    const sy = Math.min(H - 10, 14); p.ell(cx, sy + 3, 4, 2, 0xf0e8d8); for (let y = sy - 4; y < sy + 2; y++) p.set(cx + 3, y, 0xf0e8d8); p.rect(cx + 3, sy - 5, 2, 2, 0xf0e8d8); p.set(cx + 5, sy - 4, 0xd8a43a); }
+  return p.tex({ mip: false });
+};
+PX.feastFood = function (W, H, high) {   // what stands on a feast table, left to right, bottoms on the cloth
+  const p = new Pix(W, H), gold = [0x7a5a1a, 0xb8902e, 0xe8c050, 0xfff0a0], pew = [0x4a4a52, 0x7a7a84, 0xa8a8b2, 0xd0d0d8];
+  const cup = (x, M) => { p.rect(x, H - 7, 3, 4, M[1]); p.set(x, H - 7, M[3]); p.vl(x + 1, H - 3, H - 2, M[0]); p.hl(x - 1, x + 3, H - 1, M[1]); };
+  const loaf = (x) => { p.ell(x, H - 3, 4, 2.4, 0x9a5a22); p.ell(x - 1, H - 4, 3, 1.4, 0xc8843a); p.hl(x - 2, x + 1, H - 4, 0xe0a858); };
+  const platter = (x, w) => { p.ell(x, H - 1.5, w, 1.4, 0xd8d0c0); p.hl(x - w + 1, x + w - 1, H - 1, 0xa8a090); };
+  const roast = (x) => { platter(x, 9); p.ell(x, H - 5, 7, 3.6, 0x6a3214); p.ell(x - 1, H - 6, 5, 2.2, 0x9a5022); p.hl(x - 4, x + 2, H - 7, 0xc8783a); p.set(x + 7, H - 6, 0xe8d0a0); p.set(x - 6, H - 4, 0x3a1a0c); };
+  const fruit = (x) => { p.ell(x, H - 2, 5, 1.4, 0x8a6a3a); for (const [dx, c] of [[-3, 0xb8241e], [-1, 0x7a9a2a], [1, 0xc8a02a], [3, 0x6a2a6a], [0, 0xa8241e]]) p.disc(x + dx, H - 4 - (dx === 0 ? 2 : 0), 1.4, c); };
+  const jug = (x) => { p.ell(x, H - 5, 3, 4.4, 0x5a6a7a); p.rect(x - 1, H - 11, 3, 3, 0x5a6a7a); p.set(x + 3, H - 7, 0x3a4a5a); p.set(x - 1, H - 6, 0x8a9aaa); };
+  const pie = (x) => { p.ell(x, H - 3, 5, 2.4, 0xb8742a); p.hl(x - 4, x + 4, H - 5, 0xd89a4a); for (let i = -3; i <= 3; i += 2) p.set(x + i, H - 4, 0x8a4a1a); };
+  const items = high ? [[loaf, 8], [fruit, 20], [cup, 31, gold], [jug, 40], [roast, 56], [cup, 70, gold], [pie, 82], [loaf, 96], [cup, 106, gold], [fruit, 118], [roast, 136], [cup, 150, gold], [loaf, 162], [fruit, 172]]
+    : [[loaf, 7], [cup, 16, pew], [pie, 27], [jug, 38], [cup, 46, pew], [fruit, 58], [loaf, 70], [cup, 80, pew], [roast, 96], [cup, 110, pew], [loaf, 120], [fruit, 130]];
+  for (const [f, x, M] of items) if (x < W - 4) f(x, M);
+  return p.outline(null, 0.55).tex({ mip: false });
+};
+for (const [k, f] of Object.entries({
+  feastFrontHigh: () => PX.feastFront(180, 40, 9), feastFrontLow: () => PX.feastFront(132, 26, 0),
+  feastFoodHigh: () => PX.feastFood(178, 16, true), feastFoodLow: () => PX.feastFood(134, 14, false),
+  sideboard: () => { const W = 40, H = 30, p = new Pix(W, H);   // the cupbearer's sideboard: two doors, iron hinges, a carved rail
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) p.set(x, y, C.mul(0x4a2a16, 0.86 + 0.14 * hash(x >> 1, y, 91) - (x % 20 === 0 || y < 3 ? 0.3 : 0)));
+    for (const x0 of [3, 21]) { p.rect(x0, 6, 16, 20, 0x5a3420); p.hl(x0, x0 + 15, 6, 0x7a4a2c); p.vl(x0, 6, 25, 0x2a160a); for (const y of [9, 21]) p.hl(x0 + 1, x0 + 4, y, 0x2a2a2e); p.set(x0 + 13, 16, 0xb8902e); }
+    for (let x = 1; x < W - 1; x += 3) p.set(x, 1, 0x8a5a34); return p.tex({ mip: false }); },
+})) PX.def(k, f);
 
 /* ==== game/g12_paint_study.js ==== */
 /* STUDY TEXTURES — the king's study at night: green damask, tall shelves, his father's portrait over a small hearth,
@@ -57634,7 +57691,7 @@ BEDROOM.build = function () {
   // the two front curtains can be tied back to the posts (BEDROOM.tieBack), so they're kept out of the static batch
   room.bedCurtains = [[BUILD.card(T.goldCurtain, B0 + 0.28, 0, BZ1 + 0.04, { h: BT - 0.05, w: 0.7, dyn: true }), B0 + 0.28, -1], [BUILD.card(T.goldCurtain, B1 - 0.28, 0, BZ1 + 0.04, { h: BT - 0.05, w: 0.7, dyn: true }), B1 - 0.28, 1]];
   BUILD.card(T.goldCurtain, B1 + 0.05, 0, BZ0 + 0.35, { h: BT - 0.05, w: 0.6, ry: Math.PI / 2 });
-  room.interact('bed', -7.0, 1.5, room.KZ, 1.1, () => { if (!SCENE.player.crownMesh.visible) NIGHT.start(); else say('bed'); }).label = 'Retire for the night (18+)';
+  room.interact('bed', -7.0, 1.5, room.KZ, 1.1, () => CAL.bed()).label = 'Go to bed (end the day)';   // sleep, or the night with Halina (18+): CAL (g45)
   // night only: a candle on the bedside chest, lit when the queen comes to bed
   room.lights.bedside = BUILD.light(new THREE.PointLight(0xffa050, 0, 0, 2), -5.55, 1.35, 2.25, { flicker: 8.1 }); room.lights.bedside.userData.night = 6.5;
 
@@ -57704,6 +57761,8 @@ BEDROOM.build = function () {
   room.interact('door', 10.4, 2.4, room.KZ, 1.0, () => {
     const K = SCENE.player;
     if (!K.crownMesh.visible) { say('doorNo'); SCENE.pulse(room.crownIt); return; }
+    if (CAL.festival() && CAL.fest === 3 && !CAL.feastDone) {   // the festival's last night: the hall is dressed for the feast (g46)
+      SCENE.lock++; SCENE.say(K, 'The feast. Two kings, one cup, and three hundred Krasnians who want to see if we can hold our wine.').then(() => { SCENE.lock--; SCENE.go('feast', { x: FEAST.ENTRY, face: 1 }); }); return; }
     SCENE.lock++; SCENE.say(K, L.doorGo[0]).then(() => { SCENE.lock--; SCENE.go('throne', { x: THRONE.ENTRY, face: 1 }); });
   });
 
@@ -58032,11 +58091,11 @@ const INTRO = [
 ];
 /* ---------------------------------------------------------------- the save slot */
 const GAME = {};
-GAME.reset = function () { SCENE.player.crownMesh.visible = false; COURT.reset(); CHAPEL.met = CHAPEL.queenMet = CHAPEL.priestMet = false; CHAPEL.flirt = CHAPEL.cold = 0; HUT.met = false; HUT.catPets = 0; HUT.bearSaid = false; WOOD.houndPets = 0; FEST.reset(); HOUSE.reset(); };
+GAME.reset = function () { SCENE.player.crownMesh.visible = false; COURT.reset(); CHAPEL.met = CHAPEL.queenMet = CHAPEL.priestMet = false; CHAPEL.flirt = CHAPEL.cold = 0; HUT.met = false; HUT.catPets = 0; HUT.bearSaid = false; WOOD.houndPets = 0; FEST.reset(); HOUSE.reset(); CAL.reset(); };
 GAME.state = function () { const K = SCENE.player, R0 = SCENE.room;
   return { room: R0 && R0.id !== 'exterior' ? R0.id : 'bedroom', x: K.x, crown: K.crownMesh.visible,
     court: { done: COURT.done, prosperity: COURT.prosperity, stats: COURT.stats, agents: COURT.agents.map((a) => ({ id: a.id, ap: a.ap, wound: a.wound })), items: COURT.items.map((i) => ({ id: i.id, n: i.n })) },
-    chapel: { met: CHAPEL.met, queenMet: CHAPEL.queenMet, priestMet: CHAPEL.priestMet, flirt: CHAPEL.flirt, cold: CHAPEL.cold }, hut: { met: HUT.met, catPets: HUT.catPets, bearSaid: !!HUT.bearSaid }, wood: { houndPets: WOOD.houndPets }, fest: FEST.state(), house: HOUSE.state() }; };
+    chapel: { met: CHAPEL.met, queenMet: CHAPEL.queenMet, priestMet: CHAPEL.priestMet, flirt: CHAPEL.flirt, cold: CHAPEL.cold }, hut: { met: HUT.met, catPets: HUT.catPets, bearSaid: !!HUT.bearSaid }, wood: { houndPets: WOOD.houndPets }, fest: FEST.state(), house: HOUSE.state(), cal: CAL.state() }; };
 GAME.save = function () { if (SCENE.room && SCENE.room.id !== 'exterior' && !CUT.playing) SAVE.put(GAME.state()); };
 GAME.load = function (s) {
   const K = SCENE.player; K.crownMesh.visible = !!s.crown;
@@ -58046,7 +58105,8 @@ GAME.load = function (s) {
   if (s.chapel) { CHAPEL.met = !!s.chapel.met; CHAPEL.queenMet = !!s.chapel.queenMet; CHAPEL.priestMet = !!s.chapel.priestMet; CHAPEL.flirt = s.chapel.flirt || 0; CHAPEL.cold = s.chapel.cold || 0; }
   if (s.hut) { HUT.met = !!s.hut.met; HUT.catPets = s.hut.catPets || 0; HUT.bearSaid = !!s.hut.bearSaid; }
   if (s.wood) WOOD.houndPets = s.wood.houndPets || 0;
-  FEST.load(s.fest); HOUSE.load(s.house);
+  FEST.load(s.fest); HOUSE.load(s.house); CAL.load(s.cal);
+  if (!s.cal && s.fest && (s.fest.jousts || s.fest.bearFreed || s.fest.favour)) { CAL.phase = 'festival'; CAL.fest = 1; }   // a save from before the calendar, already at the festival
 };
 /* ---------------------------------------------------------------- credits */
 const CREDITS = {
@@ -58725,8 +58785,9 @@ NIGHT.end = async function (slept) {
   K.stand(); K.x = -6.4; K.z = room.KZ; K.y = 0; K.face = 1; K.yaw = 0.42; K.lookYaw = null;
   const i = room.tick.indexOf(NIGHT.tick); if (i >= 0) room.tick.splice(i, 1);
   NIGHT.tweens = []; NIGHT.on = false; SCENE.camX = SCENE.camGoal(); SCENE.lock--;
-  if (slept) SCENE.caption('Morning', 'Halina rose before you. Her side of the bed is still warm.');
+  if (slept) await CAL.next();   // the night is the day's end (g45): morning is the next day
   await NIGHT.fade(false); if (NIGHT.resolve) NIGHT.resolve();
+  if (slept) { if (CAL.caption() || CAL.bridge) CAL.morning(); else SCENE.caption('Morning', 'Halina rose before you. Her side of the bed is still warm.'); }
 };
 /* ---------------------------------------------------------------- what they say in bed: lines on entering a position,
    then passing remarks by how far gone they are (k < 0.35, < 0.7, beyond) */
@@ -59279,8 +59340,11 @@ THRONE.LINES = {
   map: ['The kingdom on one sheet of calfskin. It looks so manageable from here.', 'Somebody has drawn a little gallows over the ford. I suspect the steward.'],
   doors: ['The petitioners come through there.'], halberds: ['Polished every morning, used never. Let it stay that way.'],
 };
-THRONE.build = function () {
-  const room = BUILD.begin(this), T = PX.T, X0 = room.X0, X1 = room.X1, CE = room.CEIL, KZ = room.KZ, L = room.LINES, TX = room.TX;
+THRONE.build = function () { const room = BUILD.begin(this); THRONE.hall(room, {}); room.update(0, 0); return BUILD.end(); };
+/* the hall itself, shared with the feast (game/g46): o.feast leaves out the steward's lectern and its candle stand, and the
+   council table, where the feast puts the sideboard and a lower table */
+THRONE.hall = function (room, o) {
+  const T = PX.T, X0 = room.X0, X1 = room.X1, CE = room.CEIL, KZ = room.KZ, L = room.LINES, TX = room.TX;
   const say = (k) => SCENE.say(SCENE.player, SCENE.cycle(k, L[k]));
   /* shell: wainscot, damask, a painted frieze, cornice, timber ceiling */
   BUILD.plane('z', X0, X1, 0, 1.4, 0, T.hallWainscot); BUILD.plane('z', X0, X1, 1.4, 5.6, 0, T.hallWall);
@@ -59312,8 +59376,8 @@ THRONE.build = function () {
   /* C — bookcase, hanging, lectern */
   BUILD.box(-6.65, -4.85, 0, 2.44, 0, 0.45, T.woodDark, { front: BUILD.std(T.bookcase) }); BUILD.box(-6.72, -4.78, 2.44, 2.54, 0, 0.5, T.woodPost);
   BUILD.card(T.folkWide, -5.75, 2.95, 0.02, { cast: false });
-  BUILD.card(T.lectern, -4.05, 0, 0.85);
-  BUILD.card(T.candleStand, -3.75, 0, 0.45, { s: 0.8 }); for (const [dx, y] of [[-0.25, 1.4], [0, 1.6], [0.25, 1.4]]) BUILD.flame(-3.75 + dx * 0.8, y, 0.46, 0.3);
+  if (!o.feast) { BUILD.card(T.lectern, -4.05, 0, 0.85);
+    BUILD.card(T.candleStand, -3.75, 0, 0.45, { s: 0.8 }); for (const [dx, y] of [[-0.25, 1.4], [0, 1.6], [0.25, 1.4]]) BUILD.flame(-3.75 + dx * 0.8, y, 0.46, 0.3); }
   room.interact('books', -5.75, 2.9, KZ, 1.0, () => say('books'));
   /* D — the dais and the throne */
   const S1 = [-2.4, 5.4, 2.5], S2 = [-1.9, 4.9, 2.1], S3 = [-1.4, 4.4, 1.7];
@@ -59343,12 +59407,12 @@ THRONE.build = function () {
   BUILD.card(T.stained, 8.2, 1.95, 0.02, { basic: true, k: 1.35, cast: false }); BUILD.glow(8.2, 3.6, 0.3, 3.0, 0x5aa0d8, 0.22);
   { const L2 = BUILD.light(new THREE.SpotLight(0x7a9ae0, 90, 0, 0.6, 0.8, 2), 8.2, 4.4, 0.35); L2.target.position.set(7.0, 0, 3.4); }
   for (const [o, w, a] of [[0, 1.1, 0.2], [-0.4, 0.6, 0.12]]) BUILD.shaft(8.2 + o, 4.6, 0.5, w, 6, a, [-0.42, -0.1, -0.3], 0x8ab4f0);
-  BUILD.box(6.9, 9.5, 0.8, 0.88, 0.45, 1.55, T.woodRed);
-  for (const x of [7.05, 9.35]) for (const z of [0.55, 1.45]) BUILD.box(x - 0.06, x + 0.06, 0, 0.8, z - 0.06, z + 0.06, T.woodPost);
-  { const g = new THREE.PlaneGeometry(1.25, 0.81); g.rotateX(-Math.PI / 2); g.translate(8.1, 0.885, 1.0); BUILD.add(new THREE.Mesh(g, BUILD.std(T.mapSheet, { rough: 0.9 })), { cast: false }); }
-  BUILD.card(T.candle, 7.3, 0.88, 1.2); BUILD.flame(7.3, 1.16, 1.205, 0.3); BUILD.card(T.goblet, 9.1, 0.88, 1.1); BUILD.card(T.books, 8.9, 0.88, 0.75, { s: 0.8 });
-  BUILD.card(T.chair, 8.2, 0, 0.25); BUILD.light(new THREE.PointLight(0xffa860, 1.6, 0, 2), 7.3, 1.35, 1.5);
-  room.interact('map', 8.2, 1.8, KZ, 1.0, () => say('map'));
+  if (!o.feast) { BUILD.box(6.9, 9.5, 0.8, 0.88, 0.45, 1.55, T.woodRed);
+    for (const x of [7.05, 9.35]) for (const z of [0.55, 1.45]) BUILD.box(x - 0.06, x + 0.06, 0, 0.8, z - 0.06, z + 0.06, T.woodPost);
+    { const g = new THREE.PlaneGeometry(1.25, 0.81); g.rotateX(-Math.PI / 2); g.translate(8.1, 0.885, 1.0); BUILD.add(new THREE.Mesh(g, BUILD.std(T.mapSheet, { rough: 0.9 })), { cast: false }); }
+    BUILD.card(T.candle, 7.3, 0.88, 1.2); BUILD.flame(7.3, 1.16, 1.205, 0.3); BUILD.card(T.goblet, 9.1, 0.88, 1.1); BUILD.card(T.books, 8.9, 0.88, 0.75, { s: 0.8 });
+    BUILD.card(T.chair, 8.2, 0, 0.25); BUILD.light(new THREE.PointLight(0xffa860, 1.6, 0, 2), 7.3, 1.35, 1.5);
+    room.interact('map', 8.2, 1.8, KZ, 1.0, () => say('map')); }
   /* F — the great doors (they open for petitioners) */
   room.doorClosed = BUILD.card(T.doorDouble, room.DOORX, 0, 0.02, { cast: false, dyn: true });
   room.doorOpen = BUILD.card(T.arch, room.DOORX, 0, 0.015, { basic: true, k: 1.2, cast: false, w: 2.06, h: 3.62, dyn: true }); room.doorOpen.visible = false;
@@ -59379,10 +59443,11 @@ THRONE.build = function () {
   room.rim = [TX, 3.2, 0.5, 0.55, 12, 0xffc890, null];
   room.shadowSrc = [TX, 6.2, 4.6, 7.5];
   BUILD.motes({ n: 120, boxes: [[-10.4, -6.5, 0.4, 4.4, 0.5, 4, 0.3], [6.8, 10.4, 0.4, 4.4, 0.5, 4, 0.25], [-12, 12, 0.6, 4.5, 1, 4, 0.25], [-11, 12, 0.4, 3.2, 5.6, 8.2, 0.2]], col: 0xd8e0ff });
-  room.update(0, 0);
-  return BUILD.end();
 };
-THRONE.onEnter = function () { if (CUT.playing) return; SCENE.caption(...this.caption); COURT.enterHall(); };
+THRONE.onEnter = function () { if (CUT.playing) return;
+  if (CAL.festival()) { COURT.greeted = true; SCENE.caption('The Throne Room', 'No court this week: everyone is at the meadow'); }   // the festival replaces court (STORY.md §4)
+  else SCENE.caption(...this.caption);
+  COURT.enterHall(); };
 /* the hall twelve years ago, the night the old king died: every torch and chandelier out, moonlight through the glass,
    one cold pool of light on the empty throne and his crown left on the seat; only the two candle stands still burn */
 THRONE.night = function (on) {
@@ -60121,10 +60186,12 @@ LISTS.build = function () {
   // the jousters are animals and knights of the cast (game/g44): LISTS.mount puts each knight in his saddle
   room.shards = []; for (let i = 0; i < 12; i++) { const s = BUILD.card(T.shard, 0, 0, 0, { cast: false, dyn: true, s: 1.4 }); s.visible = false; room.shards.push({ me: s, v: new THREE.Vector3(), spin: 0 }); }
   room.downed = BUILD.card(T.knightDown, 0, 0, -2.0, { cast: false, dyn: true }); room.downed.visible = false;
-  room.interact('joust', 4.6, 2.8, KZ, 0.8, () => LISTS.joust(room)).label = 'Watch the joust';
-  room.interact('duel', 0.0, 2.8, KZ, 0.7, () => LISTS.duel(room)).label = 'Watch the duel';
+  // each bout has its day in the festival week (CAL.notYet, g45): before it, the marshal says when
+  const when = (what, fn) => () => { const no = CAL.notYet(what); if (no) { SCENE.say(CAST.A.marshal || SCENE.player, no); return; } fn(); };
+  room.interact('joust', 4.6, 2.8, KZ, 0.8, when('joust', () => LISTS.joust(room))).label = 'Watch the joust';
+  room.interact('duel', 0.0, 2.8, KZ, 0.7, when('duel', () => LISTS.duel(room))).label = 'Watch the duel';
   room.interact('favour', 7.2, 2.6, KZ, 0.6, () => LISTS.favour()).label = 'Give your favour to a knight';
-  room.interact('loveQueen', -10.2, 2.6, KZ, 0.6, () => LISTS.loveQueen()).label = 'Crown the Queen of Love and Beauty';
+  room.interact('loveQueen', -10.2, 2.6, KZ, 0.6, when('loveQueen', () => LISTS.loveQueen())).label = 'Crown the Queen of Love and Beauty';
   /* bunting high over the stands, the near side's racks and barrels */
   FEST.bunting(-14, -6, -8.4, 5.6); FEST.bunting(6, 14, -8.4, 5.6);
   BUILD.card(T.crowdA, -2, 0, -10.6, { w: 14, h: 1.25, cast: false });
@@ -61001,6 +61068,355 @@ Object.assign(CAST.specs, {
     tabard: Object.assign({}, knight('_', 0, 0, 1).tabard, { col: 0x16161c, emblem: 0xe8e2d6, trim: 0x4a4a52 }), homes: { lists: { x: LISTS.JX + LISTS.RUN, z: -3.3, face: -1 } } }),
 });
 
+/* ==== game/g45_cal.js ==== */
+/* THE CALENDAR (STORY.md §4, §12): which day it is, and what kind of day. Phases:
+     'court'    chapter 1's day: the rain has come back and court is in session (the demo's first day)
+     'festival' the Swan Festival (chapter 3), days 1–3: the meadow is open, there is no court, the sun holds
+     'crisis'   chapter 4: the twelve days after the feast, and the rain again
+   A day ends in the bed (CAL.bed: sleep, or the night with Halina behind the 18+ gate); NIGHT.end and CAL.sleep both hand
+   the morning to CAL.next. The feast is the festival's third night: on day 3 the bedchamber's door opens on the hall
+   dressed for it (FEAST, g46) and the bed refuses. Chapters 1–2's weeks aren't built yet: between the court day and the
+   festival a card says what happened in them. Everything here is saved (GAME.state). */
+const CAL = { phase: 'court', day: 1, fest: 0, crisis: 0, feastDone: false, doors: null, toast: null, konrad: null, fire: null };
+CAL.init0 = JSON.stringify(CAL);
+CAL.reset = function () { Object.assign(CAL, JSON.parse(CAL.init0)); };
+CAL.KEYS = ['phase', 'day', 'fest', 'crisis', 'feastDone', 'doors', 'toast', 'konrad', 'fire'];
+CAL.state = function () { const o = {}; for (const k of CAL.KEYS) o[k] = CAL[k]; return o; };
+CAL.load = function (s) { CAL.reset(); if (s) for (const k of CAL.KEYS) if (k in s) CAL[k] = s[k]; };
+CAL.festival = () => CAL.phase === 'festival';
+CAL.DAYS = {
+  festival: [null, ['The Swan Festival · Day One', 'The Fairground: the guests ride in, the fire-spitters, the bear'],
+    ['The Swan Festival · Day Two', 'The Lists: the melee and the archery. The Pact by evening'],
+    ['The Swan Festival · Day Three', 'The joust and the pavilions. Tonight, the feast']],
+  crisis: (n) => [`The Dead King · Day ${n} of twelve`, n < 12 ? 'Krasna is waiting. So is the rain.' : 'The last day.'],
+};
+CAL.caption = function () {
+  if (CAL.phase === 'festival') return CAL.DAYS.festival[CAL.fest];
+  if (CAL.phase === 'crisis') return CAL.DAYS.crisis(CAL.crisis);
+  return null;
+};
+/* what isn't on today (the lists' bouts have their days); null when it is. Outside the festival week (a test link straight
+   onto a ground) everything is open */
+CAL.notYet = function (what) {
+  if (!CAL.festival()) return null;
+  const day = { duel: 2, archery: 2, joust: 3, loveQueen: 3 }[what] || 1;
+  return CAL.fest >= day ? null : ['', '', 'The melee and the archery are tomorrow, Your Grace. Today the meadow is the fair’s.', 'The joust is the last day’s, Your Grace. Two more sunrises.'][day];
+};
+/* the map: the meadow is the festival's (and after the feast, the Krasnian camp's); the castle is always there */
+MAP.onOpen = function (places) { const m = places.find((p) => p.id === 'meadow'); if (!m) return;
+  m.locked = CAL.phase === 'court'; m.sub = CAL.phase === 'court' ? 'in the fifth week' : CAL.phase === 'festival' ? 'the festival' : 'the Krasnian camp';
+  if (CAL.phase === 'crisis') { m.room = 'camp'; m.at = { x: -13.4, face: 1 }; } else { m.room = 'fair'; m.at = { x: FAIR.ENTRY, face: 1 }; } };   // after the feast the fair is packed away; Krasna mourns in its pavilions
+/* the bed. Day three's night is the feast's */
+CAL.bed = async function () {
+  const K = SCENE.player; if (SCENE.lock) return;
+  if (CAL.festival() && CAL.fest === 3 && !CAL.feastDone) { SCENE.say(K, SCENE.cycle('calFeast', ['Not tonight. The whole of Krasna is waiting in the great hall.', 'The feast first. Then sleep, if anyone sleeps.'])); return; }
+  SCENE.lock++; let i;
+  try { i = await NIGHT.ask(['Sleep until morning', 'Go to bed with Halina (18+)', 'Not yet']); } finally { SCENE.lock--; }
+  if (i === 0) return CAL.sleep();
+  if (i === 1) { if (K.crownMesh.visible) { K.crownMesh.visible = false; BEDROOM.crownCard.visible = BEDROOM.crownGlow.visible = true; }   // the crown back on its cushion first
+    return NIGHT.start(); }
+};
+/* sleep without the scene: the fade, the next day, morning */
+CAL.sleep = async function () {
+  const K = SCENE.player; SCENE.lock++;
+  try { await NIGHT.fade(true); AUDIO.sfx('sheets', { gain: 0.5 }); await SCENE.wait(900);
+    K.stand(); K.x = -6.4; K.z = BEDROOM.KZ; K.face = 1; K.yaw = 0.42;
+    await CAL.next(); await NIGHT.fade(false); CAL.morning(); }
+  finally { SCENE.lock--; }
+};
+/* the night is over (inside the fade): move the day on. Returns the bridging card's lines, if the day jumped */
+CAL.next = async function () {
+  if (CAL.phase === 'court') {   // chapters 1 and 2 aren't built: say what the weeks between held, then the festival
+    CAL.phase = 'festival'; CAL.fest = 1; CAL.day += 28; CAL.bridge = ['Four weeks later', 'The rain stopped on the morning the guests were due. Nobody in Lodmir remembers a June so dry.'];
+  } else if (CAL.phase === 'festival') { if (CAL.fest < 3) { CAL.fest++; CAL.day++; } }
+  else if (CAL.phase === 'crisis') { if (CAL.crisis < 12) { CAL.crisis++; CAL.day++; } }
+  else CAL.day++;
+  GAME.save();
+};
+/* the morning's caption (after the fade). The bridge card, when the day jumped, goes first */
+CAL.morning = function () {
+  const c = CAL.caption(), b = CAL.bridge; CAL.bridge = null;
+  if (b) { SCENE.caption(b[0], b[1]); if (c) setTimeout(() => SCENE.caption(c[0], c[1]), 5200); }
+  else if (c) SCENE.caption(c[0], c[1]); else SCENE.caption('Morning', 'The rain again, on the glass.');
+};
+/* the weather: in the crisis the rain is back, on every window (the indoor rooms) and on everything (the outdoor ones) */
+CAL.OUT = ['garden', 'yard', 'wood', 'fair', 'lists', 'camp'];
+SCENE.afterEnter = function (room) {
+  if (CAL.phase !== 'crisis' || CUT.playing || !room.ambience) return;
+  AUDIO.ambience(Object.assign({}, room.ambience, CAL.OUT.includes(room.id) ? { rain: 0.8, birds: 0 } : { rainGlass: 0.75 }));
+};
+
+/* ==== game/g46_feast.js ==== */
+/* THE FEAST — the Swan Festival's last night in the great hall (STORY.md §5 chapter 3 "The night", §6.3, §7.1). The throne
+   room's own hall (THRONE.hall) dressed for it: a high table on the dais, two lower tables in the side bays, the cupbearer's
+   sideboard where the lectern stood, Krasna's banners beside the swan's, two musicians by the great doors, and the Swan Cup.
+   The night (FEAST.play): the king walks the hall and talks to his guests → takes his seat (the lens comes in on the high
+   table) → two choices that set the stage without his knowing it (§6.3): guest-right for the masked knight, and fire
+   indoors → the courses → the Salamanders spit fire between them (Ilka is gone from her place while every eye is on the
+   fire) → the Black Swan Knight unmasks: Konrad of Hal → the loving cup, the host from the left lip, the guest from the
+   right → Gniewomir laughs, sets it down and dies with his hand still on it → outside, the rain → Mściwoj, King of Krasna for
+   an hour, and the doors → twelve days → chapter four (CAL.phase 'crisis'). The king's words are the player's (NIGHT.ask).
+   Only adults are at the feast; Zofia and Kazik are in bed. */
+const FEAST = SCENE.addRoom(new Room('feast', { X0: -13.5, X1: 13.5, CEIL: 6.4, KZ: 3.25, cam: { y: 2.95, look: 2.62, dist: 19.4, fov: 19 }, exposure: 0.92, reflK: 0.85,
+  caption: ['The Feast', 'The last night of the Swan Festival'], music: 'throne', ambience: { crowd: 0.6, fire: 0.3 }, acoustics: { size: 3.2, wet: 0.4 }, surface: 'stone' }));
+FEAST.ENTRY = -12.2; FEAST.TX = 1.5; FEAST.DOORX = 11.9;
+FEAST.HIGH = { x0: -1.3, x1: 4.3, z0: 1.75, z1: 2.35, top: 1.23 };
+FEAST.CUP = { x: 2.15, y: 1.23, z: 2.2 };
+FEAST.SEAT = { x: 1.5, y: 0.93, z: 1.45, yaw: 0, cardDz: 0.32 };
+FEAST.GUESTS = ['queen', 'dorota', 'gniewomir', 'wieslawa', 'commander', 'jarek', 'konrad', 'msciwoj', 'ottokar', 'spymaster', 'jacek', 'steward'];
+FEAST.SHOW = ['salA', 'salB', 'salC'];   // shown only for their turn between the courses
+FEAST.LINES = Object.assign({}, THRONE.LINES, {
+  arch: ['Not before the toast. A host who leaves his own feast starts a war by morning.'],
+  doors: ['The great doors, shut on the night. Krasnian knights outside them, ours inside.'],
+  cup: ['The Swan Cup. Two lips: the host drinks from the left, the guest from the right. My grandfather had it made so nobody could poison one king without poisoning the other. It was a joke, then.'],
+  sideboard: ['Jacek’s sideboard: the wine, the jug for the cup, and Jacek, sweating.'],
+  musicians: ['They know three Krasnian songs. They’ve played all three twice.'],
+  table: ['Boar, pike, pies, figs from the south. Halina has been planning this since Easter.'],
+});
+/* ---------------------------------------------------------------- the hall, dressed */
+FEAST.build = function () {
+  const room = BUILD.begin(this); THRONE.hall(room, { feast: true });
+  room.inter = room.inter.filter((i) => ['window', 'books', 'banner', 'doors', 'halberds'].includes(i.id));   // no court tonight, no way out
+  FEAST.dress(room); room.update(0, 0);
+  const out = BUILD.end();
+  room.cup = FEAST.makeCup(); room.group.add(room.cup);   // after the merge: the cup moves
+  return out;
+};
+FEAST.dress = function (room) {
+  const T = PX.T, KZ = room.KZ, H = FEAST.HIGH, L = room.LINES, say = (k) => SCENE.say(SCENE.player, SCENE.cycle('fe' + k, L[k]));
+  /* the high table on the dais: linen to the floor, the runner and the swan on its front, the food along it, candles */
+  BUILD.box(H.x0, H.x1, 0, H.top, H.z0, H.z1, T.linen, { front: BUILD.std(T.feastFrontHigh, { rough: 0.9 }) });
+  BUILD.card(T.feastFoodHigh, (H.x0 + H.x1) / 2, H.top, 1.98, { cast: false, w: H.x1 - H.x0 - 0.1 });
+  for (const x of [-0.95, 0.95, 3.35]) { BUILD.card(T.candle, x, H.top, 2.12); BUILD.flame(x, H.top + 0.28, 2.125, 0.3); }
+  BUILD.light(new THREE.PointLight(0xffb070, 3.2, 0, 2), 1.5, 2.0, 2.6, { flicker: 9 });
+  room.interact('cup', FEAST.CUP.x, 2.4, KZ, 0.5, () => say('cup')).label = 'Look at the Swan Cup';
+  room.interact('seat', FEAST.TX, 3.0, KZ, 0.6, () => FEAST.play().catch(fail)).label = 'Take your seat at the high table';
+  /* the lower tables in the side bays, and the town's people at the right-hand one */
+  for (const [x0, x1] of [[-10.4, -6.0], [6.8, 10.8]]) {
+    BUILD.box(x0, x1, 0, 0.78, 1.0, 1.5, T.linen, { front: BUILD.std(T.feastFrontLow, { rough: 0.9 }) });
+    BUILD.card(T.feastFoodLow, (x0 + x1) / 2, 0.78, 1.18, { cast: false, w: x1 - x0 - 0.1 });
+    for (const x of [x0 + 1.1, x1 - 1.1]) { BUILD.card(T.candle, x, 0.78, 1.32); BUILD.flame(x, 1.06, 1.325, 0.3); }
+    BUILD.light(new THREE.PointLight(0xffb070, 2.0, 0, 2), (x0 + x1) / 2, 1.4, 1.9, { flicker: 8 + x0 });
+  }
+  BUILD.card(T.crowdA, 9.95, 0.42, 0.6, { w: 1.6, h: 1.2, cast: false });
+  room.interact('table', -8.2, 2.2, KZ, 0.6, () => say('table'));
+  /* the cupbearer's sideboard, where the lectern stood: the wine, the jug for the cup */
+  BUILD.box(-4.5, -3.3, 0, 0.92, 0.5, 1.0, T.woodDark, { front: BUILD.std(T.sideboard) });
+  BUILD.card(T.jug, -4.15, 0.92, 0.8); BUILD.card(T.goblet, -3.7, 0.92, 0.82); BUILD.card(T.candle, -3.5, 0.92, 0.7); BUILD.flame(-3.5, 1.2, 0.705, 0.3);
+  room.interact('sideboard', -3.9, 2.0, KZ, 0.5, () => say('sideboard'));
+  /* Krasna's banners beside the swan's; the musicians by the great doors */
+  for (const x of [-0.35, 3.35]) BUILD.card(T.bannerKrasna, x, 3.05, 0.05, { cast: false, s: 0.8 });
+  BUILD.card(T.lutePlayer, 11.0, 0, 0.85); { const m = BUILD.card(T.lutePlayer, 12.7, 0, 0.75); m.scale.x = -1; }
+  room.interact('musicians', 11.8, 2.4, KZ, 0.5, () => { AUDIO.sfx('chime', { gain: 0.3 }); say('musicians'); });
+  /* the fire-spitters' blasts (FAIR.blast), and a cold flash for the lightning when it begins to rain */
+  room.blasts = [0, 1, 2].map(() => { const a = BUILD.anim(T.blast, 0, 0, 0, { basic: true, k: 3.2, cast: false, s: 1.0 }); a.me.visible = false; return a; });
+  room.lights.flash = BUILD.light(new THREE.PointLight(0xff8a3c, 0, 0, 2), 1.5, 2.2, 3.4);
+  room.lights.storm = BUILD.light(new THREE.PointLight(0xc8d8ff, 0, 0, 2), 0, 4.6, 1.2);
+};
+FEAST.makeCup = function () {   // the Swan Cup: a gilt bowl on a stem, a handle on each side (the two lips), larger than life so it reads
+  const g = new THREE.Group(), gold = new THREE.MeshStandardMaterial({ color: 0xe0a83a, roughness: 0.28, metalness: 0.85, emissive: 0x4a2a00 });
+  const prof = [[0, 0], [0.11, 0], [0.11, 0.02], [0.04, 0.05], [0.03, 0.16], [0.05, 0.19], [0.12, 0.24], [0.14, 0.34], [0.13, 0.35]].map(([x, y]) => new THREE.Vector2(x, y));
+  g.add(new THREE.Mesh(new THREE.LatheGeometry(prof, 18), gold));
+  for (const s of [-1, 1]) { const h = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.013, 6, 12, Math.PI), gold); h.position.set(s * 0.14, 0.27, 0); h.rotation.z = -s * Math.PI / 2; g.add(h); }
+  const swan = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 6), new THREE.MeshStandardMaterial({ color: 0xf0ece0, roughness: 0.5 })); swan.position.set(0, 0.2, 0.13); g.add(swan);
+  g.position.set(FEAST.CUP.x, FEAST.CUP.y, FEAST.CUP.z); g.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = true; } });
+  return g;
+};
+/* the guests in their places; the fire-spitters out of sight until their turn; talk markers over everyone */
+FEAST.onEnter = function () {
+  const A = CAST.A;
+  if (!CUT.playing) SCENE.caption(...this.caption);
+  for (const id of FEAST.SHOW) if (A[id]) A[id].setVisible(false);
+  if (A.konrad && A.konrad.maskMesh) A.konrad.maskMesh.visible = true;
+  this.cup.position.set(FEAST.CUP.x, FEAST.CUP.y, FEAST.CUP.z); this.cup.rotation.set(0, 0, 0);
+  FEST.talkers(this, FEAST.GUESTS.filter((id) => A[id]).map((id) => [id, 'Talk to ' + (A[id].name || id), () => FEAST.talk(id)]));
+};
+FEAST.TALK = {
+  queen: ['You’re late. Gniewomir has told the story of your father and the bridge twice, and I’ve laughed both times.', 'Smile. Wiesława is watching me watch you.'],
+  dorota: ['I blessed the cup this morning, Your Grace, with the whole town watching. It has never been so holy.', 'Your wife is three seats away. Behave, for once in your life.'],
+  gniewomir: ['Bolesław’s boy! Sit, sit. Tonight we drink from the same cup, and tomorrow we sign, eh? (He coughs into his fist.) The damp in your hall.', 'Your wine is thin, your hall is cold, and your bear is better company than my son. I love it here.'],
+  wieslawa: ['He has coughed since the spring and won’t let a physician near him. Make him drink less, if you can. You can’t.', 'Ser Ottokar is a fine knight. Everyone says so. Don’t you think so?'],
+  commander: ['Three hundred Krasnians and their swords in my hall. I’ve counted the doors twice.', 'If you want me sober, Your Grace, say so now. In an hour it’ll be too late.'],
+  jarek: ['If your king signs, Radomir, the river is Krasna’s toll road. Think of your wife’s brother when you drink.', 'Lovely feast. Expensive. I’ve seen the bills.'],
+  konrad: ['I’m told the custom of this house is that a masked guest is a guest, Your Grace.', 'Your hall hasn’t changed. The gate under the chapel tower: what do they call it now?'],
+  msciwoj: ['My father thinks you’re the son he should have had. I think you’re a man with a small army and a long river.', 'The Black Swan. Sitting there in a mask like a girl at a wedding. Who is he?'],
+  ottokar: ['Your Grace.', 'A fine joust. Whoever the Black Swan is, he has been angry for a long time.'],
+  spymaster: ['Every Krasnian in this hall has a knife, and most of them have two. Drink last, if you drink at all.', 'Jacek has had the cup since noon. I’ve had my eye on Jacek since noon.'],
+  jacek: ['Your Grace! The cup is ready, Your Grace. I fill it when the steward says. Not before. Not before, Your Grace.', 'I’ve never poured for two kings. I’ve never poured for one.'],
+  steward: ['Your Grace. When you’re ready, take your seat, and the hall will follow.', 'The kitchens say nine courses. The kitchens are optimists.'],
+};
+FEAST.talk = function (id) { const a = CAST.A[id]; if (!a || SCENE.lock) return; if (!a.sitting) { a.faceTo(SCENE.player.x); } SCENE.say(a, SCENE.cycle('ft' + id, FEAST.TALK[id])); };
+/* ---------------------------------------------------------------- the night */
+FEAST.say = (a, t) => SCENE.say(a, t, { wait: true });
+/* walk a guest along legs [x, z, speed?]: always round a table's end, never through its cloth */
+FEAST.walk = async (a, legs) => { for (const [x, z, sp] of legs) await new Promise((r) => a.moveTo3({ x, z, speed: sp }, r)); };
+FEAST.pick = async (opts) => { const i = await NIGHT.ask(opts); await SCENE.say(SCENE.player, opts[i], { wait: true }); return i; };   // the king says what the player picked
+FEAST.play = async function () {
+  const A = CAST.A, K = SCENE.player, room = FEAST; if (FEAST.on || SCENE.lock) return;
+  FEAST.on = true; SCENE.lock++; NIGHT.quiet();   // the walking hint is done: it would sit under the night's choices
+  try {
+    // to his seat (behind the fade: up the dais and round the end of the table), and the lens comes in on the high table
+    await NIGHT.fade(true); K.stand(); K.sit(Object.assign({}, FEAST.SEAT)); K.sitK = 1; K.face = 1; K.lookYaw = null; K.target = null;   // seated at once, behind the fade
+    await SCENE.lens(room, { focus: 1.5, dist: 15.5, y: 2.35, look: 1.75, fov: 17 }, 0.01);   // (seated, he sees only seated markers: none tonight)
+    await NIGHT.fade(false); AUDIO.sfx('clink', { gain: 0.6 });
+    // the steward's two questions: they set the stage, and nobody knows it
+    await FEAST.say(A.steward, 'Your Grace. Before the first course: the masked knight asks guest-right at your table.');
+    CAL.konrad = (await FEAST.pick(['He rode well. Let him eat with us.', 'No masks at my table. He can eat in the yard.'])) === 0;
+    if (!CAL.konrad && A.konrad) { const k = A.konrad; k.stand(); await FEAST.walk(k, [[-5.75, 0.85], [-5.6, 2.4], [11.9, 2.6, 1.4]]); k.setVisible(false); }
+    await FEAST.say(A.steward, 'And the Salamanders ask to play the hall between the courses.');
+    CAL.fire = (await FEAST.pick(['Let them. It’s the last night.', 'Not indoors. Not with these hangings.'])) === 0;
+    // the courses
+    SCENE.caption('The first course', 'Pike in saffron, and Krasnian toasts'); AUDIO.sfx('clink', { gain: 0.5, delay: 0.6 });
+    await SCENE.talk([[A.gniewomir, 'Bolesław’s boy! Your father held this hall nineteen days against Hal. I’d have held it twenty, but I’d have been drunk for nineteen.'],
+      [A.queen, 'He says that every year.'], [A.gniewomir, 'Every year it’s true! (He laughs, and the laugh turns into a cough.)']]);
+    AUDIO.sfx('cough', { gain: 0.7, pitch: 0.9 });
+    // the moment every eye leaves the high table: the fire, or the knight's name, or a song. Ilka is gone from her place for it
+    const ilka = A.spymaster; if (ilka) ilka.setVisible(false);
+    if (CAL.fire) await FEAST.fire();
+    if (CAL.konrad) await FEAST.unmask();
+    if (!CAL.fire && !CAL.konrad) { SCENE.caption('The second course', 'The musicians play the ballad of the swan, and the hall sings'); AUDIO.sfx('cheer', { gain: 0.5, dur: 3 }); await SCENE.wait(3600); }
+    if (ilka) ilka.setVisible(true);
+    await FEAST.toast();
+    await FEAST.after();
+  } finally { SCENE.lock--; FEAST.on = false; }
+};
+/* the fire-spitters in the hall: in through the great doors, onto the floor before the high table, three blasts and then all three */
+FEAST.fire = async function () {
+  const A = CAST.A, S = FEAST.SHOW.map((id) => A[id]), room = FEAST; if (!S.every(Boolean)) return;
+  SCENE.caption('Between the courses', 'The Salamanders'); AUDIO.sfx('drum', { gain: 0.7 });
+  const spots = [[-0.6, -1], [0.45, -1], [3.45, 1]];   // either side of the king's place, so the host still shows
+  S.forEach((s, i) => { s.setVisible(true); s.stand(); s.x = 11.2 + i * 0.6; s.z = 2.6; });
+  await Promise.all(S.map((s, i) => new Promise((r) => s.moveTo3({ x: spots[i][0], z: 2.95, speed: 1.6 }, r))));
+  S.forEach((s, i) => { s.face = spots[i][1]; s.lookYaw = null; });
+  await SCENE.wait(500);
+  for (let i = 0; i < 3; i++) { FAIR.blast(room, i, 1.0); await SCENE.wait(1400); }
+  for (let i = 0; i < 3; i++) FAIR.blast(room, i, 1.3);
+  await SCENE.wait(900); AUDIO.sfx('cheer', { gain: 0.9, dur: 3.0 });
+  await SCENE.say(A.gniewomir, 'Ha! Fire in the hall! Bolesław would have had you all hanged, and then paid you double.', { wait: true });
+  await Promise.all(S.map((s, i) => new Promise((r) => s.moveTo3({ x: 11.2 + i * 0.6, z: 2.6, speed: 1.6 }, r))));
+  S.forEach((s) => s.setVisible(false));
+};
+/* the Black Swan Knight's name: he comes out onto the floor and takes off the mask */
+FEAST.unmask = async function () {
+  const A = CAST.A, k = A.konrad, M = A.msciwoj; if (!k) return;
+  k.stand(); await FEAST.walk(k, [[-5.75, 0.85], [-5.6, 2.3], [0.3, 2.95]]);
+  k.face = 1; k.lookYaw = 0.7;
+  await FEAST.say(k, 'Guest-right, Your Grace. You gave it, so I’ll give you my name.');
+  k.act('Interact', 0.5, () => { if (k.maskMesh) k.maskMesh.visible = false; AUDIO.sfx('gasp', { gain: 0.8 }); }); await SCENE.wait(1300);
+  await FEAST.say(k, 'Konrad. Son of Dietrich, Margrave of Hal.');
+  if (M) { M.stand(); M.lookYaw = -1.0; }
+  await SCENE.talk([[M || A.ottokar, 'Hal! Under your roof, Radomir? At your table?'],
+    [A.gniewomir, 'Sit down, boy. Guest-right is guest-right. Even for Hal. Especially for Hal: it’s the only thing they’ve ever had from us.']]);
+  const i = await FEAST.pick(['Sit, Konrad. Tonight you’re my guest.', 'You were asked for a name, not a speech.', 'Why are you in my hall?']);
+  if (i === 2) await FEAST.say(k, 'To ask where my father’s army went. Twelve years, and nobody in Hal will say. I thought the man whose father won might know.');
+  else await FEAST.say(k, 'As you say, Your Grace.');
+  await FEAST.walk(k, [[-5.6, 2.3], [-5.75, 0.85], [-6.7, 0.72]]); k.sit(Object.assign({}, k.homes.feast.sit));
+  if (M) { M.sit(Object.assign({}, M.homes.feast.sit)); M.lookYaw = null; }
+};
+/* the loving cup: Jacek fills it; the host drinks from the left lip; the guest from the right; and Gniewomir dies */
+FEAST.toast = async function () {
+  const A = CAST.A, K = SCENE.player, G = A.gniewomir, J = A.jacek, room = FEAST, cup = room.cup;
+  AUDIO.sfx('fanfare', { gain: 0.5 }); await FEAST.say(A.steward, 'The loving cup!');
+  if (J) { J.stand(); await FEAST.walk(J, [[-2.0, 2.75], [FEAST.CUP.x - 0.3, 2.75]]); J.face = 1; J.lookYaw = 2.6;
+    J.act('Interact', 0.4, () => AUDIO.sfx('whoosh', { gain: 0.25 })); await SCENE.wait(1400); await FEAST.walk(J, [[-2.0, 2.75], [-3.1, 1.5]]); J.face = -1; J.lookYaw = null; }
+  await FEAST.say(G, 'Host first, boy. The left lip. Your grandfather’s joke.');
+  CAL.toast = await FEAST.pick(['To Krasna and Lodmir: one cup, two lips.', 'To the sun, while it holds.', 'To my father, who held this hall.']);
+  // he lifts it from the left, drinks, sets it down nearer his guest
+  K.act('Interact', 0.55); await FEAST.lift(cup, 1.62, 1.95, 1.0); AUDIO.sfx('clink', { gain: 0.5 });
+  await FEAST.say(G, SCENE.cycle('feG', ['To Bolesław’s boy! And to his thin wine!']));
+  G.act('Interact', 0.55); await FEAST.lift(cup, 2.55, 1.95, 1.0); AUDIO.sfx('clink', { gain: 0.6 });
+  await FEAST.say(G, 'Ha! Krasnian wine would have…'); AUDIO.sfx('cough', { gain: 0.9, n: 4, pitch: 0.85 }); await SCENE.wait(900);
+  await FEAST.say(G, '…would have…');
+  // he folds forward over the table, his hand still on the cup. The hall stops.
+  FEAST.die(G); AUDIO.ambience({ crowd: 0, fire: 0.3 }); AUDIO.playMusic(null, 1.2); AUDIO.sfx('thud', { gain: 0.6, delay: 1.0 });
+  await SCENE.wait(2000); AUDIO.sfx('gasp', { gain: 1.0, dur: 0.9 });
+  await FEAST.say(A.wieslawa, 'Gniewomir? Gniewomir!');
+  // outside, it begins to rain
+  AUDIO.sfx('thunder', { gain: 1.0 }); FEAST.lightning(); AUDIO.ambience({ rainGlass: 0.9, crowd: 0.05, fire: 0.25 });
+  SCENE.caption('', 'Outside, for the first time in seven days, it is raining.');
+  await SCENE.wait(2200);
+};
+FEAST.lift = function (cup, x, y, dur) {   // the cup comes up to whoever drinks and goes back down where he sets it
+  const x0 = cup.position.x, y0 = cup.position.y; return new Promise((res) => { let t = 0; const f = (T, dt) => { t += dt; const u = Math.min(1, t / (dur * 2));
+    const up = Math.sin(Math.min(1, u * 1.15) * Math.PI); cup.position.x = lerp(x0, x, smooth(0, 0.5, u)); cup.position.y = y0 + up * (y - y0); cup.rotation.z = up * 0.35 * Math.sign(x - FEAST.TX - 0.6);
+    if (u >= 1) { cup.position.y = y0; cup.rotation.z = 0; FEAST.tick = FEAST.tick.filter((g) => g !== f); res(); } }; FEAST.tick.push(f); }); };
+/* the bones under spine_01, neck_01 and the right upper arm, once */
+FEAST.sub = function (i) { const P = QA.M.skel.parents, out = [i]; for (let j = 0; j < P.length; j++) { let p = P[j]; while (p >= 0) { if (p === i) { out.push(j); break; } p = P[p]; } } return out; };
+/* a seated man folding forward over the table: the sitting clip, then the whole upper body pitched forward about spine_01
+   (every bone in the subtree turned together, so it moves as one piece), the head dropped further, the right arm left
+   forward on the table toward the cup. D holds each bone's world-space turn from the bind pose (Actor.compose), so a turn
+   about the body's X axis is a premultiply */
+FEAST.die = function (a) {
+  const I = QA.idx, X = new THREE.Vector3(1, 0, 0), q = new THREE.Quaternion(), S1 = FEAST.sub(I.spine_01), NK = FEAST.sub(I.neck_01), AR = FEAST.sub(I.upperarm_r);
+  let k = 0; a.dead = true;
+  a.puppet = (b, dt) => { k = Math.min(1, k + dt / 1.3); const e = smooth(0, 1, k);
+    QA.sample(QA.clips.Sitting_Idle_Loop, 0.4, b.D, b.pel, b.pelvisH);
+    q.setFromAxisAngle(X, 0.78 * e); for (const i of S1) b.D[i].premultiply(q);
+    q.setFromAxisAngle(X, 0.45 * e); for (const i of NK) b.D[i].premultiply(q);
+    q.setFromAxisAngle(X, -0.75 * e); for (const i of AR) b.D[i].premultiply(q); };
+};
+FEAST.lightning = function () { const L = FEAST.lights.storm; let t = 0; const f = (T, dt) => { t += dt; L.intensity = t < 0.08 || (t > 0.18 && t < 0.26) ? 60 : 0; if (t > 0.4) { L.intensity = 0; FEAST.tick = FEAST.tick.filter((g) => g !== f); } }; FEAST.tick.push(f); };
+/* Mściwoj, King of Krasna for an hour; the doors; twelve days; chapter four */
+FEAST.after = async function () {
+  const A = CAST.A, K = SCENE.player, M = A.msciwoj, G = A.gniewomir, room = FEAST;
+  if (M) { M.stand(); await FEAST.walk(M, [[6.5, 0.85], [6.4, 2.6], [3.0, 2.75, 1.5]]); M.face = -1; M.lookYaw = 2.7; }
+  await SCENE.talk([[M, 'Father. Father!'], [A.wieslawa, 'He’s not breathing. Mściwoj, he’s not…'],
+    [M, 'He drank from your cup, Radomir. At your table. Under your roof, on your guest-right.']]);
+  if (A.ottokar) { const o = A.ottokar; o.stand(); FEAST.walk(o, [[11.1, 0.85], [11.4, 2.6, 1.4]]); }
+  await FEAST.say(A.commander, 'The Krasnians are at the doors, Your Grace. Both sides of them. Your word.');
+  const d = await FEAST.pick(['Close the doors. No one leaves this hall tonight.', 'Open the doors. Let them go.']); CAL.doors = d === 0 ? 'closed' : 'open';
+  if (d === 0) { AUDIO.sfx('door', { gain: 0.9 }); await FEAST.say(M, 'Good. Then whoever did this is still in here with us.'); }
+  else { for (const id of ['jarek', 'konrad', 'dorota']) if (A[id] && A[id].visible) A[id].setVisible(false); await FEAST.say(M, 'Open them, then. Let your poisoner walk home in the rain.'); }
+  await SCENE.talk([[M, 'Twelve days. The time it takes to carry a king home to Krasna and put him in the ground.'],
+    [M, 'Bring me the hand that did this by then, Radomir. Or three hundred knights become twenty thousand.']]);
+  await FEAST.pick(['You’ll have a name.', 'I’m sorry, Mściwoj. Truly.', 'Don’t threaten me in my own hall.']);
+  // the end of the night: chapter four, and the morning after in the bedchamber
+  await NIGHT.fade(true);
+  CAL.phase = 'crisis'; CAL.crisis = 1; CAL.day++; CAL.feastDone = true; FEST.feast = true;
+  if (G) { G.puppet = null; G.offstage = true; G.setVisible(false); }
+  room.camFocus = null; await SCENE.lens(room, null, 0.01);
+  SCENE.caption('Chapter Four · The Dead King', 'Twelve days. Then war.'); await SCENE.wait(4800);
+  K.stand(); await SCENE.prepare('bedroom'); SCENE.enter('bedroom', { x: -6.4, face: 1 }); R.r.compile(R.scene, R.cam); SCENE.render(); await nextFrame();
+  GAME.save(); await NIGHT.fade(false); CAL.morning();
+};
+
+/* ==== game/g47_cast_feast.js ==== */
+/* THE FEAST'S PEOPLE (STORY.md §5 chapter 3 "The night", §6.1, §7): everyone at the festival's last night, at the high table
+   on the dais or the lower tables in the side bays. A seat is a home with sit: the high table's stools stand on the dais's
+   top step (0.48) and are 0.45 high (seat 0.93), the lower tables' are on the floor (0.47). Halina, Dorota, Bogdan, Ilka and
+   the steward are the castle's own, given a feast home; the guests are the festival's lazy actors; Konrad (the Black Swan
+   Knight, masked) and Jacek the cupbearer are new. Every one an adult. Zofia and Kazik are not at the feast. */
+const seatHigh = (x) => ({ x, z: 1.45, face: 1, sit: { x, y: 0.93, z: 1.45, yaw: 0, cardDz: 0.32 } });
+const seatLow = (x) => ({ x, z: 0.72, face: 1, sit: { x, y: 0.47, z: 0.72, yaw: 0, cardDz: 0.3 } });
+CAST.specs.queen.homes.feast = seatHigh(0.3);
+CAST.specs.dorota.homes.feast = seatHigh(-0.85);
+CAST.specs.gniewomir.homes.feast = seatHigh(2.8);
+CAST.specs.wieslawa.homes.feast = seatHigh(3.95);
+CAST.specs.commander.homes.feast = seatLow(-9.7);
+CAST.specs.jarek.homes.feast = seatLow(-8.3);
+CAST.specs.msciwoj.homes.feast = seatLow(7.4);
+CAST.specs.ottokar.homes.feast = seatLow(8.7);
+// Ilka and the steward had a single home (the throne room): with a second, each needs both in homes (placeIn reads homes)
+CAST.specs.spymaster.homes = { throne: { x: -4.75, z: 1.55, face: 1 }, feast: { x: -5.1, z: 1.6, face: 1, idle: 'Idle_FoldArms_Loop' } };
+CAST.specs.steward.homes = { throne: { x: -1.05, z: 2.55, face: 1 }, feast: { x: 5.95, z: 2.7, face: -1 } };
+// the Salamanders wait by the great doors; they're only shown for their turn between the courses (FEAST.fire)
+CAST.specs.salA.homes.feast = { x: 11.2, z: 2.3, face: -1 }; CAST.specs.salB.homes.feast = { x: 11.8, z: 2.3, face: -1 }; CAST.specs.salC.homes.feast = { x: 12.4, z: 2.3, face: -1 };
+Object.assign(CAST.specs, {
+  /* Konrad of Hal, twenty-six: the Black Swan Knight out of his armour, in black, a half-mask. The Margrave's son */
+  konrad: { id: 'konrad', name: 'the Black Swan Knight', lazy: true, bind: 'rmale', s: 1.06, skin: 0xd8a888, skinK: 0.9, headY: 2.22, x: -6.7, z: 0.72, face: 1,
+    homes: { feast: seatLow(-6.7) }, mask: { col: 0x101014, y: 0.07 },
+    parts: [part(R_M('Body'), { G: 0x16161c, L: 0x1e1a18, P: 0x2a2a32 }), part(R_M('Arms'), { G: 0x16161c, L: 0x1e1a18, P: 0x2a2a32 }), part(R_M('Arms'), 'skin'), part(R_M('Legs'), { G: 0x18181e, L: 0x1e1a18 }),
+      part(R_M('Feet_Boots'), { L: 0x141010, G: 0x141010, P: 0x3a3a40 }), part(R_M('Body_Belt_1'), { L: 0x1a1410, P: 0xb8b8c0 })],
+    brows: 0x2a1a12, hair: [['Hair_Long', 0x2a1a12]],
+    collar: { pal: [0x0e0e12, 0x16161c, 0x202028, 0x2a2a34], y: 1.46, rx: 0.2, rz: 0.14 } },
+  /* Jacek, twenty-three, the cupbearer: the swan's blue and white, terrified of the cup and everyone at the high table */
+  jacek: { id: 'jacek', name: 'Jacek', lazy: true, bind: 'rmale', s: 0.97, skin: 0xe0b498, skinK: 0.93, headY: 2.06, x: -3.1, z: 1.5, face: -1, speed: 0.95, walk: 'Walk_Loop',
+    homes: { feast: { x: -3.1, z: 1.5, face: -1 } },
+    parts: [part(P_M('Body'), { L: 0x24405a, P: 0xe8e2d6 }), part(P_M('Arms'), { L: 0x24405a, P: 0x24405a }), part(P_M('Arms'), 'skin'), part(P_M('Legs'), { L: 0x2a2a34, P: 0x2a2a34 }), part(P_M('Feet'), { L: 0x2a1a10, P: 0x3a2a1a })],
+    brows: 0x6a4a2a, hair: [['Hair_SimpleParted', 0x8a6a3a]],
+    tabard: { col: 0x24405a, emblem: 0xe8e2d6, trim: 0xd8a43a, w: 0.08, top: 1.36, from: P_M('Body') } },
+});
+
 /* ==== game/g50_court.js ==== */
 /* COURT — holding court from the throne. The steward announces each petitioner, they walk in through the great doors
    and ask; the petition panel opens:
@@ -61049,6 +61465,7 @@ const arrive = (a, x) => new Promise((r) => a.walkTo(x, r));
 const glide = (a, p) => new Promise((r) => a.moveTo3(p, r));
 /* up the dais and onto the throne; court begins the first time */
 COURT.sit = async function () {
+  if (CAL.festival()) { SCENE.say(SCENE.player, SCENE.cycle('courtFest', ['No court in festival week. The petitioners are at the meadow with everyone else.', 'The throne can wait. Even the throne is at the fair, in spirit.'])); return; }
   if (COURT.busy) return; COURT.busy = true; SCENE.lock++;
   const K = SCENE.player, room = THRONE;
   await arrive(K, room.TX); await glide(K, { x: room.TX, y: 0.48, z: 1.62, speed: 0.8 });
@@ -61318,7 +61735,8 @@ async function boot() {
     const ms = now - last, dt = Math.min(ms / 1000, 0.05); last = now;
     if (G.paused) return;
     G.frame++;
-    if (f.test) { G.acc = Math.min((G.acc || 0) + ms / 1000, 0.5); while (G.acc >= 1 / 60) { G.acc -= 1 / 60; G.t += 1 / 60; SCENE.update(1 / 60); SCENE.room.update(G.t, 1 / 60); } }   // headless: keep game time = real time
+    if (f.test) { G.acc = Math.min((G.acc || 0) + ms / 1000, +f.catchup || 0.5);   // &catchup=3: let a slow (software-rendered) run keep up over long scenes
+      while (G.acc >= 1 / 60) { G.acc -= 1 / 60; G.t += 1 / 60; SCENE.update(1 / 60); SCENE.room.update(G.t, 1 / 60); } }   // headless: keep game time = real time
     else { G.t += dt; SCENE.update(dt); SCENE.room.update(G.t, dt); }
     SCENE.render();
     if (G.frame > 30) SCENE.perf(ms);

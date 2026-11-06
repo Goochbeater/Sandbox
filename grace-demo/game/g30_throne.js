@@ -12,8 +12,11 @@ THRONE.LINES = {
   map: ['The kingdom on one sheet of calfskin. It looks so manageable from here.', 'Somebody has drawn a little gallows over the ford. I suspect the steward.'],
   doors: ['The petitioners come through there.'], halberds: ['Polished every morning, used never. Let it stay that way.'],
 };
-THRONE.build = function () {
-  const room = BUILD.begin(this), T = PX.T, X0 = room.X0, X1 = room.X1, CE = room.CEIL, KZ = room.KZ, L = room.LINES, TX = room.TX;
+THRONE.build = function () { const room = BUILD.begin(this); THRONE.hall(room, {}); room.update(0, 0); return BUILD.end(); };
+/* the hall itself, shared with the feast (game/g46): o.feast leaves out the steward's lectern and its candle stand, and the
+   council table, where the feast puts the sideboard and a lower table */
+THRONE.hall = function (room, o) {
+  const T = PX.T, X0 = room.X0, X1 = room.X1, CE = room.CEIL, KZ = room.KZ, L = room.LINES, TX = room.TX;
   const say = (k) => SCENE.say(SCENE.player, SCENE.cycle(k, L[k]));
   /* shell: wainscot, damask, a painted frieze, cornice, timber ceiling */
   BUILD.plane('z', X0, X1, 0, 1.4, 0, T.hallWainscot); BUILD.plane('z', X0, X1, 1.4, 5.6, 0, T.hallWall);
@@ -45,8 +48,8 @@ THRONE.build = function () {
   /* C — bookcase, hanging, lectern */
   BUILD.box(-6.65, -4.85, 0, 2.44, 0, 0.45, T.woodDark, { front: BUILD.std(T.bookcase) }); BUILD.box(-6.72, -4.78, 2.44, 2.54, 0, 0.5, T.woodPost);
   BUILD.card(T.folkWide, -5.75, 2.95, 0.02, { cast: false });
-  BUILD.card(T.lectern, -4.05, 0, 0.85);
-  BUILD.card(T.candleStand, -3.75, 0, 0.45, { s: 0.8 }); for (const [dx, y] of [[-0.25, 1.4], [0, 1.6], [0.25, 1.4]]) BUILD.flame(-3.75 + dx * 0.8, y, 0.46, 0.3);
+  if (!o.feast) { BUILD.card(T.lectern, -4.05, 0, 0.85);
+    BUILD.card(T.candleStand, -3.75, 0, 0.45, { s: 0.8 }); for (const [dx, y] of [[-0.25, 1.4], [0, 1.6], [0.25, 1.4]]) BUILD.flame(-3.75 + dx * 0.8, y, 0.46, 0.3); }
   room.interact('books', -5.75, 2.9, KZ, 1.0, () => say('books'));
   /* D — the dais and the throne */
   const S1 = [-2.4, 5.4, 2.5], S2 = [-1.9, 4.9, 2.1], S3 = [-1.4, 4.4, 1.7];
@@ -76,12 +79,12 @@ THRONE.build = function () {
   BUILD.card(T.stained, 8.2, 1.95, 0.02, { basic: true, k: 1.35, cast: false }); BUILD.glow(8.2, 3.6, 0.3, 3.0, 0x5aa0d8, 0.22);
   { const L2 = BUILD.light(new THREE.SpotLight(0x7a9ae0, 90, 0, 0.6, 0.8, 2), 8.2, 4.4, 0.35); L2.target.position.set(7.0, 0, 3.4); }
   for (const [o, w, a] of [[0, 1.1, 0.2], [-0.4, 0.6, 0.12]]) BUILD.shaft(8.2 + o, 4.6, 0.5, w, 6, a, [-0.42, -0.1, -0.3], 0x8ab4f0);
-  BUILD.box(6.9, 9.5, 0.8, 0.88, 0.45, 1.55, T.woodRed);
-  for (const x of [7.05, 9.35]) for (const z of [0.55, 1.45]) BUILD.box(x - 0.06, x + 0.06, 0, 0.8, z - 0.06, z + 0.06, T.woodPost);
-  { const g = new THREE.PlaneGeometry(1.25, 0.81); g.rotateX(-Math.PI / 2); g.translate(8.1, 0.885, 1.0); BUILD.add(new THREE.Mesh(g, BUILD.std(T.mapSheet, { rough: 0.9 })), { cast: false }); }
-  BUILD.card(T.candle, 7.3, 0.88, 1.2); BUILD.flame(7.3, 1.16, 1.205, 0.3); BUILD.card(T.goblet, 9.1, 0.88, 1.1); BUILD.card(T.books, 8.9, 0.88, 0.75, { s: 0.8 });
-  BUILD.card(T.chair, 8.2, 0, 0.25); BUILD.light(new THREE.PointLight(0xffa860, 1.6, 0, 2), 7.3, 1.35, 1.5);
-  room.interact('map', 8.2, 1.8, KZ, 1.0, () => say('map'));
+  if (!o.feast) { BUILD.box(6.9, 9.5, 0.8, 0.88, 0.45, 1.55, T.woodRed);
+    for (const x of [7.05, 9.35]) for (const z of [0.55, 1.45]) BUILD.box(x - 0.06, x + 0.06, 0, 0.8, z - 0.06, z + 0.06, T.woodPost);
+    { const g = new THREE.PlaneGeometry(1.25, 0.81); g.rotateX(-Math.PI / 2); g.translate(8.1, 0.885, 1.0); BUILD.add(new THREE.Mesh(g, BUILD.std(T.mapSheet, { rough: 0.9 })), { cast: false }); }
+    BUILD.card(T.candle, 7.3, 0.88, 1.2); BUILD.flame(7.3, 1.16, 1.205, 0.3); BUILD.card(T.goblet, 9.1, 0.88, 1.1); BUILD.card(T.books, 8.9, 0.88, 0.75, { s: 0.8 });
+    BUILD.card(T.chair, 8.2, 0, 0.25); BUILD.light(new THREE.PointLight(0xffa860, 1.6, 0, 2), 7.3, 1.35, 1.5);
+    room.interact('map', 8.2, 1.8, KZ, 1.0, () => say('map')); }
   /* F — the great doors (they open for petitioners) */
   room.doorClosed = BUILD.card(T.doorDouble, room.DOORX, 0, 0.02, { cast: false, dyn: true });
   room.doorOpen = BUILD.card(T.arch, room.DOORX, 0, 0.015, { basic: true, k: 1.2, cast: false, w: 2.06, h: 3.62, dyn: true }); room.doorOpen.visible = false;
@@ -112,10 +115,11 @@ THRONE.build = function () {
   room.rim = [TX, 3.2, 0.5, 0.55, 12, 0xffc890, null];
   room.shadowSrc = [TX, 6.2, 4.6, 7.5];
   BUILD.motes({ n: 120, boxes: [[-10.4, -6.5, 0.4, 4.4, 0.5, 4, 0.3], [6.8, 10.4, 0.4, 4.4, 0.5, 4, 0.25], [-12, 12, 0.6, 4.5, 1, 4, 0.25], [-11, 12, 0.4, 3.2, 5.6, 8.2, 0.2]], col: 0xd8e0ff });
-  room.update(0, 0);
-  return BUILD.end();
 };
-THRONE.onEnter = function () { if (CUT.playing) return; SCENE.caption(...this.caption); COURT.enterHall(); };
+THRONE.onEnter = function () { if (CUT.playing) return;
+  if (CAL.festival()) { COURT.greeted = true; SCENE.caption('The Throne Room', 'No court this week: everyone is at the meadow'); }   // the festival replaces court (STORY.md §4)
+  else SCENE.caption(...this.caption);
+  COURT.enterHall(); };
 /* the hall twelve years ago, the night the old king died: every torch and chandelier out, moonlight through the glass,
    one cold pool of light on the empty throne and his crown left on the seat; only the two candle stands still burn */
 THRONE.night = function (on) {

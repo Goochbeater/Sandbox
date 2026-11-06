@@ -27,7 +27,8 @@ async function boot() {
     const ms = now - last, dt = Math.min(ms / 1000, 0.05); last = now;
     if (G.paused) return;
     G.frame++;
-    if (f.test) { G.acc = Math.min((G.acc || 0) + ms / 1000, 0.5); while (G.acc >= 1 / 60) { G.acc -= 1 / 60; G.t += 1 / 60; SCENE.update(1 / 60); SCENE.room.update(G.t, 1 / 60); } }   // headless: keep game time = real time
+    if (f.test) { G.acc = Math.min((G.acc || 0) + ms / 1000, +f.catchup || 0.5);   // &catchup=3: let a slow (software-rendered) run keep up over long scenes
+      while (G.acc >= 1 / 60) { G.acc -= 1 / 60; G.t += 1 / 60; SCENE.update(1 / 60); SCENE.room.update(G.t, 1 / 60); } }   // headless: keep game time = real time
     else { G.t += dt; SCENE.update(dt); SCENE.room.update(G.t, dt); }
     SCENE.render();
     if (G.frame > 30) SCENE.perf(ms);

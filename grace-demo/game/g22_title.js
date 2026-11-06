@@ -60,11 +60,11 @@ const INTRO = [
 ];
 /* ---------------------------------------------------------------- the save slot */
 const GAME = {};
-GAME.reset = function () { SCENE.player.crownMesh.visible = false; COURT.reset(); CHAPEL.met = CHAPEL.queenMet = CHAPEL.priestMet = false; CHAPEL.flirt = CHAPEL.cold = 0; HUT.met = false; HUT.catPets = 0; HUT.bearSaid = false; WOOD.houndPets = 0; FEST.reset(); HOUSE.reset(); };
+GAME.reset = function () { SCENE.player.crownMesh.visible = false; COURT.reset(); CHAPEL.met = CHAPEL.queenMet = CHAPEL.priestMet = false; CHAPEL.flirt = CHAPEL.cold = 0; HUT.met = false; HUT.catPets = 0; HUT.bearSaid = false; WOOD.houndPets = 0; FEST.reset(); HOUSE.reset(); CAL.reset(); };
 GAME.state = function () { const K = SCENE.player, R0 = SCENE.room;
   return { room: R0 && R0.id !== 'exterior' ? R0.id : 'bedroom', x: K.x, crown: K.crownMesh.visible,
     court: { done: COURT.done, prosperity: COURT.prosperity, stats: COURT.stats, agents: COURT.agents.map((a) => ({ id: a.id, ap: a.ap, wound: a.wound })), items: COURT.items.map((i) => ({ id: i.id, n: i.n })) },
-    chapel: { met: CHAPEL.met, queenMet: CHAPEL.queenMet, priestMet: CHAPEL.priestMet, flirt: CHAPEL.flirt, cold: CHAPEL.cold }, hut: { met: HUT.met, catPets: HUT.catPets, bearSaid: !!HUT.bearSaid }, wood: { houndPets: WOOD.houndPets }, fest: FEST.state(), house: HOUSE.state() }; };
+    chapel: { met: CHAPEL.met, queenMet: CHAPEL.queenMet, priestMet: CHAPEL.priestMet, flirt: CHAPEL.flirt, cold: CHAPEL.cold }, hut: { met: HUT.met, catPets: HUT.catPets, bearSaid: !!HUT.bearSaid }, wood: { houndPets: WOOD.houndPets }, fest: FEST.state(), house: HOUSE.state(), cal: CAL.state() }; };
 GAME.save = function () { if (SCENE.room && SCENE.room.id !== 'exterior' && !CUT.playing) SAVE.put(GAME.state()); };
 GAME.load = function (s) {
   const K = SCENE.player; K.crownMesh.visible = !!s.crown;
@@ -74,7 +74,8 @@ GAME.load = function (s) {
   if (s.chapel) { CHAPEL.met = !!s.chapel.met; CHAPEL.queenMet = !!s.chapel.queenMet; CHAPEL.priestMet = !!s.chapel.priestMet; CHAPEL.flirt = s.chapel.flirt || 0; CHAPEL.cold = s.chapel.cold || 0; }
   if (s.hut) { HUT.met = !!s.hut.met; HUT.catPets = s.hut.catPets || 0; HUT.bearSaid = !!s.hut.bearSaid; }
   if (s.wood) WOOD.houndPets = s.wood.houndPets || 0;
-  FEST.load(s.fest); HOUSE.load(s.house);
+  FEST.load(s.fest); HOUSE.load(s.house); CAL.load(s.cal);
+  if (!s.cal && s.fest && (s.fest.jousts || s.fest.bearFreed || s.fest.favour)) { CAL.phase = 'festival'; CAL.fest = 1; }   // a save from before the calendar, already at the festival
 };
 /* ---------------------------------------------------------------- credits */
 const CREDITS = {

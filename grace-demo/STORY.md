@@ -9,9 +9,10 @@ The plan for the whole game's story. Names are placeholders; change them in one 
 | The chapel and Saintess Dorota, the confessional scene | built |
 | The wood and the Woman's hut | built |
 | The night scene with Halina | built |
-| The Swan Festival grounds (§6) | building now |
-| The House of the Lantern (§9) | building now |
-| Calendar, flags, choices in court, the murder investigation, endings | planned (§12) |
+| The Swan Festival (§6): the fair, the lists, the pavilions, three days on the calendar | built |
+| The House of the Lantern (§9): the tunnel, the common room, five women's rooms | built |
+| The calendar (§12), the feast and King Gniewomir's death (chapter 3's night), the opening of chapter 4 | built |
+| The twelve days: the investigation and its clues (§7), the accusation, choices in court, endings | planned |
 
 ---
 
@@ -373,14 +374,15 @@ scene ends with the woman's own line about the king, which changes with her trus
 | Location | Status | Story use |
 |---|---|---|
 | Bedchamber | built | day start; night conversations with Halina; the night scene; "end the day" from the bed |
-| Throne room | built | weekly court; envoys; the accusation; the feast (dressed for it) |
+| Throne room | built | weekly court; envoys; the accusation |
+| **The Feast** (the throne room dressed) | built: the guests, the two stage-setting choices, the fire, the unmasking, the loving cup, Gniewomir's death, the doors, the ultimatum | the festival's last night; chapter 4 opens on it |
 | Study | built | letters, Ilka's reports, the chronicle search, chess with Zofia |
 | Garden | built | the family; Kazik and the crows; Halina's bench |
 | Training yard | built | Bogdan, Zofia's training, mustering |
 | Chapel | built | Dorota, the confessional, the priest; the crypt stair and the tunnel to the house |
 | The Wood and the hut | built | the Woman, both bargains, the cat; the bear's release; Konrad's search |
 | Map | built | travel; the Swan Meadow pin in the festival week; the river quarter |
-| **Festival: Fairground, Lists, Pavilions** | built (the grounds and their activities; the calendar, the feast and the murder still to come) | chapter 3; clues in chapter 4 |
+| **Festival: Fairground, Lists, Pavilions** | built: three days on the calendar (the bouts on their days), every activity, 3D animals and a 3D joust | chapter 3; clues in chapter 4 |
 | **The House of the Lantern** (cellar, common room, gallery, rooms, bathhouse) | built: the common room and a woman's room, five women's scenes on the bed; the bathhouse, the wall, the bath and Wanda's chair, and the clues, still to come | from chapter 2; the investigation |
 | Chapel crypt and the tunnel | the stair is built (it leads straight to the house); the crypt itself and the tomb are next | the house's door; the old king's tomb |
 | Lower town / river quarter | later | the riot, the smugglers, Jacek's mother |
@@ -403,7 +405,9 @@ banner, or the swan.
 
 ## 12. Systems the story needs
 
-- **Calendar:** day/week counter, the rain as a visible clock (paused in the festival week), "end the day" from the bed.
+- **Calendar:** *built (CAL, game/g45)*: the phases (the court day, the festival's three days, the twelve days of the crisis), "end the
+  day" from the bed (sleep, or the night with Halina), the bouts on their days, the meadow pin by phase, rain in the crisis.
+  Still to come: weeks and court days between, the rain as a counted clock.
 - **Flags and meters:** story flags, family trust, Army, Krasna's patience, Rumour, each woman's trust at the house.
 - **Dialogue choices in conversation:** `NIGHT.ask` exists for scenes; court and talk need the same strip.
 - **Event scheduler:** scenes that trigger on entering a room in a given week with given flags.

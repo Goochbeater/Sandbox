@@ -209,3 +209,38 @@ PX.def('bench', () => PX.drawers(60, 14, 1, 0x4a2616));
 /* the runner turned 90°, for the strip of carpet that climbs the dais */
 PX.def('runnerZ', () => { const src = PX.T.runner.image, cv = document.createElement('canvas'); cv.width = 32; cv.height = 32; const g = cv.getContext('2d');
   g.translate(16, 16); g.rotate(Math.PI / 2); g.drawImage(src, -16, -16); const p = new Pix(32, 32); p.d.set(g.getImageData(0, 0, 32, 32).data); return p.tex({ repeat: true, aniso: 4 }); });
+/* ---- the feast (game/g46): the great hall dressed for the festival's last night. Linen to the floor with a red runner and
+   a gold swan, food along the tables at 32 px/m, the sideboard where the cupbearer keeps the wine */
+PX.feastFront = function (W, H, runner) {   // a tablecloth's front, W x H px for the whole face of the table box
+  const p = new Pix(W, H), lin = [0xb8ae98, 0xd4ccb6, 0xe8e0cc, 0xf4eedc];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const fold = Math.sin(x * 0.55 + Math.sin(y * 0.2) * 0.6), k = y < 3 ? 3 : fold > 0.75 ? 3 : fold < -0.7 ? 0 : fold < -0.2 ? 1 : 2;
+    p.set(x, y, lin[k]); }
+  for (let x = 0; x < W; x++) { p.set(x, 0, 0xfaf6ea); p.set(x, 3, 0xa89e88); if (x % 6 < 3) p.set(x, H - 1, 0x9a907a); else p.set(x, H - 2, 0xc8c0aa); }   // the top edge, a scalloped hem
+  if (runner) { const cx = W / 2 | 0, rw = runner;   // the runner down the middle, gold-bordered, a swan on it
+    for (let y = 0; y < H - 3; y++) for (let x = cx - rw; x <= cx + rw; x++) p.set(x, y, Math.abs(x - cx) >= rw - 1 ? 0xd8a43a : C.mul(0x9a1a1e, 0.9 + 0.1 * hash(x, y, 77)));
+    for (let x = cx - rw; x <= cx + rw; x++) p.set(x, H - 3, x % 2 ? 0xd8a43a : 0x6a1014);
+    const sy = Math.min(H - 10, 14); p.ell(cx, sy + 3, 4, 2, 0xf0e8d8); for (let y = sy - 4; y < sy + 2; y++) p.set(cx + 3, y, 0xf0e8d8); p.rect(cx + 3, sy - 5, 2, 2, 0xf0e8d8); p.set(cx + 5, sy - 4, 0xd8a43a); }
+  return p.tex({ mip: false });
+};
+PX.feastFood = function (W, H, high) {   // what stands on a feast table, left to right, bottoms on the cloth
+  const p = new Pix(W, H), gold = [0x7a5a1a, 0xb8902e, 0xe8c050, 0xfff0a0], pew = [0x4a4a52, 0x7a7a84, 0xa8a8b2, 0xd0d0d8];
+  const cup = (x, M) => { p.rect(x, H - 7, 3, 4, M[1]); p.set(x, H - 7, M[3]); p.vl(x + 1, H - 3, H - 2, M[0]); p.hl(x - 1, x + 3, H - 1, M[1]); };
+  const loaf = (x) => { p.ell(x, H - 3, 4, 2.4, 0x9a5a22); p.ell(x - 1, H - 4, 3, 1.4, 0xc8843a); p.hl(x - 2, x + 1, H - 4, 0xe0a858); };
+  const platter = (x, w) => { p.ell(x, H - 1.5, w, 1.4, 0xd8d0c0); p.hl(x - w + 1, x + w - 1, H - 1, 0xa8a090); };
+  const roast = (x) => { platter(x, 9); p.ell(x, H - 5, 7, 3.6, 0x6a3214); p.ell(x - 1, H - 6, 5, 2.2, 0x9a5022); p.hl(x - 4, x + 2, H - 7, 0xc8783a); p.set(x + 7, H - 6, 0xe8d0a0); p.set(x - 6, H - 4, 0x3a1a0c); };
+  const fruit = (x) => { p.ell(x, H - 2, 5, 1.4, 0x8a6a3a); for (const [dx, c] of [[-3, 0xb8241e], [-1, 0x7a9a2a], [1, 0xc8a02a], [3, 0x6a2a6a], [0, 0xa8241e]]) p.disc(x + dx, H - 4 - (dx === 0 ? 2 : 0), 1.4, c); };
+  const jug = (x) => { p.ell(x, H - 5, 3, 4.4, 0x5a6a7a); p.rect(x - 1, H - 11, 3, 3, 0x5a6a7a); p.set(x + 3, H - 7, 0x3a4a5a); p.set(x - 1, H - 6, 0x8a9aaa); };
+  const pie = (x) => { p.ell(x, H - 3, 5, 2.4, 0xb8742a); p.hl(x - 4, x + 4, H - 5, 0xd89a4a); for (let i = -3; i <= 3; i += 2) p.set(x + i, H - 4, 0x8a4a1a); };
+  const items = high ? [[loaf, 8], [fruit, 20], [cup, 31, gold], [jug, 40], [roast, 56], [cup, 70, gold], [pie, 82], [loaf, 96], [cup, 106, gold], [fruit, 118], [roast, 136], [cup, 150, gold], [loaf, 162], [fruit, 172]]
+    : [[loaf, 7], [cup, 16, pew], [pie, 27], [jug, 38], [cup, 46, pew], [fruit, 58], [loaf, 70], [cup, 80, pew], [roast, 96], [cup, 110, pew], [loaf, 120], [fruit, 130]];
+  for (const [f, x, M] of items) if (x < W - 4) f(x, M);
+  return p.outline(null, 0.55).tex({ mip: false });
+};
+for (const [k, f] of Object.entries({
+  feastFrontHigh: () => PX.feastFront(180, 40, 9), feastFrontLow: () => PX.feastFront(132, 26, 0),
+  feastFoodHigh: () => PX.feastFood(178, 16, true), feastFoodLow: () => PX.feastFood(134, 14, false),
+  sideboard: () => { const W = 40, H = 30, p = new Pix(W, H);   // the cupbearer's sideboard: two doors, iron hinges, a carved rail
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) p.set(x, y, C.mul(0x4a2a16, 0.86 + 0.14 * hash(x >> 1, y, 91) - (x % 20 === 0 || y < 3 ? 0.3 : 0)));
+    for (const x0 of [3, 21]) { p.rect(x0, 6, 16, 20, 0x5a3420); p.hl(x0, x0 + 15, 6, 0x7a4a2c); p.vl(x0, 6, 25, 0x2a160a); for (const y of [9, 21]) p.hl(x0 + 1, x0 + 4, y, 0x2a2a2e); p.set(x0 + 13, 16, 0xb8902e); }
+    for (let x = 1; x < W - 1; x += 3) p.set(x, 1, 0x8a5a34); return p.tex({ mip: false }); },
+})) PX.def(k, f);

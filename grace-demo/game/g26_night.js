@@ -210,8 +210,9 @@ NIGHT.end = async function (slept) {
   K.stand(); K.x = -6.4; K.z = room.KZ; K.y = 0; K.face = 1; K.yaw = 0.42; K.lookYaw = null;
   const i = room.tick.indexOf(NIGHT.tick); if (i >= 0) room.tick.splice(i, 1);
   NIGHT.tweens = []; NIGHT.on = false; SCENE.camX = SCENE.camGoal(); SCENE.lock--;
-  if (slept) SCENE.caption('Morning', 'Halina rose before you. Her side of the bed is still warm.');
+  if (slept) await CAL.next();   // the night is the day's end (g45): morning is the next day
   await NIGHT.fade(false); if (NIGHT.resolve) NIGHT.resolve();
+  if (slept) { if (CAL.caption() || CAL.bridge) CAL.morning(); else SCENE.caption('Morning', 'Halina rose before you. Her side of the bed is still warm.'); }
 };
 /* ---------------------------------------------------------------- what they say in bed: lines on entering a position,
    then passing remarks by how far gone they are (k < 0.35, < 0.7, beyond) */

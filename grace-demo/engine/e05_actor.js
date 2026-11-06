@@ -57,7 +57,8 @@ class Actor {
     if (S.tabard) this.tabard(S.tabard);
     this.outer = inner.children.slice(n0); this.clothes.push(...this.outer);
     this.crownMesh = Actor.crown(S.crown && S.crown.k || 1); this.attachHead(this.crownMesh, S.crown && S.crown.y || 0.135); this.crownMesh.visible = !!(S.crown && S.crown.worn);
-    if (S.helmet) { const hm = Actor.helmet(S.helmet.col); this.attachHead(hm, 0.11); }
+    if (S.helmet) { const hm = Actor.helmet(S.helmet.col); this.attachHead(hm, 0.11); this.helmetMesh = hm; }
+    if (S.mask) { this.maskMesh = Actor.mask(S.mask.col); this.attachHead(this.maskMesh, S.mask.y || 0.07); }   // a half-mask over the eyes (the Black Swan Knight at the feast); hide it to unmask
     if (S.prop) this.prop(S.prop);
     if (S.child) { bones[I.Head].scale.setScalar(S.child.head || 1.2); if (S.child.neck) bones[I.neck_01].scale.setScalar(S.child.neck); }   // children: a bigger head on a smaller body
     root.traverse((o) => o.layers.set(this.layer)); root.visible = true; if (this.propObj) this.propObj.traverse((o) => o.layers.set(this.layer));
@@ -426,6 +427,12 @@ Actor.crown = function (k) {
   for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2, c = new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.06, 4), gold); c.position.set(Math.sin(a) * 0.103, 0.05, Math.cos(a) * 0.103); grp.add(c); }
   const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.014), new THREE.MeshStandardMaterial({ color: 0xc02020, roughness: 0.2, emissive: 0x400000 })); gem.position.set(0, 0.0, 0.108); grp.add(gem);
   grp.scale.setScalar(k); return grp;
+};
+Actor.mask = function (col) {   // a black half-mask: a band round the front of the head at the eyes, with a little beak of a nose-guard
+  const grp = new THREE.Group(), m = new THREE.MeshStandardMaterial({ color: col || 0x111114, roughness: 0.4, metalness: 0.3, side: THREE.DoubleSide });
+  const band = new THREE.Mesh(new THREE.CylinderGeometry(0.104, 0.1, 0.07, 14, 1, true, -1.25, 2.5), m); grp.add(band);
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.018, 0.06, 4), m); nose.rotation.x = Math.PI / 2 + 0.5; nose.position.set(0, -0.02, 0.105); grp.add(nose);
+  return grp;
 };
 Actor.helmet = function (col) {
   const grp = new THREE.Group(), steel = new THREE.MeshStandardMaterial({ color: col || 0x9aa2ae, roughness: 0.35, metalness: 0.8 });

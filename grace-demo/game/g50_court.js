@@ -45,6 +45,7 @@ const arrive = (a, x) => new Promise((r) => a.walkTo(x, r));
 const glide = (a, p) => new Promise((r) => a.moveTo3(p, r));
 /* up the dais and onto the throne; court begins the first time */
 COURT.sit = async function () {
+  if (CAL.festival()) { SCENE.say(SCENE.player, SCENE.cycle('courtFest', ['No court in festival week. The petitioners are at the meadow with everyone else.', 'The throne can wait. Even the throne is at the fair, in spirit.'])); return; }
   if (COURT.busy) return; COURT.busy = true; SCENE.lock++;
   const K = SCENE.player, room = THRONE;
   await arrive(K, room.TX); await glide(K, { x: room.TX, y: 0.48, z: 1.62, speed: 0.8 });

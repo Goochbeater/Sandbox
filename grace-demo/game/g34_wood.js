@@ -52,15 +52,16 @@ WOOD.build = function () {
   BUILD.box(-6.4, -6.1, 0, 1.6, 1.2, 1.25, T.woodPost); BUILD.box(-6.5, -5.4, 1.55, 1.62, 1.15, 1.3, T.woodPost);
   BUILD.box(-6.3, -6.25, 0, 1.4, 1.0, 1.05, T.woodDark); BUILD.box(-6.0, -5.95, 0, 1.4, 1.02, 1.05, T.woodDark);
   room.interact('butts', -8.0, 1.8, KZ, 1.0, () => say('butts'));
-  /* the fishing hole: a stone rim, the water, a dock with its posts, a rod leaning on the dock */
-  BUILD.cyl(1.0, 1.8, 0, 0.45, 2.3, T.ashlar, { seg: 10 });
-  BUILD.pool(T.water, 1.0, 0.48, 1.8, 2.1, { seg: 10, rate: 5, glow: 0.35, col: 0x9ac4e8 });   // above the rim's cap (0.45), so the water shows
-  BUILD.box(2.4, 3.6, 0.42, 0.5, 2.5, 2.9, T.woodDark);
-  for (const x of [2.5, 3.5]) BUILD.box(x - 0.06, x + 0.06, 0, 0.42, 2.45, 2.55, T.woodPost);
-  BUILD.box(3.5, 3.56, 0.5, 2.4, 2.65, 2.7, T.woodPost);
+  /* the fishing hole: a stone rim, the water, a dock running out over it from the right bank, a rod leaning on the dock.
+     The rim's front edge is at z 2.0, behind the line the guards (z 2.45) and the king walk, so nobody wades through it */
+  BUILD.cyl(1.0, 0.3, 0, 0.45, 1.7, T.ashlar, { seg: 10 });
+  BUILD.pool(T.water, 1.0, 0.48, 0.3, 1.55, { seg: 10, rate: 5, glow: 0.35, col: 0x9ac4e8 });   // above the rim's cap (0.45), so the water shows
+  BUILD.box(2.0, 3.4, 0.46, 0.54, 0.1, 0.5, T.woodDark);
+  for (const x of [2.1, 3.3]) BUILD.box(x - 0.06, x + 0.06, 0, 0.46, 0.25, 0.35, T.woodPost);
+  BUILD.box(3.3, 3.36, 0.54, 2.4, 0.4, 0.45, T.woodPost);
   room.interact('pond', 1.0, 1.2, KZ, 1.2, () => say('pond'));
   /* the birds on the rim and the bank: the garden's ground birds, for the fishing hole */
-  room.birds = BUILD.critters(T.crowGround, [[0.2, 0.45, 2.6, 1.0], [2.0, 0, 3.1, 1.2], [11.5, 0, 2.9, 1.2], [-2.6, 0, 3.2, 1.3]], { shy: 1.5, sound: 'whoosh' });
+  room.birds = BUILD.critters(T.crowGround, [[0.2, 0.45, 1.72, 1.0], [2.0, 0, 3.1, 1.2], [11.5, 0, 2.9, 1.2], [-2.6, 0, 3.2, 1.3]], { shy: 1.5, sound: 'whoosh' });
   /* Halina's blanket under the oak, the basket of bread and pears beside it, the hound asleep in the sun */
   BUILD.rug(T.rugA, 4.4, 7.2, 2.0, 3.6, { y: 0.02 });
   BUILD.card(T.basket, 7.4, 0.02, 2.4, { s: 0.9 });

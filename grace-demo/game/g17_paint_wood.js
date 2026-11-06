@@ -63,11 +63,13 @@ PX.def('hutWall', () => {   // purple-black wattle: staves of woven wood, eight 
   }
   return p.tex({ repeat: true });
 });
-PX.def('catPix', () => {   // a black cat sitting in profile, green eyes, its tail round its feet
-  const p = new Pix(18, 24), K = 0x0e0a10;
+PX.def('catPix', () => {   // a black cat sitting in profile, its tail round its feet; a lilac rim on the edges that face up and
+  const p = new Pix(18, 24), K = 0x1c1424, rim = 0x8a70b8;   // right, so the black reads against the dark wall, and green eyes
   p.ell(9, 16, 5, 6.5, K); p.ell(9, 7, 3.5, 3.2, K); p.set(7, 2, K); p.set(7, 1, K); p.set(11, 2, K); p.set(11, 1, K);
-  p.set(8, 7, 0x8aff8a); p.set(10, 7, 0x8aff8a);
   p.ell(13, 22, 5, 1.5, K);
+  const edge = []; for (let y = 0; y < 24; y++) for (let x = 0; x < 18; x++) if (p.a(x, y) && (!p.a(x, y - 1) || !p.a(x + 1, y))) edge.push([x, y]);
+  for (const [x, y] of edge) p.set(x, y, rim);
+  p.set(8, 7, 0xc8ff6a); p.set(10, 7, 0xc8ff6a);
   return p.tex({});
 });
 PX.def('jarPix', () => {   // a glass jar of violet liquid with a wooden lid and a name on it, the highlight on the glass

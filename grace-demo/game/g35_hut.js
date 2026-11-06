@@ -71,14 +71,14 @@ HUT.build = function () {
   BUILD.light(new THREE.PointLight(0xa070ff, 2.5, 0, 2), 5.2, 1.6, 2.2, { flicker: 4 });
   room.interact('orb', 5.2, 1.6, KZ, 1.0, () => say('orb'));
   room.interact('witch', 3.6, 2.6, KZ, 1.0, () => HUT.witch()).label = 'Talk to the Woman';
-  /* the dressing: jars on the shelf, a skull and a black cat on the table, cobwebs in the corners, a stool, a barrel,
+  /* the dressing: jars on the shelf, a skull on the table, a black cat on the barrel, cobwebs in the corners, a stool,
      lanterns and candles, and a hanging over the hearth */
   for (const x of [-6.2, -5.6, -5.0, -4.4]) BUILD.card(T.jarPix, x, 2.6, 0.45, { s: 1.0, cast: false });
-  BUILD.card(T.catPix, 4.6, 0.95, 2.55, { s: 1.0, cast: false });
+  BUILD.card(T.catPix, -3.5, 1.1, 1.7, { s: 1.0, cast: false });   // on the barrel, clear of the orb's glow
   BUILD.card(T.skullPix, 5.8, 0.95, 2.2, { s: 1.0 });
   BUILD.card(T.cobwebPix, -9.6, 4.2, 0.08, { s: 2.2, cast: false }); BUILD.card(T.cobwebPix, 9.4, 4.4, 0.08, { s: 2.2, cast: false });
   BUILD.box(2.9, 3.5, 0, 0.45, 1.5, 2.0, T.woodDark, { col: 0x8a70b0 });
-  BUILD.box(-3.4, -2.2, 0, 1.1, 2.4, 3.2, T.woodDark, { col: 0x7a60a0 });
+  BUILD.box(-4.0, -3.0, 0, 1.1, 1.3, 2.0, T.woodDark, { col: 0x7a60a0 });   // the barrel stands behind the walking line (z 2.6), so the king passes in front of it
   BUILD.card(T.lantern, -2.6, 3.0, 1.0, { cast: false }); BUILD.glow(-2.6, 3.2, 1.05, 1.2, 0x9b5cff, 0.4);
   BUILD.light(new THREE.PointLight(0xa070ff, 2.4, 0, 2), -2.6, 3.0, 1.8, { flicker: 5 });
   BUILD.card(T.lantern, 8.4, 3.0, 1.2, { cast: false }); BUILD.glow(8.4, 3.2, 1.25, 1.2, 0x9b5cff, 0.4);

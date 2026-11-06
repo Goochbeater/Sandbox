@@ -12,9 +12,10 @@
 const NIGHT = { AGE: 'swan.age18', on: false, pace: 1, ph: 0, k: 0, pos: null, closer: true, finishing: false };
 NIGHT.aged = () => { try { return localStorage.getItem(NIGHT.AGE) === '1'; } catch (e) { return false; } };
 NIGHT.confirm = function (then) {
-  if (NIGHT.aged()) { then(); return; }
+  const go = () => { SCENE.moved = true; $('hint').style.opacity = '0'; then(); };   // the walking hint is done once a scene starts: it sat over the scene's buttons
+  if (NIGHT.aged()) { go(); return; }
   const g = $('ageGate'); g.hidden = false; SCENE.modal = true; $('ageYes').focus();
-  $('ageYes').onclick = () => { try { localStorage.setItem(NIGHT.AGE, '1'); } catch (e) { /* */ } g.hidden = true; SCENE.modal = false; then(); };
+  $('ageYes').onclick = () => { try { localStorage.setItem(NIGHT.AGE, '1'); } catch (e) { /* */ } g.hidden = true; SCENE.modal = false; go(); };
   $('ageNo').onclick = () => { g.hidden = true; SCENE.modal = false; };
 };
 NIGHT.PACE = { nSlow: 0.6, nMid: 1, nFast: 1.7 };

@@ -61379,7 +61379,7 @@ FEAST.after = async function () {
   await FEAST.pick(['You’ll have a name.', 'I’m sorry, Mściwoj. Truly.', 'Don’t threaten me in my own hall.']);
   // the end of the night: chapter four, and the morning after in the bedchamber
   await NIGHT.fade(true);
-  CAL.phase = 'crisis'; CAL.crisis = 1; CAL.day++; CAL.feastDone = true; FEST.feast = true;
+  CAL.phase = 'crisis'; CAL.crisis = 1; CAL.day++; CAL.feastDone = true;
   if (G) { G.puppet = null; G.offstage = true; G.setVisible(false); }
   room.camFocus = null; await SCENE.lens(room, null, 0.01);
   SCENE.caption('Chapter Four · The Dead King', 'Twelve days. Then war.'); await SCENE.wait(4800);

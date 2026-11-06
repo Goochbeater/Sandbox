@@ -377,12 +377,12 @@ scene ends with the woman's own line about the king, which changes with her trus
 | Study | built | letters, Ilka's reports, the chronicle search, chess with Zofia |
 | Garden | built | the family; Kazik and the crows; Halina's bench |
 | Training yard | built | Bogdan, Zofia's training, mustering |
-| Chapel | built | Dorota, the confessional, the priest; the crypt and the tunnel (to build) |
+| Chapel | built | Dorota, the confessional, the priest; the crypt stair and the tunnel to the house |
 | The Wood and the hut | built | the Woman, both bargains, the cat; the bear's release; Konrad's search |
 | Map | built | travel; the Swan Meadow pin in the festival week; the river quarter |
-| **Festival: Fairground, Lists, Pavilions** | building now | chapter 3; clues in chapter 4 |
-| **The House of the Lantern** (cellar, common room, gallery, rooms, bathhouse) | building now | from chapter 2; the investigation |
-| Chapel crypt and the tunnel | next | the house's door; the old king's tomb |
+| **Festival: Fairground, Lists, Pavilions** | built (the grounds and their activities; the calendar, the feast and the murder still to come) | chapter 3; clues in chapter 4 |
+| **The House of the Lantern** (cellar, common room, gallery, rooms, bathhouse) | built: the common room and a woman's room, five women's scenes on the bed; the bathhouse, the wall, the bath and Wanda's chair, and the clues, still to come | from chapter 2; the investigation |
+| Chapel crypt and the tunnel | the stair is built (it leads straight to the house); the crypt itself and the tomb are next | the house's door; the old king's tomb |
 | Lower town / river quarter | later | the riot, the smugglers, Jacek's mother |
 | Walls and gatehouse | later | the siege |
 

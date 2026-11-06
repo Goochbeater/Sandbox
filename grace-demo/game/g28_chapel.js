@@ -10,6 +10,16 @@ const CHAPEL = SCENE.addRoom(new Room('chapel', { X0: -12, X1: 12, CEIL: 7.6, KZ
   caption: ['The Chapel', 'Vespers, and nobody in a hurry'] }));
 CHAPEL.ENTRY = -9.6;   // where the king arrives from the garden's cloister stair
 CHAPEL.met = false; CHAPEL.queenMet = false; CHAPEL.priestMet = false; CHAPEL.flirt = 0; CHAPEL.cold = 0;   // kept in the save: see GAME.state
+/* the stair to the tunnel: the first time, the king finds his father's lock, oiled */
+CHAPEL.crypt = async function () {
+  const K = SCENE.player; SCENE.lock++;
+  try {
+    if (!HOUSE.found) await SCENE.talk([[K, 'Behind the confessional, under the saint’s rug: a stair, and at the bottom a door with my father’s lock on it.'],
+      [K, '“Wanda keeps my other key,” his letter said. The lock is oiled. Somebody has kept it oiled for twelve years.']]);
+    else await SCENE.say(K, 'Down the old stair. The tunnel smells of river and candle wax.', { wait: true });
+  } finally { SCENE.lock--; }
+  GAME.save(); SCENE.go('lantern', { x: -10.0, face: 1 });
+};
 CHAPEL.LINES = {
   arch: ['Back out to the garden. The sun is still up there, being generous to somebody else.'],
   stoup: ['Holy water. Dip your fingers and make the sign. Don’t leave them wet for the saintess to notice.'],
@@ -125,6 +135,9 @@ CHAPEL.build = function () {
   /* the confessional on the right, its lattice facing the aisle */
   BUILD.box(9.4, 11.5, 0, 2.2, 0.1, 1.3, T.woodDark, { front: BUILD.std(T.chConfess) }); BUILD.box(9.3, 11.6, 2.2, 2.35, 0.0, 1.45, T.woodDark);
   room.interact('confess', 10.4, 2.5, KZ, 1.0, () => CHAPEL.confess());
+  /* behind the confessor's desk, the old king's stair down to the siege tunnel (STORY.md §9): it comes up in Wanda's cellar */
+  BUILD.card(T.cellarArch, 11.25, 0, 0.03, { cast: false, s: 0.9 });
+  room.interact('crypt', 11.1, 2.2, KZ, 0.45, () => CHAPEL.crypt()).label = 'The old stair behind the confessional';
   /* the foreground, close to the lens and out of focus, as in the throne hall: two piers and a brazier for the depth of field */
   for (const [x, z] of [[-7.6, 7.3], [10.9, 7.0]]) { const g = new THREE.CylinderGeometry(0.48, 0.48, CE, 16); g.translate(x, CE / 2, z); BUILD.planarUV(g, T.ashlar); BUILD.add(new THREE.Mesh(g, BUILD.std(T.ashlar, { col: 0xb8b0a4 })), { cast: false });
     BUILD.box(x - 0.6, x + 0.6, 0, 0.4, z - 0.6, z + 0.6, T.ashlar, { cast: false }); }

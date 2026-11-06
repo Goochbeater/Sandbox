@@ -106,7 +106,14 @@ class Actor {
     for (const m of this.clothes) m.visible = false;
     this.bare.visible = true; if (this.sexGroup) this.sexGroup.visible = true; this.nude = true;
   }
-  dress() { for (const m of this.clothes) m.visible = true; if (this.bare) this.bare.visible = false; if (this.sexGroup) this.sexGroup.visible = false; this.nude = false; }
+  dress() { for (const m of this.clothes) m.visible = true; if (this.bare) this.bare.visible = false; if (this.sexGroup) this.sexGroup.visible = false; this.nude = false; if (this.disguised) this.disguise(true); }
+  /* in disguise (the king as the Falconer, in the river quarter): no crown, no fur collar, no tabard, only the dark coat.
+     The crown comes back as it was when the disguise comes off */
+  disguise(on) {
+    if (on && !this.disguised) this.crownWas = this.crownMesh.visible;
+    this.disguised = on; this.crownMesh.visible = on ? false : !!this.crownWas;
+    for (const m of this.clothes) if (m.userData.garment === 'collar' || m.userData.garment === 'tabard') m.visible = !on && !this.nude;
+  }
   /* 0 = soft, 1 = fully hard (men only; a no-op otherwise) */
   setArousal(k) { const s = this.sexGroup && this.sexGroup.userData.shaft; if (!s) return; this.arousal = k;
     const a = lerp(Math.PI - 0.32, Math.PI / 2 - 0.55, smooth(0, 1, k)); s.rotation.set(a, 0, 0);
@@ -143,7 +150,7 @@ class Actor {
       J.push(I.spine_03, x > 0 ? I.clavicle_l : I.clavicle_r, I.neck_01, 0); W.push(1 - side - 0.1, side, 0.1, 0); }
     g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(J, 4)); g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(W, 4)); g.computeVertexNormals();
     const pal = o.pal || [0x8a6a44, 0xb8946a, 0xd2b488, 0xe6cfa6];
-    this.add(g, new THREE.MeshStandardMaterial({ map: Actor.cloth(32, 16, (p) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 32; x++) p.set(x, y, C.ramp(pal, hash(x, y, 77) * 0.6 + 0.3 * Math.sin(x * 1.7 + y))); }), roughness: 1 }));
+    this.add(g, new THREE.MeshStandardMaterial({ map: Actor.cloth(32, 16, (p) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 32; x++) p.set(x, y, C.ramp(pal, hash(x, y, 77) * 0.6 + 0.3 * Math.sin(x * 1.7 + y))); }), roughness: 1 })).userData.garment = 'collar';
   }
   /* a tabard (or a sash) down the front, just proud of the chest and the skirt */
   tabard(o) {
@@ -164,7 +171,7 @@ class Actor {
     const tex = Actor.cloth(8, 40, (p) => { p.fill(o.col); if (o.trim !== null) for (let y = 0; y < 40; y++) { p.set(0, y, o.trim || 0xb8862e); p.set(7, y, o.trim || 0xb8862e); }
       if (o.emblem) for (const [x, y] of [[3, 6], [4, 6], [2, 7], [3, 7], [4, 7], [5, 7], [3, 8], [4, 8], [3, 9], [4, 9], [3, 5], [4, 5]]) p.set(x, y, o.emblem); });
     tex.wrapS = THREE.ClampToEdgeWrapping;
-    this.add(g, new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9, side: THREE.DoubleSide }));
+    this.add(g, new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9, side: THREE.DoubleSide })).userData.garment = 'tabard';
   }
   /* a held object: a spear stays upright in the right hand, a scroll rides the left */
   prop(kind) {

@@ -11,8 +11,9 @@
    toward the bed (the player can pull it back out), it never leaves the room. */
 const NIGHT = { AGE: 'swan.age18', on: false, pace: 1, ph: 0, k: 0, pos: null, closer: true, finishing: false };
 NIGHT.aged = () => { try { return localStorage.getItem(NIGHT.AGE) === '1'; } catch (e) { return false; } };
+NIGHT.quiet = () => { SCENE.moved = true; $('hint').style.opacity = '0'; };   // the walking hint is done once a scene starts: it sat over the scene's buttons
 NIGHT.confirm = function (then) {
-  const go = () => { SCENE.moved = true; $('hint').style.opacity = '0'; then(); };   // the walking hint is done once a scene starts: it sat over the scene's buttons
+  const go = () => { NIGHT.quiet(); then(); };
   if (NIGHT.aged()) { go(); return; }
   const g = $('ageGate'); g.hidden = false; SCENE.modal = true; $('ageYes').focus();
   $('ageYes').onclick = () => { try { localStorage.setItem(NIGHT.AGE, '1'); } catch (e) { /* */ } g.hidden = true; SCENE.modal = false; go(); };
@@ -55,9 +56,17 @@ NIGHT.say = (a, t, ms) => SCENE.say(a, t).then(() => ms ? SCENE.wait(ms) : null)
 NIGHT.fade = async (on) => { const f = $('fade'); f.classList.toggle('off', !on); await SCENE.wait(on ? 950 : 500); };
 /* the camera: 'room' = the room's own framing, 'bed' = eased in on the bed (or only re-centred, if the player wants it wider) */
 NIGHT.CAM = { bed: { fov: 13.5, y: 2.05, look: 1.62, focus: -7.72 }, wide: { fov: 17, y: 2.3, look: 1.9, focus: -7.72 } };
+/* the stage: the in-bed machinery (rhythm, positions, sounds, the camera, the lines, the finish) runs on NIGHT.S when a scene
+   sets one, else on the royal bedchamber. A stage is { room, enter, lines, cam, lens(k), finish(), end(slept) };
+   its bed must stand where LOVERS.BED is, because the positions are world places. The House of the Lantern uses this */
+NIGHT.S = null;
+NIGHT.room = () => (NIGHT.S ? NIGHT.S.room : BEDROOM);
+NIGHT.lens = (k) => (NIGHT.S ? NIGHT.S.lens && NIGHT.S.lens(k) : BEDROOM.lens(k));
+NIGHT.lines = () => (NIGHT.S ? NIGHT.S.lines : NIGHT.LINES);
+NIGHT.enters = () => (NIGHT.S ? NIGHT.S.enter : NIGHT.ENTER);
 NIGHT.camTick = function (dt) {
-  const room = BEDROOM, c = room.cam, c0 = NIGHT.cam0; if (!c0) return;
-  const g = NIGHT.camMode === 'bed' ? (NIGHT.closer ? NIGHT.CAM.bed : NIGHT.CAM.wide) : { fov: c0.fov, y: c0.y, look: c0.look, focus: null };
+  const room = NIGHT.room(), c = room.cam, c0 = NIGHT.cam0, CAM = (NIGHT.S && NIGHT.S.cam) || NIGHT.CAM; if (!c0) return;
+  const g = NIGHT.camMode === 'bed' ? (NIGHT.closer ? CAM.bed : CAM.wide) : { fov: c0.fov, y: c0.y, look: c0.look, focus: null };
   c.fov = damp(c.fov, g.fov, 0.7, dt); c.y = damp(c.y, g.y, 0.7, dt); c.look = damp(c.look, g.look, 0.7, dt);
   room.focusDz = NIGHT.camMode === 'bed' ? damp(room.focusDz || 0, room.KZ - 1.97, 0.7, dt) : damp(room.focusDz || 0, 0, 0.7, dt);   // keep the bed sharp
   room.camFocus = g.focus === null ? (Math.abs(c.fov - c0.fov) < 0.15 ? c0.focus : room.camFocus) : g.focus;
@@ -66,7 +75,7 @@ NIGHT.camTick = function (dt) {
 NIGHT.tick = function (t, dt) {
   for (let i = NIGHT.tweens.length - 1; i >= 0; i--) { const w = NIGHT.tweens[i]; w.t += dt; const u = clamp(w.t / w.dur, 0, 1); w.fn(smooth(0, 1, u)); if (u >= 1) { NIGHT.tweens.splice(i, 1); w.r(); } }
   NIGHT.camTick(dt);
-  NIGHT.lensK = clamp(NIGHT.lensK + Math.sign(NIGHT.lensT - NIGHT.lensK) * dt * 1.6, 0, 1); BEDROOM.lens(NIGHT.lensK);   // the near posts clear as the camera pushes in (0.6 s)
+  NIGHT.lensK = clamp(NIGHT.lensK + Math.sign(NIGHT.lensT - NIGHT.lensK) * dt * 1.6, 0, 1); NIGHT.lens(NIGHT.lensK);   // the near posts clear as the camera pushes in (0.6 s)
   if (!NIGHT.inBed) return;
   const p = NIGHT.pos, slow = p === 'kiss' || p === 'after', K = NIGHT.A.K, Q = NIGHT.A.Q;
   const rate = NIGHT.hold ? 0 : slow ? 1.1 : 3.4 * NIGHT.pace * (NIGHT.finishing ? 1.35 : 1);
@@ -83,7 +92,7 @@ NIGHT.tick = function (t, dt) {
     AUDIO.sfx('breath', { gain: (her ? 0.34 : 0.24) + 0.36 * k, pitch: her ? 1150 + Math.random() * 450 : 640 + Math.random() * 200, dur: slow ? 1.1 : lerp(0.75, 0.45, k), pan });
     if (p === 'kiss' && Math.random() < 0.5) AUDIO.sfx('kiss', { gain: 0.35, pan, delay: 0.2 }); }
   NIGHT.lineT -= dt;
-  if (NIGHT.lineT <= 0 && !SCENE.bubble && !NIGHT.scripted) { const L = NIGHT.LINES[p]; if (L) { const band = k < 0.35 ? 0 : k < 0.7 ? 1 : 2, set = L[Math.min(band, L.length - 1)];
+  if (NIGHT.lineT <= 0 && !SCENE.bubble && !NIGHT.scripted) { const L = NIGHT.lines()[p]; if (L) { const band = k < 0.35 ? 0 : k < 0.7 ? 1 : 2, set = L[Math.min(band, L.length - 1)];
     const [who, text] = SCENE.cycle('night_' + p + band, set); SCENE.say(who === 'K' ? K : Q, text); }
     NIGHT.lineT = lerp(7.5, 4.2, k) * (0.8 + Math.random() * 0.5); }
 };
@@ -98,13 +107,13 @@ NIGHT.to = async function (name) {
   AUDIO.sfx('sheets', { gain: 0.8 }); NIGHT.posBar(); $('nPos').querySelectorAll('button').forEach((b) => b.disabled = true);
   await NIGHT.drive(name, name === 'behind' || NIGHT.pos === 'behind' ? 2.0 : 1.6, 0.12);
   NIGHT.posBar(); NIGHT.busy = false;
-  const L = NIGHT.ENTER[name]; if (L) { NIGHT.scripted = true; for (const [w, t] of L) await NIGHT.say(w === 'K' ? NIGHT.A.K : NIGHT.A.Q, t, 150); NIGHT.scripted = false; NIGHT.lineT = 3; }
+  const L = NIGHT.enters()[name]; if (L) { NIGHT.scripted = true; for (const [w, t] of L) await NIGHT.say(w === 'K' ? NIGHT.A.K : NIGHT.A.Q, t, 150); NIGHT.scripted = false; NIGHT.lineT = 3; }
 };
 /* ---------------------------------------------------------------- the scene */
 NIGHT.play = async function (o) {
   o = o || {};
   const room = BEDROOM, K = SCENE.player, Q = CAST.A.queen; if (SCENE.room !== room || NIGHT.on) return;
-  NIGHT.on = true; NIGHT.A = { K, Q }; NIGHT.lensK = 0; NIGHT.lensT = 0; NIGHT.pos = null; NIGHT.k = 0; NIGHT.ph = 0; NIGHT.inBed = false; NIGHT.finishing = false; NIGHT.hold = false; NIGHT.brT = 1; NIGHT.lineT = 5;
+  NIGHT.quiet(); NIGHT.on = true; NIGHT.A = { K, Q }; NIGHT.lensK = 0; NIGHT.lensT = 0; NIGHT.pos = null; NIGHT.k = 0; NIGHT.ph = 0; NIGHT.inBed = false; NIGHT.finishing = false; NIGHT.hold = false; NIGHT.brT = 1; NIGHT.lineT = 5;
   SCENE.lock++; NIGHT.tweens = []; room.tick.push(NIGHT.tick); NIGHT.camMode = 'room';
   NIGHT.cam0 = { fov: room.cam.fov, y: room.cam.y, look: room.cam.look, focus: room.camFocus };
   NIGHT.keep = { idle: Q.spec.idle, home: Q.curHome, baseY: Q.baseY };
@@ -175,6 +184,7 @@ NIGHT.play = async function (o) {
 };
 NIGHT.finish = async function () {
   if (NIGHT.finishing || NIGHT.busy || !NIGHT.inBed) return;
+  if (NIGHT.S && NIGHT.S.finish) return NIGHT.S.finish();
   const K = NIGHT.A.K, Q = NIGHT.A.Q; NIGHT.bar([]); NIGHT.scripted = true;
   if (NIGHT.pos !== 'kiss') {   // the end of it: faster, then held deep, then still
     NIGHT.finishing = true; NIGHT.k = Math.max(NIGHT.k, 0.85); NIGHT.pace = Math.max(NIGHT.pace, 1.5);
@@ -189,6 +199,7 @@ NIGHT.finish = async function () {
   await NIGHT.beat(1200); NIGHT.scripted = false; await NIGHT.end(true);
 };
 NIGHT.end = async function (slept) {
+  if (NIGHT.S && NIGHT.S.end) return NIGHT.S.end(slept);
   const room = BEDROOM, K = NIGHT.A.K, Q = NIGHT.A.Q, c0 = NIGHT.cam0;
   NIGHT.bar([]); await NIGHT.fade(true);
   NIGHT.lensT = 0; NIGHT.lensK = 0; BEDROOM.lens(0);   // behind the fade: the foreground props are back

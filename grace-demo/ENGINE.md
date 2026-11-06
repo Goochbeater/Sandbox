@@ -36,6 +36,7 @@ Contents
 13f. Animals you can pet (`BUILD.pet`)
 13g. Moving the king: pace, jogging, the Settings
 13h. The Swan Festival: three connected grounds, shows, a lazy cast
+13i. The House of the Lantern: a disguise, a second bed, the night scene as a stage
 14. Credits and licences
 
 ---
@@ -367,6 +368,12 @@ the fortune teller's wagon, the maypole); the lists (the tiltyard, the royal sta
 the heralds' tower, the archery butts); the pavilions (the river and the League's barge, Gniewomir's pavilion, Wiesława's
 tent, the horse lines, the black tent). §13h.
 
+**The House of the Lantern** (`g42_lantern.js`, painters `g19_paint_lantern.js`, people `g43_cast_lantern.js`): Wanda's
+house in the river quarter, reached by the old tunnel from the chapel's crypt stair, where the king goes as the Falconer.
+The common room (the cellar arch, the counter and bottles, two tables of drinkers, the hearth, the lute player, the river
+window, the gallery with six painted doors and the stair) and a woman's room upstairs, dressed for whoever he goes up
+with. Wanda, Róża, Nadia, Hanna, Lena, Agata, a docker and a League clerk. §13i.
+
 **The cast** (`g40_cast.js`): the king (dark coat, fur collar, white tabard, the crown once he takes it), the queen
 (blue gown and shawl, small crown, arms folded), the steward (long green robe, gold sash, a scroll), two guards (red
 livery over mail, white tabard with the green swan, kettle hats, spears), Ser Bogdan the commander (fur collar,
@@ -560,12 +567,15 @@ The adult scenes are built from parts that every scene reuses:
    `K.setArousal(0..1)`, eased toward a target each frame.
 
 **Rules these scenes keep.**
-- Only the adult characters are undressed or posed: the king, the queen, and the saintess (twenty-nine). The scene code takes
+- Only the adult characters are undressed or posed: the king, the queen, the saintess (twenty-nine), and the House of the
+  Lantern's women (24 to 35; §13i). The scene code takes
   only the actors it is handed, and no child character is ever passed in. Zofia and Kazik are never a scene's actors.
 - The player chooses. The king's bubble says what the player picked through `NIGHT.ask`, and the other characters speak
   their own lines. The bed scene's scripted king lines predate this rule; the confessional follows it.
 - Undress in layers: `Actor.undress('outer')` hides the gown, collar and crown; `Actor.undress('all')` takes it to skin.
-- A scene is gated before its first frame: `NIGHT.confirm(then)` for the bed and `CONF.start()` for the confessional.
+- A scene is gated before its first frame: `NIGHT.confirm(then)` for the bed and the house, `CONF.start()` for the
+  confessional.
+- The king's penis is never shown: after `undress('all')`, `K.sexGroup.visible = false`, in every scene.
 
 **Testing a scene headlessly.** Set the age flag, the story state, and start the scene, then advance it with E and pick
 with the number keys:
@@ -772,6 +782,96 @@ interaction, `until(cond)` waits for a state, `finish()` clicks through bubbles,
 until `SCENE.lock` is 0) ran every activity on every ground to the end, with screenshots at the show's key moment (a blast
 visible, the lances' shards in the air, the knight falling), and walked the gates round (fair → lists → pavilions → lists
 → fair), the map pin, and the bear's return to the wood.
+
+## 13i. The House of the Lantern: a disguise, a second bed, the night scene as a stage
+
+**Files.** `game/g19_paint_lantern.js` (painters), `g42_lantern.js` (the two rooms and `HOUSE`), `g43_cast_lantern.js` (Wanda,
+the five women, the docker and the clerk, and every line they say, in `HOUSE.W`). The story is `STORY.md` §9. A king can't
+walk into a brothel, so the game never has him do it: the way in is a tunnel. The chapel's crypt stair (`cellarArch` card at
+x 11.25, `room.interact('crypt', …)` → `CHAPEL.crypt()`) speaks the first-time lines and `SCENE.go('lantern', { x: -10 })`;
+the cellar arch in the common room goes back to the chapel.
+
+**The disguise is a room flag.** A room made with `{ disguise: true }` turns the king into the Falconer: `SCENE.enter` calls
+`P.disguise(!!room.disguise)` on every entry, so leaving takes it off with no extra code. `Actor.disguise(on)` (e05) hides
+the crown (remembering whether he wore it) and every mesh in `clothes` tagged `userData.garment = 'collar'` or `'tabard'`;
+`dress()` re-applies it, so undressing and dressing in the house keeps him in disguise. To hide another garment, tag it
+where `add()` builds it. Nothing else changes: same body, same coat.
+
+**The common room** (`LANTERN`, X −12..12, ceiling 6.4, walk line z 2.8): half-timbered walls, a gallery on posts across the
+back with six painted doors and a red lantern by each, the stair up at the right (x 7.8..11), the cellar arch at the left,
+Wanda's counter and bottle shelf, two tables with painted drinkers (`crowdA`/`crowdB`), the hearth (the key light: a point
+at 8 with flicker 7), the lute player, the river window with a moonlight spot (the one shadow caster), red lanterns hung
+in the open front. The women stand at their places (Agata sits on the stair: `sit.y` 0.52), Wanda behind the counter.
+Their talk markers are made in `onEnter`, at each woman's own z and head height (sitting: `sit.y − 0.45`).
+
+**A woman's room** (`LROOM`, X −14..5.6, ceiling 4.4, z 2.6). Her bed stands exactly where the royal bed does
+(`LOVERS.BED`: x −9.4..−6.0, z 0.25..2.05, top 0.8), because the positions in `g27_lovers.js` are world places. One room
+serves all five women: `LROOM.dress[id]` holds `dyn` cards shown only for her (Róża's silks, Nadia's maps, Hanna's
+husband's cloak, Lena's copper bath with sprite steam, Agata's turned cross and books), and `LROOM.QUILT[id]` tints the
+quilt (a cloned material). All five live in the room (so they keep their layers, §3); `onEnter` shows only `HOUSE.with`.
+
+**Why the room runs 4.5 m past the headboard.** `SCENE.camGoal` clamps the camera's focus so the frame never shows past the
+walls: `half = tan(fov / 2) × R.A × dist`, focus ≥ `X0 + half − 0.3`. Eased in for the bed (fov 13.5, dist 19.4) on a
+phone in landscape (the stage strip under the bars is about 2.8:1), `half` is 6.4 m, so centring the bed (focus −7.72)
+needs `X0 ≤ −13.85`. At X0 −11.4 the camera stopped at −4.9 and the bed sat in the left third with an empty wall on the
+right. The extra room is furnished (a chest, a washstand with bowl, jug and candle, a mirror), not left empty. The royal
+bedchamber (X0 −11.6) has the same clamp, and its framing (bed left, hearth right) is the established one; leave it.
+
+**The night scene is a stage.** `g26_night.js` runs the bed (rhythm, positions, sounds, camera, lines, finish) on
+`NIGHT.S` when a scene sets one, else on the royal bedchamber. A stage is
+`{ room, enter, lines, cam, lens, finish, end }`; read it through `NIGHT.room()`, `NIGHT.lines()`, `NIGHT.enters()`,
+`NIGHT.lens(k)`, and `camTick` uses `(NIGHT.S && NIGHT.S.cam) || NIGHT.CAM`. `NIGHT.finish` and `NIGHT.end` hand over to
+`S.finish` and `S.end`. `HOUSE.scene(id)`:
+1. her `yes` line, then `SCENE.go('lroom')` with `HOUSE.with` set (the room dresses itself for her);
+2. `NIGHT.S = HOUSE.stage(id)` and the same state reset `NIGHT.play` does (keep the two in step if one changes);
+3. `makeBare`, her intro, both walk to the bed, she undresses him and he her, `undress('all')`, then
+   `K.sexGroup.visible = false` (the house rule: he is never shown);
+4. into one sprite (`K.reframe`, `Q.hostInto(K)`), camera mode `'bed'`, `NIGHT.drive('kiss')`, her `enter.kiss` lines;
+5. the position and pace strip, and her favourite (`W.fav`): she moves him there herself;
+6. `HOUSE.finish` (her three lines, the hold, the afterglow) and `HOUSE.end`: fade, restore the room's camera (`cam`,
+   `camFocus`, `focusDz`), release the poses, `dress()` (which puts the disguise back), `NIGHT.S = null`, trust +2 (+1 if he
+   left early), nights +1, rumour +1, then back down to the common room with a caption, and save.
+
+The gate is the same `NIGHT.confirm` (the choice reads "Go upstairs with her (18+)"). `NIGHT.quiet()` retires the walking
+hint and is called by both `NIGHT.confirm` and `NIGHT.play`: the bedroom's `&night` test link skipped the gate and left the
+hint showing under the scene's buttons.
+
+**The women** (all adults; `STORY.md` §9.4 has who they are):
+
+| id | name | age | her favourite | quilt | her room |
+|---|---|---|---|---|---|
+| `roza` | Róża | 27 | ride | `0xe0947a` | silks over the bed and the window |
+| `nadia` | Nadia | 31 | behind | `0xb8b0e0` | two river maps |
+| `hanna` | Hanna | 35 | missionary | `0xece2cc` | her husband's cloak and sword |
+| `lena` | Lena | 29 | ride | `0xeca8b8` | the copper bath, steaming |
+| `agata` | Agata | 24 | behind | `0xa0a0b0` | the turned cross, books |
+
+Wanda (47) keeps the house and doesn't go upstairs. Each woman's `HOUSE.W[id]` has `first` (the meeting), `more` (later
+greetings), `talk`, `yes`, `intro`, `undress`, `enter` (a line pair per position), `lines` (what she says in the rhythm),
+`finish`, `cuddle`, `after`, `fav`. Talking a while is trust +1; the first meeting is +1.
+
+**Story state** (`HOUSE.state`, in the save): `found` (Wanda has welcomed him), `met`, `trust` and `nights` per woman,
+`rumour`, `warned`. The rumour rises by one for every night upstairs and every talk with the League's clerk; Wanda warns
+him at 3 and at 6 (`warn[0]`, `warn[1]`). Not built yet (`STORY.md` §7, §9.5): the house's clues in chapter 4, the bathhouse,
+and the positions the house adds (Nadia against the wall, Lena's bath, Wanda's chair).
+
+**What went wrong on the way.**
+- *Wanda's welcome went missing.* It was one `setTimeout(1600)` that gave up if `SCENE.lock` was held, and the arrival
+  sometimes still held it. Wait for the room to be free instead: poll every 250 ms until the lock, modal, cutscene and
+  night are all clear (and stop if the king has left). Any "say this when he arrives" wants this shape.
+- *A blue quilt went black.* The scene's light is a red lantern and a candle; a saturated blue reflects almost none of it.
+  Tints for a red-lit room need a warm or pale base (Nadia's is lavender now).
+- *The bed was dark.* The red lantern over the bed is a point at 2.6 at (−7.7, 3.0, 1.8) and the washstand candle (1.6)
+  fills from the left; the hemisphere is 1.6. Measure a scene frame, not just the empty room.
+
+**Measured** with §13b's eval: common room 37 meshes, 11 lights (1 shadow), 240 draw calls; a woman's room 36, 6 (1), 111
+(throne 84, 18, 294). `SCENE.walkCheck()` is `[]` in both.
+
+**Testing headlessly.** From `?test&room=chapel`: run `crypt`, wait for `lantern` with `HOUSE.met.wanda` and the lock free,
+run a woman's marker, pick "Go upstairs", wait for `NIGHT.inBed && NIGHT.pos === W.fav && !NIGHT.busy`, check
+`SCENE.player.sexGroup.visible === false`, the camera's x near −7.7, her dressing shown and the others' hidden, switch
+positions with `NIGHT.to(name)`, then `NIGHT.finish()` and wait for the common room with the lock at 0; check `trust`,
+`nights`, `rumour`, the disguise still on, and that the cellar takes it off again. All five women ran this way.
 
 ## 14. Credits and licences
 

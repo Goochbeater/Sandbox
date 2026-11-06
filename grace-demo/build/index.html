@@ -54000,7 +54000,14 @@ class Actor {
     for (const m of this.clothes) m.visible = false;
     this.bare.visible = true; if (this.sexGroup) this.sexGroup.visible = true; this.nude = true;
   }
-  dress() { for (const m of this.clothes) m.visible = true; if (this.bare) this.bare.visible = false; if (this.sexGroup) this.sexGroup.visible = false; this.nude = false; }
+  dress() { for (const m of this.clothes) m.visible = true; if (this.bare) this.bare.visible = false; if (this.sexGroup) this.sexGroup.visible = false; this.nude = false; if (this.disguised) this.disguise(true); }
+  /* in disguise (the king as the Falconer, in the river quarter): no crown, no fur collar, no tabard, only the dark coat.
+     The crown comes back as it was when the disguise comes off */
+  disguise(on) {
+    if (on && !this.disguised) this.crownWas = this.crownMesh.visible;
+    this.disguised = on; this.crownMesh.visible = on ? false : !!this.crownWas;
+    for (const m of this.clothes) if (m.userData.garment === 'collar' || m.userData.garment === 'tabard') m.visible = !on && !this.nude;
+  }
   /* 0 = soft, 1 = fully hard (men only; a no-op otherwise) */
   setArousal(k) { const s = this.sexGroup && this.sexGroup.userData.shaft; if (!s) return; this.arousal = k;
     const a = lerp(Math.PI - 0.32, Math.PI / 2 - 0.55, smooth(0, 1, k)); s.rotation.set(a, 0, 0);
@@ -54037,7 +54044,7 @@ class Actor {
       J.push(I.spine_03, x > 0 ? I.clavicle_l : I.clavicle_r, I.neck_01, 0); W.push(1 - side - 0.1, side, 0.1, 0); }
     g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(J, 4)); g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(W, 4)); g.computeVertexNormals();
     const pal = o.pal || [0x8a6a44, 0xb8946a, 0xd2b488, 0xe6cfa6];
-    this.add(g, new THREE.MeshStandardMaterial({ map: Actor.cloth(32, 16, (p) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 32; x++) p.set(x, y, C.ramp(pal, hash(x, y, 77) * 0.6 + 0.3 * Math.sin(x * 1.7 + y))); }), roughness: 1 }));
+    this.add(g, new THREE.MeshStandardMaterial({ map: Actor.cloth(32, 16, (p) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 32; x++) p.set(x, y, C.ramp(pal, hash(x, y, 77) * 0.6 + 0.3 * Math.sin(x * 1.7 + y))); }), roughness: 1 })).userData.garment = 'collar';
   }
   /* a tabard (or a sash) down the front, just proud of the chest and the skirt */
   tabard(o) {
@@ -54058,7 +54065,7 @@ class Actor {
     const tex = Actor.cloth(8, 40, (p) => { p.fill(o.col); if (o.trim !== null) for (let y = 0; y < 40; y++) { p.set(0, y, o.trim || 0xb8862e); p.set(7, y, o.trim || 0xb8862e); }
       if (o.emblem) for (const [x, y] of [[3, 6], [4, 6], [2, 7], [3, 7], [4, 7], [5, 7], [3, 8], [4, 8], [3, 9], [4, 9], [3, 5], [4, 5]]) p.set(x, y, o.emblem); });
     tex.wrapS = THREE.ClampToEdgeWrapping;
-    this.add(g, new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9, side: THREE.DoubleSide }));
+    this.add(g, new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9, side: THREE.DoubleSide })).userData.garment = 'tabard';
   }
   /* a held object: a spear stays upright in the right hand, a scroll rides the left */
   prop(kind) {
@@ -54346,7 +54353,8 @@ SCENE.enter = function (id, at) {
   R.cam.near = room.near || 1; R.cam.far = room.far || 70; R.dofU.uCNear.value = R.cam.near; R.dofU.uCFar.value = R.cam.far;   // outdoor rooms see much further
   R.baseFov = room.cam.fov; R.cam.fov = room.cam.fov * R.fovK; R.cam.updateProjectionMatrix();
   for (const k in SCENE.DOF0) R.dofU[k].value = SCENE.DOF0[k]; for (const k in room.dof || {}) R.dofU[k].value = room.dof[k];
-  const P = SCENE.player; if (P) { P.stand(); P.x = at.x !== undefined ? at.x : P.x; P.z = room.KZ; P.face = at.face || P.face; P.yaw = P.face * 1.0; P.target = null; P.v = 0; }
+  const P = SCENE.player; if (P) { P.stand(); P.x = at.x !== undefined ? at.x : P.x; P.z = room.KZ; P.face = at.face || P.face; P.yaw = P.face * 1.0; P.target = null; P.v = 0;
+    if (P.disguise) P.disguise(!!room.disguise); }   // a room with { disguise: true } (the river quarter) has the king in his plain coat; every other room has him himself
   Actor.assignLayers(id, P);   // deal the layers first, so showing an actor never has to claim one
   for (const a of SCENE.actors) { if (a !== P) a.placeIn(id); a.setVisible(a === P ? !room.noPlayer : a.livesIn(id) && !a.offstage); }
   SCENE.buildMarks(); SCENE.bubbleOff();
@@ -57318,6 +57326,119 @@ for (const [k, f] of Object.entries({
     return p.outline(null, 0.6).tex(); },
 })) PX.def(k, f);
 
+/* ==== game/g19_paint_lantern.js ==== */
+/* THE HOUSE OF THE LANTERN — pixel painters for Wanda's house in the river quarter (STORY.md §9): ochre plaster between
+   dark timbers, worn planks, red paper lanterns everywhere, the counter and its bottles, the gallery's five painted doors,
+   and the women's rooms. Night: warm from the hearth and the lanterns, cool from the river window. */
+const HP = {
+  plaster: [0x5a3e28, 0x7a5636, 0x9a7048, 0xb88a5a, 0xcca06c],
+  timber: [0x140c06, 0x24160c, 0x3a2414, 0x52341e],
+  red: [0x3a0808, 0x6a1010, 0x9a1a14, 0xc8301e, 0xf0603a],
+};
+/* a gallery door: planks in a colour, iron hinges and ring, her token painted on a board over it */
+PX.houseDoor = function (col, token) {
+  const W = 34, H = 76, p = new Pix(W, H), T = HP.timber;
+  for (let y = 12; y < H; y++) for (let x = 0; x < W; x++) { if (x < 3 || x > W - 4 || y < 15) { p.set(x, y, T[(x + y) % 3 === 0 ? 1 : 2]); continue; }
+    const plank = Math.floor((x - 3) / 7); p.set(x, y, C.mul(col, (x - 3) % 7 === 0 ? 0.7 : 0.92 + 0.12 * hash(plank, y >> 3, 1501))); }
+  for (const y of [24, 60]) { p.hl(4, 20, y, 0x2a2a2e); p.hl(4, 18, y + 1, 0x4a4a52); }
+  p.disc(25, 44, 2.4, 0x5a5a62); p.disc(25, 44, 1.2, 0x2a2a2e);
+  p.rect(5, 0, W - 10, 11, T[3]); p.rect(6, 1, W - 12, 9, 0xe8dcc0); token(p, W / 2, 5.5);
+  return p.outline(null, 0.6).tex();
+};
+HP.tokens = {
+  rose: (p, x, y) => { p.disc(x, y, 3, 0xc8301e); p.disc(x - 1, y - 1, 1.4, 0xf0603a); p.vl(x, y + 3, y + 4, 0x346a22); },
+  compass: (p, x, y) => { for (let a = 0; a < 6.28; a += 0.4) p.set(x + Math.cos(a) * 3.4, y + Math.sin(a) * 3.4, 0x2c4478); p.vl(x, y - 4, y + 4, 0x9a6a1c); p.hl(x - 4, x + 4, y, 0x9a6a1c); },
+  wheat: (p, x, y) => { p.vl(x, y - 4, y + 4, 0xc8962a); for (let i = 0; i < 3; i++) { p.set(x - 1, y - 3 + i * 2, 0xe8b840); p.set(x + 1, y - 3 + i * 2, 0xe8b840); } },
+  shell: (p, x, y) => { for (let i = -3; i <= 3; i++) p.line(x, y + 3, x + i, y - 2, 0xd8a8b8); p.hl(x - 3, x + 3, y + 3, 0xa87888); },
+  quill: (p, x, y) => { p.line(x - 3, y + 4, x + 3, y - 4, 0x3a3a44); p.line(x + 3, y - 4, x + 1, y - 1, 0x6a6a74); p.set(x - 3, y + 4, 0x141418); },
+  lamp: (p, x, y) => { p.ell(x, y, 2.6, 3.4, 0xc8301e); p.hl(x - 2, x + 2, y - 4, 0xc8962a); p.set(x, y + 4, 0xc8962a); },
+};
+for (const [k, f] of Object.entries({
+  houseWall: () => { const p = new Pix(64, 64), P = HP.plaster, T = HP.timber;   // ochre plaster between timbers: a post, a rail, a brace
+    for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) { const m = noise1(x * 0.08 + 1.7, 1511) * noise1(y * 0.09 + 4.3, 1512); let c = P[clamp(2 + (PX.dith(x, y) < m * 1.6 ? 1 : 0) - (hash(x >> 1, y >> 1, 1513) < 0.08 ? 1 : 0), 0, 4)];
+      const post = x < 5, rail = y >= 30 && y < 35, brace = Math.abs((x - 5) - (63 - y) * 0.85) < 3 && y > 34;
+      if (post || rail || brace) { const e = post ? x : rail ? y - 30 : 0; c = T[e === 0 ? 3 : e > 3 ? 0 : 2]; if (hash(x, y, 1514) < 0.12) c = T[1]; }
+      p.set(x, y, c); }
+    return p.tex({ repeat: true }); },
+  housePlanks: () => { const p = new Pix(64, 64), W = [0x2a1a0e, 0x3a2414, 0x4e321c, 0x624026, 0x7a5232];   // worn boards, the grain along them, nail heads, a wine stain
+    for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) { const b = y >> 3, off = (b * 23) % 64, seam = (x + off) % 64 === 0 || (y & 7) === 7;
+      let c = W[clamp(2 + (noise1(x * 0.2 + b * 13, 1521) > 0.55 ? 1 : 0) - (noise1(x * 0.05 + b * 7, 1522) < 0.3 ? 1 : 0), 0, 4)];
+      if (seam) c = W[0]; if (((x + off) % 64 === 3 || (x + off) % 64 === 60) && (y & 7) === 3) c = 0x6a6a72; p.set(x, y, c); }
+    for (let i = 0; i < 40; i++) { const x = 40 + hash(i, 1, 1523) * 14, y = 20 + hash(i, 2, 1523) * 10; if (Math.hypot(x - 47, y - 25) < 5) p.set(x, y, C.mul(p.get(x, y), 0.7)); }
+    return p.tex({ repeat: true, aniso: 4 }); },
+  redLantern: () => { const p = new Pix(16, 26);   // a red paper lantern: ribs, a gold cap, a tassel; bright where the candle is
+    p.vl(8, 0, 3, 0x3a3a3a); p.rect(5, 3, 7, 2, 0xc8962a);
+    for (let y = 5; y < 20; y++) { const hw = 6 * Math.sin((y - 4) / 16 * Math.PI) + 0.5; for (let x = -Math.floor(hw); x <= hw; x++) { const glow = 1 - Math.abs(x) / (hw + 1) * 0.6 - Math.abs(y - 12) / 9 * 0.4; let c = C.mix(0x8a1010, 0xff7a4a, clamp(glow, 0, 1)); if ((y - 5) % 4 === 0) c = C.mul(c, 0.7); p.set(8 + x, y, c); } }
+    p.rect(6, 20, 5, 2, 0xc8962a); for (let y = 22; y < 26; y++) p.set(8 + (y % 2), y, 0xc8301e);
+    return p.tex({}); },
+  doorRose: () => PX.houseDoor(0x9a1a14, HP.tokens.rose), doorCompass: () => PX.houseDoor(0x2c3a6a, HP.tokens.compass), doorWheat: () => PX.houseDoor(0x7a6a4a, HP.tokens.wheat),
+  doorShell: () => PX.houseDoor(0xa86a7a, HP.tokens.shell), doorQuill: () => PX.houseDoor(0x3a3a44, HP.tokens.quill), doorLamp: () => PX.houseDoor(0x5a3a2a, HP.tokens.lamp),
+  barCounter: () => { const W = 96, H = 38, p = new Pix(W, H), T = HP.timber;   // the counter's front: carved panels, a brass rail; a jug, tankards and a candle on top
+    for (let y = 8; y < H; y++) for (let x = 0; x < W; x++) { let c = T[2]; const px = x % 24; if (px < 2 || y < 10 || y > H - 3) c = T[1]; else if (px > 3 && px < 21 && y > 12 && y < H - 5) c = (px === 4 || y === 13) ? T[3] : C.mul(T[2], 1.12); p.set(x, y, c); }
+    p.hl(0, W - 1, 8, 0x9a6a3a); p.hl(0, W - 1, 9, T[3]); for (let x = 0; x < W; x++) p.set(x, H - 7, x % 2 ? 0xc8962a : 0x9a6a1c);
+    for (const x of [10, 18, 62, 70]) { p.rect(x, 2, 5, 6, 0x8a6a4a); p.rect(x + 5, 3, 2, 3, 0x6a4a2a); p.hl(x, x + 4, 2, 0xa8865a); }
+    p.ell(40, 4, 4, 4, 0x6a4a2a); p.rect(38, 0, 4, 2, 0x5a3a20); p.vl(84, 0, 7, 0xf0e8d8); p.set(84, 0, 0xffd250);
+    return p.outline(null, 0.6).tex(); },
+  bottleShelf: () => { const W = 64, H = 50, p = new Pix(W, H), T = HP.timber, glass = [0x2e6a3a, 0x9a6a1c, 0x6a1a2a, 0x2c4478, 0xc8962a, 0x4a7a5a];   // two shelves of bottles and jars
+    for (const y of [22, 47]) { p.hl(0, W - 1, y, T[3]); p.hl(0, W - 1, y + 1, T[1]); p.hl(0, W - 1, y + 2, T[0]); }
+    for (const [y0, seed] of [[22, 1531], [47, 1532]]) { let x = 2; while (x < W - 5) { const tall = 8 + Math.floor(hash(x, seed, 1) * 10), w = 3 + Math.floor(hash(x, seed, 2) * 3), c = glass[Math.floor(hash(x, seed, 3) * glass.length)];
+      for (let y = y0 - tall; y < y0; y++) for (let k = 0; k < w; k++) { if (y < y0 - tall + 3 && (k === 0 || k === w - 1)) continue;   // the shoulders narrow to the neck
+        p.set(x + k, y, C.mul(c, k === 0 ? 1.4 : 1)); }
+      p.rect(x + 1, y0 - tall - 2, Math.max(1, w - 2), 2, c); x += w + 1 + Math.floor(hash(x, seed, 4) * 2); } }
+    return p.outline(null, 0.6).tex(); },
+  tableSet: () => { const W = 48, H = 14, p = new Pix(W, H);   // what's on a tavern table: tankards, a candle stub, dice, a heel of bread
+    for (const x of [4, 30]) { p.rect(x, 5, 5, 8, 0x8a6a4a); p.rect(x + 5, 6, 2, 4, 0x6a4a2a); p.hl(x, x + 4, 5, 0xc8b890); }
+    p.rect(18, 9, 3, 4, 0xf0e8d8); p.set(19, 8, 0xffd250); p.ell(42, 11, 4, 2, 0xb8803a); p.set(24, 12, 0xf0f0e8); p.set(26, 12, 0xf0f0e8); p.set(25, 11, 0x141414);
+    return p.outline(null, 0.6).tex(); },
+  lutePlayer: () => { const W = 34, H = 50, p = new Pix(W, H);   // a musician on a stool with a lute, hat over his eyes
+    p.rect(10, 38, 12, 3, HP.timber[3]); for (const x of [11, 20]) p.vl(x, 41, 49, HP.timber[2]);
+    p.ell(16, 28, 6, 9, 0x2e5a34); p.disc(16, 15, 3.6, 0xd8a888); p.hl(11, 21, 12, 0x5a2a2a); p.rect(13, 9, 7, 3, 0x5a2a2a);
+    p.rect(12, 37, 4, 9, 0x3a2e22); p.rect(18, 37, 4, 9, 0x3a2e22); p.rect(11, 46, 5, 2, 0x1a120c); p.rect(18, 46, 5, 2, 0x1a120c);
+    p.ell(22, 31, 5, 4, 0xc88a3a); p.disc(22, 31, 1.4, 0x2a1a0e); p.line(24, 29, 32, 18, 0x8a5a2a); p.rect(30, 16, 3, 3, 0x6a4a2a); p.line(14, 26, 22, 30, 0xd8a888);
+    return p.outline(null, 0.6).tex(); },
+  riverWindow: () => { const W = 40, H = 54, p = new Pix(W, H);   // an arched window, leaded, the river and a moon beyond
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { if (Math.abs(x - 19.5) > 19.5 - (y < 14 ? 14 - y : 0)) continue;   // a pointed arch
+      let c = y > 36 ? C.mix(0x1a2a4a, 0x2a4a6a, (y - 36) / 18) : C.mix(0x0e1630, 0x2a3a6a, y / 36); if (y > 36 && hash(x, y, 1541) < 0.1) c = 0x8aa8d8;
+      if (x < 2 || x > W - 3 || y < 2 || y > H - 3) c = HP.timber[2]; else if ((x - 2) % 9 === 0 || (y - 2) % 10 === 0) c = 0x2a2a30; p.set(x, y, c); }
+    p.disc(27, 14, 3, 0xe8ecf8); return p.outline(null, 0.6).tex(); },
+  cellarArch: () => { const W = 44, H = 66, p = new Pix(W, H), S = [0x2a2622, 0x46423c, 0x5e5a52, 0x7a746a];   // a low stone arch, steps going down into the dark, the iron-bound door open
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const cx = x - 21.5, inArch = y > 18 ? Math.abs(cx) < 15 : Math.hypot(cx, y - 18) < 15, ring = y > 18 ? Math.abs(cx) < 20 : Math.hypot(cx, y - 18) < 20;
+      if (!ring) continue; if (!inArch) { p.set(x, y, S[1 + ((x >> 2) + (y >> 2)) % 3]); continue; } const d = (y - 20) / 46; p.set(x, y, C.mul(0x1a120c, 0.4 + d * 0.6)); }
+    for (let i = 0; i < 6; i++) { const y = H - 4 - i * 6, w = 13 - i; p.hl(22 - w, 21 + w, y, S[3 - Math.min(2, i >> 1)]); p.hl(22 - w, 21 + w, y + 1, S[0]); }
+    for (let y = 22; y < H - 2; y++) for (let x = 2; x < 9; x++) p.set(x, y, (y % 10 === 0) ? 0x3a3a40 : HP.timber[2]);
+    return p.outline(null, 0.6).tex(); },
+  hearthLogs: () => { const p = new Pix(40, 14); p.line(4, 12, 34, 6, 0x3a2414); p.line(5, 13, 35, 7, 0x5a3a20); p.line(36, 12, 6, 6, 0x3a2414); p.line(35, 13, 5, 7, 0x5a3a20);
+    for (let x = 8; x < 32; x++) { p.set(x, 10, hash(x, 1, 1551) < 0.5 ? 0xf06a18 : 0xc83a10); p.set(x, 11, 0x8a1a08); } return p.outline(null, 0.6).tex(); },
+  houseQuilt: () => { const p = new Pix(64, 64), cols = [0x8a3a2a, 0xa8784a, 0x6a4a3a, 0xc8a070, 0x5a2a2a, 0x9a6a3a];   // a patchwork quilt, the squares stitched
+    for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) { const c = cols[Math.floor(hash(x >> 4, y >> 4, 1561) * cols.length)]; p.set(x, y, (x & 15) === 0 || (y & 15) === 0 ? C.mul(c, 0.65) : C.mul(c, 0.95 + 0.1 * hash(x, y, 1562))); }
+    return p.tex({ repeat: true }); },
+  pillowPix: () => { const p = new Pix(24, 10); p.ell(12, 5, 11, 4.5, 0xe8dcc0); p.ell(10, 4, 7, 2.4, 0xf8f0e0); p.hl(2, 22, 8, 0xc8b898); return p.outline(null, 0.65).tex(); },
+  mapWall: () => { const W = 56, H = 42, p = new Pix(W, H);   // Nadia's maps: parchment, roads in red, rivers in blue, a compass rose
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) p.set(x, y, C.mul(0xd8c49a, 0.9 + 0.15 * hash(x >> 1, y >> 1, 1571)));
+    for (let k = 0; k < 4; k++) { let y = 6 + k * 9; for (let x = 2; x < W - 2; x++) { y += Math.round(Math.sin(x * 0.3 + k) * 0.7); p.set(x, clamp(y, 1, H - 2), k % 2 ? 0x2c6aa0 : 0x9a2a1a); } }
+    for (let a = 0; a < 6.28; a += 0.8) p.line(44, 32, 44 + Math.cos(a) * 6, 32 + Math.sin(a) * 6, 0x5a3a20); p.disc(44, 32, 1.4, 0x9a6a1c);
+    for (let x = 0; x < W; x++) { p.set(x, 0, 0x8a6a3a); p.set(x, H - 1, 0x8a6a3a); }
+    return p.outline(null, 0.6).tex(); },
+  copperBath: () => { const W = 64, H = 34, p = new Pix(W, H);   // Lena's copper tub on its claws, water to the brim, a cloth over the edge
+    for (let y = 6; y < 30; y++) { const hw = 30 - Math.max(0, y - 22) * 1.6; for (let x = -Math.floor(hw); x <= hw; x++) { const l = clamp(0.6 - x / hw * 0.35 - (y - 6) / 24 * 0.25, 0, 1); p.set(32 + x, y, C.ramp([0x5a2a14, 0x8a4a22, 0xb86a32, 0xe0965a], l)); } }
+    for (let x = 4; x < 61; x++) { p.set(x, 6, 0xf0b070); p.set(x, 7, 0xe0965a); p.set(x, 8, x % 5 === 0 ? 0xa8c8e0 : 0x6a98c0); }
+    for (const x of [10, 54]) { p.rect(x - 2, 30, 4, 4, 0x8a4a22); p.set(x - 3, 33, 0x5a2a14); p.set(x + 2, 33, 0x5a2a14); }
+    p.rect(44, 6, 8, 14, 0xf0e8d8); p.vl(44, 6, 19, 0xc8c0b0);
+    return p.outline(null, 0.6).tex(); },
+  crossTurned: () => { const p = new Pix(14, 22); p.rect(5, 0, 4, 22, 0x5a3a20); p.rect(0, 5, 14, 4, 0x5a3a20); p.rect(6, 1, 2, 20, 0x3a2414); p.set(7, 3, 0x6a6a72); return p.outline(null, 0.6).tex(); },   // its back to the room: the bare wood, a nail
+  booksPile: () => { const p = new Pix(24, 20), cols = [0x6a1a1a, 0x1e3a5a, 0x3a5a2a, 0x8a6a2a, 0x4a2a4a]; for (let i = 0; i < 5; i++) { const y = 18 - i * 4, w = 18 - (i % 3) * 3; p.rect(3 + (i % 2) * 2, y - 3, w, 3, cols[i]); p.hl(3 + (i % 2) * 2, 2 + (i % 2) * 2 + w, y - 1, 0xe8dcc0); }
+    return p.outline(null, 0.6).tex(); },
+  cloakPeg: () => { const p = new Pix(26, 60); p.rect(2, 0, 22, 3, HP.timber[3]); p.ell(12, 22, 9, 18, 0x4a3a2a); p.ell(10, 20, 5, 15, 0x5e4a36); p.rect(9, 2, 6, 4, 0x3a2a1a);   // a soldier's cloak on a peg, his sword hung beside it
+    p.vl(21, 4, 52, 0x8a929c); p.vl(22, 4, 52, 0xb8c0c8); p.hl(18, 25, 10, 0x9a6a1c); p.rect(20, 3, 4, 4, 0x3a2414); return p.outline(null, 0.6).tex(); },
+  silkSwag: () => { const W = 64, H = 18, p = new Pix(W, H), cols = [0xc8301e, 0x2e6a3a, 0xe8b840];   // Róża's room: silk swags in red, green and gold
+    for (let k = 0; k < 3; k++) for (let x = 0; x < W; x++) { const y = 2 + k * 3 + Math.sin(x / W * Math.PI) * 9; for (let d = 0; d < 3; d++) p.set(x, y + d, C.mul(cols[k], d === 0 ? 1.2 : 1)); }
+    return p.outline(null, 0.65).tex({}); },
+  dressScreen: () => { const W = 48, H = 60, p = new Pix(W, H);   // a three-leaf screen, painted with herons
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const leaf = Math.floor(x / 16), lx = x % 16; let c = lx < 1 || lx > 14 || y < 1 || y > H - 3 ? HP.timber[2] : C.mul(0xd8c49a, 0.92 + 0.08 * hash(x, y >> 2, 1581)); p.set(x, y, c); }
+    for (const cx of [8, 24, 40]) { p.ell(cx, 30, 3, 2, 0x5a6a7a); p.line(cx - 1, 28, cx - 3, 18, 0x5a6a7a); p.line(cx, 32, cx - 1, 42, 0x3a3a3a); p.line(cx + 1, 32, cx + 2, 42, 0x3a3a3a); }
+    return p.outline(null, 0.6).tex(); },
+})) PX.def(k, f);
+
 /* ==== game/g20_bedroom.js ==== */
 /* THE BEDCHAMBER — laid out from the reference frame. The king starts here; the crown waits on its cushion beside the
    standing mirror, and the door at the far right leads to the throne room once he's wearing it. */
@@ -57787,11 +57908,11 @@ const INTRO = [
 ];
 /* ---------------------------------------------------------------- the save slot */
 const GAME = {};
-GAME.reset = function () { SCENE.player.crownMesh.visible = false; COURT.reset(); CHAPEL.met = CHAPEL.queenMet = CHAPEL.priestMet = false; CHAPEL.flirt = CHAPEL.cold = 0; HUT.met = false; HUT.catPets = 0; HUT.bearSaid = false; WOOD.houndPets = 0; FEST.reset(); };
+GAME.reset = function () { SCENE.player.crownMesh.visible = false; COURT.reset(); CHAPEL.met = CHAPEL.queenMet = CHAPEL.priestMet = false; CHAPEL.flirt = CHAPEL.cold = 0; HUT.met = false; HUT.catPets = 0; HUT.bearSaid = false; WOOD.houndPets = 0; FEST.reset(); HOUSE.reset(); };
 GAME.state = function () { const K = SCENE.player, R0 = SCENE.room;
   return { room: R0 && R0.id !== 'exterior' ? R0.id : 'bedroom', x: K.x, crown: K.crownMesh.visible,
     court: { done: COURT.done, prosperity: COURT.prosperity, stats: COURT.stats, agents: COURT.agents.map((a) => ({ id: a.id, ap: a.ap, wound: a.wound })), items: COURT.items.map((i) => ({ id: i.id, n: i.n })) },
-    chapel: { met: CHAPEL.met, queenMet: CHAPEL.queenMet, priestMet: CHAPEL.priestMet, flirt: CHAPEL.flirt, cold: CHAPEL.cold }, hut: { met: HUT.met, catPets: HUT.catPets, bearSaid: !!HUT.bearSaid }, wood: { houndPets: WOOD.houndPets }, fest: FEST.state() }; };
+    chapel: { met: CHAPEL.met, queenMet: CHAPEL.queenMet, priestMet: CHAPEL.priestMet, flirt: CHAPEL.flirt, cold: CHAPEL.cold }, hut: { met: HUT.met, catPets: HUT.catPets, bearSaid: !!HUT.bearSaid }, wood: { houndPets: WOOD.houndPets }, fest: FEST.state(), house: HOUSE.state() }; };
 GAME.save = function () { if (SCENE.room && SCENE.room.id !== 'exterior' && !CUT.playing) SAVE.put(GAME.state()); };
 GAME.load = function (s) {
   const K = SCENE.player; K.crownMesh.visible = !!s.crown;
@@ -57801,7 +57922,7 @@ GAME.load = function (s) {
   if (s.chapel) { CHAPEL.met = !!s.chapel.met; CHAPEL.queenMet = !!s.chapel.queenMet; CHAPEL.priestMet = !!s.chapel.priestMet; CHAPEL.flirt = s.chapel.flirt || 0; CHAPEL.cold = s.chapel.cold || 0; }
   if (s.hut) { HUT.met = !!s.hut.met; HUT.catPets = s.hut.catPets || 0; HUT.bearSaid = !!s.hut.bearSaid; }
   if (s.wood) WOOD.houndPets = s.wood.houndPets || 0;
-  FEST.load(s.fest);
+  FEST.load(s.fest); HOUSE.load(s.house);
 };
 /* ---------------------------------------------------------------- credits */
 const CREDITS = {
@@ -58281,8 +58402,9 @@ YARD.onUpdate = function (dt) {
    toward the bed (the player can pull it back out), it never leaves the room. */
 const NIGHT = { AGE: 'swan.age18', on: false, pace: 1, ph: 0, k: 0, pos: null, closer: true, finishing: false };
 NIGHT.aged = () => { try { return localStorage.getItem(NIGHT.AGE) === '1'; } catch (e) { return false; } };
+NIGHT.quiet = () => { SCENE.moved = true; $('hint').style.opacity = '0'; };   // the walking hint is done once a scene starts: it sat over the scene's buttons
 NIGHT.confirm = function (then) {
-  const go = () => { SCENE.moved = true; $('hint').style.opacity = '0'; then(); };   // the walking hint is done once a scene starts: it sat over the scene's buttons
+  const go = () => { NIGHT.quiet(); then(); };
   if (NIGHT.aged()) { go(); return; }
   const g = $('ageGate'); g.hidden = false; SCENE.modal = true; $('ageYes').focus();
   $('ageYes').onclick = () => { try { localStorage.setItem(NIGHT.AGE, '1'); } catch (e) { /* */ } g.hidden = true; SCENE.modal = false; go(); };
@@ -58325,9 +58447,17 @@ NIGHT.say = (a, t, ms) => SCENE.say(a, t).then(() => ms ? SCENE.wait(ms) : null)
 NIGHT.fade = async (on) => { const f = $('fade'); f.classList.toggle('off', !on); await SCENE.wait(on ? 950 : 500); };
 /* the camera: 'room' = the room's own framing, 'bed' = eased in on the bed (or only re-centred, if the player wants it wider) */
 NIGHT.CAM = { bed: { fov: 13.5, y: 2.05, look: 1.62, focus: -7.72 }, wide: { fov: 17, y: 2.3, look: 1.9, focus: -7.72 } };
+/* the stage: the in-bed machinery (rhythm, positions, sounds, the camera, the lines, the finish) runs on NIGHT.S when a scene
+   sets one, else on the royal bedchamber. A stage is { room, enter, lines, cam, lens(k), finish(), end(slept) };
+   its bed must stand where LOVERS.BED is, because the positions are world places. The House of the Lantern uses this */
+NIGHT.S = null;
+NIGHT.room = () => (NIGHT.S ? NIGHT.S.room : BEDROOM);
+NIGHT.lens = (k) => (NIGHT.S ? NIGHT.S.lens && NIGHT.S.lens(k) : BEDROOM.lens(k));
+NIGHT.lines = () => (NIGHT.S ? NIGHT.S.lines : NIGHT.LINES);
+NIGHT.enters = () => (NIGHT.S ? NIGHT.S.enter : NIGHT.ENTER);
 NIGHT.camTick = function (dt) {
-  const room = BEDROOM, c = room.cam, c0 = NIGHT.cam0; if (!c0) return;
-  const g = NIGHT.camMode === 'bed' ? (NIGHT.closer ? NIGHT.CAM.bed : NIGHT.CAM.wide) : { fov: c0.fov, y: c0.y, look: c0.look, focus: null };
+  const room = NIGHT.room(), c = room.cam, c0 = NIGHT.cam0, CAM = (NIGHT.S && NIGHT.S.cam) || NIGHT.CAM; if (!c0) return;
+  const g = NIGHT.camMode === 'bed' ? (NIGHT.closer ? CAM.bed : CAM.wide) : { fov: c0.fov, y: c0.y, look: c0.look, focus: null };
   c.fov = damp(c.fov, g.fov, 0.7, dt); c.y = damp(c.y, g.y, 0.7, dt); c.look = damp(c.look, g.look, 0.7, dt);
   room.focusDz = NIGHT.camMode === 'bed' ? damp(room.focusDz || 0, room.KZ - 1.97, 0.7, dt) : damp(room.focusDz || 0, 0, 0.7, dt);   // keep the bed sharp
   room.camFocus = g.focus === null ? (Math.abs(c.fov - c0.fov) < 0.15 ? c0.focus : room.camFocus) : g.focus;
@@ -58336,7 +58466,7 @@ NIGHT.camTick = function (dt) {
 NIGHT.tick = function (t, dt) {
   for (let i = NIGHT.tweens.length - 1; i >= 0; i--) { const w = NIGHT.tweens[i]; w.t += dt; const u = clamp(w.t / w.dur, 0, 1); w.fn(smooth(0, 1, u)); if (u >= 1) { NIGHT.tweens.splice(i, 1); w.r(); } }
   NIGHT.camTick(dt);
-  NIGHT.lensK = clamp(NIGHT.lensK + Math.sign(NIGHT.lensT - NIGHT.lensK) * dt * 1.6, 0, 1); BEDROOM.lens(NIGHT.lensK);   // the near posts clear as the camera pushes in (0.6 s)
+  NIGHT.lensK = clamp(NIGHT.lensK + Math.sign(NIGHT.lensT - NIGHT.lensK) * dt * 1.6, 0, 1); NIGHT.lens(NIGHT.lensK);   // the near posts clear as the camera pushes in (0.6 s)
   if (!NIGHT.inBed) return;
   const p = NIGHT.pos, slow = p === 'kiss' || p === 'after', K = NIGHT.A.K, Q = NIGHT.A.Q;
   const rate = NIGHT.hold ? 0 : slow ? 1.1 : 3.4 * NIGHT.pace * (NIGHT.finishing ? 1.35 : 1);
@@ -58353,7 +58483,7 @@ NIGHT.tick = function (t, dt) {
     AUDIO.sfx('breath', { gain: (her ? 0.34 : 0.24) + 0.36 * k, pitch: her ? 1150 + Math.random() * 450 : 640 + Math.random() * 200, dur: slow ? 1.1 : lerp(0.75, 0.45, k), pan });
     if (p === 'kiss' && Math.random() < 0.5) AUDIO.sfx('kiss', { gain: 0.35, pan, delay: 0.2 }); }
   NIGHT.lineT -= dt;
-  if (NIGHT.lineT <= 0 && !SCENE.bubble && !NIGHT.scripted) { const L = NIGHT.LINES[p]; if (L) { const band = k < 0.35 ? 0 : k < 0.7 ? 1 : 2, set = L[Math.min(band, L.length - 1)];
+  if (NIGHT.lineT <= 0 && !SCENE.bubble && !NIGHT.scripted) { const L = NIGHT.lines()[p]; if (L) { const band = k < 0.35 ? 0 : k < 0.7 ? 1 : 2, set = L[Math.min(band, L.length - 1)];
     const [who, text] = SCENE.cycle('night_' + p + band, set); SCENE.say(who === 'K' ? K : Q, text); }
     NIGHT.lineT = lerp(7.5, 4.2, k) * (0.8 + Math.random() * 0.5); }
 };
@@ -58368,13 +58498,13 @@ NIGHT.to = async function (name) {
   AUDIO.sfx('sheets', { gain: 0.8 }); NIGHT.posBar(); $('nPos').querySelectorAll('button').forEach((b) => b.disabled = true);
   await NIGHT.drive(name, name === 'behind' || NIGHT.pos === 'behind' ? 2.0 : 1.6, 0.12);
   NIGHT.posBar(); NIGHT.busy = false;
-  const L = NIGHT.ENTER[name]; if (L) { NIGHT.scripted = true; for (const [w, t] of L) await NIGHT.say(w === 'K' ? NIGHT.A.K : NIGHT.A.Q, t, 150); NIGHT.scripted = false; NIGHT.lineT = 3; }
+  const L = NIGHT.enters()[name]; if (L) { NIGHT.scripted = true; for (const [w, t] of L) await NIGHT.say(w === 'K' ? NIGHT.A.K : NIGHT.A.Q, t, 150); NIGHT.scripted = false; NIGHT.lineT = 3; }
 };
 /* ---------------------------------------------------------------- the scene */
 NIGHT.play = async function (o) {
   o = o || {};
   const room = BEDROOM, K = SCENE.player, Q = CAST.A.queen; if (SCENE.room !== room || NIGHT.on) return;
-  NIGHT.on = true; NIGHT.A = { K, Q }; NIGHT.lensK = 0; NIGHT.lensT = 0; NIGHT.pos = null; NIGHT.k = 0; NIGHT.ph = 0; NIGHT.inBed = false; NIGHT.finishing = false; NIGHT.hold = false; NIGHT.brT = 1; NIGHT.lineT = 5;
+  NIGHT.quiet(); NIGHT.on = true; NIGHT.A = { K, Q }; NIGHT.lensK = 0; NIGHT.lensT = 0; NIGHT.pos = null; NIGHT.k = 0; NIGHT.ph = 0; NIGHT.inBed = false; NIGHT.finishing = false; NIGHT.hold = false; NIGHT.brT = 1; NIGHT.lineT = 5;
   SCENE.lock++; NIGHT.tweens = []; room.tick.push(NIGHT.tick); NIGHT.camMode = 'room';
   NIGHT.cam0 = { fov: room.cam.fov, y: room.cam.y, look: room.cam.look, focus: room.camFocus };
   NIGHT.keep = { idle: Q.spec.idle, home: Q.curHome, baseY: Q.baseY };
@@ -58445,6 +58575,7 @@ NIGHT.play = async function (o) {
 };
 NIGHT.finish = async function () {
   if (NIGHT.finishing || NIGHT.busy || !NIGHT.inBed) return;
+  if (NIGHT.S && NIGHT.S.finish) return NIGHT.S.finish();
   const K = NIGHT.A.K, Q = NIGHT.A.Q; NIGHT.bar([]); NIGHT.scripted = true;
   if (NIGHT.pos !== 'kiss') {   // the end of it: faster, then held deep, then still
     NIGHT.finishing = true; NIGHT.k = Math.max(NIGHT.k, 0.85); NIGHT.pace = Math.max(NIGHT.pace, 1.5);
@@ -58459,6 +58590,7 @@ NIGHT.finish = async function () {
   await NIGHT.beat(1200); NIGHT.scripted = false; await NIGHT.end(true);
 };
 NIGHT.end = async function (slept) {
+  if (NIGHT.S && NIGHT.S.end) return NIGHT.S.end(slept);
   const room = BEDROOM, K = NIGHT.A.K, Q = NIGHT.A.Q, c0 = NIGHT.cam0;
   NIGHT.bar([]); await NIGHT.fade(true);
   NIGHT.lensT = 0; NIGHT.lensK = 0; BEDROOM.lens(0);   // behind the fade: the foreground props are back
@@ -58602,6 +58734,16 @@ const CHAPEL = SCENE.addRoom(new Room('chapel', { X0: -12, X1: 12, CEIL: 7.6, KZ
   caption: ['The Chapel', 'Vespers, and nobody in a hurry'] }));
 CHAPEL.ENTRY = -9.6;   // where the king arrives from the garden's cloister stair
 CHAPEL.met = false; CHAPEL.queenMet = false; CHAPEL.priestMet = false; CHAPEL.flirt = 0; CHAPEL.cold = 0;   // kept in the save: see GAME.state
+/* the stair to the tunnel: the first time, the king finds his father's lock, oiled */
+CHAPEL.crypt = async function () {
+  const K = SCENE.player; SCENE.lock++;
+  try {
+    if (!HOUSE.found) await SCENE.talk([[K, 'Behind the confessional, under the saint’s rug: a stair, and at the bottom a door with my father’s lock on it.'],
+      [K, '“Wanda keeps my other key,” his letter said. The lock is oiled. Somebody has kept it oiled for twelve years.']]);
+    else await SCENE.say(K, 'Down the old stair. The tunnel smells of river and candle wax.', { wait: true });
+  } finally { SCENE.lock--; }
+  GAME.save(); SCENE.go('lantern', { x: -10.0, face: 1 });
+};
 CHAPEL.LINES = {
   arch: ['Back out to the garden. The sun is still up there, being generous to somebody else.'],
   stoup: ['Holy water. Dip your fingers and make the sign. Don’t leave them wet for the saintess to notice.'],
@@ -58717,6 +58859,9 @@ CHAPEL.build = function () {
   /* the confessional on the right, its lattice facing the aisle */
   BUILD.box(9.4, 11.5, 0, 2.2, 0.1, 1.3, T.woodDark, { front: BUILD.std(T.chConfess) }); BUILD.box(9.3, 11.6, 2.2, 2.35, 0.0, 1.45, T.woodDark);
   room.interact('confess', 10.4, 2.5, KZ, 1.0, () => CHAPEL.confess());
+  /* behind the confessor's desk, the old king's stair down to the siege tunnel (STORY.md §9): it comes up in Wanda's cellar */
+  BUILD.card(T.cellarArch, 11.25, 0, 0.03, { cast: false, s: 0.9 });
+  room.interact('crypt', 11.1, 2.2, KZ, 0.45, () => CHAPEL.crypt()).label = 'The old stair behind the confessional';
   /* the foreground, close to the lens and out of focus, as in the throne hall: two piers and a brazier for the depth of field */
   for (const [x, z] of [[-7.6, 7.3], [10.9, 7.0]]) { const g = new THREE.CylinderGeometry(0.48, 0.48, CE, 16); g.translate(x, CE / 2, z); BUILD.planarUV(g, T.ashlar); BUILD.add(new THREE.Mesh(g, BUILD.std(T.ashlar, { col: 0xb8b0a4 })), { cast: false });
     BUILD.box(x - 0.6, x + 0.6, 0, 0.4, z - 0.6, z + 0.6, T.ashlar, { cast: false }); }
@@ -60252,6 +60397,409 @@ CAST.specs.queen.homes.lists = { x: -1.2, z: -7.6, face: 1, idle: 'Idle_Loop', s
 CAST.specs.kazik.homes.fair = { x: 8.8, z: 2.5, face: -1, wander: { x0: 8.6, x1: 9.2, pause: [2, 5] } };
 CAST.specs.zofia.homes.lists = { x: 12.6, z: 2.1, face: 1, idle: 'Idle_Loop' };
 CAST.specs.dorota.homes = { chapel: { x: 1.8, z: 2.2, face: -1, idle: 'Idle_Loop' }, lists: { x: -5.4, z: 2.15, face: 1, idle: 'Idle_Loop' } };   // she had one home; with two, each needs its spot
+
+/* ==== game/g42_lantern.js ==== */
+/* THE HOUSE OF THE LANTERN — Wanda's house in the river quarter (STORY.md §9). A king can't walk into a brothel, so he
+   doesn't: old King Bolesław's siege tunnel runs from a stair behind the chapel's confessional to Wanda's cellar, and in
+   the house the king is nobody, the Falconer: no crown, no fur collar, no tabard (rooms with { disguise: true }).
+   Two rooms. The common room (LANTERN): the cellar arch, Wanda's counter and bottles, two tables, the hearth, a lute player,
+   the river window, the stair up to the gallery and its six painted doors; the women downstairs (Róża, Nadia, Hanna, Lena,
+   Agata), Wanda behind the counter, a docker and a League clerk. A woman's room (LROOM): her bed at LOVERS.BED (the night
+   scene's positions are world places, so the bed stands exactly where the royal bed does), dressed for whoever he goes up
+   with. Every woman is an adult who chooses; the scenes are behind the 18+ gate; the player picks the king's lines.
+   The scenes run on the night scene's machinery with a stage of their own (NIGHT.S, g26). */
+const LANTERN = SCENE.addRoom(new Room('lantern', { X0: -12, X1: 12, CEIL: 6.4, KZ: 2.8, cam: { y: 2.9, look: 2.7, dist: 19.4, fov: 19 }, exposure: 0.95, reflK: 0.45, disguise: true,
+  music: 'castle', ambience: { fire: 0.5, crowd: 0.35, tone: 0.2 }, acoustics: { size: 1.8, wet: 0.3 }, surface: 'wood', caption: ['The House of the Lantern', 'The river quarter, after dark'] }));
+const LROOM = SCENE.addRoom(new Room('lroom', { X0: -14.0, X1: 5.6, CEIL: 4.4, KZ: 2.6, cam: { y: 2.45, look: 2.18, dist: 19.4, fov: 19 }, exposure: 0.95, reflK: 0.4, disguise: true,
+  music: 'castle', ambience: { fire: 0.25, tone: 0.25 }, acoustics: { size: 1.1, wet: 0.2 }, surface: 'wood' }));
+const HOUSE = { found: false, met: {}, trust: {}, nights: {}, rumour: 0, warned: 0, with: null };
+HOUSE.init0 = JSON.stringify(HOUSE);
+HOUSE.reset = function () { Object.assign(HOUSE, JSON.parse(HOUSE.init0)); };
+HOUSE.state = function () { return { found: HOUSE.found, met: HOUSE.met, trust: HOUSE.trust, nights: HOUSE.nights, rumour: HOUSE.rumour, warned: HOUSE.warned }; };
+HOUSE.load = function (s) { HOUSE.reset(); if (s) for (const k of ['found', 'met', 'trust', 'nights', 'rumour', 'warned']) if (k in s) HOUSE[k] = s[k]; };
+HOUSE.WOMEN = ['roza', 'nadia', 'hanna', 'lena', 'agata'];
+LANTERN.LINES = {
+  cellar: ['Down the cellar steps and back along the tunnel. My father walked it every Thursday for eleven years.'],
+  counter: ['Wanda’s counter: forty bottles, half of them honest.'], hearth: ['A good fire, and somebody’s socks drying in front of it.'],
+  window: ['The river under the moon. Somewhere up that hill a king is supposed to be asleep.'], lute: ['He plays the same four songs. The third one is about my father. I know all the words.'],
+  stair: ['The gallery. Six doors, each painted for the woman behind it.'], tables: ['Dice, ale and somebody’s bread. Nobody looks up.']
+};
+LROOM.LINES = { door: ['Back down to the common room.'], wash: ['Cold water, a cracked bowl, a clean cloth. More care than most inns.'], bed: ['A good bed. Better than the Krasnian prince’s, I’d bet.'], window: ['The river again, and the fortress lights over it.'] };
+/* ---------------------------------------------------------------- the common room */
+LANTERN.build = function () {
+  const room = BUILD.begin(this), T = PX.T, X0 = room.X0, X1 = room.X1, CE = room.CEIL, KZ = room.KZ, L = room.LINES;
+  const say = (k) => SCENE.say(SCENE.player, SCENE.cycle('hl' + k, L[k]));
+  /* the shell: half-timbered walls, worn planks, the beams overhead */
+  BUILD.plane('z', X0, X1, 0, CE, 0, T.houseWall);
+  for (const [x, ax] of [[X0, 'x+'], [X1, 'x-']]) BUILD.plane(ax, 0, 9, 0, CE, x, T.houseWall);
+  room.floorMat = BUILD.reflective(T.housePlanks, { k: 0.6, rough: 0.6 }); BUILD.plane('y+', X0, X1, 0, 9, 0, T.housePlanks, { mat: room.floorMat, layer: 2 });
+  BUILD.plane('y-', X0, X1, 0, 9, CE, T.housePlanks, { col: 0x6a5a4a });
+  for (let x = X0 + 1.4; x < X1; x += 2.8) BUILD.box(x - 0.15, x + 0.15, CE - 0.4, CE, 0, 9, T.beam, { cast: false });
+  /* the gallery: a floor over the back of the room on posts, a balustrade, six painted doors, a red lantern by each */
+  BUILD.box(X0 + 0.1, 8.0, 3.1, 3.3, 0, 1.5, T.woodDark); BUILD.box(X0 + 0.1, 8.0, 2.95, 3.1, 1.4, 1.55, T.beam);
+  for (const x of [-9.6, -3.9, 2.0, 6.5]) BUILD.box(x - 0.1, x + 0.1, 0, 3.1, 1.38, 1.52, T.beam);
+  BUILD.box(X0 + 0.1, 8.0, 4.06, 4.16, 1.44, 1.54, T.woodRed);
+  for (let x = X0 + 0.3; x < 8.0; x += 0.42) BUILD.box(x - 0.03, x + 0.03, 3.3, 4.06, 1.46, 1.52, T.woodPost, { cast: false });
+  for (const [x, t] of [[-9.0, T.doorRose], [-5.6, T.doorCompass], [-2.2, T.doorWheat], [1.2, T.doorShell], [4.6, T.doorQuill], [7.2, T.doorLamp]]) BUILD.card(t, x, 3.3, 0.03, { cast: false });
+  for (const x of [-7.3, -3.9, -0.5, 2.9, 6.0]) { BUILD.card(T.redLantern, x, 4.5, 0.4, { cast: false }); BUILD.glow(x, 4.85, 0.45, 1.0, 0xff4a2a, 0.45); }
+  BUILD.light(new THREE.PointLight(0xff5a3a, 2.2, 0, 2), -3.9, 4.8, 1.0, { flicker: 3 }); BUILD.light(new THREE.PointLight(0xff5a3a, 2.2, 0, 2), 2.9, 4.8, 1.0, { flicker: 3.4 });
+  /* the stair up to the gallery, at the right */
+  { const S0 = 7.8, S1 = 11.0, H = 3.1, n = 12, run = (S1 - S0) / n;
+    for (let i = 0; i < n; i++) { const x = S0 + run * i, y = H * (i + 1) / n; BUILD.box(x - 0.02, x + run + 0.02, y - 0.07, y, 0.3, 1.25, T.woodRed); BUILD.box(x - 0.01, x + 0.02, y - H / n, y - 0.07, 0.34, 1.21, T.woodDark, { cast: false }); }
+    BUILD.box(S1, X1 - 0.1, H - 0.1, H, 0, 1.5, T.woodDark);
+    const len = Math.hypot(S1 - S0, H), ang = Math.atan2(H, S1 - S0); { const g = new THREE.BoxGeometry(len + 0.2, 0.07, 0.07); g.rotateZ(ang); g.translate((S0 + S1) / 2, H / 2 + 0.92, 1.3); BUILD.planarUV(g, T.woodPost); BUILD.add(new THREE.Mesh(g, BUILD.std(T.woodPost)), { cast: false }); }
+    for (let i = 0; i <= 3; i++) { const x = S0 + (S1 - S0) * i / 3, y = H * i / 3; BUILD.box(x - 0.04, x + 0.04, y, y + 0.92, 1.26, 1.34, T.woodPost, { cast: false }); }
+    BUILD.card(T.barrel, 8.8, 0, 0.6, { s: 0.8 }); BUILD.card(T.crate, 9.6, 0, 0.5, { s: 0.7 });
+    room.interact('stair', 9.4, 3.4, KZ, 0.6, () => say('stair')); }
+  /* the cellar arch: the tunnel's end */
+  BUILD.card(T.cellarArch, -10.6, 0, 0.03, { cast: false }); BUILD.glow(-10.6, 0.9, 0.2, 1.6, 0x2a1a10, 0.3);
+  room.interact('cellar', -10.6, 2.4, KZ, 0.9, () => LANTERN.leave()).label = 'Down the cellar, back to the chapel';
+  /* Wanda's counter, her bottles, a candle */
+  BUILD.box(-8.8, -5.4, 0, 1.1, 0.8, 1.4, T.woodDark, { front: BUILD.std(T.barCounter) }); BUILD.box(-8.85, -5.35, 1.1, 1.16, 0.75, 1.45, T.woodRed);
+  BUILD.card(T.barCounter, -7.1, 0, 1.42, { w: 3.4, h: 1.18, cast: false });
+  BUILD.card(T.bottleShelf, -7.1, 1.3, 0.04, { cast: false }); BUILD.flame(-5.8, 1.42, 1.1, 0.25); BUILD.light(new THREE.PointLight(0xffb070, 1.4, 0, 2), -5.8, 1.6, 1.6, { flicker: 7 });
+  room.interact('counter', -6.3, 1.9, KZ, 0.6, () => say('counter'));
+  /* two tables, benches, the regulars behind them */
+  for (const tx of [-2.7, 0.4]) { BUILD.box(tx - 0.7, tx + 0.7, 0.72, 0.8, 1.0, 1.6, T.woodRed); for (const dx of [-0.6, 0.6]) BUILD.box(tx + dx - 0.05, tx + dx + 0.05, 0, 0.72, 1.25, 1.35, T.woodPost);
+    BUILD.box(tx - 0.8, tx + 0.8, 0.4, 0.46, 0.5, 0.8, T.woodDark); BUILD.card(T.tableSet, tx, 0.8, 1.3, { cast: false });
+    BUILD.card(tx < 0 ? T.crowdA : T.crowdB, tx, 0.42, 0.62, { w: 1.7, h: 1.25, cast: false, ru: 0.22 });
+    BUILD.light(new THREE.PointLight(0xffb070, 1.0, 0, 2), tx - 0.1, 1.1, 1.5, { flicker: 8 + tx }); }
+  room.interact('tables', -1.2, 1.4, KZ, 0.5, () => say('tables'));
+  /* the hearth: stone jambs, a lintel, the chimney breast, a good fire */
+  BUILD.box(2.6, 3.0, 0, 1.5, 0, 0.6, T.ashlar); BUILD.box(4.6, 5.0, 0, 1.5, 0, 0.6, T.ashlar); BUILD.box(2.5, 5.1, 1.5, 1.9, 0, 0.7, T.ashlar); BUILD.box(2.8, 4.8, 1.9, 3.1, 0, 0.5, T.ashlar, { col: 0xb8a898 });
+  BUILD.card(T.hearthLogs, 3.8, 0.02, 0.35, { cast: false }); BUILD.flame(3.8, 0.12, 0.38, 1.0, true); BUILD.glow(3.8, 0.7, 0.45, 2.0, 0xff8a2a, 0.4);
+  room.lights.fire = BUILD.light(new THREE.PointLight(0xff8a3c, 8, 0, 2), 3.8, 0.9, 1.1, { flicker: 7 });
+  room.interact('hearth', 3.8, 2.2, KZ, 0.7, () => say('hearth'));
+  /* the lute player, the river window and its moonlight */
+  BUILD.card(T.lutePlayer, 5.9, 0, 0.7); room.interact('lute', 5.9, 1.9, KZ, 0.5, () => { AUDIO.sfx('chime', { gain: 0.3 }); say('lute'); });
+  BUILD.card(T.riverWindow, 7.1, 1.0, 0.03, { basic: true, k: 1.1, cast: false }); BUILD.glow(7.1, 1.8, 0.2, 1.8, 0x8aa8e8, 0.2);
+  room.lights.moon = BUILD.shadow(BUILD.light(new THREE.SpotLight(0x8aa8e0, 60, 0, 0.55, 0.8, 2), 7.1, 2.4, 0.3), R.q === 'low' ? 512 : 1024); room.lights.moon.target.position.set(6.2, 0, 2.6);
+  room.interact('window', 7.1, 2.9, KZ, 0.5, () => say('window'));
+  /* lanterns in the open front of the room, high up; the near side: a curtain, a table's edge, a barrel */
+  for (const x of [-8, -4, 0, 4, 8]) { BUILD.box(x - 0.01, x + 0.01, 5.3, CE, 2.2, 2.22, T.woodPost, { cast: false }); BUILD.card(T.redLantern, x, 4.5, 2.2, { cast: false, s: 1.2 }); BUILD.glow(x, 4.95, 2.25, 1.3, 0xff4a2a, 0.5); }
+  BUILD.light(new THREE.PointLight(0xff5a3a, 2.4, 0, 2), -4, 4.6, 2.6, { flicker: 2.5 }); BUILD.light(new THREE.PointLight(0xff5a3a, 2.4, 0, 2), 4, 4.6, 2.6, { flicker: 2.8 });
+  BUILD.card(T.curtain, X0 + 0.6, 0, 7.0, { cast: false, col: 0xb83a2a }); BUILD.box(2.8, 5.2, 0.72, 0.8, 6.6, 7.4, T.woodRed, { cast: false }); BUILD.card(T.tableSet, 4.0, 0.8, 7.0, { cast: false });
+  BUILD.card(T.barrel, 9.4, 0, 7.4, { s: 1.1, cast: false });
+  /* light: a low warm room, the hearth and the lanterns doing the work */
+  BUILD.light(new THREE.HemisphereLight(0x6a4a3a, 0x24140c, 1.5), 0, 5, 0);
+  const fill = BUILD.light(new THREE.DirectionalLight(0xc8a890, 0.35), 2, 5, 15); fill.target.position.set(0, 1.5, 0);
+  room.rim = [3.8, 1.2, 1.2, 0.6, 9, 0xff9a50, room.lights.fire]; room.shadowSrc = [3.8, 2.2, 1.2, 8];
+  BUILD.motes({ n: 70, boxes: [[-11, 11, 0.4, 5.6, 0.5, 4, 0.25]], embers: [3.8, 0.4, 0.4], col: 0xffd8b0 });
+  room.update(0, 0);
+  return BUILD.end();
+};
+LANTERN.onEnter = function () {
+  if (!CUT.playing) SCENE.caption(...this.caption);
+  const room = this;
+  for (const id of HOUSE.WOMEN.concat(['wanda'])) if (CAST.A[id] && !room.inter.some((i) => i.id === id)) { const a = CAST.A[id], sit = a.curHome && a.curHome.sit;
+    room.interact(id, a.x, (sit ? sit.y - 0.45 : a.y) + (a.spec.headY || 2.0) + 0.45, a.z, 0.8, () => (id === 'wanda' ? HOUSE.wanda() : HOUSE.meet(id))).label = 'Talk to ' + a.name; }
+  FEST.talkers(room, [['docker', 'Talk to the docker'], ['clerk', 'Talk to the League clerk', () => HOUSE.clerk()]]);
+  /* Wanda has been waiting twelve years: she speaks first, as soon as the room is free (the arrival's fade and any line in
+     progress hold the lock; a single timer that found it held used to miss her welcome altogether) */
+  if (!HOUSE.met.wanda) { const t0 = performance.now(), tryW = () => { if (SCENE.room !== LANTERN || HOUSE.met.wanda) return;
+    if (SCENE.lock || SCENE.modal || CUT.playing || NIGHT.on || performance.now() - t0 < 1600) { setTimeout(tryW, 250); return; } HOUSE.wanda(); }; setTimeout(tryW, 250); }
+  else if (HOUSE.rumour >= 3 * (HOUSE.warned + 1) && HOUSE.warned < 2) { HOUSE.warned++; setTimeout(() => SCENE.say(CAST.A.wanda, HOUSE.W.wanda.warn[HOUSE.warned - 1]), 1800); }
+};
+LANTERN.leave = function () { SCENE.lock++; SCENE.say(SCENE.player, LANTERN.LINES.cellar[0]).then(() => { SCENE.lock--; GAME.save(); SCENE.go('chapel', { x: 10.6, face: -1 }); }); };
+/* ---------------------------------------------------------------- a woman's room */
+LROOM.build = function () {
+  const room = BUILD.begin(this), T = PX.T, X0 = room.X0, X1 = room.X1, CE = room.CEIL, L = room.LINES;
+  const say = (k) => SCENE.say(SCENE.player, SCENE.cycle('lr' + k, L[k]));
+  BUILD.plane('z', X0, X1, 0, CE, 0, T.houseWall);
+  for (const [x, ax] of [[X0, 'x+'], [X1, 'x-']]) BUILD.plane(ax, 0, 9, 0, CE, x, T.houseWall);
+  room.floorMat = BUILD.reflective(T.housePlanks, { k: 0.5, rough: 0.6 }); BUILD.plane('y+', X0, X1, 0, 9, 0, T.housePlanks, { mat: room.floorMat, layer: 2 });
+  BUILD.plane('y-', X0, X1, 0, 9, CE, T.housePlanks, { col: 0x6a5a4a });
+  for (let x = X0 + 1.2; x < X1; x += 2.6) BUILD.box(x - 0.14, x + 0.14, CE - 0.36, CE, 0, 9, T.beam, { cast: false });
+  /* the bed, exactly where the royal bed stands (LOVERS.BED), so every position fits it */
+  const B = LOVERS.BED, B0 = B.x0, B1 = B.x1, BZ0 = B.z0, BZ1 = B.z1;
+  for (const [x, z] of [[B0, BZ0], [B1, BZ0], [B0, BZ1], [B1, BZ1]]) BUILD.box(x - 0.08, x + 0.08, 0, z === BZ0 && x === B0 ? 1.9 : 1.15, z - 0.08, z + 0.08, T.woodPost);
+  BUILD.box(B0, B1, 0.18, 0.45, BZ0, BZ1, T.woodRed);
+  room.quilt = BUILD.box(B0 + 0.05, B1 - 0.05, 0.45, 0.8, BZ0 + 0.02, BZ1 - 0.02, T.houseQuilt, { rough: 0.95, dyn: true }); room.quilt.material = room.quilt.material.clone();
+  room.quiltFront = BUILD.box(B0 + 0.05, B1 - 0.05, 0.25, 0.8, BZ1 - 0.02, BZ1 + 0.03, T.houseQuilt, { rough: 0.95, cast: false, dyn: true }); room.quiltFront.material = room.quilt.material;
+  BUILD.box(B0 + 0.12, B0 + 0.62, 0.8, 0.98, BZ0 + 0.15, BZ0 + 0.85, T.linen); BUILD.box(B0 + 0.12, B0 + 0.62, 0.8, 0.98, BZ0 + 0.95, BZ1 - 0.15, T.linen);
+  BUILD.box(B0 - 0.06, B0 + 0.04, 0.4, 1.85, BZ0, BZ1, T.woodRed);
+  room.interact('bed', -7.7, 1.5, room.KZ, 1.0, () => say('bed'));
+  /* left of the headboard (the room runs 4.5 m past it, so the eased-in night camera can centre on the bed on a 2.8:1 phone
+     strip rather than stop at the wall; see ENGINE.md §13i): a chest, her washstand with a bowl, a jug and a candle, a mirror */
+  BUILD.card(T.plant, -13.5, 0, 0.5, { s: 0.8 }); BUILD.box(-13.5, -12.5, 0, 0.55, 1.2, 1.75, T.woodDark, { front: BUILD.std(T.chest) });
+  BUILD.box(-12.2, -11.0, 0, 0.82, 0.25, 0.85, T.woodDark); BUILD.box(-12.25, -10.95, 0.82, 0.88, 0.2, 0.9, T.woodRed);
+  BUILD.card(T.candle, -12.0, 0.88, 0.45); BUILD.flame(-12.0, 1.16, 0.455, 0.3); BUILD.card(T.bowl, -11.6, 0.88, 0.55); BUILD.card(T.jug, -11.2, 0.88, 0.5);
+  BUILD.card(T.linen, -10.98, 0.3, 0.88, { w: 0.35, h: 0.5, cast: false });
+  room.lights.wash = BUILD.light(new THREE.PointLight(0xffa860, 1.6, 0, 2), -12.0, 1.3, 1.0, { flicker: 9 });
+  BUILD.card(T.mirror, -10.3, 0, 0.5, { s: 0.85, ry: 0.2 });
+  room.interact('wash', -11.6, 1.6, room.KZ, 0.6, () => say('wash'));
+  /* the bedside table and its candle; a red lantern over the bed; the window with the moon */
+  BUILD.box(-5.7, -5.1, 0, 0.72, 1.3, 1.9, T.woodDark); BUILD.card(T.candleStand, -5.4, 0.72, 1.6, { s: 0.45 }); BUILD.flame(-5.4, 1.32, 1.62, 0.22);
+  room.lights.candle = BUILD.light(new THREE.PointLight(0xffa050, 3.4, 0, 2), -5.4, 1.4, 1.9, { flicker: 8 });
+  BUILD.box(-7.71, -7.69, 3.3, CE, 1.19, 1.21, T.woodPost, { cast: false }); BUILD.card(T.redLantern, -7.7, 2.75, 1.2, { cast: false }); BUILD.glow(-7.7, 3.1, 1.25, 1.0, 0xff4a2a, 0.45);
+  BUILD.light(new THREE.PointLight(0xff6a40, 2.6, 0, 2), -7.7, 3.0, 1.8, { flicker: 3 });   // the red lantern over the bed lights the scene
+  BUILD.card(T.riverWindow, -2.6, 1.0, 0.03, { basic: true, k: 1.1, cast: false }); BUILD.glow(-2.6, 1.8, 0.2, 1.6, 0x8aa8e8, 0.2);
+  room.lights.moon = BUILD.shadow(BUILD.light(new THREE.SpotLight(0x8aa8e0, 50, 0, 0.6, 0.8, 2), -2.6, 2.6, 0.3), R.q === 'low' ? 512 : 1024); room.lights.moon.target.position.set(-6.0, 0.6, 1.4);
+  room.interact('window', -2.6, 2.9, room.KZ, 0.5, () => say('window'));
+  BUILD.card(T.dressScreen, 1.4, 0, 0.6); BUILD.card(T.chair, -0.6, 0, 1.6, { s: 1.0 });
+  BUILD.card(T.doorLamp, 4.2, 0, 0.03, { cast: false }); room.interact('door', 4.2, 2.4, room.KZ, 0.8, () => LROOM.downstairs()).label = 'Back down to the common room';
+  /* each woman's things, shown only when it's her room: Róża's silks, Nadia's maps, Hanna's husband's cloak and sword,
+     Lena's copper bath (steaming), Agata's turned cross and her books */
+  const D = (tex, x, y, z, o) => BUILD.card(tex, x, y, z, Object.assign({ cast: false, dyn: true }, o));
+  room.dress = {
+    roza: [D(T.silkSwag, -7.7, 2.15, 0.06, { w: 3.6, h: 1.0 }), D(T.silkSwag, -2.6, 2.9, 0.06, { w: 2.0, h: 0.56 })],
+    nadia: [D(T.mapWall, -4.2, 1.2, 0.04), D(T.mapWall, -0.2, 1.5, 0.04, { s: 0.7 })],
+    hanna: [D(T.cloakPeg, -4.4, 0.8, 0.05)],
+    lena: [D(T.copperBath, -0.6, 0, 1.2, { cast: true })],
+    agata: [D(T.crossTurned, -4.2, 1.7, 0.04), D(T.booksPile, -5.4, 0.72, 1.75), D(T.booksPile, 0.4, 0, 0.5)]
+  };
+  room.steam = []; for (let i = 0; i < 4; i++) { const m = new THREE.SpriteMaterial({ map: T.smokeSoft, color: 0xd8d0d8, transparent: true, opacity: 0, depthWrite: false }); const s = new THREE.Sprite(m); BUILD.add(s, { cast: false }); room.steam.push({ s, m, ph: i / 4 }); }
+  room.tick.push((t) => { const on = HOUSE.with === 'lena'; for (const p of room.steam) { const u = (t * 0.18 + p.ph) % 1; p.s.visible = on; p.s.position.set(-0.6 + Math.sin(u * 4 + p.ph * 7) * 0.3, 0.9 + u * 1.6, 1.2); p.s.scale.setScalar(0.5 + u * 1.2); p.m.opacity = 0.22 * Math.sin(u * Math.PI); } });
+  BUILD.card(T.curtain, X1 - 0.5, 0, 6.8, { cast: false, col: 0xb83a2a });
+  BUILD.light(new THREE.HemisphereLight(0x7a5a4a, 0x1c120c, 1.6), 0, 4, 0);
+  const fill = BUILD.light(new THREE.DirectionalLight(0xc8a8a0, 0.3), 2, 4, 14); fill.target.position.set(-4, 1.2, 0);
+  room.rim = [-5.4, 1.4, 1.9, 0.5, 6, 0xffa050, room.lights.candle]; room.shadowSrc = [-5.4, 1.6, 1.9, 6];
+  BUILD.motes({ n: 48, boxes: [[-13.2, 4.5, 0.4, 3.6, 0.5, 3.2, 0.2]], col: 0xffd8b0 });
+  room.update(0, 0);
+  return BUILD.end();
+};
+LROOM.QUILT = { roza: 0xe0947a, nadia: 0xb8b0e0, hanna: 0xece2cc, lena: 0xeca8b8, agata: 0xa0a0b0 };
+/* dress the room for her and show only her (all the women live here, for their layers; one is shown) */
+LROOM.onEnter = function () {
+  const room = this, id = HOUSE.with;
+  for (const k in room.dress) for (const m of room.dress[k]) m.visible = k === id;
+  room.quilt.material.color.set(LROOM.QUILT[id] || 0xffffff);
+  for (const w of HOUSE.WOMEN) if (CAST.A[w]) CAST.A[w].setVisible(w === id);
+};
+LROOM.downstairs = function () { if (NIGHT.on) return; GAME.save(); SCENE.go('lantern', { x: 9.0, face: -1 }); };
+/* ---------------------------------------------------------------- meeting the women */
+HOUSE.band = (id) => { const t = HOUSE.trust[id] || 0; return t < 3 ? 0 : t < 6 ? 1 : 2; };
+HOUSE.meet = async function (id) {
+  const A = CAST.A, Q = A[id], W = HOUSE.W[id], K = SCENE.player; if (!Q) return;
+  K.faceTo(Q.x); if (!Q.sitting) { Q.faceTo(K.x); Q.lookYaw = Math.sign(K.x - Q.x) * 0.8; }
+  const who = (k) => (k === 'king' ? K : Q); let locked = true; SCENE.lock++;
+  try {
+    if (!HOUSE.met[id]) { HOUSE.met[id] = true; HOUSE.trust[id] = (HOUSE.trust[id] || 0) + 1; await SCENE.talk(W.first.map(([k, t]) => [who(k), t])); }
+    else await SCENE.say(Q, SCENE.cycle('hm' + id, W.more), { wait: true });
+    const i = await NIGHT.ask(['Go upstairs with her (18+)', 'Talk a while', 'Leave her be']);
+    if (i === 1) { HOUSE.trust[id] = (HOUSE.trust[id] || 0) + 1; await SCENE.say(Q, SCENE.cycle('ht' + id, W.talk), { wait: true }); }
+    else if (i === 0) { SCENE.lock--; locked = false; AUDIO.sfx('coin', { gain: 0.5 }); NIGHT.confirm(() => HOUSE.scene(id).catch(fail)); }
+  } finally { if (locked) SCENE.lock--; if (!Q.sitting) Q.lookYaw = null; }
+};
+HOUSE.wanda = async function () {
+  const A = CAST.A, Wd = A.wanda, K = SCENE.player, W = HOUSE.W.wanda; if (!Wd || SCENE.lock) return;
+  K.faceTo(Wd.x); SCENE.lock++;
+  try {
+    if (!HOUSE.met.wanda) { HOUSE.met.wanda = true; HOUSE.found = true; await SCENE.talk(W.first.map(([k, t]) => [k === 'king' ? K : Wd, t])); }
+    else await SCENE.say(Wd, SCENE.cycle('hwd', W.more.concat(W.talk)), { wait: true });
+  } finally { SCENE.lock--; }
+};
+HOUSE.clerk = async function () {
+  const C0 = CAST.A.clerk; if (!C0) return; HOUSE.rumour++;   // talking to the League's clerk is how the Falconer gets a name
+  await FEST.talk('clerk', HOUSE.W.clerk);
+};
+/* ---------------------------------------------------------------- upstairs: her room, the bed, the night scene's engine */
+HOUSE.stage = function (id) {
+  const W = HOUSE.W[id]; return { room: LROOM, enter: W.enter, lines: W.lines, cam: NIGHT.CAM, lens: null, finish: HOUSE.finish, end: HOUSE.end };
+};
+HOUSE.scene = async function (id) {
+  const K = SCENE.player, Q = CAST.A[id], W = HOUSE.W[id]; if (!Q || NIGHT.on) return;
+  SCENE.lock++;
+  try {
+    await SCENE.say(Q, W.yes, { wait: true });
+    HOUSE.with = id; await SCENE.go('lroom', { x: 3.4, face: -1 });   // LROOM.onEnter dresses the room for her
+    const room = LROOM;
+    NIGHT.S = HOUSE.stage(id); NIGHT.on = true; NIGHT.A = { K, Q }; NIGHT.lensK = 0; NIGHT.lensT = 0; NIGHT.pos = null; NIGHT.k = 0; NIGHT.ph = 0; NIGHT.inBed = false; NIGHT.finishing = false; NIGHT.hold = false; NIGHT.brT = 1; NIGHT.lineT = 5;
+    NIGHT.tweens = []; room.tick.push(NIGHT.tick); NIGHT.camMode = 'room'; NIGHT.cam0 = { fov: room.cam.fov, y: room.cam.y, look: room.cam.look, focus: room.camFocus };
+    NIGHT.done = new Promise((r) => { NIGHT.resolve = r; });
+    Q.x = 2.4; Q.z = room.KZ - 0.15; Q.face = -1; Q.yaw = -0.42; Q.lookYaw = null;
+    await Promise.all([K.makeBare(), Q.makeBare()]);
+    NIGHT.look(Q, K); await SCENE.talk(W.intro.map(([k, t]) => [k === 'K' ? K : Q, t]));
+    const her = NIGHT.walk(Q, -7.9); await NIGHT.beat(350); const him = NIGHT.walk(K, -7.3); await Promise.all([her, him]);
+    NIGHT.look(Q, K); NIGHT.look(K, Q); await NIGHT.beat(300);
+    await SCENE.talk([[Q, W.undress[0]]]);
+    K.act('Interact'); AUDIO.sfx('sheets', { gain: 0.45 }); await NIGHT.beat(900); await Q.undress('outer'); AUDIO.sfx('sheets', { gain: 0.8 });
+    Q.act('Interact'); await NIGHT.beat(700); await K.undress('outer'); AUDIO.sfx('sheets', { gain: 0.8 }); await NIGHT.beat(300);
+    await SCENE.talk(W.undress.slice(1).map(([k, t]) => [k === 'K' ? K : Q, t]));
+    K.act('Interact'); Q.act('Interact'); await NIGHT.beat(600);
+    await Q.undress('all'); await K.undress('all'); if (K.sexGroup) K.sexGroup.visible = false;   // the house rule: he is never shown
+    K.setArousal(0.3); AUDIO.sfx('sheets', { gain: 1 }); await NIGHT.beat(500);
+    // into bed: one sprite for both bodies, as the royal bed has it
+    K.reframe(3.9, 2.5); K.frame = new THREE.Vector3(-7.7, 1.5, LOVERS.BED.zc); K.cardDz = 1.6; Q.hostInto(K);
+    NIGHT.camMode = 'bed'; NIGHT.lensT = 1; AUDIO.sfx('creak', { gain: 0.6, delay: 0.6 });
+    NIGHT.tween(2.2, (u) => { K.cardDz = lerp(1.6, 0.82, u); });
+    await NIGHT.drive('kiss', 2.1, 0.34);
+    NIGHT.inBed = true; NIGHT.lineT = 5;
+    NIGHT.scripted = true; for (const [w, t] of W.enter.kiss) await NIGHT.say(w === 'K' ? K : Q, t, 200); NIGHT.scripted = false;
+    NIGHT.setPace(1); NIGHT.posBar(); $('nView').hidden = false; $('nFinish').hidden = false; $('nView').textContent = NIGHT.closer ? 'Wider' : 'Closer'; NIGHT.bar(['pos', 'pace']);
+    if (W.fav) NIGHT.to(W.fav);   // her favourite: she moves him there herself
+    await NIGHT.done;
+  } finally { SCENE.lock--; }
+};
+HOUSE.finish = async function () {
+  const K = NIGHT.A.K, Q = NIGHT.A.Q, W = HOUSE.W[HOUSE.with]; NIGHT.bar([]); NIGHT.scripted = true;
+  if (NIGHT.pos !== 'kiss') {
+    NIGHT.finishing = true; NIGHT.k = Math.max(NIGHT.k, 0.85); NIGHT.pace = Math.max(NIGHT.pace, 1.5);
+    await NIGHT.say(Q, W.finish[0], 900); await NIGHT.say(K, W.finish[1], 700);
+    NIGHT.hold = true; NIGHT.ph = Math.ceil(NIGHT.ph / (Math.PI * 2)) * Math.PI * 2 + 0.38 * Math.PI * 2;
+    AUDIO.sfx('breath', { gain: 0.9, pitch: 1500, dur: 1.4 }); AUDIO.sfx('breath', { gain: 0.6, pitch: 620, dur: 1.2, delay: 0.3 });
+    await NIGHT.say(Q, W.finish[2], 1400); await NIGHT.beat(1100);
+    NIGHT.hold = false; NIGHT.finishing = false;
+  } else await NIGHT.say(Q, W.cuddle, 300);
+  AUDIO.sfx('sheets', { gain: 0.9 }); await NIGHT.drive('after', 2.4, 0.08); NIGHT.k = 0.2;
+  await SCENE.talk(W.after.map(([w, t]) => [w === 'K' ? K : Q, t]));
+  await NIGHT.beat(700); NIGHT.scripted = false; await HOUSE.end(true);
+};
+HOUSE.end = async function (slept) {
+  const K = NIGHT.A.K, Q = NIGHT.A.Q, room = LROOM, c0 = NIGHT.cam0, id = HOUSE.with;
+  NIGHT.bar([]); await NIGHT.fade(true);
+  NIGHT.inBed = false; NIGHT.camMode = 'room'; Object.assign(room.cam, { fov: c0.fov, y: c0.y, look: c0.look }); room.camFocus = c0.focus; room.focusDz = 0;
+  POSE.release(K); POSE.release(Q); Q.hostInto(null); K.frame = null; K.reframe(); K.cardDz = 0;
+  K.dress(); Q.dress(); K.setArousal(0);   // dress() puts the disguise back on
+  room.tick = room.tick.filter((f) => f !== NIGHT.tick); NIGHT.tweens = []; NIGHT.on = false; NIGHT.S = null;
+  HOUSE.trust[id] = (HOUSE.trust[id] || 0) + (slept ? 2 : 1); HOUSE.nights[id] = (HOUSE.nights[id] || 0) + 1; HOUSE.rumour++; HOUSE.with = null;
+  await SCENE.prepare('lantern'); SCENE.enter('lantern', { x: 8.6, face: -1 }); R.r.compile(R.scene, R.cam); SCENE.render(); await nextFrame();
+  SCENE.caption('Later', 'The common room has thinned. The fire hasn’t.'); GAME.save();
+  await NIGHT.fade(false); if (NIGHT.resolve) NIGHT.resolve();
+};
+
+/* ==== game/g43_cast_lantern.js ==== */
+/* THE HOUSE OF THE LANTERN'S PEOPLE (STORY.md §9.4): Wanda and five women, every one an adult (ages in STORY.md), plus two
+   regulars. Lazy: built the first time the king comes up the cellar steps. Each woman lives in the common room (her spot)
+   and in the upstairs room (by the door), where LROOM shows only the one he went up with. HOUSE.W holds what they say:
+   meeting (first, more), talking a while (talk), going up (yes, intro, undress), in bed (enter / lines, as the night scene's,
+   by how far gone: k < 0.35, < 0.7, beyond), the end (finish, cuddle, after) and her favourite position (fav). */
+const woman = (id, name, o) => Object.assign({ id, name, lazy: true, bind: 'rfemale', s: 1.0, skinK: 0.94, headY: 2.0, face: -1, idle: 'Idle_Loop',
+  parts: [part(P_F('Body'), { L: o.L, P: o.P }), part(P_F('Arms'), { L: o.arms || o.L, P: o.arms || o.L }), part(P_F('Legs'), { L: 0x2a1c14, P: 0x2a1c14 }), part(P_F('Feet'), { L: 0x1e140e, P: 0x2a1e16 })],
+  homes: Object.assign({ lroom: { x: 2.4, z: 2.2, face: -1, idle: 'Idle_Loop' } }, o.homes) }, o.spec);
+Object.assign(CAST.specs, {
+  wanda: woman('wanda', 'Wanda', { L: 0x3a1a3a, P: 0x5a2a4a, homes: { lantern: { x: -7.1, z: 0.42, face: 1, idle: 'Idle_FoldArms_Loop' } },
+    spec: { skin: 0xe0b49a, brows: 0x221c22, hair: [['Hair_Buns', 0x221c22]], headY: 2.02, homes: { lantern: { x: -7.1, z: 0.42, face: 1, idle: 'Idle_FoldArms_Loop' } },
+      robe: { col: 0x4a1a3a, top: 0.95, bot: 0.03, rx: [0.17, 0.4], rz: [0.14, 0.33], trim: 0xc8962a, band: 0xc8962a, leg: 0.4, bust: { k: 0.24, sep: 0.09, y: 1.23, w: 0.09, h: 0.13 } },
+      collar: { pal: [0x1a1418, 0x2a2228, 0x3a3038, 0x4a3e48], y: 1.41, rx: 0.18, rz: 0.13, thick: 0.05 } } }),
+  roza: woman('roza', 'Róża', { L: 0x2e6a3a, P: 0xf0e0c8, arms: 0xf0e0c8, homes: { lantern: { x: -4.6, z: 1.9, face: -1 } },
+    spec: { skin: 0xf2c8ae, brows: 0x9a3a18, hair: [['Hair_Long', 0xb8461e]],
+      robe: { col: 0x9a2a28, top: 0.95, bot: 0.04, rx: [0.16, 0.42], rz: [0.13, 0.34], trim: 0xe8b840, leg: 0.42, bust: { k: 0.26, sep: 0.09, y: 1.24, w: 0.09, h: 0.13 } } } }),
+  nadia: woman('nadia', 'Nadia', { L: 0x2c3a6a, P: 0xe8c040, homes: { lantern: { x: 6.9, z: 1.8, face: -1, idle: 'Idle_FoldArms_Loop' } },
+    spec: { s: 1.05, skin: 0x6a4030, skinK: 0.9, brows: 0x141010, hair: [['Hair_Buzzed', 0x141010]], headY: 2.08,
+      robe: { col: 0x24305a, top: 0.95, bot: 0.03, rx: [0.14, 0.3], rz: [0.12, 0.26], trim: 0xe8c040, band: 0xe8c040, leg: 0.45, bust: { k: 0.18, sep: 0.085, y: 1.25, w: 0.085, h: 0.12 } } } }),
+  hanna: woman('hanna', 'Hanna', { L: 0x6a5a3a, P: 0xe0d4b8, homes: { lantern: { x: 3.8, z: 1.9, face: 1 } },
+    spec: { s: 1.06, skin: 0xeac2a2, brows: 0xa8883a, hair: [['Hair_Long', 0xd8b868]], headY: 2.08,
+      robe: { col: 0xc8b898, top: 0.95, bot: 0.03, rx: [0.16, 0.35], rz: [0.13, 0.28], trim: 0x6a5a3a, leg: 0.45, bust: { k: 0.2, sep: 0.09, y: 1.25, w: 0.09, h: 0.13 } },
+      tabard: { col: 0x8a7a5a, trim: null, w: 0.1, top: 1.08, from: P_F('Body') } } }),
+  lena: woman('lena', 'Lena', { L: 0xc87a8a, P: 0xf0e0d0, homes: { lantern: { x: 9.7, z: 2.05, face: -1 } },
+    spec: { s: 0.98, skin: 0xf2caa8, brows: 0x5a3018, hair: [['Hair_Buns', 0x6a4024]],
+      robe: { col: 0xb86a7a, top: 0.95, bot: 0.03, rx: [0.16, 0.4], rz: [0.13, 0.33], trim: 0xf0e0d0, band: 0xf0e0d0, leg: 0.42, bust: { k: 0.27, sep: 0.09, y: 1.24, w: 0.09, h: 0.13 } } } }),
+  agata: woman('agata', 'Agata', { L: 0x3a3a44, P: 0xf0ece0, homes: { lantern: { x: 8.15, z: 0.78, face: -1, sit: { x: 8.15, y: 0.52, z: 0.78, yaw: -0.25, cardDz: 0.25 } } },
+    spec: { s: 0.93, skin: 0xead0bc, brows: 0x141012, hair: [['Hair_SimpleParted', 0x141012]], headY: 1.9,
+      robe: { col: 0x34343e, top: 0.95, bot: 0.03, rx: [0.14, 0.3], rz: [0.12, 0.25], trim: 0xf0ece0, leg: 0.45, bust: { k: 0.16, sep: 0.08, y: 1.2, w: 0.08, h: 0.12 } },
+      collar: { pal: [0xd8d4c8, 0xe8e4d8, 0xf4f0e8, 0xffffff], y: 1.38, rx: 0.15, rz: 0.11, thick: 0.03 } } }),
+  docker: townsman('docker', 0x5a4a3a, 0x3a2a1a, true, { lantern: { x: 1.7, z: 2.1, face: -1, idle: 'Idle_Talking_Loop' } }),
+  clerk: Object.assign({}, CAST.specs.jarek, { id: 'clerk', name: 'the League clerk', s: 0.97, prop: 'scroll', hair: [['Hair_SimpleParted', 0x2a1a10]], homes: { lantern: { x: -1.3, z: 2.2, face: 1 } } }),
+});
+CAST.specs.wanda.homes = { lantern: { x: -7.1, z: 0.42, face: 1, idle: 'Idle_FoldArms_Loop' } };   // Wanda doesn't go upstairs
+FEST.TALK.docker = { more: ['Evening. Don’t drink the wine. It’s vinegar with ambitions.', 'Róża’s laugh could knock a gull out of the sky.', 'Krasnians in here all week. Good tippers. Bad singers.'] };
+HOUSE.W = {
+  wanda: {
+    first: [['wanda', 'Twelve years I’ve kept that cellar door oiled. I was beginning to think the key had drowned with the rest of your father’s secrets.'], ['king', 'You knew him.'],
+      ['wanda', 'Eleven years, Your— no. Not here. Here you’re nobody. The Falconer, I think. He liked hawks, your father.'],
+      ['wanda', 'Wine at the counter, women on the stairs, and you pay like anyone else. Nobody sees you come and nobody sees you go. That was his rule. It’s mine.']],
+    more: ['Pay like anyone else, Falconer. Your father did. Mostly.', 'The League’s clerk is a pig with a quill. If he bothers my girls, the docker sits on him.',
+      'Your father sat in that chair by the cellar door every Thursday for eleven years. He never once took his boots off.'],
+    talk: ['He told me things he never told the chronicle. One day I might tell you. Not tonight.', 'Rumour is the river quarter’s other river. Mind how often you come.', 'The girls like you. That’s dangerous for both of you.'],
+    warn: ['Half the quarter is guessing who the Falconer is. Use the cellar, not the door, and don’t talk to the clerk.', 'A man asked me today whether the Falconer wears a crown. I said he wears a cellar key and a bad back. Be careful.']
+  },
+  clerk: { first: [['clerk', 'Evening, sir. The League keeps accounts of everything. Every visit, every silver.'], ['king', 'Not mine.'], ['clerk', 'Everyone says that, sir. Have we done business? You look familiar.']],
+    more: ['Róża owes the League fourteen silver. Or sixteen. It changes.', 'A great many Krasnians this week. A great deal of silver.', 'You do look familiar, sir. It’ll come to me.'] },
+  roza: {
+    first: [['roza', 'Well, look what the tunnel dragged in. Wanda said a gentleman might come up the cellar one night. She didn’t say he’d be a handsome one.'], ['king', 'I’m nobody. The Falconer.'],
+      ['roza', 'Course you are, love, and I’m the Queen of Krasna. Róża. Buy me a drink, Falconer, and I’ll tell you every lie in the river quarter.']],
+    more: ['You came back! Wanda owes me a silver.', 'That League clerk keeps adding to my debt with his little pen. One day I’ll eat the pen.', 'You stand like a king, Falconer. Slouch a bit, or they’ll guess.'],
+    talk: ['My da hauled barrels on the docks till his back went. I haul men. Pays better, and nobody drops one on your foot.', 'Twelve silver I owe that clerk, and every month it’s fourteen. Funny arithmetic, the League’s.',
+      'I laugh loud so nobody hears what I’m thinking. Works on everyone but Wanda.'],
+    yes: 'Upstairs? Took you long enough. Mind the third step. It screams.',
+    intro: [['Q', 'Sit. No, lie down. I like to see a man on his back before I decide anything.'], ['Q', 'Look at you, all coat and no crown. Let’s have the coat off.']],
+    undress: ['Laces at the back. Pull, don’t pick. I’m not a lock.', ['K', 'You’re freckled all over.'], ['Q', 'Count them. Slowly. Start low.']],
+    enter: { kiss: [['Q', 'Kiss me like you mean it, Falconer, not like you’re signing something.']], missionary: [['Q', 'Go on, then, on top. I’ll allow it. Once.'], ['K', 'Once?'], ['Q', 'Make it worth twice.']],
+      ride: [['Q', 'Now this is how it’s done. Hands where I can see them. On my hips.']], behind: [['Q', 'Ooh, the gentleman has opinions. Go on, then. Grab hold.']] },
+    lines: { kiss: [[['Q', 'Mm. You kiss like you’re starving.'], ['Q', 'Your beard tickles. Don’t stop.']], [['Q', 'Touch me. Lower. You know where.'], ['K', 'You’re soaked.']], [['Q', 'Get inside me before I do it myself.']]],
+      missionary: [[['Q', 'Slow. Slow. Let me feel it.'], ['K', 'Look at me.']], [['Q', 'Harder. You’re not going to break me.'], ['Q', 'Fuck, that’s it.']], [['Q', 'Don’t you dare stop now—'], ['K', 'Róża—']]],
+      ride: [[['Q', 'Hold still. I’m driving.'], ['K', 'Gods.']], [['Q', 'Feel that? That’s all you, love.'], ['Q', 'Mm— right there— right there—']], [['Q', 'I’m going to make so much noise Wanda bangs on the ceiling.'], ['K', 'Let her.']]],
+      behind: [[['Q', 'Hands on my hips. That’s what they’re for.'], ['K', 'Like that?']], [['Q', 'Harder— oh, the gentleman’s a beast—'], ['K', 'You like it.']], [['Q', 'Yes— yes— fuck, yes—']]],
+      after: [[['Q', 'Mm.']]] },
+    finish: ['Don’t you stop— don’t you dare—', 'Róża—', 'Oh— gods— oh, that’s the one—'], cuddle: 'Fine. Just kissing. You’re sweet, for a liar.',
+    after: [['Q', 'Well. You’ll be back.'], ['K', 'Will I?'], ['Q', 'They always say that like it’s a question. Go on. Mind the third step.']], fav: 'ride'
+  },
+  nadia: {
+    first: [['nadia', 'You stand like a man who has been bowed to his whole life. Here nobody bows. It will do you good.'], ['king', 'Who are you?'],
+      ['nadia', 'Nadia. I came north with a caravan nine years ago, and the caravan went home without me. I read, I write, I listen in five languages. The fifth is the one men think I don’t speak.']],
+    more: ['The Krasnian factor’s men talk freely in front of me. Their mistake.', 'There’s a caravan master in this room who says I still owe him the road. I owe him nothing. He owes me a beating.',
+      'You read maps? Good. A man who reads maps knows where he is. Most men in here don’t.'],
+    talk: ['In the south a king walks among his people one night a year, masked. They call it the night of honesty. You would hate it.', 'I keep a map of every road I’ve walked. One day I’ll walk the last one home.',
+      'Kings and caravan masters. Both think the road belongs to them.'],
+    yes: 'Yes. Upstairs. Walk ahead of me. I like to watch how a man climbs stairs.',
+    intro: [['Q', 'My room. My maps. My rules. Take off the coat, Falconer.'], ['K', 'Is that a rule?'], ['Q', 'The first one.']],
+    undress: ['Undo the clasp. One hand. Show me you can.', ['K', 'Like that?'], ['Q', 'Like that. Now onto the bed.']],
+    enter: { kiss: [['Q', 'Slowly. I want to learn your mouth.']], missionary: [['Q', 'On top of me, then. Eyes open.'], ['K', 'Yes.']], ride: [['Q', 'Lie back. I set the pace.']],
+      behind: [['Q', 'From behind. Hold my hips and don’t hurry.'], ['K', 'As you say.']] },
+    lines: { kiss: [[['Q', 'Good.'], ['Q', 'Again. Slower.']], [['Q', 'Your hands are shaking. Steady them on me.']], [['Q', 'Now.']]],
+      missionary: [[['Q', 'Deeper. Don’t ask. Do.'], ['K', 'Nadia...']], [['Q', 'Yes. That. Keep that.'], ['Q', 'Harder.']], [['Q', 'Don’t stop. Don’t you stop.']]],
+      ride: [[['Q', 'Watch me.'], ['K', 'I can’t look anywhere else.']], [['Q', 'Mm. You’re learning.'], ['Q', 'There— exactly there.']], [['Q', 'I’m close. Hold on to me.']]],
+      behind: [[['Q', 'Steady. Like that.']], [['Q', 'Harder. I’m not glass.'], ['K', 'Gods...']], [['Q', 'Yes— now— now—']]], after: [[['Q', 'Hm.']]] },
+    finish: ['Now. Don’t hold back.', 'Nadia—', 'Ah— yes— yes—'], cuddle: 'Hold me, then. Quietly.',
+    after: [['Q', 'Hm. Not bad, for a king.'], ['K', 'I’m not a king.'], ['Q', 'Of course. Go down the stairs the way you came, Falconer.']], fav: 'behind'
+  },
+  hanna: {
+    first: [['hanna', 'You’re the one who comes up the cellar. Wanda says to treat you gently. I treat everyone gently.'], ['king', 'You’ve a soldier’s hands.'],
+      ['hanna', 'My husband’s were softer. He died on the walls in the siege. The old king promised the widows a pension. I’m still waiting for it.']],
+    more: ['The fire’s warm. Sit by it a while. You look like a man who needs sitting.', 'Some nights I still hear the drums from the siege. Then I go and sit by the river.', 'The widows petition every year. Every year the steward says next year.'],
+    talk: ['Piotr. His name was Piotr. He kept the east gate the night the hoarding burned.', 'I’d rather sew. My hands are good for it. But a widow without a pension sews for nothing.',
+      'Do you know the young king? People say he’s kinder than his father. I wouldn’t know. Nobody kind ever comes down here.'],
+    yes: 'Come, then. I’ll go slowly. Everyone goes too fast.',
+    intro: [['Q', 'Sit on the bed. Let me look at you.'], ['Q', 'You carry your shoulders like a man holding up a roof. Let it down for an hour.']],
+    undress: ['Let me. I like undoing a man’s buttons. It’s like opening a letter.', ['K', 'Your hands are warm.'], ['Q', 'The fire. Lie with me.']],
+    enter: { kiss: [['Q', 'Slowly. We’ve nowhere to be.']], missionary: [['Q', 'Here, on top of me. I want to see your face.'], ['K', 'Like this?'], ['Q', 'Just like this.']],
+      ride: [['Q', 'Let me hold you down a while. Gently.']], behind: [['Q', 'If you like. Hold on to me.']] },
+    lines: { kiss: [[['Q', 'Mm. You kiss like you’re sorry for something.'], ['K', 'Maybe I am.']], [['Q', 'Touch me. Here.']], [['Q', 'Come into me now.']]],
+      missionary: [[['Q', 'Slow. That’s it. Stay with me.'], ['K', 'Hanna...']], [['Q', 'Oh— yes— that’s good—'], ['Q', 'Hold me tighter.']], [['Q', 'Don’t stop— please— don’t stop—']]],
+      ride: [[['Q', 'Easy. Easy.']], [['Q', 'Mm— oh, there.'], ['K', 'You’re beautiful.']], [['Q', 'I’m close— hold my hands—']]],
+      behind: [[['Q', 'Gently— yes.']], [['Q', 'Harder now. I want it.']], [['Q', 'Oh— oh, gods—']]], after: [[['Q', 'Mm.']]] },
+    finish: ['Stay with me— don’t stop—', 'Hanna—', 'Oh— oh, yes—'], cuddle: 'Just hold me. It’s been a long time since anyone did.',
+    after: [['Q', 'Thank you.'], ['K', 'For what?'], ['Q', 'For not hurrying. Go on. The fire’s still lit downstairs.']], fav: 'missionary'
+  },
+  lena: {
+    first: [['lena', 'Oh! A gentleman. I’m Lena. I do baths. Well, I do other things too, but I do baths very well.'], ['king', 'You speak like a lady’s maid.'],
+      ['lena', 'I was one. In Krasna, for a queen. I left with her earrings and her secrets, and I’ve only sold the earrings.']],
+    more: ['The copper bath upstairs takes forty buckets. I carry every one myself, so you’d better enjoy it.', 'If any Krasnian knights come in, I hide behind Hanna. She’s very wide.',
+      'My old mistress used to say the bath is where queens do their thinking. And their lying.'],
+    talk: ['Queen Wiesława. She was kind to me, mostly. She was kinder to someone else.', 'I can tell you every scent a queen wears and why. Lavender to sleep. Rose to forgive. Myrrh when she means to lie.',
+      'If they ever recognise me, they’ll take me back. I’d rather drown in my own bath.'],
+    yes: 'Upstairs! The water’s hot. Well, it was hot an hour ago. It’ll be hot again in a minute.',
+    intro: [['Q', 'Shall I scrub your back, sir, or would you rather I didn’t stop at your back?'], ['Q', 'Coat off. You’re steaming up the window just standing there.']],
+    undress: ['Let me. I undressed a queen every night for six years. You’re much easier.', ['K', 'You’re very good at this.'], ['Q', 'I’m very good at the next part, too.']],
+    enter: { kiss: [['Q', 'Kiss me, then. You taste of the river.']], missionary: [['Q', 'Ooh. On top of me. I like the weight.'], ['K', 'Like this?'], ['Q', 'Just like that, sir.']],
+      ride: [['Q', 'My turn to be the queen.']], behind: [['Q', 'Ah, a man who knows what he wants. Hold on to me.']] },
+    lines: { kiss: [[['Q', 'Mm. Warm.'], ['Q', 'Your hands are cold. Put them on me.']], [['Q', 'Lower. Oh, you’re bold.']], [['Q', 'Now, sir. Please.']]],
+      missionary: [[['Q', 'Oh, that’s lovely.'], ['K', 'Lena...']], [['Q', 'Faster— oh— yes—'], ['Q', 'Don’t be polite about it.']], [['Q', 'I’m going to— oh—']]],
+      ride: [[['Q', 'Lie still. Let me do it.'], ['K', 'You’re wicked.']], [['Q', 'Mm— there— oh, there—']], [['Q', 'I can’t— I can’t stop—']]],
+      behind: [[['Q', 'Oh, the sheets will need washing.']], [['Q', 'Harder, sir— yes—']], [['Q', 'Oh— gods— yes—']]], after: [[['Q', 'Mm.']]] },
+    finish: ['Don’t stop— oh, please—', 'Lena—', 'Oh— oh, sir— yes—'], cuddle: 'Just kissing? You’re sweet. My old mistress would have sent you away.',
+    after: [['Q', 'The water’s gone cold.'], ['K', 'I didn’t notice.'], ['Q', 'No, sir. You didn’t.']], fav: 'ride'
+  },
+  agata: {
+    first: [['agata', 'Don’t stand there like a confessor. Sit, or go away.'], ['king', 'You were in a convent.'],
+      ['agata', 'A year with the Saintess’s sisters. I learned three prayers, two psalms and one very useful lie. Agata. Have you got anything to read?']],
+    more: ['Wanda says I’m too sharp for the trade. I say the trade’s too blunt for me.', 'Your Saintess Dorota. Ask me about her sometime. Bring wine.', 'Teach me the hard words and I’ll do anything you like. Anything.'],
+    talk: ['The sisters said reading would rot my soul. I was willing to risk it. They weren’t.', 'Dorota was the best of them. The holiest face on the river. You should have seen what she did when the candles went out.',
+      'I turned the cross to the wall. It watches. I don’t like being watched unless I’m being paid.'],
+    yes: 'Fine. Upstairs. And bring me a book next time, Falconer. I mean it.',
+    intro: [['Q', 'Don’t look at the cross. I turned it round. It’s had enough of me.'], ['Q', 'Coat off. Boots off. Kingdom off, whatever it is you’re carrying.']],
+    undress: ['Here. I’ll show you how a novice undresses. Quickly, before God notices.', ['K', 'Does he notice?'], ['Q', 'Not in here.']],
+    enter: { kiss: [['Q', 'Kiss me like it’s a sin. It is.']], missionary: [['Q', 'On top? How traditional. Go on, then.']], ride: [['Q', 'I’ll ride you like a bad girl on a holy day.']],
+      behind: [['Q', 'From behind. Hold my hair. Don’t be shy about it.'], ['K', 'Agata—'], ['Q', 'Shh. Pull.']] },
+    lines: { kiss: [[['Q', 'Mm. Bless me, Falconer.'], ['Q', 'Harder. Use your teeth.']], [['Q', 'Touch me where the sisters said not to.']], [['Q', 'Now. In me. Now.']]],
+      missionary: [[['Q', 'Slow is for the pious.'], ['K', 'And you?']], [['Q', 'Harder— oh, fuck—'], ['Q', 'Yes— like that—']], [['Q', 'Don’t you stop— don’t—']]],
+      ride: [[['Q', 'Hold still, sinner.']], [['Q', 'Feel that? That’s penance.'], ['K', 'Gods.']], [['Q', 'I’m going to— oh—']]],
+      behind: [[['Q', 'Pull my hair. Harder.'], ['K', 'Like that?']], [['Q', 'Yes— oh— yes—']], [['Q', 'Oh— God— fuck— yes—']]], after: [[['Q', 'Mm.']]] },
+    finish: ['Don’t stop— oh, don’t you dare—', 'Agata—', 'Oh— oh, God— yes—'], cuddle: 'Just kissing. You’re a strange man, Falconer. I almost like it.',
+    after: [['Q', 'Amen.'], ['K', 'That’s blasphemy.'], ['Q', 'That’s the point. Bring me a book.']], fav: 'behind'
+  }
+};
 
 /* ==== game/g50_court.js ==== */
 /* COURT — holding court from the throne. The steward announces each petitioner, they walk in through the great doors

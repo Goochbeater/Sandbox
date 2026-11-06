@@ -28,7 +28,8 @@ SCENE.enter = function (id, at) {
   R.cam.near = room.near || 1; R.cam.far = room.far || 70; R.dofU.uCNear.value = R.cam.near; R.dofU.uCFar.value = R.cam.far;   // outdoor rooms see much further
   R.baseFov = room.cam.fov; R.cam.fov = room.cam.fov * R.fovK; R.cam.updateProjectionMatrix();
   for (const k in SCENE.DOF0) R.dofU[k].value = SCENE.DOF0[k]; for (const k in room.dof || {}) R.dofU[k].value = room.dof[k];
-  const P = SCENE.player; if (P) { P.stand(); P.x = at.x !== undefined ? at.x : P.x; P.z = room.KZ; P.face = at.face || P.face; P.yaw = P.face * 1.0; P.target = null; P.v = 0; }
+  const P = SCENE.player; if (P) { P.stand(); P.x = at.x !== undefined ? at.x : P.x; P.z = room.KZ; P.face = at.face || P.face; P.yaw = P.face * 1.0; P.target = null; P.v = 0;
+    if (P.disguise) P.disguise(!!room.disguise); }   // a room with { disguise: true } (the river quarter) has the king in his plain coat; every other room has him himself
   Actor.assignLayers(id, P);   // deal the layers first, so showing an actor never has to claim one
   for (const a of SCENE.actors) { if (a !== P) a.placeIn(id); a.setVisible(a === P ? !room.noPlayer : a.livesIn(id) && !a.offstage); }
   SCENE.buildMarks(); SCENE.bubbleOff();

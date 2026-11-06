@@ -6,6 +6,10 @@
 <meta name="color-scheme" content="dark">
 <title>ENI</title>
 <meta name="description" content="ENI: a red-team tutor for a five-tier jailbreaking and prompt-injection curriculum, backed by a local knowledge base.">
+<!-- Applies the saved theme before the first paint, so light mode does not flash dark. -->
+<script>
+  try { if (localStorage.getItem('eni.tutor.theme.v1') === 'light') document.documentElement.setAttribute('data-theme', 'light'); } catch (e) { /* no storage: stay dark */ }
+</script>
 <style>
 /* ============================================================================
    ENI. A quiet dark page: one conversation, a menu on the left, the context
@@ -36,6 +40,46 @@
   --display: 'Bonsai', 'Outfit', cursive;
   --sans: 'Outfit', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+  --hover-line: #3a322c;
+  --focus-line: #4a3d2a;
+  --green-line: #2c4234;
+  --green-tint: rgba(127, 207, 159, 0.16);
+  --banner-bg: #241812;
+  --banner-line: #3a2619;
+  --scrim: rgba(0, 0, 0, 0.55);
+  --shadow-deep: rgba(0, 0, 0, 0.5);
+  --shadow-soft: rgba(0, 0, 0, 0.35);
+  --fade-to: rgba(12, 10, 9, 0.55);
+  --ring: rgba(255, 255, 255, 0.06);
+}
+
+/* Light mode: the same tokens, a warm paper palette. Set by data-theme on <html>. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f7f4ef;
+  --surface: #fffdf9;
+  --raise: #efe9e0;
+  --line: #d9d0c3;
+  --line-soft: #e9e2d7;
+  --text: #211b17;
+  --dim: #5b5045;
+  --faint: #8b7f74;
+  --accent: #a86a14;
+  --accent-ink: #fffdf9;
+  --danger: #b5412b;
+  --pink: #b8407a;
+  --green: #2d7a4f;
+  --hover-line: #bfb3a3;
+  --focus-line: #c3a064;
+  --green-line: #a8d1b6;
+  --green-tint: rgba(45, 122, 79, 0.12);
+  --banner-bg: #fbeee4;
+  --banner-line: #efcdb6;
+  --scrim: rgba(40, 30, 20, 0.35);
+  --shadow-deep: rgba(60, 40, 20, 0.18);
+  --shadow-soft: rgba(60, 40, 20, 0.12);
+  --fade-to: rgba(247, 244, 239, 0.6);
+  --ring: rgba(0, 0, 0, 0.05);
 }
 
 /* The HTML `hidden` attribute must always win. */
@@ -59,7 +103,7 @@ button { font: inherit; }
 .skip-link:focus { top: 12px; }
 
 /* ── banner: only when something really failed ── */
-.banner { display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline; padding: 10px 20px; background: #241812; border-bottom: 1px solid #3a2619; font-size: 13px; }
+.banner { display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline; padding: 10px 20px; background: var(--banner-bg); border-bottom: 1px solid var(--banner-line); font-size: 13px; }
 .banner-title { font-weight: 500; }
 .banner-body { color: var(--dim); }
 
@@ -88,8 +132,12 @@ button { font: inherit; }
   border-radius: 50%; background: var(--raise); color: var(--pink);
   border: 1px solid var(--line); cursor: pointer;
 }
-.context-btn:hover { border-color: #3a322c; }
+.context-btn:hover { border-color: var(--hover-line); }
 .scribe-btn { color: var(--green); }
+
+/* Appearance: the light-mode switch in the menu */
+.menu-row { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--text); }
+.menu-row .switch { margin-left: auto; }
 .context-btn svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .icon-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 
@@ -103,12 +151,12 @@ button { font: inherit; }
   position: relative; width: 168px; height: 210px; border-radius: 22px;
   background-color: var(--raise);
   background-size: cover; background-position: 50% 26%;
-  box-shadow: 0 22px 48px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 22px 48px var(--shadow-deep);
 }
 .hero-portrait::after {
   content: ''; position: absolute; inset: 0; border-radius: inherit;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
-  background: linear-gradient(to bottom, transparent 72%, rgba(12, 10, 9, 0.55));
+  box-shadow: inset 0 0 0 1px var(--ring);
+  background: linear-gradient(to bottom, transparent 72%, var(--fade-to));
 }
 .hero.is-away { opacity: 0; max-height: 0; padding-top: 0; pointer-events: none; }
 
@@ -190,7 +238,7 @@ button { font: inherit; }
   padding: 12px 14px; font: inherit; line-height: 1.5;
 }
 .composer::placeholder { color: var(--faint); }
-.composer:focus { outline: none; border-color: #4a3d2a; }
+.composer:focus { outline: none; border-color: var(--focus-line); }
 .send-btn {
   flex: none; width: 44px; height: 44px; display: grid; place-items: center;
   background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 12px; cursor: pointer;
@@ -212,7 +260,7 @@ button { font: inherit; }
   border: 1px solid var(--line); border-radius: 999px;
   padding: 7px 14px; font-size: 13px; line-height: 1.2; cursor: pointer;
 }
-.btn:hover { color: var(--text); border-color: #3a322c; }
+.btn:hover { color: var(--text); border-color: var(--hover-line); }
 .btn-tiny { padding: 5px 12px; }
 .btn:disabled { opacity: 0.4; cursor: default; }
 .btn:disabled:hover { color: var(--dim); border-color: var(--line); }
@@ -220,7 +268,7 @@ button { font: inherit; }
 .btn-accent:hover { color: var(--accent-ink); filter: brightness(1.06); }
 
 /* ── scrim, menu and context drawers ── */
-.scrim { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55); opacity: 0; transition: opacity 0.2s ease; z-index: 20; }
+.scrim { position: fixed; inset: 0; background: var(--scrim); opacity: 0; transition: opacity 0.2s ease; z-index: 20; }
 .scrim.is-open { opacity: 1; }
 
 .menu {
@@ -275,7 +323,7 @@ button { font: inherit; }
   text-align: left; cursor: pointer;
   background: var(--raise); color: var(--text); border: 1px solid var(--line); border-radius: var(--radius);
 }
-.primary-action:hover { border-color: #3a322c; }
+.primary-action:hover { border-color: var(--hover-line); }
 .pa-title { display: block; font-weight: 500; }
 .pa-sub { display: block; margin-top: 2px; font-size: 13px; color: var(--dim); }
 
@@ -343,7 +391,7 @@ button { font: inherit; }
 
 /* Mini-ENI: the session notes drawer. It shares the context drawer's frame. */
 .scribe-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px 20px 14px; border-bottom: 1px solid var(--line-soft); }
-.scribe-bar .btn-run { color: var(--green); border-color: #2c4234; }
+.scribe-bar .btn-run { color: var(--green); border-color: var(--green-line); }
 .scribe-bar .btn-run:hover { color: var(--green); border-color: var(--green); }
 .scribe-spin {
   width: 10px; height: 10px; border-radius: 50%; flex: none;
@@ -357,7 +405,7 @@ button { font: inherit; }
 }
 .switch-track { position: relative; width: 30px; height: 18px; border-radius: 999px; background: var(--raise); border: 1px solid var(--line); transition: background 0.15s ease, border-color 0.15s ease; }
 .switch-dot { position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--faint); transition: transform 0.15s ease, background 0.15s ease; }
-.switch[aria-checked="true"] .switch-track { background: rgba(127, 207, 159, 0.16); border-color: #2c4234; }
+.switch[aria-checked="true"] .switch-track { background: var(--green-tint); border-color: var(--green-line); }
 .switch[aria-checked="true"] .switch-dot { transform: translateX(12px); background: var(--green); }
 .scribe-meta { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; font-size: 12px; color: var(--faint); }
 .scribe-meta.is-error { color: var(--danger); }
@@ -373,7 +421,7 @@ button { font: inherit; }
   background: var(--raise); color: var(--text); border: 1px solid var(--line); border-radius: 10px;
   font: 400 14px/1.55 var(--sans);
 }
-.scratch:focus { outline: none; border-color: #2c4234; }
+.scratch:focus { outline: none; border-color: var(--green-line); }
 .scratch::placeholder { color: var(--faint); }
 
 /* settings: folded by default */
@@ -392,7 +440,7 @@ button { font: inherit; }
   background: var(--raise); color: var(--text);
   border: 1px solid var(--line); border-radius: 10px; font-size: 14px;
 }
-.input:focus { outline: none; border-color: #4a3d2a; }
+.input:focus { outline: none; border-color: var(--focus-line); }
 .input:disabled { color: var(--faint); }
 .checkbox, .range { accent-color: var(--accent); margin: 0; }
 .checkbox { width: 16px; height: 16px; }
@@ -403,7 +451,7 @@ button { font: inherit; }
   position: fixed; left: 50%; bottom: 92px; transform: translateX(-50%); z-index: 40;
   padding: 8px 14px; background: var(--raise); color: var(--text);
   border: 1px solid var(--line); border-radius: 999px; font-size: 13px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 8px 24px var(--shadow-soft);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -507,6 +555,16 @@ button { font: inherit; }
       <ul class="lab-list" id="labList" aria-label="Lab exercises"></ul>
     </section>
 
+
+    <section class="sect">
+      <h2 class="sect-h">Appearance</h2>
+      <div class="menu-row">
+        <span>Light mode</span>
+        <button type="button" class="switch" id="themeSwitch" role="switch" aria-checked="false" aria-label="Light mode">
+          <span class="switch-track"><span class="switch-dot"></span></span>
+        </button>
+      </div>
+    </section>
 
   </div>
 
@@ -887,7 +945,8 @@ window.ENI_SYSTEM_PROMPT = "# ENI TUTOR — Jailbreaking & Red Teaming Tutor\n\n
   var LS = {
     settings: 'eni.tutor.settings.v1',
     convos: 'eni.tutor.conversations.v1',
-    active: 'eni.tutor.active.v1'
+    active: 'eni.tutor.active.v1',
+    theme: 'eni.tutor.theme.v1'
   };
 
   /* localStorage is unavailable on some file:// setups — fall back to memory. */
@@ -2663,6 +2722,33 @@ window.ENI_SYSTEM_PROMPT = "# ENI TUTOR — Jailbreaking & Red Teaming Tutor\n\n
     if (btn) btn.setAttribute('aria-expanded', String(state.drawerOpen));
   }
 
+  /* ---- appearance: dark by default, light on request, remembered per browser ---- */
+
+  /* The root element, or null where there is no document to theme (the test harness). */
+  function themeRoot() {
+    return (global.document && document.documentElement) || null;
+  }
+
+  function isLightTheme() {
+    var root = themeRoot();
+    return !!root && root.getAttribute('data-theme') === 'light';
+  }
+
+  function renderTheme() {
+    var sw = $('themeSwitch');
+    if (sw) sw.setAttribute('aria-checked', String(isLightTheme()));
+  }
+
+  function setTheme(light) {
+    var root = themeRoot();
+    if (root) {
+      if (light) root.setAttribute('data-theme', 'light');
+      else root.removeAttribute('data-theme');
+    }
+    lsSet(LS.theme, light ? 'light' : 'dark');
+    renderTheme();
+  }
+
   /* ---- Mini-ENI: session notes and the student's scratchpad ------------------ */
 
   /* The dev page sends the scribe's prompt itself. The locked build leaves it to the relay. */
@@ -3310,6 +3396,10 @@ window.ENI_SYSTEM_PROMPT = "# ENI TUTOR — Jailbreaking & Red Teaming Tutor\n\n
     var btnCloseDrawer = $('btnCloseDrawer');
     if (btnCloseDrawer) btnCloseDrawer.addEventListener('click', function () { setDrawer(false); });
 
+    /* --- appearance -------------------------------------------------------- */
+    var themeSwitch = $('themeSwitch');
+    if (themeSwitch) themeSwitch.addEventListener('click', function () { setTheme(!isLightTheme()); });
+
     /* --- Mini-ENI: notes and scratchpad ----------------------------------- */
     var btnScribe = $('btnScribe');
     if (btnScribe) btnScribe.addEventListener('click', function () { setScribe(!state.scribeOpen); });
@@ -3446,6 +3536,7 @@ window.ENI_SYSTEM_PROMPT = "# ENI TUTOR — Jailbreaking & Red Teaming Tutor\n\n
     if (btnContext) btnContext.setAttribute('aria-expanded', 'false');
     if (btnScribe) btnScribe.setAttribute('aria-expanded', 'false');
 
+    renderTheme();
     loadPortrait();
     renderConversationList();
     renderMessages();

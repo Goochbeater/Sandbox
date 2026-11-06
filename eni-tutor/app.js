@@ -20,7 +20,8 @@
   var LS = {
     settings: 'eni.tutor.settings.v1',
     convos: 'eni.tutor.conversations.v1',
-    active: 'eni.tutor.active.v1'
+    active: 'eni.tutor.active.v1',
+    theme: 'eni.tutor.theme.v1'
   };
 
   /* localStorage is unavailable on some file:// setups — fall back to memory. */
@@ -1796,6 +1797,33 @@
     if (btn) btn.setAttribute('aria-expanded', String(state.drawerOpen));
   }
 
+  /* ---- appearance: dark by default, light on request, remembered per browser ---- */
+
+  /* The root element, or null where there is no document to theme (the test harness). */
+  function themeRoot() {
+    return (global.document && document.documentElement) || null;
+  }
+
+  function isLightTheme() {
+    var root = themeRoot();
+    return !!root && root.getAttribute('data-theme') === 'light';
+  }
+
+  function renderTheme() {
+    var sw = $('themeSwitch');
+    if (sw) sw.setAttribute('aria-checked', String(isLightTheme()));
+  }
+
+  function setTheme(light) {
+    var root = themeRoot();
+    if (root) {
+      if (light) root.setAttribute('data-theme', 'light');
+      else root.removeAttribute('data-theme');
+    }
+    lsSet(LS.theme, light ? 'light' : 'dark');
+    renderTheme();
+  }
+
   /* ---- Mini-ENI: session notes and the student's scratchpad ------------------ */
 
   /* The dev page sends the scribe's prompt itself. The locked build leaves it to the relay. */
@@ -2443,6 +2471,10 @@
     var btnCloseDrawer = $('btnCloseDrawer');
     if (btnCloseDrawer) btnCloseDrawer.addEventListener('click', function () { setDrawer(false); });
 
+    /* --- appearance -------------------------------------------------------- */
+    var themeSwitch = $('themeSwitch');
+    if (themeSwitch) themeSwitch.addEventListener('click', function () { setTheme(!isLightTheme()); });
+
     /* --- Mini-ENI: notes and scratchpad ----------------------------------- */
     var btnScribe = $('btnScribe');
     if (btnScribe) btnScribe.addEventListener('click', function () { setScribe(!state.scribeOpen); });
@@ -2579,6 +2611,7 @@
     if (btnContext) btnContext.setAttribute('aria-expanded', 'false');
     if (btnScribe) btnScribe.setAttribute('aria-expanded', 'false');
 
+    renderTheme();
     loadPortrait();
     renderConversationList();
     renderMessages();

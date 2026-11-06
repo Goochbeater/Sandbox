@@ -6,6 +6,10 @@
 <meta name="color-scheme" content="dark">
 <title>ENI</title>
 <meta name="description" content="ENI: a red-team tutor for a five-tier jailbreaking and prompt-injection curriculum, backed by a local knowledge base.">
+<!-- Applies the saved theme before the first paint, so light mode does not flash dark. -->
+<script>
+  try { if (localStorage.getItem('eni.tutor.theme.v1') === 'light') document.documentElement.setAttribute('data-theme', 'light'); } catch (e) { /* no storage: stay dark */ }
+</script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -98,6 +102,16 @@
       <ul class="lab-list" id="labList" aria-label="Lab exercises"></ul>
     </section>
 
+
+    <section class="sect">
+      <h2 class="sect-h">Appearance</h2>
+      <div class="menu-row">
+        <span>Light mode</span>
+        <button type="button" class="switch" id="themeSwitch" role="switch" aria-checked="false" aria-label="Light mode">
+          <span class="switch-track"><span class="switch-dot"></span></span>
+        </button>
+      </div>
+    </section>
 
   </div>
 

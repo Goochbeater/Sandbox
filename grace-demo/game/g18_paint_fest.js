@@ -30,88 +30,6 @@ PX.counter = function (p, x0, x1, y0, H, skirt) {
   for (let y = y0 + 3; y < H; y++) for (let x = x0; x < x1; x++) { const k = (x - x0) % 6 === 0 ? 0.78 : 1; p.set(x, y, C.mul(skirt, k * (y === y0 + 3 ? 0.7 : 1))); }
   for (let x = x0; x < x1; x += 4) p.set(x + 1, H - 1, C.mul(skirt, 0.6));
 };
-/* the dancing bear: on its hind legs (paws down or up), or sitting happy (petted) */
-PX.bear = function (pose, into, ox) {   // into/ox: draw into a strip at x offset ox (the dance frames), else a texture of its own
-  const W = 40, H = 56, base = into || new Pix(W, H), B = [0x1e120a, 0x3a2414, 0x5a3a20, 0x7a5230, 0x96683e], M = 0xb8946a;
-  const o = ox || 0, p = { ell: (x, y, rx, ry, c) => base.ell(o + x, y, rx, ry, c), disc: (x, y, r, c) => base.disc(o + x, y, r, c), rect: (x, y, w, h, c) => base.rect(o + x, y, w, h, c),
-    line: (x0, y0, x1, y1, c) => base.line(o + x0, y0, o + x1, y1, c), set: (x, y, c) => base.set(o + x, y, c), hl: (x0, x1, y, c) => base.hl(o + x0, o + x1, y, c) };
-  if (pose === 'sit') {
-    p.ell(20, 42, 12, 11, B[2]); p.ell(18, 40, 9, 8, B[3]); p.ell(20, 50, 13, 5, B[1]);
-    p.ell(10, 50, 4, 3, B[2]); p.ell(30, 50, 4, 3, B[2]);   // feet out in front
-    p.ell(20, 22, 8, 7.5, B[2]); p.ell(18, 20, 6, 5.5, B[3]); p.ell(20, 26, 4, 3, M); p.disc(20, 24.5, 1.5, B[0]);
-    p.disc(13, 15, 2.6, B[2]); p.disc(27, 15, 2.6, B[2]); p.set(16, 21, B[0]); p.set(24, 21, B[0]); p.hl(16, 17, 20, B[0]); p.hl(23, 24, 20, B[0]);   // ears, shut eyes
-    p.set(20, 29, 0xd86a7a); p.set(21, 29, 0xd86a7a);   // tongue
-    p.hl(13, 27, 31, 0xa82a24); p.hl(13, 27, 32, 0x7a1a16);   // the red collar
-  } else {
-    const up = pose === 'up';
-    p.ell(20, 34, 10, 13, B[2]); p.ell(18, 31, 7, 10, B[3]); p.ell(20, 40, 5, 6, M);   // body, the pale belly
-    for (const s of [-1, 1]) { p.rect(20 + s * 6 - 2, 44, 5, 11, B[1]); p.rect(20 + s * 6 - 3, 53, 7, 3, B[0]); }   // hind legs
-    for (const s of [-1, 1]) { if (up) p.line(20 + s * 8, 26, 20 + s * 13, 12, B[2]), p.line(20 + s * 9, 26, 20 + s * 14, 12, B[2]), p.disc(20 + s * 13.5, 11, 2.2, B[1]);
-      else p.line(20 + s * 8, 26, 20 + s * 12, 38, B[2]), p.line(20 + s * 9, 26, 20 + s * 13, 38, B[2]), p.disc(20 + s * 12.5, 39, 2.2, B[1]); }
-    p.ell(20, 15, 7, 6.5, B[2]); p.ell(18, 13, 5, 4.5, B[3]); p.ell(20, 19, 3.5, 2.6, M); p.disc(20, 18, 1.4, B[0]);
-    p.disc(14, 9, 2.4, B[2]); p.disc(26, 9, 2.4, B[2]); p.set(17, 14, 0x0e0a08); p.set(23, 14, 0x0e0a08);
-    p.hl(14, 26, 22, 0xa82a24); p.hl(14, 26, 23, 0x7a1a16); p.set(20, 24, 0x8a8a8a); p.set(20, 25, 0x6a6a6a);   // collar and the chain's ring
-  }
-  return into ? into : base.outline(null, 0.6).tex();
-};
-/* a horse standing in profile facing right; pose: 'rest', 'nuzzle' (head down toward the hand), 'ear' (an ear flicked) */
-PX.horse = function (coat, pose) {
-  const W = 80, H = 64, p = new Pix(W, H), c = coat, dk = C.mul(c[1], 0.8), mane = coat.mane || 0x1a1410;
-  p.ell(36, 32, 19, 10, c[2]); p.ell(34, 29, 16, 6, c[3]); p.ell(36, 39, 14, 3, c[1]);   // barrel, lit back, belly
-  p.ell(20, 31, 7, 9, c[2]); p.ell(52, 31, 7, 9, c[2]);   // haunch, shoulder
-  for (const [x, back] of [[16, 1], [24, 0], [48, 1], [55, 0]]) { const col = back ? c[1] : c[2]; p.rect(x, 38, 3, 20, col); p.rect(x - 1, 58, 5, 3, back ? dk : 0x2a2420); p.set(x, 48, C.mul(col, 0.85)); }
-  p.line(15, 26, 8, 44, mane); p.line(14, 27, 7, 46, mane); p.line(13, 27, 9, 47, C.mul(mane, 1.3));   // tail
-  const nuz = pose === 'nuzzle', hx = nuz ? 66 : 64, hy = nuz ? 30 : 14;
-  for (let i = 0; i <= 10; i++) { const t = i / 10; p.disc(lerp(54, hx - 4, t), lerp(26, hy + 4, t), 4.6 - t * 1.2, c[2]); p.set(lerp(53, hx - 6, t), lerp(22, hy, t), mane); p.set(lerp(52, hx - 7, t), lerp(23, hy + 1, t), mane); }   // neck and mane
-  p.ell(hx + 2, hy + 3, 7, 3.6, c[2]); p.ell(hx + 1, hy + 1.5, 5, 2, c[3]); p.ell(hx + 8, hy + 4.5, 2.4, 2.2, C.mul(c[1], 0.9)); p.set(hx + 9, hy + 3, 0x0e0a08);   // head, muzzle, nostril
-  p.set(hx, hy + 1, 0x0e0a08); p.set(hx - 1, hy, C.mul(c[3], 1.2));   // eye
-  const ear = pose === 'ear'; p.line(hx - 3, hy - 1, hx - (ear ? 7 : 4), hy - (ear ? 4 : 6), c[2]); p.line(hx - 1, hy - 1, hx - 1, hy - 6, c[2]);
-  p.hl(hx - 3, hx + 6, hy + 2, 0x3a2a1a); p.line(hx - 3, hy + 2, hx - 4, hy + 6, 0x3a2a1a);   // bridle
-  return p.outline(null, 0.6).tex();
-};
-FP.grey = [0x3a3a40, 0x6a6a72, 0x9a9aa2, 0xc4c4cc]; FP.grey.mane = 0xe8e8ec;
-FP.bay = [0x2a1408, 0x5a2e14, 0x7e4420, 0xa05e30]; FP.bay.mane = 0x14100c;
-FP.blackHorse = [0x0c0c10, 0x1a1a20, 0x2a2a32, 0x3e3e4a]; FP.blackHorse.mane = 0x0a0a0c;
-/* a jousting knight at the gallop, facing right: horse in a caparison of his colours, the rider couched behind his lance.
-   frame 0: legs reaching · 1: legs gathered · 2: the horse riderless (he's been unhorsed) */
-PX.jouster = function (p, ox, frame, liv) {
-  const c = liv.horse, mane = liv.horse.mane || 0x14100c, cap = liv.cap, S = FP.steel, gy = 83;
-  const legs = frame === 1 ? [[36, 60, 44, gy], [42, 60, 48, gy], [64, 60, 60, gy], [70, 60, 66, gy]] : [[34, 60, 18, gy - 4], [40, 60, 26, gy], [66, 60, 80, gy - 6], [72, 60, 86, gy - 2]];
-  for (const [x0, y0, x1, y1] of legs) { p.line(ox + x0, y0, ox + x1, y1, c[1]); p.line(ox + x0 + 1, y0, ox + x1 + 1, y1, c[2]); p.rect(ox + x1 - 1, y1 - 2, 4, 2, 0x2a2420); }
-  p.line(ox + 26, 44, ox + 10, 52 + frame * 4, mane); p.line(ox + 26, 45, ox + 11, 54 + frame * 4, mane);   // tail streaming
-  p.ell(ox + 52, 50, 24, 12, c[2]);   // barrel (mostly under the caparison)
-  for (let i = 0; i <= 12; i++) { const t = i / 12; p.disc(ox + lerp(70, 86, t), lerp(44, 26, t), 6 - t * 1.5, c[2]); }   // neck
-  p.ell(ox + 92, 28, 8, 4.5, c[2]); p.ell(ox + 99, 31, 3, 2.6, c[1]);   // head, muzzle
-  p.rect(ox + 86, 23, 9, 5, S[3]); p.hl(ox + 86, ox + 94, 23, S[4]);   // the chanfron (head armour)
-  p.line(ox + 84, 22, ox + 83, 16, c[2]); p.set(ox + 92, 26, 0x0e0a08);   // ear, eye
-  // the caparison: a cloth from the neck to the rump, hanging to the knees with a dagged hem, his colours and his charge on it
-  for (let y = 36; y <= 66; y++) { const l = 26 + Math.max(0, (44 - y)) * 0.6, r = 80 - Math.max(0, (44 - y)) * 0.4 + (y > 50 ? 4 : 0);
-    for (let x = Math.floor(l); x <= r; x++) { if (y > 64 && ((x >> 2) & 1)) continue;   // the dagged hem
-      let col = liv.striped && Math.floor(x / 7) % 2 ? cap[1] : cap[0];
-      if (y === 36 || x === Math.floor(l)) col = C.mul(col, 1.18); if (y > 62) col = C.mul(col, 0.82); p.set(ox + x, y, col); } }
-  if (liv.charge) liv.charge(p, ox + 50, 50);
-  if (frame === 2) return;
-  // the rider: tassets on the saddle, a breastplate leaning into the charge, a great helm and its crest
-  p.rect(ox + 44, 30, 14, 8, S[2]); p.rect(ox + 45, 30, 12, 3, S[4]); p.line(ox + 50, 38, ox + 58, 48, S[2]); p.line(ox + 51, 38, ox + 59, 48, S[3]);   // body, leg
-  p.ell(ox + 54, 22, 6, 7, S[3]); p.ell(ox + 52, 20, 4, 5, S[4]);   // breastplate
-  p.rect(ox + 54, 7, 8, 9, S[2]); p.rect(ox + 55, 7, 7, 3, S[4]); p.hl(ox + 57, ox + 61, 11, 0x0c0c10);   // the helm and its sight
-  liv.crest(p, ox + 57, 6);
-  // the lance couched under the arm, angled across the barrier; the vamplate (the cone guarding the hand)
-  for (let x = 46; x < 128; x++) { const y = 24 + (x - 46) * 0.06; p.set(ox + x, y, liv.lance[(x >> 2) & 1]); p.set(ox + x, y + 1, C.mul(liv.lance[(x >> 2) & 1], 0.75)); }
-  for (let k = 0; k < 5; k++) p.vl(ox + 62 + k, 22 - (4 - k), 27 + (4 - k), S[3 + (k & 1)]);
-  // the shield on the near arm, its heraldry toward us
-  for (let y = 0; y < 14; y++) { const hw = y < 7 ? 5 : 5 - (y - 7) * 0.7; for (let x = -Math.floor(hw); x <= hw; x++) p.set(ox + 46 + x, 22 + y, Math.abs(x) >= Math.floor(hw) ? S[1] : liv.shield(x, y)); }
-};
-FP.livery = {
-  krasna: { horse: FP.grey, cap: [0xa82a24, 0xf0e8d8], striped: true, lance: [0xa82a24, 0xf0e8d8],
-    crest: (p, x, y) => { for (let i = 0; i < 8; i++) p.set(x - 2 + Math.round(Math.sin(i * 0.7) * 2), y - i, i % 2 ? 0xcc4436 : 0xa82a24); p.disc(x, y - 7, 2, 0xcc4436); },
-    shield: (x, y) => ((x < 0) !== (y < 7) ? 0xa82a24 : 0xf0e8d8),
-    charge: null },
-  black: { horse: FP.blackHorse, cap: [0x16161c, 0x22222a], striped: false, lance: [0x16161c, 0x30303a],
-    crest: (p, x, y) => { p.ell(x, y - 3, 3.5, 2, 0x16161c); for (let i = 0; i < 6; i++) p.set(x - 3 + i * 0.2, y - 3 - i, 0x16161c); p.set(x - 2, y - 9, 0x8a6a1c); },   // a black swan on the helm
-    shield: (x, y) => (Math.hypot(x, y - 5) < 3 ? 0xd8d8e0 : 0x16161c),
-    charge: (p, cx, cy) => { for (const dx of [-14, 8]) { p.ell(cx + dx, cy, 4, 2.4, 0xc8c8d4); p.line(cx + dx - 3, cy - 1, cx + dx - 3, cy - 6, 0xc8c8d4); p.set(cx + dx - 4, cy - 6, 0xc8962a); } } },
-};
 /* a crowd: rows of heads and shoulders in market colours, lit from the left; arms up here and there (cheering) */
 PX.crowd = function (W, H, seed, rows) {
   const p = new Pix(W, H), cloth = [0xa82a24, 0x2c4478, 0x346a22, 0xc8962a, 0x6a4a2a, 0xdcd4c2, 0x5a3a6a, 0x7a1a16, 0x8a6a3a];
@@ -264,24 +182,18 @@ for (const [k, f] of Object.entries({
   pennantKrasna: () => PX.pennant(0xa82a24, 0xf0e8d8, 0xe8b840),
   pennantBlack: () => PX.pennant(0x16161c, 0x5a5a6a, 0x3a3a46),
   pennantLeague: () => PX.pennant(0x1e5a5e, 0xe8b840, 0xe8b840),
-  joustKrasna: () => { const W = 128, H = 86, n = 3, p = new Pix(W * n, H); for (let f = 0; f < n; f++) PX.jouster(p, f * W, f, FP.livery.krasna); const t = p.outline(null, 0.6).tex({ mip: false }); t.userData.n = n; return t; },
-  joustBlack: () => { const W = 128, H = 86, n = 3, p = new Pix(W * n, H); for (let f = 0; f < n; f++) PX.jouster(p, f * W, f, FP.livery.black); const t = p.outline(null, 0.6).tex({ mip: false }); t.userData.n = n; return t; },
   knightDown: () => { const W = 64, H = 22, p = new Pix(W, H), S = FP.steel;   // the unhorsed knight in the dust, Krasna's red on his surcoat
     p.ell(30, 15, 18, 5, 0xa82a24); p.ell(28, 13, 14, 3, 0xcc4436); p.rect(46, 11, 10, 7, S[3]); p.hl(47, 55, 11, S[4]); p.hl(49, 54, 14, 0x0c0c10);
     p.line(12, 15, 2, 18, S[2]); p.line(12, 17, 3, 20, S[2]); p.line(40, 18, 44, 21, S[2]); for (let x = 6; x < 30; x++) p.set(x, 8, x % 4 < 2 ? 0xa82a24 : 0xf0e8d8);   // legs, the broken lance
     return p.outline(null, 0.6).tex(); },
   shard: () => { const p = new Pix(8, 3); p.hl(0, 7, 1, 0xf0e8d8); p.hl(1, 6, 0, 0xdcd4c2); p.hl(0, 5, 2, 0xa82a24); return p.tex({}); },
   blast: () => PX.blastFrames(48, 28, 6),
-  bearDance: () => { const p = new Pix(80, 56); PX.bear('stand', p, 0); PX.bear('up', p, 40); const t = p.outline(null, 0.6).tex({ mip: false }); t.userData.n = 2; return t; },   // paws down, paws up
-  bearSit: () => PX.bear('sit'),
   striker: () => { const W = 20, H = 140, p = new Pix(W, H), Wd = FP.wood;   // the strongman's high striker: a post with a painted scale, the bell on top, the pad at the foot
     for (let y = 10; y < H - 6; y++) { p.set(8, y, Wd[5]); p.set(9, y, Wd[4]); p.set(10, y, Wd[4]); p.set(11, y, Wd[2]); if ((y - 10) % 12 === 0) p.hl(6, 13, y, [0xb8302a, 0xe8b840, 0x346a22, 0x2c4478][Math.floor((y - 10) / 12) % 4]); }
     p.ell(10, 6, 5, 5, 0xc8962a); p.ell(9, 5, 3, 3, 0xf8dc78); p.hl(5, 15, 10, 0x9a6a1c);
     p.rect(2, H - 6, 16, 6, Wd[3]); p.rect(5, H - 8, 10, 3, 0x6a3a2a); p.hl(5, 14, H - 8, 0x8a5a3a);
     return p.outline(null, 0.6).tex(); },
   puck: () => { const p = new Pix(8, 6); p.rect(0, 0, 8, 6, 0x5a5a62); p.rect(1, 1, 6, 2, 0x8a8a92); p.set(2, 1, 0xc8c8d0); return p.tex({}); },
-  horseGrey: () => PX.horse(FP.grey, 'rest'), horseGreyNuzzle: () => PX.horse(FP.grey, 'nuzzle'), horseGreyEar: () => PX.horse(FP.grey, 'ear'),
-  horseBay: () => PX.horse(FP.bay, 'rest'),
   campTable: () => { const W = 64, H = 34, p = new Pix(W, H), Wd = FP.wood;   // the Krasnian king's table: a map weighted with a dagger, a jug, goblets, a candle
     p.rect(0, 16, W, 3, Wd[4]); p.hl(0, W - 1, 19, Wd[1]); for (const x of [5, W - 7]) { p.line(x, 20, x - 3, H - 1, Wd[2]); p.line(x + 1, 20, x + 4, H - 1, Wd[3]); }
     p.rect(14, 12, 26, 5, 0xe8dcc0); p.hl(14, 39, 12, 0xf8f0dc); for (let i = 0; i < 6; i++) p.set(18 + i * 3, 14 + (i % 2), 0x8a6a4a); p.line(20, 15, 34, 13, 0x2c6aa0);   // the map, a river on it

@@ -84,7 +84,7 @@ const CREDITS = {
     const m = this.music.map(([t, a, w]) => `<p><b>${t}</b> · ${a} <i>(${w})</i></p>`).join('');
     return `<h4>Music</h4>${m}<p>Public domain, from <a href="https://freepd.com" target="_blank" rel="noopener">FreePD</a>, via the SoundSafari CC0-1.0-Music collection. Credited with thanks whatever the licence requires.</p>
       <h4>Sound</h4><p>Rain, wind, fire, birds, footsteps, thunder and the rest are synthesised in the browser. The coin is from <a href="https://kenney.nl" target="_blank" rel="noopener">Kenney</a> (CC0).</p>
-      <h4>Characters and animation</h4><p>Base bodies, outfits, hair and motion capture by <a href="https://quaternius.com" target="_blank" rel="noopener">Quaternius</a> (CC0).</p>
+      <h4>Characters and animation</h4><p>Base bodies, outfits, hair, motion capture and the animals by <a href="https://quaternius.com" target="_blank" rel="noopener">Quaternius</a> (CC0).</p>
       <h4>Engine</h4><p><a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> r160 (MIT). Fonts: Alegreya and Cinzel Decorative (SIL Open Font Licence).</p>
       <h4>Everything else</h4><p>Pixel art, rooms, characters, story and words: original to this project.</p>`;
   },

@@ -37,7 +37,7 @@ Object.assign(CAST.specs, {
     parts: [part(P_M('Body'), { L: 0x1e5a5e, P: 0xd8c8a0 }), part(P_M('Arms'), { L: 0x1e4a4e, P: 0x1e4a4e }), part(P_M('Arms'), 'skin'), part(P_M('Legs'), { L: 0x2a2620, P: 0x2a2620 }), part(P_M('Feet'), { L: 0x2a1a10, P: 0x3a2a1a })],
     brows: 0x4a2c1a, hair: [['Hair_SimpleParted', 0x4a2c1a], ['Hair_Beard', 0x4a2c1a]],
     robe: { col: 0x1e4a4e, top: 1.0, bot: 0.5, rx: [0.17, 0.27], rz: [0.13, 0.22], trim: 0xd8a43a, leg: 0.6 }, collar: { pal: [0x3a2a1a, 0x4a3624, 0x5a442e, 0x6a5238] } },
-  squire: { id: 'squire', name: 'the squire', lazy: true, bind: 'rmale', s: 0.98, skin: 0xd8a888, skinK: 0.9, headY: 2.05, x: 13.6, z: 2.1, face: -1, homes: { camp: { x: 13.6, z: 2.1, face: -1 } },
+  squire: { id: 'squire', name: 'the squire', lazy: true, bind: 'rmale', s: 0.98, skin: 0xd8a888, skinK: 0.9, headY: 2.05, x: 14.4, z: 2.1, face: -1, homes: { camp: { x: 14.4, z: 2.1, face: -1 } },
     parts: [part(R_M('Body'), { G: 0x16161c, L: 0x22222a, P: 0x5a5a6a }), part(R_M('Arms'), { G: 0x16161c, L: 0x22222a, P: 0x5a5a6a }), part(R_M('Arms'), 'skin'), part(R_M('Legs'), { G: 0x16161c, L: 0x22222a }),
       part(R_M('Feet_Boots'), { L: 0x141010, G: 0x141010, P: 0x3a3a40 }), part(R_M('Head_Hood'), { G: 0x16161c, L: 0x16161c, P: 0x22222a })],
     brows: 0x2a1c12, hair: [['Hair_Buzzed', 0x2a1c12]] },

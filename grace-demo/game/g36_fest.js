@@ -80,14 +80,7 @@ FEST.bunting = function (x0, x1, z, y) {
 };
 /* ---------------------------------------------------------------- shows: the camera, voices, the meter */
 /* ease the lens to a new framing (focus x, dist, y, look) and back (to = null); resolves when it's there */
-FEST.cam = function (room, to, dur) {
-  const c = room.cam; if (!room.cam0) room.cam0 = { dist: c.dist, y: c.y, look: c.look };
-  const from = { focus: room.camFocus !== null && room.camFocus !== undefined ? room.camFocus : SCENE.camX, dist: c.dist, y: c.y, look: c.look }, goal = Object.assign({ focus: null }, room.cam0, to || {});
-  return new Promise((res) => { let t = 0; const f = (T, dt) => { t += dt; const u = smooth(0, 1, t / (dur || 1.2));
-    c.dist = lerp(from.dist, goal.dist, u); c.y = lerp(from.y, goal.y, u); c.look = lerp(from.look, goal.look, u);
-    room.camFocus = goal.focus === null ? (u >= 1 ? null : lerp(from.focus, SCENE.player.x, u)) : lerp(from.focus, goal.focus, u);
-    if (u >= 1) { room.tick = room.tick.filter((g) => g !== f); res(); } }; room.tick.push(f); });
-};
+FEST.cam = (room, to, dur) => SCENE.lens(room, to, dur);   // engine/e06: eases focus, dist, y, look and fov
 /* walk the king to a place to watch from (out of the show's way), wait until he has stopped, and turn him to face it */
 FEST.stepTo = async function (x, lookX) {
   const K = SCENE.player; if (Math.abs(K.x - x) > 0.1) await new Promise((res) => K.walkTo(x, res));

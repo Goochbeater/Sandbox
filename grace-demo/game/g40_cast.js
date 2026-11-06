@@ -109,16 +109,34 @@ CAST.specs.hutWitch = Object.assign({}, CAST.specs.witch, { id: 'hutWitch', offs
    keep growing without the boot getting longer */
 CAST.build = async function () {
   const A = {}, boot = Object.entries(CAST.specs).filter(([, s]) => s && !s.lazy);
-  for (const [k, spec] of boot) { A[k] = await new Actor(spec).build(); SCENE.addActor(A[k]); setLoad(0.7 + 0.15 * Object.keys(A).length / boot.length); await nextFrame(); }
-  CAST.A = A; SCENE.player = A.king; SCENE.beforeEnter = CAST.ensure;
+  for (const [k, spec] of boot) { A[k] = await (spec.beast ? new Beast(spec) : new Actor(spec)).build(); SCENE.addActor(A[k]); setLoad(0.7 + 0.15 * Object.keys(A).length / boot.length); await nextFrame(); }
+  CAST.A = A; SCENE.player = A.king; SCENE.beforeEnter = CAST.ensure; CAST.ahead();
   for (const a of Object.values(A)) if (a.spec.offstage) a.offstage = true;
   A.marta.offstage = A.tomasz.offstage = true; for (const a of Object.values(A)) if (a.offstage) a.setVisible(false);
   return A;
 };
-CAST.ensure = async function (roomId) {
-  for (const [k, spec] of Object.entries(CAST.specs)) {
-    if (!spec || !spec.lazy || CAST.A[k] || !(spec.home === roomId || (spec.homes && spec.homes[roomId]))) continue;
-    const a = await new Actor(spec).build(); SCENE.addActor(a); CAST.A[k] = a;
-    if (spec.offstage) a.offstage = true; a.setVisible(false); await nextFrame();
-  }
+/* one build per lazy actor, shared by whoever asks first (the room being entered, or the builder ahead below). A new actor
+   is parked (layer 1) and hidden: SCENE.enter deals it a layer and shows it in its own rooms */
+CAST.inflight = {};
+CAST.make = function (k) {
+  if (CAST.A[k]) return Promise.resolve(CAST.A[k]); if (CAST.inflight[k]) return CAST.inflight[k];
+  const spec = CAST.specs[k];
+  return (CAST.inflight[k] = (async () => { const a = await (spec.beast ? new Beast(spec) : new Actor(spec)).build();   // spec.beast: an animal (engine/e15)
+    SCENE.addActor(a); CAST.A[k] = a; if (spec.offstage) a.offstage = true; a.setLayer(Actor.PARK); a.setVisible(false); delete CAST.inflight[k]; return a; })());
+};
+CAST.lazyFor = (roomId) => Object.keys(CAST.specs).filter((k) => { const s = CAST.specs[k]; return s && s.lazy && !CAST.A[k] && (s.home === roomId || (s.homes && s.homes[roomId])); });
+CAST.ensure = async function (roomId) { for (const k of CAST.lazyFor(roomId)) { await CAST.make(k); await nextFrame(); } };
+/* building ahead: in calm moments (nobody moving for 0.8 s, no lock, no menu, no scene) one lazy actor at a time is built,
+   the rooms next door first (CAST.NEXT), then everyone else, so the first walk into a festival ground or the House doesn't
+   wait behind the fade. The rest of the cast is already built at boot */
+CAST.NEXT = { chapel: ['lantern'], lantern: ['lroom', 'chapel'], lroom: ['lantern'], fair: ['lists'], lists: ['fair', 'camp'], camp: ['lists'], wood: ['hut'], hut: ['wood'],
+  garden: ['fair', 'chapel', 'wood'], yard: ['fair', 'wood'], throne: ['fair'], bedroom: ['fair'], study: ['fair'] };
+CAST.ahead = function () {
+  let calm = 0;
+  setInterval(() => { const P = SCENE.player, R0 = SCENE.room;
+    const quiet = R0 && P && !SCENE.lock && !SCENE.modal && !CUT.playing && !G.paused && !NIGHT.on && !TITLE.on && Math.abs(P.v) < 0.05 && !Object.keys(CAST.inflight).length;
+    calm = quiet ? calm + 0.25 : 0; if (calm < 0.8) return;
+    const order = (CAST.NEXT[R0.id] || []).concat(Object.keys(SCENE.rooms));
+    for (const id of order) { if (id === R0.id) continue; const k = CAST.lazyFor(id)[0]; if (k) { calm = 0; CAST.make(k); return; } }
+  }, 250);
 };

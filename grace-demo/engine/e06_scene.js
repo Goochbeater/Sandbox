@@ -46,6 +46,17 @@ SCENE.go = async function (id, at) {
   f.classList.add('off'); await SCENE.wait(400); SCENE.lock--;
 };
 SCENE.wait = (ms) => new Promise((r) => setTimeout(r, ms));
+/* ease the room's lens to { focus, dist, y, look, fov } over dur seconds (a show, a scene); SCENE.lens(room, null) eases back
+   to the room's own (kept in room.cam0 the first time). The focus is still clamped by SCENE.camGoal, so near a wall a scene
+   can only come part of the way: put the action where the clamp lets the lens reach (ENGINE.md §13i) */
+SCENE.lens = function (room, to, dur) {
+  const c = room.cam; if (!room.cam0) room.cam0 = { dist: c.dist, y: c.y, look: c.look, fov: c.fov };
+  const from = { focus: room.camFocus !== null && room.camFocus !== undefined ? room.camFocus : SCENE.camX, dist: c.dist, y: c.y, look: c.look, fov: c.fov }, goal = Object.assign({ focus: null }, room.cam0, to || {});
+  return new Promise((res) => { let t = 0; const f = (T, dt) => { t += dt; const u = smooth(0, 1, t / (dur || 1.2));
+    c.dist = lerp(from.dist, goal.dist, u); c.y = lerp(from.y, goal.y, u); c.look = lerp(from.look, goal.look, u); c.fov = lerp(from.fov, goal.fov, u);
+    room.camFocus = goal.focus === null ? (u >= 1 ? null : lerp(from.focus, SCENE.player.x, u)) : lerp(from.focus, goal.focus, u);
+    if (u >= 1) { room.tick = room.tick.filter((g) => g !== f); res(); } }; room.tick.push(f); });
+};
 SCENE.caption = function (title, sub) { const c = $('caption'); c.innerHTML = ''; c.append(title); if (sub) { const s = document.createElement('small'); s.textContent = sub; c.append(s); }
   setTimeout(() => c.classList.add('on'), 700); setTimeout(() => c.classList.remove('on'), 4600); SCENE.markDelay = G.t + 4.6; };
 /* ---------------------------------------------------------------- speech */

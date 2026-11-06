@@ -36,33 +36,6 @@ PX.def('archeryTarget', () => {   // a straw butt's target: five rings, the gold
   }
   return p.tex({});
 });
-PX.def('deerPix', () => {   // a red deer standing in profile, facing right: a lit back, a pale rump, dark legs, a rough antler
-  const p = new Pix(64, 48), B = 0x9a6a40, D = 0x4a2e1c, L = 0xd8b890, W = 0xf0e8d8;
-  p.ell(30, 25, 15, 8, B); p.ell(29, 22, 13, 4, C.mul(B, 1.2)); p.ell(18, 24, 3.5, 4, W);
-  for (let y = 9; y <= 22; y++) p.rect(Math.round(42 + (22 - y) * 0.12), y, 5, 1, B);   // the neck, leaning up
-  p.ell(50, 9, 4.5, 3, B); p.ell(53, 10, 2, 1.6, D); p.set(50, 8, 0x110a08);
-  p.vl(47, 3, 7, 0x6a4a2c); p.hl(44, 49, 3, 0x6a4a2c); p.vl(49, 0, 2, 0x6a4a2c);
-  for (const x of [20, 25, 36, 41]) p.rect(x, 31, 2, 14, D);
-  p.rect(16, 21, 2, 3, L);
-  return p.outline(null, 0.6).tex();
-});
-/* a grey-brown hound lying with its head up, in profile facing right. tail: 0 flat on the grass, 1 up, -1 down (the two
-   wag frames); happy: tongue out. The frames share one drawing so BUILD.pet can swap them on the same card */
-PX.hound = function (tail, happy) {   // lying like a sphinx: haunch tucked, forelegs out in front, head up, a dark saddle and a pale chest
-  const p = new Pix(40, 26), B = 0x9a7a52, S = 0x5a4228, L = 0xd8b88e, D = 0x2e2016;
-  p.line(6, 17, 1, 17 - 5 * tail, B); p.line(6, 18, 1, 18 - 5 * tail, B); p.set(1, 17 - 5 * tail, L);   // tail (the tip pale)
-  p.ell(18, 18, 12, 4.5, B); p.ell(17, 15.5, 9, 2.2, S); p.ell(19, 21.5, 8, 1.2, L);                       // body, saddle, belly
-  p.ell(9, 18, 5, 4.5, B); p.ell(8, 15.8, 3.2, 1.8, S); p.rect(9, 22, 7, 2, B); p.set(15, 23, D);            // haunch and hind paw
-  p.rect(25, 21, 11, 2, B); p.rect(26, 23, 11, 1, C.mul(B, 0.8)); p.rect(35, 21, 2, 3, L);                  // forelegs, paws
-  p.ell(28, 14, 3.5, 4.5, B); p.ell(29.5, 17, 2.2, 3, L);                                                   // neck, chest
-  p.ell(31, 9, 4, 3.2, B); p.rect(33, 9, 5, 3, B); p.rect(33, 11, 5, 1, C.mul(B, 0.85)); p.rect(37, 9, 2, 2, D);   // head, snout, nose
-  p.ell(29.2, 10.5, 1.6, 3.4, D); p.set(32, 8, 0x0e0a08); p.set(33, 7, C.mul(B, 1.25));                      // ear, eye, brow
-  if (happy) { p.set(35, 12, 0xd86a7a); p.set(36, 12, 0xd86a7a); p.set(36, 13, 0xc85868); }
-  return p.outline(null, 0.6).tex();
-};
-PX.def('houndPix', () => PX.hound(0, false));
-PX.def('houndWagA', () => PX.hound(1, true));
-PX.def('houndWagB', () => PX.hound(-1, true));
 /* ---- the hut */
 PX.def('hutWall', () => {   // purple-black wattle: staves of woven wood, eight texels to a stave, so the weave reads at the lens
   const p = new Pix(64, 64).fill(0x1e1430);
@@ -72,19 +45,6 @@ PX.def('hutWall', () => {   // purple-black wattle: staves of woven wood, eight 
   }
   return p.tex({ repeat: true });
 });
-/* the hut's black cat, sitting in profile. A lilac rim on the edges that face up and right, so the black reads against the
-   dark wall. pet: being petted — eyes shut, tail straight up with the tip hooked; otherwise green eyes, tail round her feet */
-PX.cat = function (pet) {
-  const p = new Pix(18, 24), K = 0x1c1424, rim = 0x8a70b8;
-  p.ell(9, 16, 5, 6.5, K); p.ell(9, 7, 3.5, 3.2, K); p.set(7, 2, K); p.set(7, 1, K); p.set(11, 2, K); p.set(11, 1, K);
-  if (pet) { p.rect(14, 9, 2, 10, K); p.set(13, 8, K); p.set(13, 7, K); } else p.ell(13, 22, 5, 1.5, K);
-  const edge = []; for (let y = 0; y < 24; y++) for (let x = 0; x < 18; x++) if (p.a(x, y) && (!p.a(x, y - 1) || !p.a(x + 1, y))) edge.push([x, y]);
-  for (const [x, y] of edge) p.set(x, y, rim);
-  if (pet) { p.set(8, 7, 0x6a5a80); p.set(10, 7, 0x6a5a80); } else { p.set(8, 7, 0xc8ff6a); p.set(10, 7, 0xc8ff6a); }
-  return p.tex({});
-};
-PX.def('catPix', () => PX.cat(false));
-PX.def('catPetPix', () => PX.cat(true));
 PX.def('jarPix', () => {   // a glass jar of violet liquid with a wooden lid and a name on it, the highlight on the glass
   const p = new Pix(14, 24);
   p.rect(3, 0, 8, 3, 0x6a4a2a);

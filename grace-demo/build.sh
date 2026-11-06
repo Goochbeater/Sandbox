@@ -14,7 +14,7 @@ for f in $(ls engine/*.js | sort) $(ls game/*.js | sort); do
 done
 node --check "$JS" 2>/dev/null || cp "$JS" "$JS.js"
 # one name, one definition: a game file redefining an engine function (PX.window did) silently replaces it
-DUP=$(grep -ohE '^(PX|BUILD|SCENE|R|AUDIO|CUT|MAP|SAVE|QA|Actor)\.[A-Za-z0-9_]+ = ' engine/*.js game/*.js | sort | uniq -d)
+DUP=$(grep -ohE '^(PX|BUILD|SCENE|R|AUDIO|CUT|MAP|SAVE|QA|Actor|BEAST|Beast)\.[A-Za-z0-9_]+ = ' engine/*.js game/*.js | sort | uniq -d)
 if [ -n "$DUP" ]; then echo "defined twice:"; echo "$DUP"; exit 1; fi
 BODY=$(mktemp)
 {
@@ -23,6 +23,7 @@ BODY=$(mktemp)
   printf '<script type="application/json" id="kjson">'; cat assets/king.json; printf '</script>\n'
   printf '<script type="application/octet-stream" id="kbin">'; base64 -w0 assets/king.bin; printf '</script>\n'
   for t in assets/*.jpg; do n=$(basename "$t" .jpg); printf '<script type="application/octet-stream" id="tex_%s">' "$n"; base64 -w0 "$t"; printf '</script>\n'; done
+  for t in assets/animals/*.glb; do n=$(basename "$t" .glb); printf '<script type="application/octet-stream" id="beast_%s">' "$n"; base64 -w0 "$t"; printf '</script>\n'; done
   printf '<script>\n'; cat "$JS"; printf '\n</script>\n'
 } > "$BODY"
 cp "$BODY" build/artifact.html

@@ -89,9 +89,7 @@ HUT.build = function () {
   /* the dressing: jars on the shelf, a skull on the table, a black cat on the barrel, cobwebs in the corners, a stool,
      lanterns and candles, and a hanging over the hearth */
   for (const x of [-6.2, -5.6, -5.0, -4.4]) BUILD.card(T.jarPix, x, 2.6, 0.45, { s: 1.0, cast: false });
-  const cat = BUILD.card(T.catPix, -3.5, 1.1, 1.7, { s: 1.0, cast: false });   // on the barrel, clear of the orb's glow
-  BUILD.pet(cat, { id: 'cat', label: 'Pet the cat', frames: [T.catPetPix], sound: 'purr', soundO: { dur: 2.6 }, headY: 0.85, dur: 2.8,
-    says: HUT.CAT.says, lines: HUT.CAT.lines, onPet: () => HUT.petCat() });
+  // the cat on the barrel is an animal of the cast (game/g44), petted from HUT.onEnter
   BUILD.card(T.skullPix, 5.8, 0.95, 2.2, { s: 1.0 });
   BUILD.card(T.cobwebPix, -9.6, 4.2, 0.08, { s: 2.2, cast: false }); BUILD.card(T.cobwebPix, 9.4, 4.4, 0.08, { s: 2.2, cast: false });
   BUILD.box(2.9, 3.5, 0, 0.45, 1.5, 2.0, T.woodDark, { col: 0x8a70b0 });
@@ -116,7 +114,10 @@ HUT.build = function () {
   room.update(0, 0);
   return BUILD.end();
 };
-HUT.onEnter = function () { if (CUT.playing) return; SCENE.caption(...this.caption); AUDIO.sfx('meow', { delay: 1.4, gain: 0.45, pan: -0.5 }); };   // the cat on the barrel notices him
+HUT.onEnter = function () { const c = CAST.A.cat; if (c) { c.petSpot(this, HUT.CAT_PET); SCENE.buildMarks(); }
+  if (CUT.playing) return; SCENE.caption(...this.caption); AUDIO.sfx('meow', { delay: 1.4, gain: 0.45, pan: -0.5 }); };   // the cat on the barrel notices him
+HUT.CAT_PET = { id: 'cat', label: 'Pet the cat', clip: 'Headbutt', sound: 'purr', soundO: { dur: 2.6 }, headY: 0.5, stand: 0.85,
+  get says() { return HUT.CAT.says; }, get lines() { return HUT.CAT.lines; }, onPet: () => HUT.petCat() };
 /* the Woman by the fire: a fuller talk the first time, then one line at a time, and the king's own lines are only the player's */
 HUT.witch = async function () {
   const K = SCENE.player, W = CAST.A.hutWitch, T = HUT.TALK, who = (k) => (k === 'witch' ? W : K);

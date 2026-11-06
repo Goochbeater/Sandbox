@@ -27,6 +27,11 @@ WOOD.HOUND = {
   lines: ['Bogdan’s hound. He has never been taught anything except sleeping in the sun.', 'Good dog. Nobody trained you, and look how well you turned out.',
     'You would sell the whole kingdom for a pear, wouldn’t you.', 'Don’t look at me like that. The basket is Halina’s.']
 };
+WOOD.HOUND_PET = { id: 'hound', label: 'Pet the hound', kneel: true, clip: 'Idle_2_HeadLow', holdFor: 2.4, wag: 1, wagFor: 3.4, sound: 'pant', headY: 1.0, stand: 0.95,
+  get says() { return WOOD.HOUND.says; }, get lines() { return WOOD.HOUND.lines; }, onPet: () => WOOD.petHound() };
+WOOD.BEAR_PET = { id: 'bear', label: 'Pet Wojciech', clip: 'Idle_2_HeadLow', holdFor: 2.8, sound: 'pant', soundO: { gain: 0.9 }, headY: 1.3, stand: 1.3, r: 1.0,
+  says: ['(He sits down in the bracken and leans on the king like a warm wall.)', 'Hrrmf.', '(He smells of blackberries now, not of the fair.)'],
+  lines: ['Wojciech. No chain, no music. You look ten years younger.', 'Kazik will want to know you’re well. You’re well.'] };
 WOOD.houndPets = 0;
 WOOD.petHound = function () {
   WOOD.houndPets++; const z = CAST.A.kazik;
@@ -77,21 +82,13 @@ WOOD.build = function () {
   /* Halina's blanket under the oak, the basket of bread and pears beside it, the hound asleep in the sun */
   BUILD.rug(T.rugA, 4.4, 7.2, 2.0, 3.6, { y: 0.02 });
   BUILD.card(T.basket, 7.4, 0.02, 2.4, { s: 0.9 });
-  const hound = BUILD.card(T.houndPix, 8.4, 0.02, 1.9, { s: 0.9 });
-  BUILD.pet(hound, { id: 'hound', label: 'Pet the hound', kneel: true, frames: [T.houndWagA, T.houndWagB], rate: 8, dur: 3.2, sound: 'pant', headY: 0.65,
-    says: WOOD.HOUND.says, lines: WOOD.HOUND.lines, onPet: () => WOOD.petHound() });
+  // the hound, the stag and (once freed) the bear are animals of the cast (game/g44), petted from WOOD.onEnter
   room.interact('queen', 5.6, 2.7, KZ, 1.0, () => talk('queen', 'queen')).label = 'Talk to Halina';
   room.interact('basket', 7.4, 1.0, KZ, 1.0, () => say('basket'));
   room.interact('oak', 6.6, 3.2, KZ, 1.0, () => say('oak'));
   /* Zofia's post, and the deer at the edge of the trees */
   BUILD.card(T.pell, 9.2, 0, 1.4, { s: 0.95 });
-  BUILD.card(T.deerPix, -4.4, 0, 1.6, { s: 1.0, cast: false });
   room.interact('deer', -4.4, 1.6, KZ, 1.0, () => say('deer'));
-  /* the dancing bear, if the king bought his freedom at the fair (FEST.bearFreed): at the edge of the trees, glad of it */
-  room.bear = BUILD.anim(T.bearDance, -1.9, 0, -1.6, { cast: false }); room.bear.set(0);
-  room.bearPet = BUILD.pet(room.bear.me, { id: 'bear', label: 'Pet Wojciech', frames: [T.bearSit], sound: 'pant', soundO: { gain: 0.9 }, headY: 1.9, dur: 3.0, r: 1.0,
-    says: ['(He sits down in the bracken and leans on the king like a warm wall.)', 'Hrrmf.', '(He smells of blackberries now, not of the fair.)'],
-    lines: ['Wojciech. No chain, no music. You look ten years younger.', 'Kazik will want to know you’re well. You’re well.'] });
   room.interact('zofia', 9.2, 2.7, KZ, 1.0, () => talk('zofia', 'zofia')).label = 'Talk to Zofia';
   room.interact('kazik', 11.6, 2.7, KZ, 1.0, () => talk('kazik', 'kazik')).label = 'Talk to Kazik';
   room.interact('woodGuardL', -7.5, 3.0, KZ, 1.0, () => talk('woodGuardL', 'guardL')).label = 'Talk to the guard';
@@ -119,5 +116,9 @@ WOOD.onEnter = function () {
   if (!CUT.playing) SCENE.caption(...this.caption);
   const A = CAST.A;
   for (const id of ['woodGuardL', 'woodGuardR']) A[id].setVisible(true);
-  this.bear.me.visible = FEST.bearFreed; this.bearPet.hidden = !FEST.bearFreed; SCENE.buildMarks();   // the freed bear lives here now
+  if (A.hound) A.hound.petSpot(this, WOOD.HOUND_PET);
+  const bear = A.bear;   // the freed bear lives here now (FEST.bearFreed); until then he's at the fair
+  if (bear) { bear.offstage = !FEST.bearFreed; bear.setVisible(FEST.bearFreed); bear.rearGoal = bear.rear = 0;
+    if (FEST.bearFreed) bear.petSpot(this, WOOD.BEAR_PET); else this.inter = this.inter.filter((i) => i.id !== 'bear'); }
+  SCENE.buildMarks();
 };

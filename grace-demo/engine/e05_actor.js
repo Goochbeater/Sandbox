@@ -24,7 +24,7 @@ class Actor {
     QA.load();
     const S = this.spec, M = QA.M, I = QA.idx, bindKey = S.bind || 'rmale', bind = M.meshes[bindKey], names = M.skel.names, P = M.skel.parents, sex = bindKey === 'rfemale' ? 'female' : 'male';
     this.bindKey = bindKey; this.sex = sex;
-    const root = new THREE.Group(); R.scene.add(root); this.root = root;
+    const root = new THREE.Group(); root.visible = false; R.scene.add(root); this.root = root;   // hidden until its layers are set: a model built mid-room (CAST.prefetch) must never reach the main camera
     const inner = new THREE.Group(); inner.scale.setScalar(S.s || 1); root.add(inner); this.inner = inner;
     const bones = names.map((n, i) => { const b = new THREE.Bone(); b.name = n; b.position.fromArray(bind.lt[i]); b.quaternion.fromArray(bind.lr[i]); return b; });
     bones.forEach((b, i) => { if (P[i] >= 0) bones[P[i]].add(b); }); inner.add(bones[0]); inner.updateMatrixWorld(true);
@@ -60,7 +60,7 @@ class Actor {
     if (S.helmet) { const hm = Actor.helmet(S.helmet.col); this.attachHead(hm, 0.11); }
     if (S.prop) this.prop(S.prop);
     if (S.child) { bones[I.Head].scale.setScalar(S.child.head || 1.2); if (S.child.neck) bones[I.neck_01].scale.setScalar(S.child.neck); }   // children: a bigger head on a smaller body
-    root.traverse((o) => o.layers.set(this.layer)); if (this.propObj) this.propObj.traverse((o) => o.layers.set(this.layer));
+    root.traverse((o) => o.layers.set(this.layer)); root.visible = true; if (this.propObj) this.propObj.traverse((o) => o.layers.set(this.layer));
     this.sitDrop = (() => { const c = QA.clips.Sitting_Idle_Loop; if (!c) return 0.45; QA.sample(c, 0, this.D, this.pel, this.pelvisH); return this.pelvisH + this.pel.y; })();
     this.sprite();
     this.pose([[S.idle || 'Idle_Loop', this.idleT, 1]]);
@@ -179,6 +179,9 @@ class Actor {
     if (kind === 'spear') { const sh = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.02, 2.5, 6), wood); sh.position.y = 0.3; g.add(sh);
       const bl = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.28, 4), steel); bl.position.y = 1.68; g.add(bl);
       const tas = new THREE.Mesh(new THREE.SphereGeometry(0.045, 6, 4), new THREE.MeshStandardMaterial({ color: 0xa82020, roughness: 0.9 })); tas.position.y = 1.48; g.add(tas); }
+    if (kind === 'lance') {   // a jousting lance, couched: held under the right arm, most of it forward (oriented in update)
+      const sh = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, 3.6, 8), new THREE.MeshStandardMaterial({ map: Actor.lanceTex(), roughness: 0.6 })); sh.position.y = 1.0; g.add(sh);
+      const vam = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.32, 8, 1, true), steel); vam.position.y = -0.55; vam.rotation.x = Math.PI; g.add(vam); }
     if (kind === 'scroll') { const sc = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.3, 8), new THREE.MeshStandardMaterial({ color: 0xe8dcc0, roughness: 0.9 })); sc.rotation.z = Math.PI / 2; g.add(sc);
       for (const s of [-1, 1]) { const k = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.036, 0.02, 8), new THREE.MeshStandardMaterial({ color: 0xa8302a })); k.rotation.z = Math.PI / 2; k.position.x = s * 0.16; g.add(k); } }
     if (kind === 'sword' || kind === 'woodsword') {   // gripped: rides the hand bone, so sword clips swing it
@@ -188,7 +191,7 @@ class Actor {
       const gr = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.16, 6), wood_); gr.position.y = 0.0; g.add(gr);
       g.userData.kind = kind; this.attachBone(g, 'hand_r', [-0.085, -0.02, 0], new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2)); this.grip = g; return;
     }
-    g.userData.kind = kind; R.scene.add(g); this.propObj = g; this.propBone = this.bones[QA.idx[kind === 'spear' ? 'hand_r' : 'hand_l']];
+    g.userData.kind = kind; R.scene.add(g); this.propObj = g; this.propBone = this.bones[QA.idx[kind === 'spear' || kind === 'lance' ? 'hand_r' : 'hand_l']];
   }
   /* a rigid object riding a bone, placed in bind space: `off` from the joint (m), `rot` its orientation in bind space */
   attachBone(obj, bone, off, rot) {
@@ -257,7 +260,10 @@ class Actor {
     else if (!this.path) this.y = damp(this.y, this.baseY, 8, dt);
     this.root.position.set(this.x, this.y, this.z); this.root.rotation.y = this.yaw;
     if (this.propObj) { this.root.updateMatrixWorld(true); this.propBone.getWorldPosition(this.propObj.position);
-      if (this.propObj.userData.kind === 'scroll') this.propObj.quaternion.setFromEuler(new THREE.Euler(0, this.yaw, 0)); else this.propObj.quaternion.identity(); }
+      const kd = this.propObj.userData.kind;
+      if (kd === 'scroll') this.propObj.quaternion.setFromEuler(new THREE.Euler(0, this.yaw, 0));
+      else if (kd === 'lance') this.propObj.quaternion.setFromEuler(new THREE.Euler(0.12 * this.face, 0, -this.face * (Math.PI / 2 - 0.1)));   // level, forward, a little across toward the tilt
+      else this.propObj.quaternion.identity(); }
   }
   pose(layers) {
     const D = this.D, B = this.DB, pel = this.pel, pb = this.pb;
@@ -412,6 +418,7 @@ Actor.dye = function (tex, d) {
   return (Actor.dyes[key] = m);
 };
 Actor.cloth = function (w, h, draw) { const p = new Pix(w, h); draw(p); const t = p.tex({ mip: false }); t.minFilter = THREE.LinearFilter; t.magFilter = THREE.LinearFilter; t.wrapS = THREE.RepeatWrapping; t.flipY = true; return t; };
+Actor.lanceTex = function () { if (Actor._lt) return Actor._lt; const p = new Pix(4, 32); for (let y = 0; y < 32; y++) for (let x = 0; x < 4; x++) p.set(x, y, Math.floor((y + x * 0.5) / 4) % 2 ? 0xf0e8d8 : 0xa82a24); return (Actor._lt = p.tex({ mip: false })); };
 /* the royal crown (also used on its cushion in the bedroom) and a guard's kettle hat */
 Actor.crown = function (k) {
   const grp = new THREE.Group(), gold = new THREE.MeshStandardMaterial({ color: 0xe0a83a, roughness: 0.32, metalness: 0.85, emissive: 0x3a2000 });

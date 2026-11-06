@@ -43,11 +43,8 @@ CAMP.build = function () {
   BUILD.tent(7.2, -0.6, 1.8, 2.1, 1.6, T.canvasLilac, T.canvasLilac, { open: 1.1, valance: T.awningBlue, pennant: T.pennantKrasna });
   /* the horse lines: a rail, the prince's grey (he can be petted) and a bay, hay, buckets */
   BUILD.box(9.6, 13.0, 0.95, 1.05, 0.25, 0.35, T.woodPost); for (const x of [9.7, 11.3, 12.9]) BUILD.box(x - 0.06, x + 0.06, 0, 1.05, 0.24, 0.36, T.woodPost);
-  const grey = BUILD.card(T.horseGrey, 10.6, 0, 0.75, { s: 1.0 });
-  BUILD.pet(grey, { id: 'horse', label: 'Pet the grey destrier', frames: [T.horseGreyNuzzle, T.horseGreyEar], rate: 2, dur: 3.0, sound: 'snort', headY: 2.0, stand: 1.75,
-    says: ['(He lowers his great head and blows warm air into the king’s palm.)', '(Hrrrff.)', '(He leans into the hand, then tries to eat the king’s sleeve.)'],
-    lines: ['The prince’s horse. Better manners than the prince.', 'You’re carrying him tomorrow. Carry him gently.'] });
-  BUILD.card(T.horseBay, 12.3, 0, 0.55, { s: 1.0 }); BUILD.card(T.hay, 13.6, 0, 0.3, { s: 0.8 }); BUILD.card(T.bucket, 11.4, 0, 1.4); BUILD.card(T.bucket, 9.4, 0, 1.2);
+  // the horses themselves are animals of the cast (game/g44: destrier, bay), petted from CAMP.onEnter
+  BUILD.card(T.hay, 13.6, 0, 0.3, { s: 0.8 }); BUILD.card(T.bucket, 11.4, 0, 1.4); BUILD.card(T.bucket, 9.4, 0, 1.2);
   room.interact('horses', 12.3, 2.4, KZ, 0.6, () => say('horses'));
   /* the black tent: no banner, no pennant, the flap laced shut */
   BUILD.tent(14.8, -0.7, 1.6, 2.0, 1.5, T.canvasBlack, T.canvasBlack, { seg: 12 });
@@ -62,7 +59,11 @@ CAMP.build = function () {
 };
 CAMP.TALKERS = [['gniewomir', 'Talk to King Gniewomir'], ['msciwoj', 'Talk to Prince Mściwoj'], ['wieslawa', 'Talk to Queen Wiesława'], ['ottokar', 'Talk to Ser Ottokar'], ['jarek', 'Talk to Jarek'],
   ['squire', 'Talk to the squire'], ['groom', 'Talk to the groom'], ['kSoldierA', 'Talk to the soldier'], ['kSoldierB', 'Talk to the soldier']];
-CAMP.onEnter = function () { if (!CUT.playing) SCENE.caption(...this.caption); FEST.talkers(this, CAMP.TALKERS); };
+CAMP.onEnter = function () { if (!CUT.playing) SCENE.caption(...this.caption); FEST.talkers(this, CAMP.TALKERS);
+  const d = CAST.A.destrier; if (d) d.petSpot(this, CAMP.HORSE); };
+CAMP.HORSE = { id: 'horse', label: 'Pet the grey destrier', clip: 'Idle_Headlow', holdFor: 2.6, sound: 'snort', headY: 2.0, stand: 1.9,
+  says: ['(He lowers his great head and blows warm air into the king’s palm.)', '(Hrrrff.)', '(He leans into the hand, then tries to eat the king’s sleeve.)'],
+  lines: ['The prince’s horse. Better manners than the prince.', 'You’re carrying him tomorrow. Carry him gently.'] };
 CAMP.onUpdate = function () { FEST.follow(this); };
 /* ---------------------------------------------------------------- the pact */
 CAMP.pact = async function () {

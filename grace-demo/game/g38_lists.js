@@ -6,6 +6,7 @@
 const LISTS = FEST.room('lists', 'The Lists', 'Lances, sand and the whole town shouting', { ambience: { crowd: 0.75, birds: 0.2, wind: 0.2 } });
 LISTS.ENTRY = -13.8;
 LISTS.JX = 4.6;   // where the lances meet: right of the middle, clear of the duellists and the gap in the rail
+LISTS.RUN = 10.0;   // each lane runs this far either side of the crossing: both knights wait inside the grounds (at 13.6 the black one stood outside the gate)
 LISTS.build = function () {
   const room = BUILD.begin(this), T = PX.T, KZ = room.KZ, L = FEST.LINES;
   const say = (k) => SCENE.say(SCENE.player, SCENE.cycle('ll' + k, L[k]));
@@ -45,8 +46,7 @@ LISTS.build = function () {
   /* the archery butts at the far end */
   BUILD.card(T.butt, 13.6, 0, 0.5, { s: 0.95 }); BUILD.card(T.butt, 14.8, 0, -0.3, { s: 0.85 }); room.interact('butts', 14.0, 2.4, KZ, 0.6, () => say('butts'));
   /* the jousters at the ends of their lanes, the dust they'll raise, the lance shards, the unhorsed knight */
-  room.riders = [BUILD.anim(T.joustKrasna, LISTS.JX - 13.6, 0, -2.35, { cast: false }), BUILD.anim(T.joustBlack, LISTS.JX + 13.6, 0, -3.65, { cast: false })];   // waiting at their lanes' ends
-  room.riders[0].set(1); room.riders[1].set(1); room.riders[1].me.scale.x = -1;
+  // the jousters are animals and knights of the cast (game/g44): LISTS.mount puts each knight in his saddle
   room.shards = []; for (let i = 0; i < 12; i++) { const s = BUILD.card(T.shard, 0, 0, 0, { cast: false, dyn: true, s: 1.4 }); s.visible = false; room.shards.push({ me: s, v: new THREE.Vector3(), spin: 0 }); }
   room.downed = BUILD.card(T.knightDown, 0, 0, -2.0, { cast: false, dyn: true }); room.downed.visible = false;
   room.interact('joust', 4.6, 2.8, KZ, 0.8, () => LISTS.joust(room)).label = 'Watch the joust';
@@ -66,8 +66,17 @@ LISTS.build = function () {
 LISTS.TALKERS = [['queen', 'Call up to Halina'], ['gniewomir', 'Call up to King Gniewomir'], ['wieslawa', 'Call up to Queen Wiesława'], ['zofia', 'Talk to Zofia'], ['dorota', 'Talk to the saint'],
   ['bogdanLists', 'Talk to Ser Bogdan'], ['ottokar', 'Talk to Ser Ottokar'], ['herald', 'Talk to the herald'], ['marshal', 'Talk to the Marshal']];
 FEST.TALK.bogdanLists = FEST.TALK.commander;
-LISTS.onEnter = function () { if (!CUT.playing) SCENE.caption(...this.caption); FEST.talkers(this, LISTS.TALKERS); };
-LISTS.onUpdate = function () { FEST.follow(this); };
+LISTS.onEnter = function () { if (!CUT.playing) SCENE.caption(...this.caption); FEST.talkers(this, LISTS.TALKERS); LISTS.mount(true); };
+LISTS.onUpdate = function () { FEST.follow(this); LISTS.ride(); };
+/* the two jousting pairs: each knight sits his horse (Actor.sit on a saddle 1.72 m up, a little nearer the lens than the
+   horse, so his sprite draws over it); LISTS.ride keeps him there every frame, wherever the horse is */
+LISTS.pairs = () => { const A = CAST.A; return [{ h: A.joustHorseK, k: A.joustK, z: -2.35, x0: LISTS.JX - LISTS.RUN }, { h: A.joustHorseB, k: A.joustB, z: -3.65, x0: LISTS.JX + LISTS.RUN }].filter((p) => p.h && p.k); };
+LISTS.mount = function (reset) {
+  for (const P of LISTS.pairs()) { const { h, k } = P;
+    if (reset) { h.x = P.x0; h.z = P.z; h.face = P.x0 < LISTS.JX ? 1 : -1; h.lookYaw = h.face * 1.5; h.yaw = h.lookYaw; h.held = null; h.gaitK = 0; k.setVisible(true); k.offstage = false; }
+    k.sit({ x: h.x, y: 1.72, z: P.z + 0.34, yaw: h.face * 1.45, cardDz: 0.3, drop: 0.12 }); k.face = h.face; k.mounted = h; }
+};
+LISTS.ride = function () { for (const P of LISTS.pairs()) { const { h, k } = P; if (k.mounted !== h || !k.sitting) continue; k.sitting.x = h.x; k.sitting.yaw = h.face * 1.45; k.face = h.face; } };
 /* ---------------------------------------------------------------- the duel on foot: Bogdan against Ottokar */
 LISTS.duel = async function (room) {
   const A = CAST.A, a = A.bogdanLists, b = A.ottokar, K = SCENE.player; if (!a || !b) return;
@@ -90,7 +99,8 @@ LISTS.duel = async function (room) {
 };
 /* ---------------------------------------------------------------- the joust: three courses, the black knight unhorses the prince on the third */
 LISTS.joust = async function (room) {
-  const A = CAST.A, K = SCENE.player, [r1, r2] = room.riders; SCENE.lock++;
+  const A = CAST.A, K = SCENE.player, [r1, r2] = LISTS.pairs(); SCENE.lock++;
+  if (!r1 || !r2) { SCENE.lock--; return; }
   try {
     await FEST.stepTo(LISTS.JX - 3.4, LISTS.JX); await FEST.cam(room, { focus: LISTS.JX, dist: 16.5, y: 3.9, look: 1.6 }, 1.4);   // close enough that the riders fill the frame as they cross
     AUDIO.sfx('fanfare', { gain: 0.8 }); if (A.herald) await FEST.say(A.herald, 'hjo', FEST.TALK.herald.joust);
@@ -102,23 +112,26 @@ LISTS.joust = async function (room) {
     AUDIO.sfx('cheer', { gain: 1.0, dur: 3.6 }); FEST.jousts++;
     await SCENE.talk([[A.herald || K, 'The Black Swan unhorses the Prince of Krasna!'], [K, SCENE.cycle('joK', ['Gniewomir is laughing. Mściwoj is not. Somebody will pay for that at the feast.', 'Whoever is under that mask, he rides like a man who’s been angry for twelve years.'])]]);
     await NIGHT.fade(true);   // reset the lists behind a blink
-    room.downed.visible = false; r1.me.position.x = LISTS.JX - 13.6; r1.me.scale.x = 1; r1.set(1); r2.me.position.x = LISTS.JX + 13.6; r2.me.scale.x = -1; r2.set(1);
+    room.downed.visible = false; LISTS.mount(true);
     await NIGHT.fade(false);
   } finally { K.lookYaw = null; await FEST.cam(room, null, 1.0); SCENE.lock--; }
 };
-/* one course: the riders gallop at each other down their lanes, lances meet over the barrier, shards fly. unhorse: the
-   prince's horse runs on without him and he lands in the sand */
+/* one course: the destriers gallop at each other down their lanes (held in the Gallop clip, driven along x), the knights
+   in their saddles, lances meet over the barrier, shards fly. unhorse: the prince comes out of the saddle, falls into the sand
+   short of his horse (his body drops; on landing the painted knight in the sand takes his place) and the horse runs on */
 LISTS.course = function (room, r1, r2, dir, unhorse) {
-  const D = 3.0, X = 13.6, J = LISTS.JX; r1.me.scale.x = dir; r2.me.scale.x = -dir;
-  return new Promise((res) => { let t = 0, hit = false, step = 0;
-    const f = (T, dt) => { t += dt; const u = Math.min(1, t / D), x = J + lerp(-X * dir, X * dir, u), fr = Math.floor(t * 7) % 2;
-      r1.me.position.x = x; r2.me.position.x = 2 * J - x; if (!(hit && unhorse)) r1.set(fr); else r1.set(2); r2.set(fr);   // they cross at J
+  const D = LISTS.COURSE_S || 2.6, X = LISTS.RUN, J = LISTS.JX;   // COURSE_S: seconds a course takes (a headless test slows it to catch frames)
+  for (const [P, d] of [[r1, dir], [r2, -dir]]) { const h = P.h; h.face = d; h.lookYaw = d * 1.5; h.held = 'Gallop'; h.gaitK = 1.5; h.x = J - X * d; h.yaw = h.lookYaw; LISTS.mount(false); }
+  return new Promise((res) => { let t = 0, hit = false, step = 0, fall = null;
+    const f = (T, dt) => { t += dt; const u = Math.min(1, t / D), x = J + lerp(-X * dir, X * dir, u);
+      r1.h.x = x; r2.h.x = 2 * J - x;   // they cross at J
       if (t > step) { step += 0.3; AUDIO.sfx('hooves', { gain: 0.5, pan: clamp((x - R.cam.position.x) / 9, -0.8, 0.8) }); }
       if (!hit && u >= 0.48) { hit = true; AUDIO.sfx('crack', { gain: 0.9 }); LISTS.shatter(room, J, 2.4, -3.0);
-        if (unhorse) { const d = room.downed; d.position.set(J + dir * 1.2, 1.4, -2.05); d.rotation.z = 0; d.visible = true; d.scale.x = dir; d.userData.fall = 0; } }
-      if (hit && unhorse && room.downed.userData.fall !== undefined && room.downed.userData.fall < 0.5) { const d = room.downed; d.userData.fall += dt; const k = Math.min(1, d.userData.fall / 0.5);
-        d.position.y = 1.4 * (1 - k * k); d.position.x += dir * dt * 2.5; if (k >= 1) AUDIO.sfx('thud', { gain: 1.0 }); }
-      if (u >= 1) { room.tick = room.tick.filter((g) => g !== f); res(); } };
+        if (unhorse) { const k = r1.k; k.mounted = null; fall = { x: k.x, y: k.y, vx: dir * 4.5, vy: 1.2, t: 0 }; } }
+      if (fall) { const k = r1.k; fall.t += dt; fall.vy -= 9.8 * dt; fall.x += fall.vx * dt; fall.y += fall.vy * dt; k.sitting.x = fall.x; k.sitting.y = Math.max(0.5, k.sitting.y + fall.vy * dt);
+        if (fall.y <= 0.35 && !fall.done) { fall.done = true; AUDIO.sfx('thud', { gain: 1.0 }); k.setVisible(false);
+          const d = room.downed; d.position.set(fall.x, 0, -2.05); d.rotation.z = 0; d.scale.x = dir; d.visible = true; } }
+      if (u >= 1) { room.tick = room.tick.filter((g) => g !== f); for (const P of [r1, r2]) { P.h.held = null; P.h.gaitK = 0; } res(); } };
     room.tick.push(f); });
 };
 LISTS.shatter = function (room, x, y, z) {

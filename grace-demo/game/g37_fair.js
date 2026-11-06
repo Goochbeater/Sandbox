@@ -44,10 +44,7 @@ FAIR.build = function () {
   for (const x of [BX0, BX1]) BUILD.card(T.hurdle, x, 0, (BZ0 + BZ1) / 2, { w: BZ1 - BZ0, h: 0.75, ry: Math.PI / 2 });
   BUILD.solid(BX0, BX1, 0, 0.75, BZ0, BZ1);
   BUILD.box(7.0 - 0.05, 7.0 + 0.05, 0, 1.3, 0.6, 0.7, T.woodPost);   // the chain's stake
-  room.bear = BUILD.anim(T.bearDance, 7.0, 0, 1.2, { rate: 1.6, s: 1.0 });
-  room.bearPet = BUILD.pet(room.bear.me, { id: 'bear', label: 'Pet the bear', frames: [T.bearSit], sound: 'pant', soundO: { gain: 0.9 }, headY: 1.9, dur: 3.0, stand: 0.9,
-    says: ['(He sits down at once, the way he does when the music stops.)', 'Hrrmf.', '(He leans his whole head into the king’s hand. It’s like being leaned on by a door.)'],
-    lines: ['Hello, Wojciech. You don’t like dancing either, do you.', 'He smells of hay and old honey and something sad.'], onPet: () => FAIR.petBear() });
+  // Wojciech is an animal of the cast (game/g44), up on his hind legs on the chain; petted from FAIR.onEnter
   room.interact('bearFree', BX0 - 0.3, 1.6, KZ, 0.7, () => FAIR.freeBear(room)).label = 'Buy the bear his freedom';
   /* the puppet booth, the puppets in its window */
   BUILD.card(T.puppetBooth, 9.6, 0, 1.4);
@@ -78,7 +75,11 @@ FAIR.TALKERS = [['queen', 'Talk to Halina'], ['kazik', 'Talk to Kazik'], ['marta
 FAIR.onEnter = function () {
   if (!CUT.playing) SCENE.caption(...this.caption);
   FEST.talkers(this, FAIR.TALKERS);
-  if (FEST.bearFreed) { this.bear.me.visible = false; for (const id of ['bear', 'bearFree']) { const it = this.inter.find((i) => i.id === id); if (it) it.hidden = true; } }
+  const bear = CAST.A.bear;
+  if (bear) { bear.offstage = !!FEST.bearFreed; bear.setVisible(!FEST.bearFreed); bear.rearGoal = bear.rear = FEST.bearFreed ? 0 : 1; bear.lookYaw = null;
+    if (!FEST.bearFreed) bear.petSpot(this, FAIR.BEAR_PET); }
+  if (FEST.bearFreed) { this.inter = this.inter.filter((i) => i.id !== 'bear'); const it = this.inter.find((i) => i.id === 'bearFree'); if (it) it.hidden = true; }
+  SCENE.buildMarks();
 };
 FAIR.onUpdate = function () { FEST.follow(this); };
 /* ---------------------------------------------------------------- the Salamanders */
@@ -110,6 +111,11 @@ FAIR.blast = function (room, i, big) {
   room.tick.push(tick);
 };
 /* ---------------------------------------------------------------- the bear */
+/* petting him: he drops onto all fours, lowers his head into the hand, and goes back up when the hand goes */
+FAIR.BEAR_PET = { id: 'bear', label: 'Pet the bear', clip: 'Idle_2_HeadLow', holdFor: 3.0, sound: 'pant', soundO: { gain: 0.9 }, headY: 1.9, stand: 1.25,
+  says: ['(He sits down at once, the way he does when the music stops.)', 'Hrrmf.', '(He leans his whole head into the king’s hand. It’s like being leaned on by a door.)'],
+  lines: ['Hello, Wojciech. You don’t like dancing either, do you.', 'He smells of hay and old honey and something sad.'],
+  onReact: (b) => { b.rearGoal = 0; setTimeout(() => { if (!FEST.bearFreed && SCENE.room === FAIR) b.rearGoal = 1; }, 4600); }, onPet: () => FAIR.petBear() };
 FAIR.petBear = function () {
   const z = CAST.A.kazik; FEST.met.bearPets = (FEST.met.bearPets || 0) + 1;
   if (FEST.met.bearPets === 1 && z && z.visible) return [[z, 'He LIKES you. Bartosz! He likes the king!'], [CAST.A.bartosz, 'He likes anyone with honey on their fingers, little lord.']];
@@ -124,8 +130,8 @@ FAIR.freeBear = async function (room) {
     COURT.stats.gold = Math.max(0, COURT.stats.gold - 1); AUDIO.sfx('coin', { gain: 0.8 });
     await SCENE.talk([[K, 'Name your price, and then take a third off it, because I’m the king.'], [A.bartosz, 'For a king, the price is the price. For a little prince, it’s half.'],
       [A.kazik, 'Does that mean he’s FREE?'], [K, 'It means Bogdan’s men walk him to the Wood tonight, and the Woman can explain herself to him.']]);
-    FEST.bearFreed = true; await NIGHT.fade(true); room.bear.me.visible = false;
-    for (const id of ['bear', 'bearFree']) { const it = room.inter.find((x) => x.id === id); if (it) it.hidden = true; } SCENE.buildMarks(); await NIGHT.fade(false);
+    FEST.bearFreed = true; await NIGHT.fade(true); const bear = A.bear; if (bear) { bear.offstage = true; bear.setVisible(false); }
+    room.inter = room.inter.filter((x) => x.id !== 'bear'); { const it = room.inter.find((x) => x.id === 'bearFree'); if (it) it.hidden = true; } SCENE.buildMarks(); await NIGHT.fade(false);
     await SCENE.say(A.kazik, 'Thank you, Father. I’ll visit him. With honey.', { wait: true });
     GAME.save();
   } finally { SCENE.lock--; }

@@ -136,6 +136,9 @@ CONF.play = async function () {
   Q.hostInto(null); Q.reframe(2.6, 2.4); Q.frame = new THREE.Vector3(9.75, 1.2, CONF.DESK.zc); Q.cardDz = 0.1;
   await CONF.drive(1.8);
   CONF.inPose = true; CONF.lineT = 4; CONF.bar();
+  // the lens comes in on the alcove: the chapel's right wall stops it short of centring (the pair sits 70% across), so it
+  // narrows and comes closer instead, until the two of them fill most of the frame's height
+  SCENE.lens(room, { focus: 9.75, fov: 13.5, dist: 13, y: 1.95, look: 1.3 }, 1.8);
   SCENE.say(Q, T.pose);
   CONF.askLoop().catch(fail);
 };
@@ -156,7 +159,7 @@ CONF.finish = async function () {
 CONF.end = async function (finished) {
   const room = CHAPEL, K = CONF.A ? CONF.A.K : SCENE.player, Q = CONF.A ? CONF.A.Q : CAST.A.dorota;
   NIGHT.bar([]); $('nView').hidden = false; $('nFinish').hidden = false; await NIGHT.fade(true);
-  CHAPEL.dim(false);
+  CHAPEL.dim(false); await SCENE.lens(room, null, 0.01);   // the nave's own lens, behind the fade
   POSE.release(K); POSE.release(Q); K.frame = null; K.reframe(); K.cardDz = 0; Q.frame = null; Q.reframe(); Q.cardDz = 0; Q.hostInto(null); K.hostInto(null);
   K.dress(); Q.dress(); K.setArousal(0);
   Q.stand(); Q.x = 1.8; Q.z = 2.2; Q.face = -1; Q.yaw = -0.42; Q.lookYaw = null; Q.baseY = Q.y = 0; Q.setVisible(true);

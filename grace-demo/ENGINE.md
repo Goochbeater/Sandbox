@@ -37,6 +37,7 @@ Contents
 13g. Moving the king: pace, jogging, the Settings
 13h. The Swan Festival: three connected grounds, shows, a lazy cast
 13i. The House of the Lantern: a disguise, a second bed, the night scene as a stage
+13j. Animals: CC0 models through the people's sprite pass
 14. Credits and licences
 
 ---
@@ -356,7 +357,7 @@ guards. Reached from the garden cloister. §13b, §13c, §13d.
 
 **The wood** (`g34_wood.js`, painters `g17_paint_wood.js`): an afternoon clearing west of the castle. Three painted forest
 rows, Bogdan's archery butts, the fishing hole with a dock, Halina's blanket under the old oak with a basket, Bogdan's hound
-(pettable), a red deer, Zofia's post, Kazik, two guards on their rounds, a fence. The path at the far left leads to the hut.
+(a 3D animal, pettable), a grazing stag, Zofia's post, Kazik, two guards on their rounds, a fence. The path at the far left leads to the hut.
 
 **The Woman's hut** (`g35_hut.js`): wattle walls, a stone hearth with a violet cauldron, a runed rug, herbs on cords, a shelf
 of jars, a crystal orb, a skull, the barrel with the black cat (pettable), cobwebs, lanterns and candle stands, the window
@@ -482,7 +483,8 @@ calls into a 48×77 target), bloom, the final pass.
 - Sitting uses one generic clip; the seat offset (`seat.drop`, `cardDz`) is tuned by eye for the throne.
 - Audio (`engine/e07_audio.js`) and the save slot (`engine/e10_save.js`, `GAME.state` / `GAME.load` in `g22_title.js`)
   exist. Every new piece of story state must be added to `GAME.reset`, `GAME.state` and `GAME.load`, or it is lost on reload.
-- The character kit has 15 clips (§6): no horses, no eating, no dancing. Anything else is a painted card or a pose.
+- The character kit has 15 clips (§6) for people: no eating, no dancing, no riding (a knight in the saddle is `Actor.sit`,
+  §13h). Animals are CC0 3D models with their own clips (§13j); there is no bear (he is the hound reshaped).
 - Petitions, agents, items and their numbers are first-pass placeholders, as are all the lines.
 - Next rooms that fit the engine as is: the council chamber from the reference (bookcases, green window, the queen and
   agents at a table), a courtyard (open sky = a gradient card behind the arches), the town gate.
@@ -586,6 +588,13 @@ localStorage.setItem("swan.age18","1"); CHAPEL.flirt = 2; CONF.start();   // the
 
 Check `CONF.inPose`, `CONF.k` (how far gone), `SCENE.lock` (back to 0 at the end) and the page log for errors.
 
+**The confessional's lens.** The alcove is at the chapel's right wall (desk x 10–10.9, wall 12), and `SCENE.camGoal` won't
+let the frame see past a wall: at the nave's lens the camera stopped at x 2.95 and the pair was a few pixels tall at the far
+right. In the pose `SCENE.lens(room, { focus: 9.75, fov: 13.5, dist: 13, y: 1.95, look: 1.3 }, 1.8)` narrows and closes
+in instead: the clamp now allows x ≈ 8, the pair sits 70% across, and the frame is about 3 m tall, so they fill most of it.
+`CONF.end` puts the nave's lens back behind the fade (`SCENE.lens(room, null, 0.01)`). `SCENE.lens` (engine/e06) is the one
+camera ease for shows and scenes: focus, dist, y, look and fov, the room's own kept in `room.cam0`; `FEST.cam` calls it.
+
 ## 13d. Who can see what: partitions, scene light, separate sprites
 
 **A partition.** The camera is in profile, so a wall that separates a scene from the rest of a room must stand between the
@@ -656,9 +665,11 @@ it; the hut's barrel (z 2.4–3.2) hid the king's legs. Rules:
   every solid standing on the king's line or a wanderer's line; it must return `[]`.** All nine rooms pass (the wood and
   the hut only after the pond and the barrel were moved). A seated actor's bench is left out (they are meant to be on it), and so are things overhead (above 1.6 m).
 
-## 13f. Animals you can pet (`BUILD.pet`)
+## 13f. Animals you can pet (`BUILD.pet`, `Beast.petSpot`)
 
-`BUILD.pet(card, o)` (in `engine/e08_outdoor.js`) turns any animal card into one the king can pet:
+Every animal in the game is now a 3D `Beast` (§13j) and is petted with `beast.petSpot(room, o)` from the room's `onEnter`;
+the sequence below is `SCENE.pet` (engine/e15), shared by both. `BUILD.pet(card, o)` (in `engine/e08_outdoor.js`) is kept for
+a painted card, should one ever be wanted again:
 
 ```js
 const cat = BUILD.card(T.catPix, -3.5, 1.1, 1.7, { s: 1.0, cast: false });
@@ -680,8 +691,11 @@ Rules learned building it:
   real-time `SCENE.wait` drifts from game time whenever frames are slow, so the bubble came before the hand. The helper
   also goes on if the clip is cancelled, so it can never hang.
 - The card gets its own material and leaves the static batch (`userData.dyn`), so changing its frame touches nothing else.
-  Petted frames must be the same pixel size as the card's texture: draw the animal in one function with options
-  (`PX.cat(pet)`, `PX.hound(tail, happy)`) and register each frame with `PX.def`.
+  Petted frames must be the same pixel size as the card's texture. (The painted cat, hound, deer, bear and horses are gone:
+  they read as flat stickers beside the 3D-lit people. §13j.)
+- For a Beast the answer is a clip (`o.clip`: the horse's and hound's head-low idle, the cat's headbutt; `o.holdFor` s keeps
+  it), a wag (`o.wag`, `o.wagFor`), a turn toward his hand (`lookYaw`), and `o.onReact(beast)` for anything else (the bear
+  drops onto all fours). The marker sits over the animal at its own z, like a talk marker.
 - Pet counts are story state: `HUT.catPets` and `WOOD.houndPets` are saved (`GAME.state`). So is `HUT.met`, which was
   not saved before, so the Woman's first talk replayed after every reload.
 - Sounds: `purr` (brown noise under a 260 Hz low-pass, beaten at about 25 Hz, in two breaths), `meow` (a sawtooth whose
@@ -736,8 +750,19 @@ story is `STORY.md` §6. The map's **Swan Meadow** pin leads to the fair; gates 
 **The cast is lazy.** Every festival spec has `lazy: true`. `CAST.build` skips them at boot; `CAST.ensure(roomId)` builds
 the lazy actors who live in a room the first time the king heads there. The engine calls it through `SCENE.prepare(id)`
 (`SCENE.beforeEnter`), which every way into a room awaits: `SCENE.go` behind its fade, Continue, and a `?room=` link at
-boot. The boot is no longer than before the festival; the first entry to a ground waits behind the fade while its people
-are built. With per-room layers (§3), a ground can hold 29 actors; the fair holds 14.
+boot. With per-room layers (§3), a ground can hold 29 actors; the fair holds 14.
+
+**Built ahead, in calm moments** (`CAST.ahead`, `CAST.make`, g40). The first entry to a ground used to wait behind the fade
+while its fourteen people were built. Now a 250 ms timer builds one lazy actor whenever the king has stood still for 0.8 s
+with no lock, menu, cutscene, night scene or title, the rooms next door first (`CAST.NEXT`: the fair from the castle rooms,
+the lists from the fair, the House from the chapel…), then everyone else. Measured headless: 30 of the 41 lazy actors were
+built in 30 s of standing in the garden, and `SCENE.prepare('fair')` then took 0 ms. Two rules make it safe:
+- `CAST.make(k)` is the one way an actor gets built, shared by the room being entered and the builder ahead (an in-flight
+  promise per key), so nothing is built twice.
+- A new actor is parked (`setLayer(Actor.PARK)`) and hidden at once, and `Actor.build` / `Beast.build` keep `root.visible`
+  false until its layers are set. While a model is being assembled its meshes are on layer 0, the main camera's: built
+  behind a fade that never showed, but built mid-room it would flash at the world origin, or draw into the sprite of
+  whoever holds the layer it was born with.
 
 **Returning characters.** An actor's `offstage` is global, and its props are fixed when it's built. So Marta, a petitioner
 (offstage everywhere but court), has a festival copy `martaFair`, and Bogdan has `bogdanLists`, with a sword. The pattern
@@ -766,12 +791,17 @@ What there is to do, by ground:
 - **Pavilions:** the Pact (sign tonight, sign after the feast with changes, or refuse); arm-wrestling the prince (two pulls
   on the meter); the grey destrier (pettable); Jarek, Wiesława and Ottokar, the squire, the soldiers.
 
-**The joust is painted.** The kit has no horses, so each rider is a three-frame strip (`PX.jouster`: two gallop frames and
-the horse riderless), 128 × 86 px, the horse in a caparison of his colours, the knight couched behind his lance with his
-shield toward us. The riders gallop along lanes either side of the tilt (z −2.35, −3.65) and cross at `LISTS.JX` (4.6),
-right of the middle: in the middle, the duellists and the king hid the moment the lances met. At the crossing: `crack`,
-twelve shards with gravity, and on the third course the prince's strip switches to its riderless frame while
-`knightDown` falls into the sand.
+**The joust is 3D** (since the animals, §13j). Each side is a destrier `Beast` in a caparison (`joustHorseK`, the grey in red
+and white; `joustHorseB`, the bay dyed black with a black cloth and a white swan) and a knight `Actor` in the saddle
+(`joustK`, `joustB`: helmet, tabard, the couched `lance` prop). `LISTS.mount` seats each knight with `Actor.sit` on a saddle
+1.72 m up, 0.34 m nearer the lens than his horse so his sprite draws over it; `LISTS.ride` (the room's `onUpdate`) keeps
+`sitting.x` on the horse every frame. A course (`LISTS.course`) holds both horses in `Gallop` (`held`, `gaitK` 1.5: a driven
+animal sets its own clip speed) and drives their x along lanes either side of the tilt (z −2.35, −3.65), `LISTS.RUN` 10 m
+either side of the crossing at `LISTS.JX` (4.6) in 2.6 s. At 13.6 m the black knight waited outside the right gate. At
+the crossing: `crack`, twelve shards with gravity; on the third course the prince leaves the saddle (`mounted = null`), drops
+under gravity while his horse runs on, and on landing his actor hides and the painted `knightDown` lies in the sand.
+`LISTS.mount(true)` puts everything back behind the fade. For headless frames, `LISTS.COURSE_S` slows a course: at real
+speed a software-rendered screenshot takes long enough for the horses to leave the frame.
 
 **Measured** with §13b's eval: fair 102 meshes, 7 lights, 439 draw calls; lists 82, 3, 349; pavilions 75, 5, 360 (throne
 84, 18, 294). Outdoors the sun does the throne's torches' work, so fewer lights is right; the draw calls are mostly the
@@ -873,8 +903,86 @@ run a woman's marker, pick "Go upstairs", wait for `NIGHT.inBed && NIGHT.pos ===
 positions with `NIGHT.to(name)`, then `NIGHT.finish()` and wait for the common room with the lock at 0; check `trust`,
 `nights`, `rumour`, the disguise still on, and that the cellar takes it off again. All five women ran this way.
 
+## 13j. Animals: CC0 models through the people's sprite pass (`engine/e15_beast.js`)
+
+**Why.** The painted animals (a cat, a hound, a deer, a dancing bear, two horses, the jousters) were flat code-drawn cards,
+and beside the people, who are 3D models lit by the room and drawn into sprites, they read as stickers. Now every animal is
+a real model drawn exactly the way a person is.
+
+**Where the models come from.** Quaternius's *Ultimate Animated Animal Pack* and *Animated Animal* cat, CC0 1.0 (the same
+artist and licence as the people). The original pack files (Horse, White Horse, Husky) are byte-identical to the sizes in
+the `@jgengine/assets` index of the Poly Pizza uploads; the stag and the cat come from `@netforge/asset-library-files` (npm,
+meshopt-compressed copies, CC0, NOTICE lists the provenance). The cloud sandbox reaches npm and public GitHub raw files, not
+Poly Pizza or quaternius.com. `tools/animals.mjs` bakes them into `assets/animals/<kind>.glb`:
+- only the clips the game plays (`Idle`, `Idle_Headlow`/`Idle_2_HeadLow`, `Eating`, `Walk`, `Gallop`; the cat's `Idle`,
+  `Idle_Eating`, `Walk`, `Headbutt`), each named once (the packs carry every clip twice, once as `AnimalArmature|…`);
+- meshopt and quantisation decoded, keys resampled (tolerance 2e-4);
+- then written, **read back** and pruned: a disposed animation's samplers keep their accessors alive in memory, so a prune
+  in the same document kept 400 KB of orphans per horse;
+- normals and weights quantised to 8 bits and uvs to 16 (normalised integers); positions stay float; one attribute per buffer
+  view (`VertexLayout.SEPARATE`; an 8-bit normal still has a 4-byte stride, so the reader copies strided views out).
+Horse 270 KB, grey 269, hound 227, stag 268, cat 139. `build.sh` embeds each as base64 in `<script id="beast_<kind>">`: the
+page grew from 7.1 to 8.7 MB.
+
+**The reader** (`BEAST.parse`, `BEAST.kind`): GLB chunks → accessors as packed typed arrays → one `BufferGeometry` per
+primitive of every mesh, shared by every animal of the kind; clips as `AnimationClip`s whose tracks address nodes by index
+(`n12.quaternion`), so each instance resolves them in its own hierarchy; the embedded PNG (the cat's atlas) as a texture
+(`flipY` false, sRGB, nearest). `BEAST.instance` builds an animal's own node tree (joints as `THREE.Bone`), its own
+materials (recoloured by material name: `spec.col`, `spec.tint`; metal forced to 0, the packs' 0.4 is an FBX import's
+guess), skinned meshes for nodes with a skin and plain meshes hung on their node for the rest (the stag's antlers ride its
+head as a second, rigid mesh; the first reader assumed one skinned mesh and failed on it).
+
+**Two things that made every animal a hundred times too big.**
+1. The mesh node carries the FBX import's −90° and ×100. glTF ignores a skinned mesh node's own transform: the joints place
+   the vertices. So bind with identity (`me.bind(skel, new THREE.Matrix4())`), which is what three's own loader ends up
+   doing (it binds before the node's world matrix is ever computed). Binding with the node's matrix applied it twice.
+2. The raw positions are in the armature's space (Z up, a hundredth of the size). Measure the rest pose **as skinned**
+   (`getVertexPosition` on every third vertex, then the mesh's world matrix) to scale the animal to `spec.h` metres and put
+   its feet on the floor.
+
+**A Beast is an Actor** (`class Beast extends Actor`): the same layer dealing, sprite camera at 32 px/m, rim and posterise
+pass, floor shadows, homes, `placeIn`, `setVisible`, `walkTo`, `moveTo3`, `hostInto`. What it adds:
+- clips through a `THREE.AnimationMixer`: the idle, a routine of idles (`spec.idles` weights, every `spec.idleEvery` s),
+  `Walk` / `Gallop` matched to ground speed (`walkSpeed`, `gallopAt`), `act(clip, at, ev)` one-shot, `hold(clip)`, `gaitK`
+  for a driven gait;
+- a pose layer on top of the clips. Bones the code turns or scales (the tail's wag, `spec.bones` reshaping, the rear) have
+  their unturned rotation put back before every mixer update: a clip that doesn't key a bone would otherwise keep last
+  frame's turn and add to it;
+- `yawK`: animals stand side-on (1.2–1.5 rad from facing the lens) where people stand three-quarter (0.42); in profile is
+  how an animal is read;
+- `speakAt` from the head bone, so the bubbles of the petted lines sit over the head;
+- `caparison(o)`: a knight's horse cloth, an inverted U swept along the body, striped (`o.col`, `o.n`), a dark hem, a swan
+  on the flank (`o.swan`), built in metres in the animal's frame and moved into the Torso bone's rest frame (relative to the
+  model, not the world: the inner group's scale isn't in its world matrix yet), so it rocks with the gallop.
+
+**The bear is the hound.** There is no CC0 bear. Wojciech is the husky's skeleton reshaped by `spec.bones` scales: the back
+×1.35 wide and ×1.4 deep (the scale cascades to every bone after it, so legs and head thicken too), the neck ×0.72 long, the
+head ×0.82, ears ×0.55, the tail ×0.3, the upper legs ×0.86; dyed brown, rough 0.92, 1.3 m. On all fours he is plainly a
+bear. Dancing (`rearGoal` 1, eased up at 1.6, down at 5): the Torso turns +1.15 rad about its X (the chest lifts about the
+hips), Neck1 −0.95 to keep the head level, the hind legs −0.35, and the forelegs +1.2 **about their own Y**, paddling: about
+X they swung toward the lens, which in profile shows nothing at all (three rounds of frames to find). He sways on the
+inner group's z. Signs were found by eye on this rig; another rig needs its own.
+
+**The animals** (`game/g44_cast_beasts.js`, all lazy):
+
+| id | kind | where | h (m) | notes |
+|---|---|---|---|---|
+| `hound` | hound | wood 8.4 | 0.98 | tan, dark saddle, cream; idles Idle/Idle_2/head-low; pet: kneel, head-low 2.4 s, wag |
+| `stag` | stag | wood −4.4 | 2.25 | grazes (Eating) most of the time |
+| `cat` | cat | hut, on the barrel (y 1.1) | 0.44 | tint 0x6a6878 (pure black vanished in the violet room), side-on; pet: Headbutt |
+| `bear` | hound | fair pen 7.0 / wood −1.9 | 1.3 | reshaped; reared at the fair, on all fours in the wood once freed |
+| `destrier` | grey | pavilions 10.6 | 2.3 | pet: head-low 2.6 s, snort |
+| `bay` | horse | pavilions 12.1 | 2.2 | re-dyed a true bay (the pack's brown read orange in the sun) |
+| `joustHorseK`/`B` | grey / horse | the lists' lanes | 2.3 | caparisons; §13h |
+
+**Checking an animal headlessly.** Frame it with `SCENE.lens(room, { focus, dist: 7–9, y, look }, 0.1)` and shoot; drive a
+pet with the marker (`DRV.use(id)`), wait for `beast.held || beast.one` and shoot the reaction, then run it out with the lock
+back to 0. For the skinning, compare the rest box (`beast.rest`) with the skinned box of the live pose: a box hundreds of
+metres wide is the bind matrix.
+
 ## 14. Credits and licences
 
-Characters, outfits, hair and animation: Quaternius (CC0), via the character kit. three.js r160 (MIT). Fonts: Alegreya
+Characters, outfits, hair and animation: Quaternius (CC0), via the character kit. Animals: Quaternius (CC0), the Ultimate
+Animated Animal Pack and the Animated Animal cat (§13j). three.js r160 (MIT). Fonts: Alegreya
 and Alegreya SC (SIL OFL) from Google Fonts. All pixel art, layouts, characters' names and lines in this folder are
 original to this project.

@@ -11,13 +11,13 @@
        idle, walk, speed, x, z, face } */
 class Actor {
   constructor(spec) {
-    this.spec = spec; this.id = spec.id; this.layer = Actor.nextLayer++;
+    this.spec = spec; this.id = spec.id; this.seq = Actor.seq++; this.layer = Actor.nextLayer <= 31 ? Actor.nextLayer++ : Actor.PARK;   // rooms re-deal layers on entry (Actor.assignLayers)
     this.x = spec.x || 0; this.y = 0; this.z = spec.z || 2.6; this.v = 0; this.dir = 0; this.face = spec.face || 1; this.yaw = this.face * 0.42;
     this.target = null; this.onArrive = null; this.speed = spec.speed || 1.1; this.speedK = 1; this.jogPhase = 0; this.lookYaw = null;
-    this.idleT = hash(this.layer, 3) * 10; this.phase = 0; this.talk = 0; this.talking = false; this.actClip = null; this.actT = 0; this.actEv = null;
+    this.idleT = hash(this.seq, 3) * 10; this.phase = 0; this.talk = 0; this.talking = false; this.actClip = null; this.actT = 0; this.actEv = null;
     this.sitting = null; this.sitK = 0; this.path = null; this.visible = true; this.home = spec.home || null; this.cardDz = 0; this.baseY = spec.y || 0; this.y = this.baseY;
     [this.VW, this.VH] = spec.box || [1.5, 2.4];
-    this.homes = spec.homes || null; this.wanderT = 1 + hash(this.layer, 9) * 3; this.routineT = 1 + hash(this.layer, 11) * 2; this.stepN = 0; this.name = spec.name || spec.id;
+    this.homes = spec.homes || null; this.wanderT = 1 + hash(this.seq, 9) * 3; this.routineT = 1 + hash(this.seq, 11) * 2; this.stepN = 0; this.name = spec.name || spec.id;
   }
   get I() { return QA.idx; }
   async build() {
@@ -203,7 +203,8 @@ class Actor {
   /* walk in a straight line through 3D (up steps, away from the lens…) at `speed`, then call cb */
   moveTo3(p, cb) { const dx = p.x - this.x, dy = (p.y || 0) - this.y, dz = p.z - this.z, len = Math.hypot(dx, dz) || 0.001;
     this.path = { x0: this.x, y0: this.y, z0: this.z, x1: p.x, y1: p.y || 0, z1: p.z, t: 0, dur: len / (p.speed || 0.85), yaw: Math.atan2(dx, dz), cb }; this.target = null; this.sitting = null; this.sitK = 0; }
-  setVisible(on) { this.visible = on; this.card.visible = on; this.blob.visible = on; this.shadow.visible = on; if (this.propObj) this.propObj.visible = on; }
+  setVisible(on) { if (on && this.layer === Actor.PARK && SCENE.actors.includes(this)) Actor.claimLayer(this);   // shown outside its homes (the queen in the bedroom at night): take a free layer
+    this.visible = on; this.card.visible = on; this.blob.visible = on; this.shadow.visible = on; if (this.propObj) this.propObj.visible = on; }
   update(dt) {
     if (this.puppet) {   // a procedural controller owns the body (POSE / the night scene): it fills D and pel and places the root
       this.puppet(this, dt); this.compose(); this.root.position.set(this.x, this.y, this.z); this.root.rotation.y = this.yaw; return; }
@@ -292,6 +293,12 @@ class Actor {
     this.card.geometry.dispose(); this.card.geometry = new THREE.PlaneGeometry(w, h);
     this.shadowMat.dispose(); this.shadowMat = this.shadow.material = Actor.shadowMat(this.rt.texture, SW, SH);
   }
+  /* move the actor's model, prop and sprite camera to layer L (Actor.assignLayers deals them out per room) */
+  setLayer(L) {
+    this.layer = L; this.cam.layers.set(L);
+    if (!this.hostedBy) this.root.traverse((o) => o.layers.set(L));
+    if (this.propObj) this.propObj.traverse((o) => o.layers.set(L));
+  }
   /* draw this actor inside another actor's sprite (one camera, one depth buffer: bodies that touch overlap correctly);
      hostInto(null) gives it its own sprite back */
   hostInto(host) {
@@ -304,6 +311,7 @@ class Actor {
     this.bones[QA.idx.Head].getWorldPosition(out); out.y += 0.32; return out; }
   render(room) {
     if (!this.visible || this.hostedBy) return;
+    if (this.layer === Actor.PARK) { if (!this.warnedPark) { this.warnedPark = true; console.warn('actor ' + this.id + ' is shown in a room it does not live in, so it has no layer: give it a home there'); } return; }
     const r = R.r, cy = this.VH / 2 - 0.05, c = this.frame ? Actor._c.copy(this.frame) : Actor._c.set(this.x, this.y + cy, this.z), cam = this.cam;
     this.blob.visible = !this.puppet;
     const sx = R.toView(c, Actor._sv).x; if (sx < -R.vw * 0.25 || sx > R.vw * 1.25) return;   // off-screen: keep the last sprite
@@ -331,7 +339,21 @@ class Actor {
     this.shadowMat.uniforms.uK.value = 0.55 * smooth(ss[3], 1.0, Math.abs(this.x - ss[0]));
   }
 }
-Actor.nextLayer = 3; Actor._sv = {}; Actor.onStep = null;
+Actor.nextLayer = 3; Actor.seq = 3; Actor.PARK = 1; Actor._sv = {}; Actor.onStep = null;
+/* layers per room: there are only 29 actor layers (3…31), so instead of one for life, each actor gets one on entering a
+   room it lives in (the player first, then everyone whose home or homes include the room, shown or offstage), and every
+   other actor is parked on layer 1, which no camera draws. So the whole cast can be any size; one room can hold 29 */
+Actor.assignLayers = function (roomId, player) {
+  let L = 3; const live = [player].concat(SCENE.actors.filter((a) => a !== player && a.livesIn(roomId)));
+  for (const a of SCENE.actors) if (!live.includes(a)) a.setLayer(Actor.PARK);
+  for (const a of live) { if (!a) continue; if (L > 31) { console.warn('more than 29 actors live in ' + roomId + ': ' + a.id + ' is parked'); a.setLayer(Actor.PARK); a.setVisible(false); continue; } a.setLayer(L++); }
+};
+/* an actor shown in a room it doesn't live in takes the first layer nobody here holds */
+Actor.claimLayer = function (a) {
+  const used = new Set(SCENE.actors.filter((b) => b !== a && b.layer !== Actor.PARK).map((b) => b.layer));
+  for (let L = 3; L <= 31; L++) if (!used.has(L)) { a.setLayer(L); return true; }
+  console.warn('no free layer for ' + a.id); return false;
+};
 Actor._c = new THREE.Vector3(); Actor._d = new THREE.Vector3(); Actor._L = new THREE.Vector3(); Actor._r = new THREE.Vector3(); Actor._u = new THREE.Vector3();
 /* the sprite pass: a 1 px dark rim round the silhouette, and colours posterised to 24 levels (in a tone-mapped space) */
 Actor.fxMat = function () {

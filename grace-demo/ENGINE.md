@@ -103,8 +103,17 @@ Per frame (`SCENE.render` → each `Actor.render` → `R.frame`):
 | 7. final | screen | mix sharp/blurred by blur size (+ bleed), add bloom, exposure, ACES, warm curve (`pow(c, 0.94/1/1.08)`), +8 % saturation, vignette, film grain, sRGB |
 
 **Layers** (three.js `Layers`): 0 = the room (main + reflection cameras), 2 = main camera only (floors, rugs, actor
-floor shadows), 3…31 = one per actor. Lights are enabled on all layers so they light rooms and actors alike; two
-special lights (`Actor.key`, `Actor.rim`) are enabled only on actor layers.
+floor shadows), 3…31 = one per actor in the current room, 1 = parked (no camera draws it). Lights are enabled on all
+layers so they light rooms and actors alike; two special lights (`Actor.key`, `Actor.rim`) are enabled only on actor layers.
+
+**Layers are dealt per room.** There are only 29 actor layers, and the cast outgrew them (23 actors by the chapel, a dozen
+more for the festival, six for the House of the Lantern). So `SCENE.enter` calls `Actor.assignLayers(roomId, player)`: the
+player gets 3, then every actor whose `home` or `homes` include the room gets the next layer, shown or offstage (the
+petitioners must have one before they walk in), and every other actor is parked on layer 1. An actor that a scene shows in
+a room it doesn't live in (the queen in the bedroom at night) takes the first free layer in `setVisible(true)`
+(`Actor.claimLayer`). Parking matters because `setVisible(false)` hides an actor's card but not its model: two actors on
+one layer would draw into each other's sprites. A room can hold 29 actors; the whole cast can be any size. If an actor
+is ever drawn on layer 1, `render` skips it and warns in the console: give it a home in that room.
 
 **Depth of field** is artistic, not thin-lens. `R.dofU`: `uFocus` (distance to the walking line, set each frame),
 `uNear0` 0.8 m / `uNearR` 3.2 m (blur starts 0.8 m in front of the focus and is full 4 m in front), `uNearMax` 11 px,
@@ -371,7 +380,8 @@ BUILD.card(PX.T.lute, 4.2, 0.86, 0.4);       // standing on a table top at y = 0
 
 **A new character.** Add a spec to `CAST.specs` (copy the closest one), `home: '<room id>'`, x/z/y/face. To make them
 talkable: `room.interact(id, a.x, a.y + headY + 0.45, room.KZ, 0.75, () => SCENE.say(a, '…'))` (see
-`COURT.enterHall`). Each actor costs one layer; layers 3–31 allow 29 actors in total.
+`COURT.enterHall`). Layers are dealt per room (§3), so a room can hold 29 actors and the cast can be any size. Give every
+actor a `home` or `homes` entry for each room it appears in.
 
 **A conversation.**
 ```js

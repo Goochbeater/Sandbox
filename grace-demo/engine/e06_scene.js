@@ -26,6 +26,7 @@ SCENE.enter = function (id, at) {
   for (const k in SCENE.DOF0) R.dofU[k].value = SCENE.DOF0[k]; for (const k in room.dof || {}) R.dofU[k].value = room.dof[k];
   const P = SCENE.player; if (P) { P.stand(); P.x = at.x !== undefined ? at.x : P.x; P.z = room.KZ; P.face = at.face || P.face; P.yaw = P.face * 1.0; P.target = null; P.v = 0; }
   for (const a of SCENE.actors) { if (a !== P) a.placeIn(id); a.setVisible(a === P ? !room.noPlayer : a.livesIn(id) && !a.offstage); }
+  Actor.assignLayers(id, P);
   SCENE.buildMarks(); SCENE.bubbleOff();
   R.r.shadowMap.needsUpdate = true;
   SCENE.camX = SCENE.camGoal(true);

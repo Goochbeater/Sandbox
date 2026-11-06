@@ -123,6 +123,7 @@ THRONE.hall = function (room, o) {
   BUILD.motes({ n: 120, boxes: [[-10.4, -6.5, 0.4, 4.4, 0.5, 4, 0.3], [6.8, 10.4, 0.4, 4.4, 0.5, 4, 0.25], [-12, 12, 0.6, 4.5, 1, 4, 0.25], [-11, 12, 0.4, 3.2, 5.6, 8.2, 0.2]], col: 0xd8e0ff });
 };
 THRONE.onEnter = function () { if (CUT.playing) return;
+  if (CAL.phase === 'crisis' || CAL.phase === 'ch5') COURT.greeted = true;   // the steward's "petitioners are waiting" is court's, not a crisis's
   if (CAL.festival()) { COURT.greeted = true; SCENE.caption('The Throne Room', 'No court this week: everyone is at the meadow'); }   // the festival replaces court (STORY.md §4)
   else SCENE.caption(...this.caption);
   COURT.enterHall(); };

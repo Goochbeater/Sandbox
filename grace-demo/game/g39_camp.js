@@ -50,7 +50,7 @@ CAMP.build = function () {
   BUILD.tent(14.8, -0.7, 1.6, 2.0, 1.5, T.canvasBlack, T.canvasBlack, { seg: 12 });
   room.interact('blackTent', 14.8, 3.0, KZ, 0.6, () => say('blackTent'));
   /* the near side: barrels, hay, a weapon rack, a fence */
-  BUILD.card(T.barrel, -12.4, 0, 7.2, { s: 1.1, cast: false }); BUILD.card(T.hay, 2.8, 0, 7.4, { s: 1.0, cast: false }); BUILD.card(T.halberds, 9.2, 0, 7.2, { s: 1.0, cast: false });
+  BUILD.card(T.barrel, -12.4, 0, 7.2, { s: 1.1, cast: false }); BUILD.card(T.hay, 6.6, 0, 7.4, { s: 1.0, cast: false });   /* (at 2.8 it was a yellow blur in front of the king's pavilion) */ BUILD.card(T.halberds, 9.2, 0, 7.2, { s: 1.0, cast: false });
   BUILD.card(T.hurdle, -4.6, 0, 7.1, { w: 2.6, h: 0.8, cast: false }); BUILD.card(T.cartWheel, 13.6, 0, 7.4, { s: 1.1, cast: false, rx: -0.12 });
   FEST.lights(room);
   BUILD.motes({ n: 50, boxes: [[-14, 14, 0.3, 3.4, 0.5, 3.6, 0.6]], col: 0xfff0c0 });

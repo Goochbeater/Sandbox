@@ -25,7 +25,7 @@
   .mk::before { content: ""; position: absolute; inset: 4px; border: 2px solid #fff; transform: rotate(45deg); box-sizing: border-box; box-shadow: 0 0 6px rgba(0,0,0,0.6); }
   .mk::after { content: ""; position: absolute; left: 8px; top: 8px; width: 6px; height: 6px; background: var(--gold); transform: rotate(45deg); }
   .mk i { position: absolute; left: 10px; top: -14px; width: 2px; height: 10px; background: var(--gold); opacity: 0.8; }
-  #bubble { position: absolute; width: max-content; max-width: min(46vw, 420px); padding: 0.45em 0.8em 0.5em; background: var(--bubble); color: var(--paper); font-size: clamp(13px, 2.1vw, 22px);
+  #bubble { position: absolute; z-index: 3; width: max-content; max-width: min(46vw, 420px); padding: 0.45em 0.8em 0.5em; background: var(--bubble); color: var(--paper); font-size: clamp(13px, 2.1vw, 22px);
             line-height: 1.3; border-radius: 2px; transform: translate(-50%, -100%); opacity: 0; transition: opacity 0.3s; pointer-events: none; text-wrap: balance; }
   #bubble.on { opacity: 1; }
   #bubble::after { content: ""; position: absolute; left: var(--tail, 50%); bottom: -7px; margin-left: -7px; border: 7px solid transparent; border-bottom: 0; border-top-color: var(--bubble); }
@@ -114,7 +114,7 @@
   #title .menu button { font: inherit; font-size: min(2.3cqw, 5.8cqh); color: #f2e6cf; background: none; border: 0; padding: 0.12em 0.6em; cursor: pointer; text-shadow: 0 2px 10px #000; letter-spacing: 0.03em; }
   #title .menu button:hover, #title .menu button:focus-visible { color: #fff; outline: none; text-shadow: 0 0 12px rgba(227,183,90,0.9), 0 2px 10px #000; }
   #title .menu button:first-child { color: #fff; background: rgba(40, 110, 70, 0.75); border: 1px solid #7ad0a0; box-shadow: inset 0 0 0 2px rgba(0,0,0,0.25); }
-  #tapStart { position: absolute; left: 0; right: 0; bottom: 12cqh; text-align: center; font-family: var(--caps); letter-spacing: 0.3em; color: #f2e6cf; text-shadow: 0 2px 8px #000; font-size: max(14px, min(2cqw, 4.6cqh)); animation: nudge 1.2s ease-in-out infinite alternate; pointer-events: none; }
+  #tapStart { position: absolute; left: 0; right: 0; bottom: 12cqh; text-align: center; padding: 0.45em 0; background: linear-gradient(90deg, transparent 18%, rgba(8, 6, 10, 0.5) 38%, rgba(8, 6, 10, 0.5) 62%, transparent 82%); font-family: var(--caps); letter-spacing: 0.3em; color: #f2e6cf; text-shadow: 0 2px 8px #000; font-size: max(14px, min(2cqw, 4.6cqh)); animation: nudge 1.2s ease-in-out infinite alternate; pointer-events: none; }
   #title.leaving .logo, #title.leaving .menu { opacity: 0; pointer-events: none; }
   .mapTitle { margin: 0; font-family: "Cinzel Decorative", var(--caps); font-weight: 700; letter-spacing: 0.08em; color: var(--paper); font-size: clamp(16px, 2.4vw, 26px); text-shadow: 0 2px 8px #000; }
   #title.ready #tapStart { display: none; }
@@ -122,7 +122,6 @@
   #title .rating b { font-family: "Cinzel Decorative", var(--caps); font-weight: 900; font-size: max(14px, min(2.2cqw, 5cqh)); line-height: 1; padding: 0.3em 0.4em; border: 2px solid #fbf3e4;
     border-radius: 4px; background: rgba(140, 20, 20, 0.85); box-shadow: 0 2px 10px rgba(0,0,0,0.6); text-shadow: none; }
   #title .rating span { font-family: var(--caps); letter-spacing: 0.12em; font-size: max(11px, min(1.2cqw, 3cqh)); } #title:not(.ready) .menu { opacity: 0; pointer-events: none; }
-  .badge18 { position: absolute; right: 3cqw; top: 5cqh; border: 2px solid #e8c26a; color: #e8c26a; background: rgba(10, 6, 5, 0.75); font-family: var(--caps); font-size: min(2cqw, 4.6cqh); padding: 0.1em 0.5em; border-radius: 50%; letter-spacing: 0.04em; pointer-events: none; text-shadow: 0 2px 6px #000; }
   #night { position: absolute; left: 50%; bottom: 3.5%; transform: translateX(-50%); z-index: 7; display: flex; flex-direction: column; align-items: center; gap: 6px; width: max-content; max-width: 96vw; }
   #night .row { justify-content: center; flex-wrap: wrap; gap: 6px; }
   #night .row:empty, #night .row[hidden] { display: none; }
@@ -149,7 +148,7 @@
   #jrnBtn::before { content: ""; position: absolute; left: 11px; top: 9px; width: 17px; height: 22px; border: 2px solid #fff; border-left-width: 5px; border-radius: 2px 3px 3px 2px; }
   #jrnBtn::after { content: ""; position: absolute; left: 21px; top: 15px; width: 8px; height: 2px; background: #fff; box-shadow: 0 5px 0 #fff; }
   #jrnBtn.new::after { box-shadow: 0 5px 0 #fff, 10px -11px 0 2px #e3b75a; }
-  #journal .sub { color: var(--dim); margin-top: -6px; }
+  #journal .sub { color: var(--dim); margin-top: -6px; } #journal { width: min(92vw, 640px); }   /* the clues read as paragraphs: wider than settings */
   #journal .clue { margin: 0.2em 0 0.9em; } #journal .clue b { color: #f0dfb8; font-weight: 600; } #journal .clue small { color: #9a8a70; }
   .bar .grow { flex: 1; }
   #skipBtn { display: none; pointer-events: auto; margin-right: 3%; padding: 0.25em 1em; font-size: clamp(13px, 1.7vw, 17px); min-width: 0; }
@@ -181,7 +180,6 @@
     <div id="title" hidden>
       <div class="col"><div class="logo"><span class="l1">The</span><span class="l2">Swan Throne</span><span class="l3">A tale of Lodmir</span></div>
         <nav class="menu" aria-label="Main menu"><button id="tNew">New Game</button><button id="tCont" hidden>Continue</button><button id="tSet">Settings</button><button id="tCred">Credits</button></nav></div>
-      <div class="badge18">18+</div>
       <div id="tapStart">Tap to begin</div>
       <div class="rating" role="img" aria-label="For adults only: 18 and over"><b>18+</b><span>Mature content</span></div>
     </div>

@@ -78,5 +78,5 @@ Object.assign(CAST.specs, {
 CAST.specs.queen.homes.fair = { x: -10.2, z: 2.3, face: 1, idle: 'Idle_Loop' };
 CAST.specs.queen.homes.lists = { x: -1.2, z: -7.6, face: 1, idle: 'Idle_Loop', sit: { x: -1.2, y: 1.87, z: -7.6, yaw: 0.12, cardDz: 0.3 } };
 CAST.specs.kazik.homes.fair = { x: 8.8, z: 2.5, face: -1, wander: { x0: 8.6, x1: 9.2, pause: [2, 5] } };
-CAST.specs.zofia.homes.lists = { x: 12.6, z: 2.1, face: 1, idle: 'Idle_Loop' };
+CAST.specs.zofia.homes.lists = { x: 11.2, z: 2.1, face: 1, idle: 'Idle_Loop' };   // (at 12.6 she stood on the black destrier waiting at 14.6)
 CAST.specs.dorota.homes = { chapel: { x: 1.8, z: 2.2, face: -1, idle: 'Idle_Loop' }, lists: { x: -5.4, z: 2.15, face: 1, idle: 'Idle_Loop' } };   // she had one home; with two, each needs its spot

@@ -17,7 +17,7 @@ Object.assign(CAST.specs, {
   nadia: woman('nadia', 'Nadia', { L: 0x2c3a6a, P: 0xe8c040, homes: { lantern: { x: 6.9, z: 1.8, face: -1, idle: 'Idle_FoldArms_Loop' } },
     spec: { s: 1.05, skin: 0x6a4030, skinK: 0.9, brows: 0x141010, hair: [['Hair_Buzzed', 0x141010]], headY: 2.08,
       robe: { col: 0x24305a, top: 0.95, bot: 0.03, rx: [0.14, 0.3], rz: [0.12, 0.26], trim: 0xe8c040, band: 0xe8c040, leg: 0.45, bust: { k: 0.18, sep: 0.085, y: 1.25, w: 0.085, h: 0.12 } } } }),
-  hanna: woman('hanna', 'Hanna', { L: 0x6a5a3a, P: 0xe0d4b8, homes: { lantern: { x: 3.8, z: 1.9, face: 1 } },
+  hanna: woman('hanna', 'Hanna', { L: 0x6a5a3a, P: 0xe0d4b8, homes: { lantern: { x: 2.2, z: 1.9, face: 1 } },   // by the hearth, not in it (3.8 was the fire's x)
     spec: { s: 1.06, skin: 0xeac2a2, brows: 0xa8883a, hair: [['Hair_Long', 0xd8b868]], headY: 2.08,
       robe: { col: 0xc8b898, top: 0.95, bot: 0.03, rx: [0.16, 0.35], rz: [0.13, 0.28], trim: 0x6a5a3a, leg: 0.45, bust: { k: 0.2, sep: 0.09, y: 1.25, w: 0.09, h: 0.13 } },
       tabard: { col: 0x8a7a5a, trim: null, w: 0.1, top: 1.08, from: P_F('Body') } } }),

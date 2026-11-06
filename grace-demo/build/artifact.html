@@ -25,7 +25,7 @@
   .mk::before { content: ""; position: absolute; inset: 4px; border: 2px solid #fff; transform: rotate(45deg); box-sizing: border-box; box-shadow: 0 0 6px rgba(0,0,0,0.6); }
   .mk::after { content: ""; position: absolute; left: 8px; top: 8px; width: 6px; height: 6px; background: var(--gold); transform: rotate(45deg); }
   .mk i { position: absolute; left: 10px; top: -14px; width: 2px; height: 10px; background: var(--gold); opacity: 0.8; }
-  #bubble { position: absolute; width: max-content; max-width: min(46vw, 420px); padding: 0.45em 0.8em 0.5em; background: var(--bubble); color: var(--paper); font-size: clamp(13px, 2.1vw, 22px);
+  #bubble { position: absolute; z-index: 3; width: max-content; max-width: min(46vw, 420px); padding: 0.45em 0.8em 0.5em; background: var(--bubble); color: var(--paper); font-size: clamp(13px, 2.1vw, 22px);
             line-height: 1.3; border-radius: 2px; transform: translate(-50%, -100%); opacity: 0; transition: opacity 0.3s; pointer-events: none; text-wrap: balance; }
   #bubble.on { opacity: 1; }
   #bubble::after { content: ""; position: absolute; left: var(--tail, 50%); bottom: -7px; margin-left: -7px; border: 7px solid transparent; border-bottom: 0; border-top-color: var(--bubble); }
@@ -114,7 +114,7 @@
   #title .menu button { font: inherit; font-size: min(2.3cqw, 5.8cqh); color: #f2e6cf; background: none; border: 0; padding: 0.12em 0.6em; cursor: pointer; text-shadow: 0 2px 10px #000; letter-spacing: 0.03em; }
   #title .menu button:hover, #title .menu button:focus-visible { color: #fff; outline: none; text-shadow: 0 0 12px rgba(227,183,90,0.9), 0 2px 10px #000; }
   #title .menu button:first-child { color: #fff; background: rgba(40, 110, 70, 0.75); border: 1px solid #7ad0a0; box-shadow: inset 0 0 0 2px rgba(0,0,0,0.25); }
-  #tapStart { position: absolute; left: 0; right: 0; bottom: 12cqh; text-align: center; font-family: var(--caps); letter-spacing: 0.3em; color: #f2e6cf; text-shadow: 0 2px 8px #000; font-size: max(14px, min(2cqw, 4.6cqh)); animation: nudge 1.2s ease-in-out infinite alternate; pointer-events: none; }
+  #tapStart { position: absolute; left: 0; right: 0; bottom: 12cqh; text-align: center; padding: 0.45em 0; background: linear-gradient(90deg, transparent 18%, rgba(8, 6, 10, 0.5) 38%, rgba(8, 6, 10, 0.5) 62%, transparent 82%); font-family: var(--caps); letter-spacing: 0.3em; color: #f2e6cf; text-shadow: 0 2px 8px #000; font-size: max(14px, min(2cqw, 4.6cqh)); animation: nudge 1.2s ease-in-out infinite alternate; pointer-events: none; }
   #title.leaving .logo, #title.leaving .menu { opacity: 0; pointer-events: none; }
   .mapTitle { margin: 0; font-family: "Cinzel Decorative", var(--caps); font-weight: 700; letter-spacing: 0.08em; color: var(--paper); font-size: clamp(16px, 2.4vw, 26px); text-shadow: 0 2px 8px #000; }
   #title.ready #tapStart { display: none; }
@@ -122,7 +122,6 @@
   #title .rating b { font-family: "Cinzel Decorative", var(--caps); font-weight: 900; font-size: max(14px, min(2.2cqw, 5cqh)); line-height: 1; padding: 0.3em 0.4em; border: 2px solid #fbf3e4;
     border-radius: 4px; background: rgba(140, 20, 20, 0.85); box-shadow: 0 2px 10px rgba(0,0,0,0.6); text-shadow: none; }
   #title .rating span { font-family: var(--caps); letter-spacing: 0.12em; font-size: max(11px, min(1.2cqw, 3cqh)); } #title:not(.ready) .menu { opacity: 0; pointer-events: none; }
-  .badge18 { position: absolute; right: 3cqw; top: 5cqh; border: 2px solid #e8c26a; color: #e8c26a; background: rgba(10, 6, 5, 0.75); font-family: var(--caps); font-size: min(2cqw, 4.6cqh); padding: 0.1em 0.5em; border-radius: 50%; letter-spacing: 0.04em; pointer-events: none; text-shadow: 0 2px 6px #000; }
   #night { position: absolute; left: 50%; bottom: 3.5%; transform: translateX(-50%); z-index: 7; display: flex; flex-direction: column; align-items: center; gap: 6px; width: max-content; max-width: 96vw; }
   #night .row { justify-content: center; flex-wrap: wrap; gap: 6px; }
   #night .row:empty, #night .row[hidden] { display: none; }
@@ -149,7 +148,7 @@
   #jrnBtn::before { content: ""; position: absolute; left: 11px; top: 9px; width: 17px; height: 22px; border: 2px solid #fff; border-left-width: 5px; border-radius: 2px 3px 3px 2px; }
   #jrnBtn::after { content: ""; position: absolute; left: 21px; top: 15px; width: 8px; height: 2px; background: #fff; box-shadow: 0 5px 0 #fff; }
   #jrnBtn.new::after { box-shadow: 0 5px 0 #fff, 10px -11px 0 2px #e3b75a; }
-  #journal .sub { color: var(--dim); margin-top: -6px; }
+  #journal .sub { color: var(--dim); margin-top: -6px; } #journal { width: min(92vw, 640px); }   /* the clues read as paragraphs: wider than settings */
   #journal .clue { margin: 0.2em 0 0.9em; } #journal .clue b { color: #f0dfb8; font-weight: 600; } #journal .clue small { color: #9a8a70; }
   .bar .grow { flex: 1; }
   #skipBtn { display: none; pointer-events: auto; margin-right: 3%; padding: 0.25em 1em; font-size: clamp(13px, 1.7vw, 17px); min-width: 0; }
@@ -181,7 +180,6 @@
     <div id="title" hidden>
       <div class="col"><div class="logo"><span class="l1">The</span><span class="l2">Swan Throne</span><span class="l3">A tale of Lodmir</span></div>
         <nav class="menu" aria-label="Main menu"><button id="tNew">New Game</button><button id="tCont" hidden>Continue</button><button id="tSet">Settings</button><button id="tCred">Credits</button></nav></div>
-      <div class="badge18">18+</div>
       <div id="tapStart">Tap to begin</div>
       <div class="rating" role="img" aria-label="For adults only: 18 and over"><b>18+</b><span>Mature content</span></div>
     </div>
@@ -54531,13 +54529,23 @@ SCENE.update = function (dt) {
   if (!SCENE.lock && !SCENE.modal) for (const m of SCENE.marks) { const it = m.it; if (it.hidden || !!it.seated !== !!P.sitting) continue;
     if (P.sitting) { SCENE.near = it; break; } const d = Math.abs(P.x - it.x); if (d < it.r && d < nd) { nd = d; SCENE.near = it; } }
   const quiet = SCENE.lock || SCENE.modal || CUT.playing || G.t < (SCENE.markDelay || 0);
+  const shown = [];
   for (const m of SCENE.marks) { R.toView(m.it.p, m.pos); const show = !quiet && !m.it.hidden && !!m.it.seated === !!P.sitting && (P.sitting || Math.abs(P.x - m.it.x) < (m.it.far || 4.2)) && m.pos.x > 0 && m.pos.x < R.vw;
-    m.el.classList.toggle('show', show && !(SCENE.bubble && SCENE.near === m.it)); m.el.classList.toggle('near', SCENE.near === m.it); m.el.style.left = m.pos.x + 'px'; m.el.style.top = m.pos.y + 'px'; }
+    m.on = show && !(SCENE.bubble && SCENE.near === m.it); if (m.on) shown.push(m); }
+  // markers that land on top of each other on screen (two people side by side, a person before a picture) are pushed apart:
+  // the higher one moves up until they're a marker and a half apart. Sorted by screen y, so each settles against the last
+  const gap = Math.max(22, R.vw * 0.022); shown.sort((a, b) => b.pos.y - a.pos.y);
+  for (let i = 0; i < shown.length; i++) for (let j = 0; j < i; j++) { const a = shown[i], b = shown[j];
+    if (Math.abs(a.pos.x - b.pos.x) < gap && Math.abs(a.pos.y - b.pos.y) < gap) a.pos.y = b.pos.y - gap; }
+  for (const m of SCENE.marks) { m.el.classList.toggle('show', !!m.on); m.el.classList.toggle('near', SCENE.near === m.it); m.el.style.left = m.pos.x + 'px'; m.el.style.top = m.pos.y + 'px'; }
   const B = SCENE.bubble;
   if (B) { B.t -= dt; if (B.t <= 0 || (!B.wait && Math.abs(B.actor.v) > 0.6)) SCENE.bubbleOff(); }
   if (SCENE.bubble) { const a = SCENE.bubble.actor, b = $('bubble'), bp = R.toView(a.speakAt ? a.speakAt(Actor._c) : Actor._c.set(a.x, a.y + (a.spec.headY || 2.12), a.z), {});
     const bw = b.offsetWidth || 240, bw2 = bw / 2 + 10, bl = clamp(bp.x, bw2, R.vw - bw2);
-    b.style.left = bl + 'px'; b.style.top = Math.max(bp.y - 6, b.offsetHeight + 6) + 'px'; b.style.setProperty('--tail', clamp(bp.x - bl + bw / 2, 14, bw - 14) + 'px'); }
+    const bt = Math.max(bp.y - 6, b.offsetHeight + 6); b.style.left = bl + 'px'; b.style.top = bt + 'px'; b.style.setProperty('--tail', clamp(bp.x - bl + bw / 2, 14, bw - 14) + 'px');
+    // a marker the bubble covers is hidden while it's up (a diamond poking through a line of speech read as a typo)
+    const L = bl - bw / 2 - 12, Rr = bl + bw / 2 + 12, T = bt - b.offsetHeight - 12, Bt = bt + 4;
+    for (const m of SCENE.marks) if (m.on && m.pos.x > L && m.pos.x < Rr && m.pos.y > T && m.pos.y < Bt) m.el.classList.remove('show'); }
 };
 SCENE.render = function () { const room = SCENE.room; for (const a of SCENE.actors) a.render(room); R.frame(G.t); };
 /* test hook: solids standing on a walking line, where someone would walk through them. The lines are the king's (room.KZ,
@@ -58171,7 +58179,7 @@ const CREDITS = {
      · the small hearth with his father's portrait · the rain-streaked window over the desk · an armillary sphere
      · the old king's sword · the campaign table (opens the map) · a cabinet of curiosities.
    Rain on the glass all evening; lightning now and then lights the room blue. */
-const STUDY = SCENE.addRoom(new Room('study', { X0: -10.5, X1: 10.5, CEIL: 4.5, KZ: 2.55, cam: { y: 2.4, look: 2.12, dist: 19.4, fov: 19 }, exposure: 1.02, reflK: 0.45,
+const STUDY = SCENE.addRoom(new Room('study', { X0: -10.5, X1: 10.5, CEIL: 4.5, KZ: 2.55, cam: { y: 2.4, look: 2.12, dist: 19.4, fov: 19 }, exposure: 1.1, reflK: 0.45,
   music: 'castle', ambience: { rainGlass: 0.7, fire: 0.4, tone: 0.2 }, acoustics: { size: 1.2, wet: 0.14 }, surface: 'wood',
   caption: ['The Study', 'Rain on the glass'] }));
 STUDY.LINES = {
@@ -58286,7 +58294,7 @@ STUDY.build = function () {
   BUILD.glow(9.4, 2.3, 6.65, 1.0, 0xffa050, 0.5);
   BUILD.box(-10.0, -9.72, 0, CE, 6.0, 6.28, T.woodPost, { cast: false });
   /* light, dust */
-  BUILD.light(new THREE.HemisphereLight(0x50606a, 0x2a1a10, 1.8), 0, 4, 0);
+  BUILD.light(new THREE.HemisphereLight(0x5a6a72, 0x34200f, 2.3), 0, 4, 0);   // (1.8 lost the king against the bookcase at the left wall)
   const fill = BUILD.light(new THREE.DirectionalLight(0xb0b8d0, 0.7), 2, 4, 14); fill.target.position.set(0, 1.2, 0);
   BUILD.motes({ n: 110, boxes: [[-3, 0, 0.3, 2.8, 0.4, 2.5, 0.35], [0.8, 2.6, 0.6, 3.3, 0.3, 3.5, 0.35], [-9, 9, 0.4, 3.4, 1, 4, 0.3]], embers: [FX, 0.35, 0.5] });
   room.update(0, 0);
@@ -59506,6 +59514,7 @@ THRONE.hall = function (room, o) {
   BUILD.motes({ n: 120, boxes: [[-10.4, -6.5, 0.4, 4.4, 0.5, 4, 0.3], [6.8, 10.4, 0.4, 4.4, 0.5, 4, 0.25], [-12, 12, 0.6, 4.5, 1, 4, 0.25], [-11, 12, 0.4, 3.2, 5.6, 8.2, 0.2]], col: 0xd8e0ff });
 };
 THRONE.onEnter = function () { if (CUT.playing) return;
+  if (CAL.phase === 'crisis' || CAL.phase === 'ch5') COURT.greeted = true;   // the steward's "petitioners are waiting" is court's, not a crisis's
   if (CAL.festival()) { COURT.greeted = true; SCENE.caption('The Throne Room', 'No court this week: everyone is at the meadow'); }   // the festival replaces court (STORY.md §4)
   else SCENE.caption(...this.caption);
   COURT.enterHall(); };
@@ -59532,7 +59541,7 @@ THRONE.night = function (on) {
 /* ==== game/g34_wood.js ==== */
 /* THE WOOD — an afternoon clearing west of the castle, where the household spends its one dry afternoon of the week: Ser
    Bogdan's archery butts, a fishing hole with a dock, Halina's blanket under the old oak, Zofia at her post, Kazik and the
-   birds, the two guards on their rounds, a red deer at the edge of the trees and Bogdan's hound asleep in the sun. At the far
+   birds, the two guards on their rounds, a red stag at the edge of the trees and Bogdan's hound in the sun. At the far
    left a path goes into the trees to the Woman's hut. Only the king takes it: nobody else in the household is ever sent down
    it, and the hut is no one else's home. */
 const WOOD = SCENE.addRoom(new Room('wood', { X0: -14, X1: 14, CEIL: 40, KZ: 3.0, cam: { y: 3.0, look: 2.7, dist: 19.4, fov: 19 }, exposure: 1.0, reflK: 0.3, far: 320,
@@ -59543,7 +59552,7 @@ WOOD.LINES = {
   path: ['A path into the trees, narrow and dark. The children are never sent down it, and nobody else goes.', 'The Woman’s hut is at the end of it. She is the only one who has never once told me to hurry.'],
   butts: ['Bogdan’s butts. Zofia has put three arrows in the gold this week, and her mother pretends not to be proud.'],
   pond: ['The fishing hole. Carp as old as the Margrave, the grooms say. Nobody has landed one since the siege.'],
-  deer: ['A red deer at the edge of the trees, standing as though it is waiting to be asked something.'],
+  deer: ['A red stag at the edge of the trees, grazing as though he owns the clearing. He probably does.', 'Twelve points. Bogdan has been not-hunting him for three summers.'],
   basket: ['Bread, pears and a jug of something cold. Halina says the one dry afternoon of the week belongs to her.'],
   oak: ['An old oak with a rope swing Kazik is not allowed to use, and uses every day.'],
   zofia: ['Watch, Father! Three in the gold, and a fourth in the post.', 'Bogdan says I shoot like a squire. I told him squires don’t shoot at all.'],
@@ -59620,7 +59629,7 @@ WOOD.build = function () {
   room.interact('oak', 6.6, 3.2, KZ, 1.0, () => say('oak'));
   /* Zofia's post, and the deer at the edge of the trees */
   BUILD.card(T.pell, 9.2, 0, 1.4, { s: 0.95 });
-  room.interact('deer', -4.4, 1.6, KZ, 1.0, () => say('deer'));
+  room.interact('deer', -4.4, 2.75, 1.3, 1.0, () => say('deer')).label = 'Look at the stag';   // over his antlers, at his own z
   room.interact('zofia', 9.2, 2.7, KZ, 1.0, () => talk('zofia', 'zofia')).label = 'Talk to Zofia';
   room.interact('kazik', 11.6, 2.7, KZ, 1.0, () => talk('kazik', 'kazik')).label = 'Talk to Kazik';
   room.interact('woodGuardL', -7.5, 3.0, KZ, 1.0, () => talk('woodGuardL', 'guardL')).label = 'Talk to the guard';
@@ -59752,6 +59761,9 @@ HUT.build = function () {
   BUILD.card(T.cobwebPix, -9.6, 4.2, 0.08, { s: 2.2, cast: false }); BUILD.card(T.cobwebPix, 9.4, 4.4, 0.08, { s: 2.2, cast: false });
   BUILD.box(2.9, 3.5, 0, 0.45, 1.5, 2.0, T.woodDark, { col: 0x8a70b0 });
   BUILD.box(-4.0, -3.0, 0, 1.1, 1.3, 2.0, T.woodDark, { col: 0x7a60a0 });   // the barrel stands behind the walking line (z 2.6), so the king passes in front of it
+  // a stub of candle on the barrel beside the cat: without it the black cat on a dark barrel in a violet room disappeared
+  BUILD.card(T.candle, -3.15, 1.1, 1.85, { s: 0.7 }); BUILD.flame(-3.15, 1.3, 1.855, 0.22);
+  BUILD.light(new THREE.PointLight(0xffb070, 1.3, 0, 2), -3.2, 1.55, 2.3, { flicker: 9 });
   BUILD.card(T.lantern, -2.6, 3.0, 1.0, { cast: false }); BUILD.glow(-2.6, 3.2, 1.05, 1.2, 0x9b5cff, 0.4);
   BUILD.light(new THREE.PointLight(0xa070ff, 2.4, 0, 2), -2.6, 3.0, 1.8, { flicker: 5 });
   BUILD.card(T.lantern, 8.4, 3.0, 1.2, { cast: false }); BUILD.glow(8.4, 3.2, 1.25, 1.2, 0x9b5cff, 0.4);
@@ -60418,7 +60430,7 @@ CAMP.build = function () {
   BUILD.tent(14.8, -0.7, 1.6, 2.0, 1.5, T.canvasBlack, T.canvasBlack, { seg: 12 });
   room.interact('blackTent', 14.8, 3.0, KZ, 0.6, () => say('blackTent'));
   /* the near side: barrels, hay, a weapon rack, a fence */
-  BUILD.card(T.barrel, -12.4, 0, 7.2, { s: 1.1, cast: false }); BUILD.card(T.hay, 2.8, 0, 7.4, { s: 1.0, cast: false }); BUILD.card(T.halberds, 9.2, 0, 7.2, { s: 1.0, cast: false });
+  BUILD.card(T.barrel, -12.4, 0, 7.2, { s: 1.1, cast: false }); BUILD.card(T.hay, 6.6, 0, 7.4, { s: 1.0, cast: false });   /* (at 2.8 it was a yellow blur in front of the king's pavilion) */ BUILD.card(T.halberds, 9.2, 0, 7.2, { s: 1.0, cast: false });
   BUILD.card(T.hurdle, -4.6, 0, 7.1, { w: 2.6, h: 0.8, cast: false }); BUILD.card(T.cartWheel, 13.6, 0, 7.4, { s: 1.1, cast: false, rx: -0.12 });
   FEST.lights(room);
   BUILD.motes({ n: 50, boxes: [[-14, 14, 0.3, 3.4, 0.5, 3.6, 0.6]], col: 0xfff0c0 });
@@ -60685,7 +60697,7 @@ Object.assign(CAST.specs, {
 CAST.specs.queen.homes.fair = { x: -10.2, z: 2.3, face: 1, idle: 'Idle_Loop' };
 CAST.specs.queen.homes.lists = { x: -1.2, z: -7.6, face: 1, idle: 'Idle_Loop', sit: { x: -1.2, y: 1.87, z: -7.6, yaw: 0.12, cardDz: 0.3 } };
 CAST.specs.kazik.homes.fair = { x: 8.8, z: 2.5, face: -1, wander: { x0: 8.6, x1: 9.2, pause: [2, 5] } };
-CAST.specs.zofia.homes.lists = { x: 12.6, z: 2.1, face: 1, idle: 'Idle_Loop' };
+CAST.specs.zofia.homes.lists = { x: 11.2, z: 2.1, face: 1, idle: 'Idle_Loop' };   // (at 12.6 she stood on the black destrier waiting at 14.6)
 CAST.specs.dorota.homes = { chapel: { x: 1.8, z: 2.2, face: -1, idle: 'Idle_Loop' }, lists: { x: -5.4, z: 2.15, face: 1, idle: 'Idle_Loop' } };   // she had one home; with two, each needs its spot
 
 /* ==== game/g42_lantern.js ==== */
@@ -60970,7 +60982,7 @@ Object.assign(CAST.specs, {
   nadia: woman('nadia', 'Nadia', { L: 0x2c3a6a, P: 0xe8c040, homes: { lantern: { x: 6.9, z: 1.8, face: -1, idle: 'Idle_FoldArms_Loop' } },
     spec: { s: 1.05, skin: 0x6a4030, skinK: 0.9, brows: 0x141010, hair: [['Hair_Buzzed', 0x141010]], headY: 2.08,
       robe: { col: 0x24305a, top: 0.95, bot: 0.03, rx: [0.14, 0.3], rz: [0.12, 0.26], trim: 0xe8c040, band: 0xe8c040, leg: 0.45, bust: { k: 0.18, sep: 0.085, y: 1.25, w: 0.085, h: 0.12 } } } }),
-  hanna: woman('hanna', 'Hanna', { L: 0x6a5a3a, P: 0xe0d4b8, homes: { lantern: { x: 3.8, z: 1.9, face: 1 } },
+  hanna: woman('hanna', 'Hanna', { L: 0x6a5a3a, P: 0xe0d4b8, homes: { lantern: { x: 2.2, z: 1.9, face: 1 } },   // by the hearth, not in it (3.8 was the fire's x)
     spec: { s: 1.06, skin: 0xeac2a2, brows: 0xa8883a, hair: [['Hair_Long', 0xd8b868]], headY: 2.08,
       robe: { col: 0xc8b898, top: 0.95, bot: 0.03, rx: [0.16, 0.35], rz: [0.13, 0.28], trim: 0x6a5a3a, leg: 0.45, bust: { k: 0.2, sep: 0.09, y: 1.25, w: 0.09, h: 0.13 } },
       tabard: { col: 0x8a7a5a, trim: null, w: 0.1, top: 1.08, from: P_F('Body') } } }),

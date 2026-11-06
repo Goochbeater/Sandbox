@@ -3,7 +3,7 @@
      · the small hearth with his father's portrait · the rain-streaked window over the desk · an armillary sphere
      · the old king's sword · the campaign table (opens the map) · a cabinet of curiosities.
    Rain on the glass all evening; lightning now and then lights the room blue. */
-const STUDY = SCENE.addRoom(new Room('study', { X0: -10.5, X1: 10.5, CEIL: 4.5, KZ: 2.55, cam: { y: 2.4, look: 2.12, dist: 19.4, fov: 19 }, exposure: 1.02, reflK: 0.45,
+const STUDY = SCENE.addRoom(new Room('study', { X0: -10.5, X1: 10.5, CEIL: 4.5, KZ: 2.55, cam: { y: 2.4, look: 2.12, dist: 19.4, fov: 19 }, exposure: 1.1, reflK: 0.45,
   music: 'castle', ambience: { rainGlass: 0.7, fire: 0.4, tone: 0.2 }, acoustics: { size: 1.2, wet: 0.14 }, surface: 'wood',
   caption: ['The Study', 'Rain on the glass'] }));
 STUDY.LINES = {
@@ -118,7 +118,7 @@ STUDY.build = function () {
   BUILD.glow(9.4, 2.3, 6.65, 1.0, 0xffa050, 0.5);
   BUILD.box(-10.0, -9.72, 0, CE, 6.0, 6.28, T.woodPost, { cast: false });
   /* light, dust */
-  BUILD.light(new THREE.HemisphereLight(0x50606a, 0x2a1a10, 1.8), 0, 4, 0);
+  BUILD.light(new THREE.HemisphereLight(0x5a6a72, 0x34200f, 2.3), 0, 4, 0);   // (1.8 lost the king against the bookcase at the left wall)
   const fill = BUILD.light(new THREE.DirectionalLight(0xb0b8d0, 0.7), 2, 4, 14); fill.target.position.set(0, 1.2, 0);
   BUILD.motes({ n: 110, boxes: [[-3, 0, 0.3, 2.8, 0.4, 2.5, 0.35], [0.8, 2.6, 0.6, 3.3, 0.3, 3.5, 0.35], [-9, 9, 0.4, 3.4, 1, 4, 0.3]], embers: [FX, 0.35, 0.5] });
   room.update(0, 0);

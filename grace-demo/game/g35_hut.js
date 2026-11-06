@@ -94,6 +94,9 @@ HUT.build = function () {
   BUILD.card(T.cobwebPix, -9.6, 4.2, 0.08, { s: 2.2, cast: false }); BUILD.card(T.cobwebPix, 9.4, 4.4, 0.08, { s: 2.2, cast: false });
   BUILD.box(2.9, 3.5, 0, 0.45, 1.5, 2.0, T.woodDark, { col: 0x8a70b0 });
   BUILD.box(-4.0, -3.0, 0, 1.1, 1.3, 2.0, T.woodDark, { col: 0x7a60a0 });   // the barrel stands behind the walking line (z 2.6), so the king passes in front of it
+  // a stub of candle on the barrel beside the cat: without it the black cat on a dark barrel in a violet room disappeared
+  BUILD.card(T.candle, -3.15, 1.1, 1.85, { s: 0.7 }); BUILD.flame(-3.15, 1.3, 1.855, 0.22);
+  BUILD.light(new THREE.PointLight(0xffb070, 1.3, 0, 2), -3.2, 1.55, 2.3, { flicker: 9 });
   BUILD.card(T.lantern, -2.6, 3.0, 1.0, { cast: false }); BUILD.glow(-2.6, 3.2, 1.05, 1.2, 0x9b5cff, 0.4);
   BUILD.light(new THREE.PointLight(0xa070ff, 2.4, 0, 2), -2.6, 3.0, 1.8, { flicker: 5 });
   BUILD.card(T.lantern, 8.4, 3.0, 1.2, { cast: false }); BUILD.glow(8.4, 3.2, 1.25, 1.2, 0x9b5cff, 0.4);

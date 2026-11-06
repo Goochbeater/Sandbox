@@ -42,6 +42,7 @@ Contents
 13l. The feast
 13m. The investigation
 13n. The battle (a preview)
+13o. A full polish pass, and what it found
 14. Credits and licences
 
 ---
@@ -1216,6 +1217,34 @@ two thin lines at the frame's edges.
 shoot after each, drive the order with `DRV.adv` (or patch `NIGHT.ask` to pick another). Measured: the bake takes a few
 seconds headless (software WebGL); 1008 men, the infantry meet about 18 s after the order, ~450 fighting and ~200 fallen by
 the end.
+
+## 13o. A full polish pass, and what it found
+
+Done from the title screen on: the title, the six shots of the opening, then every room at three positions (x −9, 0, 9) at
+the phone strip's 1000 × 446, reviewed side by side. Steps: `tools/shot.js` with a tour script that sets
+`SCENE.player.x` and snaps `SCENE.camX = SCENE.camGoal(true)` between shots (no walking: three frames a room in 20 s).
+What it found and fixed, and the rule behind each, for the next room:
+- **Markers on top of each other** (the chapel's statues and windows, the throne room's steward and queen). Now the engine
+  spreads them: each frame, shown markers are sorted by screen y and any two within a marker and a half are pushed apart
+  vertically (`SCENE.update`). A marker under the speech bubble hides while it's up; the bubble draws over markers.
+- **A person standing in the fire** (Hanna, placed at the hearth's own x). Place people beside a light source, never on it:
+  the flame's card draws over them and the glow blows out the sprite.
+- **Two things in one place** (Zofia in front of the black destrier waiting at the end of his lane). When a room gains a
+  new thing, check the homes near where it stands.
+- **A dark room losing the king** (the study at the bookcase). A room's hemisphere is its floor: if the king is darker than
+  the darkest prop he passes, raise it (the study 1.8 → 2.3, exposure 1.02 → 1.1).
+- **An animal that's in the room but can't be seen** (the black cat on the dark barrel in a violet room). Give a small dark
+  animal a key of its own: a candle beside it, warm against the room's colour.
+- **A blur in the foreground across the main subject** (the camp's near hay bale before the king's pavilion). Foreground
+  props go at the sides of a room's main view, never in front of it.
+- **A marker over the wrong thing** (the wood's deer marker floating over grass once the stag was a model where the card
+  had been). Markers for animals sit over the animal at its own z.
+- **A line that no longer fits the moment** (the steward's "petitioners are waiting" in the throne room in chapter four).
+  Every room greeting checks the phase.
+- **The title's duplicate badge** (a round "18+" in the corner as well as the rating block): one is enough; "Tap to begin"
+  got a soft band so it reads over the castle.
+The opening's six shots, the bedchamber, the throne room, the garden, the yard, the wood, the fair, the lists, the House and
+the feast were checked and left as they are.
 
 ## 14. Credits and licences
 

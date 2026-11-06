@@ -1,6 +1,6 @@
 /* THE WOOD — an afternoon clearing west of the castle, where the household spends its one dry afternoon of the week: Ser
    Bogdan's archery butts, a fishing hole with a dock, Halina's blanket under the old oak, Zofia at her post, Kazik and the
-   birds, the two guards on their rounds, a red deer at the edge of the trees and Bogdan's hound asleep in the sun. At the far
+   birds, the two guards on their rounds, a red stag at the edge of the trees and Bogdan's hound in the sun. At the far
    left a path goes into the trees to the Woman's hut. Only the king takes it: nobody else in the household is ever sent down
    it, and the hut is no one else's home. */
 const WOOD = SCENE.addRoom(new Room('wood', { X0: -14, X1: 14, CEIL: 40, KZ: 3.0, cam: { y: 3.0, look: 2.7, dist: 19.4, fov: 19 }, exposure: 1.0, reflK: 0.3, far: 320,
@@ -11,7 +11,7 @@ WOOD.LINES = {
   path: ['A path into the trees, narrow and dark. The children are never sent down it, and nobody else goes.', 'The Woman’s hut is at the end of it. She is the only one who has never once told me to hurry.'],
   butts: ['Bogdan’s butts. Zofia has put three arrows in the gold this week, and her mother pretends not to be proud.'],
   pond: ['The fishing hole. Carp as old as the Margrave, the grooms say. Nobody has landed one since the siege.'],
-  deer: ['A red deer at the edge of the trees, standing as though it is waiting to be asked something.'],
+  deer: ['A red stag at the edge of the trees, grazing as though he owns the clearing. He probably does.', 'Twelve points. Bogdan has been not-hunting him for three summers.'],
   basket: ['Bread, pears and a jug of something cold. Halina says the one dry afternoon of the week belongs to her.'],
   oak: ['An old oak with a rope swing Kazik is not allowed to use, and uses every day.'],
   zofia: ['Watch, Father! Three in the gold, and a fourth in the post.', 'Bogdan says I shoot like a squire. I told him squires don’t shoot at all.'],
@@ -88,7 +88,7 @@ WOOD.build = function () {
   room.interact('oak', 6.6, 3.2, KZ, 1.0, () => say('oak'));
   /* Zofia's post, and the deer at the edge of the trees */
   BUILD.card(T.pell, 9.2, 0, 1.4, { s: 0.95 });
-  room.interact('deer', -4.4, 1.6, KZ, 1.0, () => say('deer'));
+  room.interact('deer', -4.4, 2.75, 1.3, 1.0, () => say('deer')).label = 'Look at the stag';   // over his antlers, at his own z
   room.interact('zofia', 9.2, 2.7, KZ, 1.0, () => talk('zofia', 'zofia')).label = 'Talk to Zofia';
   room.interact('kazik', 11.6, 2.7, KZ, 1.0, () => talk('kazik', 'kazik')).label = 'Talk to Kazik';
   room.interact('woodGuardL', -7.5, 3.0, KZ, 1.0, () => talk('woodGuardL', 'guardL')).label = 'Talk to the guard';

@@ -181,13 +181,23 @@ SCENE.update = function (dt) {
   if (!SCENE.lock && !SCENE.modal) for (const m of SCENE.marks) { const it = m.it; if (it.hidden || !!it.seated !== !!P.sitting) continue;
     if (P.sitting) { SCENE.near = it; break; } const d = Math.abs(P.x - it.x); if (d < it.r && d < nd) { nd = d; SCENE.near = it; } }
   const quiet = SCENE.lock || SCENE.modal || CUT.playing || G.t < (SCENE.markDelay || 0);
+  const shown = [];
   for (const m of SCENE.marks) { R.toView(m.it.p, m.pos); const show = !quiet && !m.it.hidden && !!m.it.seated === !!P.sitting && (P.sitting || Math.abs(P.x - m.it.x) < (m.it.far || 4.2)) && m.pos.x > 0 && m.pos.x < R.vw;
-    m.el.classList.toggle('show', show && !(SCENE.bubble && SCENE.near === m.it)); m.el.classList.toggle('near', SCENE.near === m.it); m.el.style.left = m.pos.x + 'px'; m.el.style.top = m.pos.y + 'px'; }
+    m.on = show && !(SCENE.bubble && SCENE.near === m.it); if (m.on) shown.push(m); }
+  // markers that land on top of each other on screen (two people side by side, a person before a picture) are pushed apart:
+  // the higher one moves up until they're a marker and a half apart. Sorted by screen y, so each settles against the last
+  const gap = Math.max(22, R.vw * 0.022); shown.sort((a, b) => b.pos.y - a.pos.y);
+  for (let i = 0; i < shown.length; i++) for (let j = 0; j < i; j++) { const a = shown[i], b = shown[j];
+    if (Math.abs(a.pos.x - b.pos.x) < gap && Math.abs(a.pos.y - b.pos.y) < gap) a.pos.y = b.pos.y - gap; }
+  for (const m of SCENE.marks) { m.el.classList.toggle('show', !!m.on); m.el.classList.toggle('near', SCENE.near === m.it); m.el.style.left = m.pos.x + 'px'; m.el.style.top = m.pos.y + 'px'; }
   const B = SCENE.bubble;
   if (B) { B.t -= dt; if (B.t <= 0 || (!B.wait && Math.abs(B.actor.v) > 0.6)) SCENE.bubbleOff(); }
   if (SCENE.bubble) { const a = SCENE.bubble.actor, b = $('bubble'), bp = R.toView(a.speakAt ? a.speakAt(Actor._c) : Actor._c.set(a.x, a.y + (a.spec.headY || 2.12), a.z), {});
     const bw = b.offsetWidth || 240, bw2 = bw / 2 + 10, bl = clamp(bp.x, bw2, R.vw - bw2);
-    b.style.left = bl + 'px'; b.style.top = Math.max(bp.y - 6, b.offsetHeight + 6) + 'px'; b.style.setProperty('--tail', clamp(bp.x - bl + bw / 2, 14, bw - 14) + 'px'); }
+    const bt = Math.max(bp.y - 6, b.offsetHeight + 6); b.style.left = bl + 'px'; b.style.top = bt + 'px'; b.style.setProperty('--tail', clamp(bp.x - bl + bw / 2, 14, bw - 14) + 'px');
+    // a marker the bubble covers is hidden while it's up (a diamond poking through a line of speech read as a typo)
+    const L = bl - bw / 2 - 12, Rr = bl + bw / 2 + 12, T = bt - b.offsetHeight - 12, Bt = bt + 4;
+    for (const m of SCENE.marks) if (m.on && m.pos.x > L && m.pos.x < Rr && m.pos.y > T && m.pos.y < Bt) m.el.classList.remove('show'); }
 };
 SCENE.render = function () { const room = SCENE.room; for (const a of SCENE.actors) a.render(room); R.frame(G.t); };
 /* test hook: solids standing on a walking line, where someone would walk through them. The lines are the king's (room.KZ,

@@ -168,13 +168,13 @@
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <!-- Locked build: the provider, endpoint and model are fixed here. The API key
-     lives in the server-side function (OPENROUTER_API_KEY), never in this page. -->
+     lives in the server-side function (DEEPSEEK_API_KEY), never in this page. -->
 <script>
   window.ENI_CONFIG = {
     locked: true,
-    provider: 'openrouter',
+    provider: 'openai-compatible',
     baseUrl: '/api/v1',
-    model: 'nvidia/nemotron-3.5-super-vl:free',
+    model: 'deepseek-flash',
     portraitSrc: 'portrait/portrait.png'
   };
 </script>

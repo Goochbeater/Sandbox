@@ -5,8 +5,8 @@
 [build]
   publish = "."
 
-# The page posts to /api/v1/chat/completions. Send that to the OpenRouter relay,
-# which reads OPENROUTER_API_KEY from the site's environment.
+# The page posts to /api/v1/chat/completions. Send that to the DeepSeek relay,
+# which reads DEEPSEEK_API_KEY from the site's environment.
 [[edge_functions]]
   path = "/api/v1/chat/completions"
   function = "chat"

@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-// Builds the Netlify site into dist/: index.html (OpenRouter) and preview.html
+// Builds the Netlify site into dist/: index.html (DeepSeek) and preview.html
 // (demo mode). Both are single self-contained pages.
 //
 // The CSS, fonts, knowledge base, scripts and portrait are all inlined, so the
 // page works when it is opened alone (a preview, a file, a copy in a chat) as
-// well as from Netlify. Nothing secret is part of the build: the OpenRouter key
-// stays in the site's OPENROUTER_API_KEY variable and is read only by
+// well as from Netlify. Nothing secret is part of the build: the DeepSeek key
+// stays in the site's DEEPSEEK_API_KEY variable and is read only by
 // netlify/edge-functions/chat.js. The knowledge module goes to netlify/edge-lib,
 // outside the functions folder, because Netlify builds every file there as a
 // function and it has no default export.
@@ -62,11 +62,11 @@ if (/ENI_NETLIFY_API_KEY|sk-or-[A-Za-z0-9]/.test(html)) throw new Error('key-lik
 fs.mkdirSync(outDir, { recursive: true });
 const size = (text) => (Buffer.byteLength(text, 'utf8') / 1048576).toFixed(2) + ' MB';
 fs.writeFileSync(path.join(outDir, 'index.html'), html, 'utf8');
-console.log('built dist/index.html (' + size(html) + ', self-contained, OpenRouter)');
+console.log('built dist/index.html (' + size(html) + ', self-contained, DeepSeek)');
 
 // The same page in demo mode: no key and no network, answers from the library.
 // It is the preview: open it anywhere, or at /preview.html on the site.
-const demoConfig = "provider: 'openrouter',";
+const demoConfig = "provider: 'openai-compatible',";
 if (html.split(demoConfig).length !== 2) throw new Error('provider line not found once in the config');
 const preview = html.replace(demoConfig, "provider: 'demo',");
 fs.writeFileSync(path.join(outDir, 'preview.html'), preview, 'utf8');

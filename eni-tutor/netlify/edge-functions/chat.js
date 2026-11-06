@@ -6,11 +6,14 @@
 // rounds run here. The final answer streams to the page as it arrives. The page
 // also receives a small event for each read and each search.
 //
+// A request with mode "scribe" is Mini-ENI, the session note-taker: the same
+// model with the scribe's own prompt, no tools and no library, one round.
+//
 // The key is read from OPENROUTER_API_KEY and, for search, TAVILY_API_KEY.
 // Neither reaches the browser. The model, the persona and the limits are fixed
 // here, not by the caller.
 
-import { PERSONA, INDEX, DOCS } from '../edge-lib/knowledge.js';
+import { PERSONA, SCRIBE, INDEX, DOCS } from '../edge-lib/knowledge.js';
 
 const MODEL = 'nvidia/nemotron-3.5-super-vl:free';
 const UPSTREAM = 'https://openrouter.ai/api/v1/chat/completions';
@@ -230,10 +233,14 @@ async function streamRound(ctx, messages, tools) {
 }
 
 // The loop: ask, run the tools the model asks for, ask again, until it answers.
+// The scribe (Mini-ENI) is one plain call: its own prompt, no tools, no library.
 async function run(ctx) {
-  const messages = [{ role: 'system', content: PERSONA + '\n\n' + indexText() }].concat(ctx.conversation);
-  for (let round = 0; round < MAX_ROUNDS; round++) {
-    const last = round === MAX_ROUNDS - 1;
+  const scribe = ctx.mode === 'scribe';
+  const system = scribe ? SCRIBE : PERSONA + '\n\n' + indexText();
+  const messages = [{ role: 'system', content: system }].concat(ctx.conversation);
+  const rounds = scribe ? 1 : MAX_ROUNDS;
+  for (let round = 0; round < rounds; round++) {
+    const last = round === rounds - 1;
     const turn = await streamRound(ctx, messages, last ? null : TOOLS);
     // Metadata only, for the function log: which tools were offered, what the model
     // asked for, why it stopped, and which provider served the round.
@@ -246,7 +253,8 @@ async function run(ctx) {
         provider: turn.provider,
       }));
     }
-    if (!turn || !turn.toolCalls.length) return;
+    // On the last round no tools were offered, so a call the model makes anyway is ignored.
+    if (!turn || last || !turn.toolCalls.length) return;
     messages.push({
       role: 'assistant',
       content: turn.content || null,
@@ -298,6 +306,7 @@ export default async (request) => {
   }
 
   const params = {
+    mode: body.mode === 'scribe' ? 'scribe' : 'chat',
     maxTokens: Math.round(clamp(body.max_tokens, 64, MAX_TOKENS_CAP, 1024)),
     temperature: clamp(body.temperature, 0, 1.5, 0.7),
     topP: clamp(body.top_p, 0, 1, 0.95),

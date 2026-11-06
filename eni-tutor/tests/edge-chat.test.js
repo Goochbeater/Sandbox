@@ -155,6 +155,46 @@ test('a plain answer: one model call, the persona and index in the system messag
   }
 });
 
+test('scribe mode: the scribe prompt, no tools, no library, one call, and a stray tool call is ignored', async () => {
+  const handler = await loaded;
+  const id = await interviewId();
+  const up = stubRounds([
+    sse([...toolCall(0, 'call_1', 'open_document', JSON.stringify({ id })), text('## Summary\nNotes.'), done]),
+    sse([text('should never be asked for'), done]),
+  ]);
+  try {
+    const res = await handler(post(goodBody({ mode: 'scribe', temperature: 0.3 })));
+    const out = await res.text();
+    assert.match(out, /Notes\./);
+    assert.doesNotMatch(out, /"tool":"read"/, 'the page is not told about a read');
+    const calls = modelCalls(up.calls);
+    assert.equal(calls.length, 1, 'one round, even though the model asked for a tool');
+    const sent = bodyOf(calls[0]);
+    assert.equal(sent.tools, undefined);
+    assert.equal(sent.tool_choice, undefined);
+    assert.equal(sent.temperature, 0.3);
+    assert.equal(sent.messages[0].role, 'system');
+    assert.match(sent.messages[0].content, /^# Mini-ENI/);
+    assert.doesNotMatch(sent.messages[0].content, /LIBRARY INDEX/);
+    assert.doesNotMatch(sent.messages[0].content, /ENI TUTOR — Jailbreaking/, 'the persona is not in the scribe request');
+  } finally {
+    up.restore();
+  }
+});
+
+test('an unknown mode is an ordinary chat, with the persona and tools', async () => {
+  const handler = await loaded;
+  const up = stubRounds([sse([text('Hello.'), done])]);
+  try {
+    await (await handler(post(goodBody({ mode: 'something-else' })))).text();
+    const sent = bodyOf(modelCalls(up.calls)[0]);
+    assert.match(sent.messages[0].content, /# LIBRARY INDEX/);
+    assert.equal(sent.tools.length, 2);
+  } finally {
+    up.restore();
+  }
+});
+
 test('each round is logged as metadata only, never the reply text', async () => {
   const handler = await loaded;
   const up = stubRounds([sse([text('Hello there.'), done])]);

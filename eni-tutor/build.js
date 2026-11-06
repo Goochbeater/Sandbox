@@ -30,6 +30,14 @@ const dataUri = (file) =>
 // A literal "</script" or "</style" in inlined code would end the element early.
 const inline = (text) => text.replace(/<\/(script|style)/gi, '<\\/$1');
 
+// The persona and the scribe's prompt live as Markdown. The pages load them as
+// scripts, and the relay imports them from knowledge.js, so both are generated
+// from the one source here and cannot drift from it.
+const persona = read('data/system-prompt.md');
+const scribe = read('data/scribe-prompt.md');
+fs.writeFileSync(path.join(root, 'data', 'system-prompt.js'), 'window.ENI_SYSTEM_PROMPT = ' + JSON.stringify(persona) + ';\n', 'utf8');
+fs.writeFileSync(path.join(root, 'data', 'scribe-prompt.js'), 'window.ENI_SCRIBE_PROMPT = ' + JSON.stringify(scribe) + ';\n', 'utf8');
+
 let html = read('netlify-index.html');
 
 // 1. Stylesheet, with its fonts inlined.
@@ -99,11 +107,11 @@ const docs = walkMd(path.join(root, 'kb')).sort().map(readDoc);
 docs.forEach((d, i) => { d.id = 'D' + String(i + 1).padStart(2, '0'); });
 const index = docs.map(({ id, path: p, title, type, tags, summary }) => ({ id, path: p, title, type, tags, summary }));
 const texts = Object.fromEntries(docs.map((d) => [d.path, d.body]));
-const persona = fs.readFileSync(path.join(root, 'data', 'system-prompt.md'), 'utf8');
 
 fs.mkdirSync(path.join(root, 'netlify', 'edge-lib'), { recursive: true });
 fs.writeFileSync(path.join(root, 'netlify', 'edge-lib', 'knowledge.js'),
   'export const PERSONA = ' + JSON.stringify(persona) + ';\n\n' +
+  'export const SCRIBE = ' + JSON.stringify(scribe) + ';\n\n' +
   'export const INDEX = ' + JSON.stringify(index) + ';\n\n' +
   'export const DOCS = ' + JSON.stringify(texts) + ';\n', 'utf8');
 fs.writeFileSync(path.join(root, 'data', 'kb-docs.js'),

@@ -685,6 +685,7 @@
     stream: true,
     kbAttach: true,
     topK: 6,
+    scribeAuto: true,   /* Mini-ENI refreshes the notes while its panel is open */
     systemPrompt: ''
   };
 
@@ -698,6 +699,11 @@
     docsByConvo: {},    /* documents loaded for the last reply, per conversation */
     docTitles: {},      /* titles of the documents the relay has opened, by id */
     drawerOpen: false,
+    scribeOpen: false,
+    scribeBusy: false,  /* Mini-ENI is writing notes */
+    scribeDraft: null,  /* { id, text }: the notes as they stream in, for one conversation */
+    scribeError: null,  /* { id, sig, msg }: the last failed run, so auto does not retry it */
+    scribeAbort: null,
     menuOpen: false,
     menuTab: 'menu',
     abort: null,
@@ -737,6 +743,7 @@
     s.temperature = isNum(Number(s.temperature)) ? Number(s.temperature) : 0.7;
     s.topP = isNum(Number(s.topP)) ? Number(s.topP) : 0.95;
     s.maxTokens = clampInt(s.maxTokens, 64, 32768, 2048);
+    s.scribeAuto = s.scribeAuto !== false;
     return s;
   }
 
@@ -1103,6 +1110,9 @@
     scrollMessages();
     updateTierBadge();
     renderDrawer();
+    renderScribe();
+    /* After the turn that triggered this render has settled, refresh stale notes. */
+    if (state.scribeOpen) setTimeout(maybeAutoScribe, 0);
   }
 
   function scrollMessages() {
@@ -1194,6 +1204,7 @@
     var box = $('messages');
     var s = state.settings;
     state.streaming = true;
+    abortScribe();  /* the tutor's answer comes first; the notes can wait */
 
     /* Retrieve the material for this turn. The context never enters the
        visible history — it is appended to the system message only. */
@@ -1509,6 +1520,7 @@
       }
       var reqBody = buildOpenAIBody(cfg, system, history);
       if (LOCKED && cfg.docIds && cfg.docIds.length) reqBody.docIds = cfg.docIds;
+      if (LOCKED && cfg.mode) reqBody.mode = cfg.mode;
       init.body = JSON.stringify(reqBody);
     } else if (cfg.provider === 'anthropic') {
       kind = 'sse';
@@ -1614,17 +1626,22 @@
       if (m.error) { lines.push(''); lines.push('_' + m.error + '_'); }
       lines.push('');
     });
-    var blob = new Blob([lines.join('\n')], { type: 'text/markdown;charset=utf-8' });
+    toast('Exported ' + downloadMarkdown('eni', convo, lines.join('\n')));
+  }
+
+  /* Save text as a .md file named from a prefix, the date and the conversation's title. */
+  function downloadMarkdown(prefix, convo, text) {
+    var blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
-    a.download = 'eni-' + new Date().toISOString().slice(0, 10) + '-' +
-      conversationTitle(convo).replace(/[^a-z0-9]+/gi, '-').toLowerCase().slice(0, 40) + '.md';
+    a.download = prefix + '-' + new Date().toISOString().slice(0, 10) + '-' +
+      conversationTitle(convo).replace(/[^a-z0-9]+/gi, '-').toLowerCase().slice(0, 40).replace(/^-+|-+$/g, '') + '.md';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
-    toast('Exported ' + a.download);
+    return a.download;
   }
 
   /* ---- drawer ---------------------------------------------------------- */
@@ -1757,22 +1774,219 @@
     });
   }
 
+  /* Slide a right-hand drawer in or out. It is shown first and given its class on
+     the next frame, so the transform transition runs; it is hidden once it is out. */
+  function showPanel(node, open) {
+    if (!node) return;
+    if (node._timer) clearTimeout(node._timer);
+    if (open) {
+      node.hidden = false;
+      global.requestAnimationFrame(function () { node.classList.add('is-open'); });
+    } else {
+      node.classList.remove('is-open');
+      node._timer = setTimeout(function () { if (!node.classList.contains('is-open')) node.hidden = true; }, 260);
+    }
+  }
+
   function setDrawer(open) {
     state.drawerOpen = !!open;
-    var d = $('drawer');
+    if (state.drawerOpen && state.scribeOpen) setScribe(false);  /* one drawer at a time */
+    showPanel($('drawer'), state.drawerOpen);
     var btn = $('btnContext');
-    if (d) {
-      if (state.drawerOpen) {
-        d.hidden = false;
-        /* next frame, so the transform transition actually runs */
-        global.requestAnimationFrame(function () { d.classList.add('is-open'); });
+    if (btn) btn.setAttribute('aria-expanded', String(state.drawerOpen));
+  }
+
+  /* ---- Mini-ENI: session notes and the student's scratchpad ------------------ */
+
+  /* The dev page sends the scribe's prompt itself. The locked build leaves it to the relay. */
+  var SCRIBE_PROMPT = global.ENI_SCRIBE_PROMPT || '';
+  var SCRIBE_BUDGET = 18000;   /* characters of transcript sent to the scribe */
+  var SCRIBE_MSG_CAP = 2500;   /* per message, so one long reply cannot crowd out the rest */
+
+  /* A fingerprint of the conversation, to tell whether the notes are out of date. */
+  function scribeSig(convo) {
+    var last = convo.messages[convo.messages.length - 1];
+    return convo.messages.length + ':' + (last && last.content ? last.content.length : 0);
+  }
+
+  function scribeStale(convo) {
+    return !convo.scribe || convo.scribe.sig !== scribeSig(convo);
+  }
+
+  function scribeHasMessages(convo) {
+    return convo.messages.some(function (m) { return m.role === 'user' && m.content; });
+  }
+
+  /* The conversation as plain text, newest messages first into the budget. */
+  function scribeTranscript(convo) {
+    var lines = [];
+    var used = 0;
+    var cut = false;
+    for (var i = convo.messages.length - 1; i >= 0; i--) {
+      var m = convo.messages[i];
+      if (!m.content) continue;
+      var text = m.content.length > SCRIBE_MSG_CAP ? m.content.slice(0, SCRIBE_MSG_CAP) + ' [...]' : m.content;
+      var line = (m.role === 'user' ? 'STUDENT: ' : 'ENI: ') + text;
+      if (used + line.length > SCRIBE_BUDGET && lines.length) { cut = true; break; }
+      lines.unshift(line);
+      used += line.length;
+    }
+    if (cut) lines.unshift('[Earlier messages are left out.]');
+    if (convo.tier) lines.unshift('[ENI placed the student at Tier ' + convo.tier + '.]');
+    return lines.join('\n\n');
+  }
+
+  /* The demo has no model, so its notes are a plain list of what the student asked. */
+  function localNotes(convo) {
+    var asked = convo.messages
+      .filter(function (m) { return m.role === 'user' && m.content; })
+      .map(function (m) {
+        var t = m.content.replace(/\s+/g, ' ').trim();
+        return t.length > 110 ? t.slice(0, 110) + '…' : t;
+      });
+    var out = ['## Summary',
+      'The student sent ' + asked.length + ' message' + (asked.length === 1 ? '' : 's') + '. The latest: "' + asked[asked.length - 1] + '"',
+      '', '## Covered'];
+    asked.slice(-8).forEach(function (q) { out.push('- ' + q); });
+    if (convo.tier) out.push('', '## Where the student stands', 'ENI placed the student at Tier ' + convo.tier + '.');
+    out.push('', '_Local summary: the demo has no model to write fuller notes._');
+    return out.join('\n');
+  }
+
+  function abortScribe() {
+    if (state.scribeAbort) state.scribeAbort();
+  }
+
+  /* Write the notes for one conversation. `auto` runs stay quiet when they cannot start. */
+  function runScribe(convo, auto) {
+    if (state.scribeBusy) return;
+    if (state.streaming) { if (!auto) toast('Wait for the reply to finish.'); return; }
+    if (!scribeHasMessages(convo)) return;
+    var s = state.settings;
+    var sig = scribeSig(convo);
+    var buffer = '';
+    var timer = null;
+    var aborted = false;
+
+    function done(md, err) {
+      if (timer) { clearTimeout(timer); timer = null; }
+      state.scribeBusy = false;
+      state.scribeAbort = null;
+      state.scribeDraft = null;
+      if (err) state.scribeError = { id: convo.id, sig: sig, msg: err };
+      else if (md) { convo.scribe = { md: md, at: nowStamp(), sig: sig }; saveConversations(); }
+      renderScribe();
+    }
+
+    state.scribeError = null;
+    state.scribeBusy = true;
+    state.scribeDraft = { id: convo.id, text: '' };
+    renderScribe();
+
+    if (s.provider === 'demo') { done(localNotes(convo)); return; }
+
+    var cfg = Object.assign({}, s, { mode: 'scribe', temperature: 0.3, maxTokens: 2048, docIds: [] });
+    var history = [{
+      role: 'user',
+      content: 'Conversation transcript:\n\n' + scribeTranscript(convo) + '\n\nWrite the session notes.'
+    }];
+    var stream = streamProvider(cfg, LOCKED ? '' : SCRIBE_PROMPT, history, {
+      onDelta: function (t) {
+        buffer += t;
+        if (!timer) timer = setTimeout(function () {
+          timer = null;
+          state.scribeDraft = { id: convo.id, text: buffer };
+          renderScribe();
+        }, 80);
+      },
+      onDone: function () {
+        if (aborted) { done(''); return; }
+        var md = buffer.trim();
+        if (md) done(md);
+        else done('', 'Mini-ENI sent back nothing. The model may have spent its whole budget thinking. Try again.');
+      },
+      onError: function (err) {
+        done('', 'Request failed: ' + (err && err.message ? err.message : String(err)));
+      }
+    });
+    state.scribeAbort = function () { aborted = true; stream.abort(); };
+  }
+
+  /* Refresh stale notes without being asked, while the panel is open and the page is quiet. */
+  function maybeAutoScribe() {
+    if (!state.scribeOpen || !state.settings.scribeAuto || state.scribeBusy || state.streaming) return;
+    var convo = activeConvo();
+    if (!scribeHasMessages(convo) || !scribeStale(convo)) return;
+    if (state.scribeError && state.scribeError.id === convo.id && state.scribeError.sig === scribeSig(convo)) return;
+    runScribe(convo, true);
+  }
+
+  /* The notes and the student's own, as one Markdown file. */
+  function scribeExport(convo) {
+    var parts = ['# Session notes — ' + conversationTitle(convo), '',
+      '_' + formatDate(convo.created) + (convo.tier ? ' · Tier ' + convo.tier : '') + '_', ''];
+    if (convo.scribe && convo.scribe.md) parts.push(convo.scribe.md.trim(), '');
+    var mine = String(convo.scratch || '').trim();
+    if (mine) parts.push('## Your notes', '', mine, '');
+    return parts.join('\n');
+  }
+
+  function renderScribe() {
+    if (!state.scribeOpen) return;
+    var convo = activeConvo();
+    var draft = state.scribeDraft && state.scribeDraft.id === convo.id ? state.scribeDraft : null;
+    var running = state.scribeBusy && !!draft;
+    var notesMd = running ? draft.text : (convo.scribe ? convo.scribe.md : '');
+    var hasMine = !!String(convo.scratch || '').trim();
+    var err = state.scribeError && state.scribeError.id === convo.id ? state.scribeError : null;
+
+    var meta = $('scribeMeta');
+    if (meta) {
+      meta.innerHTML = '';
+      meta.className = 'scribe-meta' + (!running && err ? ' is-error' : '');
+      if (running) {
+        meta.appendChild(el('span', 'scribe-spin'));
+        meta.appendChild(el('span', null, 'Writing notes…'));
+      } else if (err) {
+        meta.appendChild(el('span', null, err.msg));
+      } else if (convo.scribe) {
+        meta.appendChild(el('span', null, 'Updated ' + formatTime(convo.scribe.at) +
+          (scribeStale(convo) ? ' · the conversation has moved on' : '')));
       } else {
-        d.classList.remove('is-open');
-        if (d._timer) clearTimeout(d._timer);
-        d._timer = setTimeout(function () { if (!state.drawerOpen) d.hidden = true; }, 260);
+        meta.appendChild(el('span', null, scribeHasMessages(convo) ? 'No notes yet.' : 'Notes appear once you have talked with ENI.'));
       }
     }
-    if (btn) btn.setAttribute('aria-expanded', String(state.drawerOpen));
+
+    var notes = $('scribeNotes');
+    if (notes) {
+      try { notes.innerHTML = notesMd ? renderMarkdown(notesMd) : ''; }
+      catch (e) { notes.textContent = notesMd; }
+    }
+
+    var run = $('btnScribeRun');
+    if (run) {
+      run.textContent = running ? 'Stop' : (convo.scribe ? 'Update' : 'Write notes');
+      run.disabled = !running && (state.scribeBusy || !scribeHasMessages(convo));
+      run.className = 'btn btn-tiny btn-run';
+    }
+    var copy = $('btnScribeCopy');
+    var save = $('btnScribeDownload');
+    var exportable = !!(convo.scribe || hasMine);
+    if (copy) copy.disabled = !exportable;
+    if (save) save.disabled = !exportable;
+    var auto = $('scribeAuto');
+    if (auto) auto.setAttribute('aria-checked', String(!!state.settings.scribeAuto));
+    var pad = $('scratchpad');
+    if (pad && pad.value !== (convo.scratch || '')) pad.value = convo.scratch || '';
+  }
+
+  function setScribe(open) {
+    state.scribeOpen = !!open;
+    if (state.scribeOpen && state.drawerOpen) setDrawer(false);  /* one drawer at a time */
+    showPanel($('scribe'), state.scribeOpen);
+    var btn = $('btnScribe');
+    if (btn) btn.setAttribute('aria-expanded', String(state.scribeOpen));
+    if (state.scribeOpen) { renderScribe(); maybeAutoScribe(); }
   }
 
   /* ==========================================================================
@@ -2229,6 +2443,53 @@
     var btnCloseDrawer = $('btnCloseDrawer');
     if (btnCloseDrawer) btnCloseDrawer.addEventListener('click', function () { setDrawer(false); });
 
+    /* --- Mini-ENI: notes and scratchpad ----------------------------------- */
+    var btnScribe = $('btnScribe');
+    if (btnScribe) btnScribe.addEventListener('click', function () { setScribe(!state.scribeOpen); });
+    var btnCloseScribe = $('btnCloseScribe');
+    if (btnCloseScribe) btnCloseScribe.addEventListener('click', function () { setScribe(false); });
+    var btnScribeRun = $('btnScribeRun');
+    if (btnScribeRun) btnScribeRun.addEventListener('click', function () {
+      var c = activeConvo();
+      if (state.scribeBusy && state.scribeDraft && state.scribeDraft.id === c.id) abortScribe();
+      else runScribe(c, false);
+    });
+    var btnScribeCopy = $('btnScribeCopy');
+    if (btnScribeCopy) btnScribeCopy.addEventListener('click', function () {
+      copyText(scribeExport(activeConvo())).then(function (ok) {
+        toast(ok ? 'Notes copied.' : 'Copy failed; select the text manually.');
+      });
+    });
+    var btnScribeDownload = $('btnScribeDownload');
+    if (btnScribeDownload) btnScribeDownload.addEventListener('click', function () {
+      var c = activeConvo();
+      toast('Saved ' + downloadMarkdown('eni-notes', c, scribeExport(c)));
+    });
+    var scribeAuto = $('scribeAuto');
+    if (scribeAuto) scribeAuto.addEventListener('click', function () {
+      state.settings.scribeAuto = !state.settings.scribeAuto;
+      saveSettings();
+      renderScribe();
+      maybeAutoScribe();
+    });
+    /* The scratchpad belongs to the conversation: kept in memory on every key,
+       written to storage a moment later and when the box loses focus. */
+    var scratchpad = $('scratchpad');
+    if (scratchpad) {
+      var scratchTimer = null;
+      scratchpad.addEventListener('input', function () {
+        activeConvo().scratch = scratchpad.value;
+        if (scratchTimer) clearTimeout(scratchTimer);
+        scratchTimer = setTimeout(function () { scratchTimer = null; saveConversations(); renderScribe(); }, 500);
+      });
+      scratchpad.addEventListener('blur', function () {
+        if (!scratchTimer) return;
+        clearTimeout(scratchTimer);
+        scratchTimer = null;
+        saveConversations();
+      });
+    }
+
     /* --- delegated: citation chips, copy-code buttons --------------------- */
     document.addEventListener('click', function (e) {
       if (!e.target || !e.target.closest) return;
@@ -2297,6 +2558,7 @@
       if (e.key !== 'Escape') return;
       if (state.menuOpen) closeMenu();
       else if (state.drawerOpen) setDrawer(false);
+      else if (state.scribeOpen) setScribe(false);
     });
 
     /* --- first paint ------------------------------------------------------ */
@@ -2308,10 +2570,14 @@
     if (menuEl) { menuEl.hidden = true; menuEl.classList.remove('is-open'); }
     if (scrimEl) { scrimEl.hidden = true; scrimEl.classList.remove('is-open'); }
     if (drawerEl) { drawerEl.hidden = true; drawerEl.classList.remove('is-open'); }
+    var scribeEl = $('scribe');
+    if (scribeEl) { scribeEl.hidden = true; scribeEl.classList.remove('is-open'); }
     state.menuOpen = false;
     state.drawerOpen = false;
+    state.scribeOpen = false;
     if (btnMenu) btnMenu.setAttribute('aria-expanded', 'false');
     if (btnContext) btnContext.setAttribute('aria-expanded', 'false');
+    if (btnScribe) btnScribe.setAttribute('aria-expanded', 'false');
 
     loadPortrait();
     renderConversationList();

@@ -13,7 +13,9 @@ eni-tutor/
 ├── style.css, fonts/       dark theme, Bonsai display face, local @font-face
 ├── portrait/portrait.png   the ENI portrait, hard-locked (1122 x 1402)
 ├── data/kb.js              generated: the knowledge base (built from kb/)
-├── data/system-prompt.js   the persona prompt (shipped; see "Open decisions")
+├── data/system-prompt.md   the persona prompt (edit this one; see "Open decisions")
+├── data/scribe-prompt.md   Mini-ENI's prompt (edit this one)
+├── data/system-prompt.js, scribe-prompt.js   generated from the two .md files by build.js
 ├── lib/retrieval.js        BM25 retrieval over the KB
 ├── kb/                     knowledge base sources (markdown, front matter sets the doc type)
 │   ├── v2/                 attack course: curriculum, labs, interview, quick reference
@@ -56,6 +58,19 @@ because the function is not in the zip. Use it to check the page and the library
 
 The key never appears in the page, in `dist/`, or in the repository. `build.js` refuses to write
 a page that contains key-shaped text.
+
+### Mini-ENI, the session scribe
+
+The green pen beside the lightbulb opens a side panel. Mini-ENI reads the conversation and writes
+short session notes (summary, what was covered, where the student stands, open questions, next
+steps). Copy and `.md` save the notes together with the student's own scratchpad, which sits
+under them and stays with the conversation (in this browser, like the conversation itself).
+**Auto** rewrites stale notes while the panel is open; with it off, **Update** does it by hand.
+
+It is the same model through the same relay: the page sends `mode: "scribe"`, and the function
+swaps in `data/scribe-prompt.md`, offers no tools and no library, and makes one call. The notes
+cost one extra request per reply while the panel is open and nothing while it is closed. The
+preview (demo mode) writes a plain list of what the student asked instead.
 
 ### The model
 

@@ -12,7 +12,13 @@ THRONE.LINES = {
   map: ['The kingdom on one sheet of calfskin. It looks so manageable from here.', 'Somebody has drawn a little gallows over the ford. I suspect the steward.'],
   doors: ['The petitioners come through there.'], halberds: ['Polished every morning, used never. Let it stay that way.'],
 };
-THRONE.build = function () { const room = BUILD.begin(this); THRONE.hall(room, {}); room.update(0, 0); return BUILD.end(); };
+THRONE.build = function () { const room = BUILD.begin(this); THRONE.hall(room, {});
+  // chapter four (g48): the Swan Cup kept under guard on the council table, and the accusation before the dais; shown in the crisis
+  room.interact('swanCup', 8.45, 1.9, room.KZ, 0.5, () => INV.cup()).hidden = true;
+  room.interact('accuse', room.TX + 2.2, 2.9, room.KZ, 0.7, () => INV.accuse()).hidden = true;
+  room.update(0, 0); const out = BUILD.end();
+  room.crisisCup = FEAST.makeCup(); room.crisisCup.position.set(8.45, 0.88, 1.05); room.crisisCup.scale.setScalar(0.8); room.crisisCup.visible = false; room.group.add(room.crisisCup);
+  return out; };
 /* the hall itself, shared with the feast (game/g46): o.feast leaves out the steward's lectern and its candle stand, and the
    council table, where the feast puts the sideboard and a lower table */
 THRONE.hall = function (room, o) {

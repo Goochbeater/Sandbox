@@ -16,7 +16,7 @@ CAMP.build = function () {
   BUILD.card(T.forestNear, -20, 0, -40, { w: 70, h: 12, basic: true, cast: false }); BUILD.card(T.forestNear, 40, 0, -42, { w: 70, h: 12, basic: true, cast: false });
   room.interact('river', -2.0, 1.4, KZ, 0.5, () => say('river'));
   /* the gate from the lists */
-  BUILD.card(T.festGate, -15.4, 0, 1.7); room.interact('toLists', -15.0, 3.0, KZ, 1.0, () => { SCENE.lock++; SCENE.say(SCENE.player, L.toLists[0].replace('to the lists', 'back to the lists')).then(() => { SCENE.lock--; GAME.save(); SCENE.go('lists', { x: 13.8, face: -1 }); }); }).label = 'Back to the lists';
+  BUILD.card(T.festGate, -15.4, 0, 1.7); room.interact('toLists', -15.0, 3.0, KZ, 1.0, () => { if (CAL.phase !== 'festival' && CAL.phase !== 'court') { SCENE.say(SCENE.player, 'The lists are coming down. Nothing out there now but carpenters and crows.'); return; } SCENE.lock++; SCENE.say(SCENE.player, L.toLists[0].replace('to the lists', 'back to the lists')).then(() => { SCENE.lock--; GAME.save(); SCENE.go('lists', { x: 13.8, face: -1 }); }); }).label = 'Back to the lists';
   /* the Krasnian soldiers: two tents, a fire, a log to sit on */
   BUILD.tent(-12.4, -0.2, 1.5, 1.7, 1.3, T.canvasKrasna, T.canvasKrasna, { pennant: T.pennantKrasna, seg: 12 });
   BUILD.tent(-9.4, -1.8, 1.5, 1.7, 1.3, T.canvasKrasna, T.canvasKrasna, { pennant: T.pennantKrasna, seg: 12 });

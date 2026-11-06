@@ -82,6 +82,7 @@ STUDY.build = function () {
   BUILD.glow(WX - 0.85, 1.28, 1.1, 0.8, 0xffa050, 0.5);
   room.lights.desk = BUILD.light(new THREE.PointLight(0xffb070, 3.2, 0, 2), WX - 0.7, 1.45, 1.6, { flicker: 9.2 });
   room.interact('desk', WX, 2.0, KZ, 1.1, () => say(SCENE.cycle('deskOrWindow', ['desk', 'window', 'desk'])));
+  room.interact('report', WX + 0.75, 1.55, KZ, 0.6, () => INV.report()).hidden = true;   // chapter four (g48): Ilka's report on the night of the feast
   /* the armillary sphere: brass rings turning very slowly on a stand */
   { const ax = 3.75, az = 1.05, ay = 1.3; BUILD.card(T.armStand, ax, 0, az, { s: 1.0 });
     const brass = BUILD.std(null, { col: 0xc8962e, rough: 0.35, metal: 0.8 }), arm = new THREE.Group(); arm.position.set(ax, ay, az); BUILD.add(arm, { dyn: true });

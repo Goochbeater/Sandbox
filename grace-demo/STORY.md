@@ -12,7 +12,9 @@ The plan for the whole game's story. Names are placeholders; change them in one 
 | The Swan Festival (§6): the fair, the lists, the pavilions, three days on the calendar | built |
 | The House of the Lantern (§9): the tunnel, the common room, five women's rooms | built |
 | The calendar (§12), the feast and King Gniewomir's death (chapter 3's night), the opening of chapter 4 | built |
-| The twelve days: the investigation and its clues (§7), the accusation, choices in court, endings | planned |
+| The twelve days: the investigation, its eight clues and the red herrings (§7), the journal, the accusation and its outcomes | built |
+| Chapter five's war: a battle preview (the king commands, two armies charge and meet); the war camp | preview built; the camp next |
+| Choices in court during the crisis, chapters 1–2's weeks, endings | planned |
 
 ---
 

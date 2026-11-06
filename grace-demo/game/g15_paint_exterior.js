@@ -180,3 +180,13 @@ PX.def('swanBanner', () => { const W = 10, H = 26, p = new Pix(W, H);   // a lon
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { if (y > H - 4 && Math.abs(x - 4.5) < (y - (H - 4)) * 1.3) continue; p.set(x, y, x === 0 || x === W - 1 ? 0xc8962e : C.mix(0x2a3a7a, 0x1a2450, x / W)); }
   p.ell(4.5, 11, 2.5, 1.5, 0xe8e8f0); p.vl(6, 6, 10, 0xe8e8f0); p.set(5, 6, 0xe8e8f0); p.set(4, 6, 0xe0902a); p.hl(1, 8, 1, 0xc8962e);
   return dens(p.tex(), 6); });
+/* ---- the battle (game/g49): an overcast morning over a wide field, the sun low under the cloud in the west */
+PX.def('skyBattle', () => { const p = new Pix(16, 128);   // top to bottom: slate, grey-blue, a pale band, a warm break at the horizon
+  for (let y = 0; y < 128; y++) for (let x = 0; x < 16; x++) { const t = y / 127, d = PX.dith(x, y) * 0.04;
+    let c = C.mix(0x2a3244, 0x5a6478, smooth(0.0, 0.55, t + d)); c = C.mix(c, 0x9aa4b4, smooth(0.5, 0.85, t + d)); c = C.mix(c, 0xd2b494, smooth(0.86, 0.97, t + d)); p.set(x, y, c); }
+  return p.tex({ mip: false }); });
+PX.def('cloudsDay', cloudSheet(231, [0x6e7688, 0x868ea0, 0xa2a8b6, 0xc2c6d0], 0.22));   // an overcast day's cloud: greys, no night in them
+PX.def('fieldPix', () => { const p = new Pix(64, 64), G = [0x26381e, 0x324826, 0x40582e, 0x506a36, 0x62763e], B = [0x46482a, 0x56563a];   // the field: grass in tussocks, trodden earth showing through
+  for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) { const n = noise1(x * 0.16 + y * 0.11, 811) * 0.7 + noise1(x * 0.05 - y * 0.035 + 2, 815) * 0.3, m = noise1(x * 0.07 - y * 0.09 + 5, 812);   // 12.8 m before it repeats, two scales of noise
+    let c = G[clamp(Math.floor(n * 4.2 + (PX.dith(x, y) - 0.5) * 0.9), 0, 4)]; if (m > 0.84) c = B[hash(x, y, 813) < 0.5 ? 0 : 1];   /* rare, small bare patches: big ones showed the 12.8 m repeat across the field */ if (hash(x, y, 814) < 0.03) c = G[4]; p.set(x, y, c); }
+  const t = p.tex({ repeat: true, aniso: 4 }); t.userData.d = 5; return t; });

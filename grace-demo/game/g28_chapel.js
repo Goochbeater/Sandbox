@@ -106,7 +106,16 @@ CHAPEL.build = function () {
   BUILD.glow(-1.7, 2.7, 0.7, 0.9, 0xff3a2a, 0.5); BUILD.light(new THREE.PointLight(0xff4030, 1.5, 0, 2), -1.7, 2.5, 0.8);
   room.interact('lamp', -1.7, 2.8, KZ, 0.9, () => say('lamp'));
   for (let x = -2.2; x <= 2.21; x += 0.2) BUILD.box(x - 0.03, x + 0.03, 0, 0.95, 1.02, 1.08, T.woodDark);
-  BUILD.box(-2.25, 2.25, 0.95, 1.02, 1.0, 1.1, T.woodDark); BUILD.box(-2.33, -2.17, 0, 1.1, 0.98, 1.12, T.woodDark); BUILD.box(2.17, 2.33, 0, 1.1, 0.98, 1.12, T.woodDark);
+  BUILD.box(-2.25, 2.25, 0.95, 1.02, 1.0, 1.1, T.woodDark);
+  /* chapter four: King Gniewomir on his bier in the aisle before the rail, four tall candles round him. Built here and hidden
+     (BUILD only works in build); INV.stage shows it in the crisis */
+  room.bier = [];
+  { const B = (m) => { m.visible = false; room.bier.push(m); return m; };
+    B(BUILD.box(-1.0, 1.2, 0, 0.82, 1.35, 1.95, T.woodDark, { front: BUILD.std(T.bierFront), dyn: true }));
+    B(BUILD.card(T.bierBody, 0.1, 0.82, 1.63, { dyn: true, cast: false }));
+    for (const [x, z] of [[-1.35, 1.32], [1.55, 1.32], [-1.35, 2.08], [1.55, 2.08]]) { B(BUILD.card(T.candleStand, x, 0, z, { s: 0.62, dyn: true, cast: false })); B(BUILD.flame(x, 1.3, z + 0.01, 0.28)); }
+    room.bierLight = BUILD.light(new THREE.PointLight(0xffb070, 0, 0, 2), 0.1, 1.7, 2.4); }
+  room.interact('bier', 0.1, 1.9, KZ, 1.0, () => INV.bier()).hidden = true; BUILD.box(-2.33, -2.17, 0, 1.1, 0.98, 1.12, T.woodDark); BUILD.box(2.17, 2.33, 0, 1.1, 0.98, 1.12, T.woodDark);
   /* the choir stalls, left and right of the aisle, facing it: seats, tall backs, carved stall ends */
   for (const s of [-1, 1]) {
     const xs = s * 2.8;
@@ -185,6 +194,7 @@ CHAPEL.onEnter = function () { if (!CUT.playing) SCENE.caption(...this.caption);
 /* Dorota. The first visit: a greeting, then the king's choice of what to say, then her answer, then Halina if the king
    flirted. Later visits: a shorter exchange with another choice. The king only ever says what the player picks. */
 CHAPEL.dorota = async function () {
+  if (CAL.phase === 'crisis') return INV.talk('dorota');   // chapter four: she's asked about the cup (g48)
   const A = CAST.A, K = SCENE.player, D = A.dorota, T = CHAPEL.TALK, who = (k) => (k === 'king' ? K : k === 'dorota' ? D : A.queen);
   K.faceTo(D.x); D.faceTo(K.x); D.lookYaw = Math.sign(K.x - D.x) * 0.6;
   SCENE.lock++;
@@ -224,6 +234,7 @@ CHAPEL.confess = async function () {
 /* Father Ambroży, in the aisle before the rail. The first time he speaks about vespers; after that he has opinions about the
    king's company, and the flirting in particular (CHAPEL.flirt). */
 CHAPEL.priest = async function () {
+  if (CAL.phase === 'crisis') return INV.bier();   // chapter four: he laid the dead king out (g48)
   const P = CAST.A.priest, K = SCENE.player, T = CHAPEL.TALK;
   P.faceTo(K.x); K.faceTo(P.x);
   SCENE.lock++;

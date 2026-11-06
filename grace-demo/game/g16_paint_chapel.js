@@ -185,3 +185,19 @@ PX.def('chLamp', () => {   // the sanctuary lamp: a red glass cup on a chain
   p.ell(6, 11, 4, 5, 0xb81e1e); p.ell(5, 9, 1.5, 2, 0xff8a8a); p.hl(3, 9, 16, 0x6a1010);
   return p.tex({});
 });
+/* ---- chapter four (game/g48_inv.js): King Gniewomir on his bier before the chancel rail, the night after the feast. The
+   bier's cloth in Krasna's red and white, fringed in gold; on it the body under a white shroud, the crown at his head, his
+   sword laid along him; tall candles at the corners */
+PX.def('bierFront', () => { const W = 64, H = 24, p = new Pix(W, H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const band = Math.floor(x / 8) % 2, fold = Math.sin(x * 0.7) > 0.6 ? 0.88 : 1;
+    p.set(x, y, C.mul(band ? 0xe8e0d0 : 0x9a1c18, fold * (0.92 + 0.08 * hash(x, y, 501)))); }
+  for (let x = 0; x < W; x++) { p.set(x, 0, 0xd8a43a); p.set(x, 1, 0x8a6a1a); if (x % 2) p.vl(x, H - 3, H - 1, 0xd8a43a); else p.set(x, H - 3, 0xb8902e); }
+  const cx = W / 2 | 0; p.ell(cx, 11, 5, 4, 0xf0e8d8); p.ell(cx, 11, 3.6, 2.8, 0x9a1c18); p.vl(cx, 6, 16, 0xd8a43a); p.hl(cx - 4, cx + 4, 11, 0xd8a43a);   // Krasna's eagle shield, simply
+  return p.tex({ mip: false }); });
+PX.def('bierBody', () => { const W = 72, H = 18, p = new Pix(W, H), sh = [0xa8a094, 0xc8c0b0, 0xe0d8c8, 0xf4eee0];
+  for (let x = 4; x < W - 2; x++) {   // the shroud's top line: feet up at the right, the chest, the folded hands, the head at the left
+    const u = x / W, top = 12 - 3.2 * Math.exp(-((u - 0.13) ** 2) / 0.004) - 2.4 * Math.exp(-((u - 0.4) ** 2) / 0.01) - 1.6 * Math.exp(-((u - 0.55) ** 2) / 0.004) - 3.0 * Math.exp(-((u - 0.93) ** 2) / 0.0012) - 1.4 * (u > 0.2 && u < 0.8 ? 1 : 0);
+    for (let y = Math.round(top); y < H; y++) p.set(x, y, sh[clamp(3 - Math.floor((y - top) / 2.2) + (x % 9 === 0 ? -1 : 0), 0, 3)]); }
+  for (let x = 14; x < 58; x++) { p.set(x, 10, 0x9aa2ae); if (x === 14 || x === 57) p.vl(x, 9, 11, 0x6a7280); } p.rect(20, 8, 2, 5, 0x8a6a1a); p.hl(18, 23, 9, 0xb8902e);   // the sword on him, hilt at his chest
+  for (let i = 0; i < 6; i++) { const x = 5 + i * 1.6; p.vl(Math.round(x), 2, 5 - (i % 2), 0xe0a83a); } p.hl(5, 13, 5, 0xe0a83a); p.set(9, 4, 0xc02020);   // the crown at his head
+  return p.outline(null, 0.5).tex({ mip: false }); });

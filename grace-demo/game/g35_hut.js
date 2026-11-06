@@ -120,6 +120,7 @@ HUT.CAT_PET = { id: 'cat', label: 'Pet the cat', clip: 'Headbutt', sound: 'purr'
   get says() { return HUT.CAT.says; }, get lines() { return HUT.CAT.lines; }, onPet: () => HUT.petCat() };
 /* the Woman by the fire: a fuller talk the first time, then one line at a time, and the king's own lines are only the player's */
 HUT.witch = async function () {
+  if (CAL.phase === 'crisis' && HUT.met) return INV.woman();   // chapter four (g48)
   const K = SCENE.player, W = CAST.A.hutWitch, T = HUT.TALK, who = (k) => (k === 'witch' ? W : K);
   W.faceTo(K.x); K.faceTo(W.x);
   SCENE.lock++;

@@ -34,7 +34,7 @@ CAL.notYet = function (what) {
 /* the map: the meadow is the festival's (and after the feast, the Krasnian camp's); the castle is always there */
 MAP.onOpen = function (places) { const m = places.find((p) => p.id === 'meadow'); if (!m) return;
   m.locked = CAL.phase === 'court'; m.sub = CAL.phase === 'court' ? 'in the fifth week' : CAL.phase === 'festival' ? 'the festival' : 'the Krasnian camp';
-  if (CAL.phase === 'crisis') { m.room = 'camp'; m.at = { x: -13.4, face: 1 }; } else { m.room = 'fair'; m.at = { x: FAIR.ENTRY, face: 1 }; } };   // after the feast the fair is packed away; Krasna mourns in its pavilions
+  if (CAL.phase === 'crisis' || CAL.phase === 'ch5') { m.room = 'camp'; m.at = { x: -13.4, face: 1 }; } else { m.room = 'fair'; m.at = { x: FAIR.ENTRY, face: 1 }; } };   // after the feast the fair is packed away; Krasna mourns in its pavilions
 /* the bed. Day three's night is the feast's */
 CAL.bed = async function () {
   const K = SCENE.player; if (SCENE.lock) return;
@@ -58,7 +58,7 @@ CAL.next = async function () {
   if (CAL.phase === 'court') {   // chapters 1 and 2 aren't built: say what the weeks between held, then the festival
     CAL.phase = 'festival'; CAL.fest = 1; CAL.day += 28; CAL.bridge = ['Four weeks later', 'The rain stopped on the morning the guests were due. Nobody in Lodmir remembers a June so dry.'];
   } else if (CAL.phase === 'festival') { if (CAL.fest < 3) { CAL.fest++; CAL.day++; } }
-  else if (CAL.phase === 'crisis') { if (CAL.crisis < 12) { CAL.crisis++; CAL.day++; } }
+  else if (CAL.phase === 'crisis') { if (CAL.crisis < 12) { CAL.crisis++; CAL.day++; } else { CAL.day++; INV.timeout(); } }   // past the twelfth day with no name: war (g48)
   else CAL.day++;
   GAME.save();
 };
@@ -71,6 +71,7 @@ CAL.morning = function () {
 /* the weather: in the crisis the rain is back, on every window (the indoor rooms) and on everything (the outdoor ones) */
 CAL.OUT = ['garden', 'yard', 'wood', 'fair', 'lists', 'camp'];
 SCENE.afterEnter = function (room) {
+  INV.stage(room);   // chapter four's props and people (g48)
   if (CAL.phase !== 'crisis' || CUT.playing || !room.ambience) return;
   AUDIO.ambience(Object.assign({}, room.ambience, CAL.OUT.includes(room.id) ? { rain: 0.8, birds: 0 } : { rainGlass: 0.75 }));
 };

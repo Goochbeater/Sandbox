@@ -107,6 +107,7 @@ FEST.say = (who, key, lines) => SCENE.say(who, SCENE.cycle(key, lines));
 FEST.ask = (opts) => NIGHT.ask(opts);
 /* talk to a festival actor: a fuller first meeting, then one line at a time. T: { first: [[who, text]], more: [...] } */
 FEST.talk = async function (id, T) {
+  if (CAL.phase === 'crisis' && INV.TALK[id]) return INV.talk(id);   // chapter four: everyone is asked about the feast (g48)
   const A = CAST.A, a = A[id], K = SCENE.player; if (!a) return;
   K.faceTo(a.x); if (!a.sitting) { a.faceTo(K.x); a.lookYaw = Math.sign(K.x - a.x) * 0.8; }
   const who = (k) => (k === 'king' ? K : k === id ? a : A[k] || a);
@@ -116,7 +117,7 @@ FEST.talk = async function (id, T) {
 };
 /* put a talk marker over each named actor in the room (they don't wander, so the marker stays put) */
 FEST.talkers = function (room, list) {
-  for (const [id, label, fn] of list) { const a = CAST.A[id]; if (!a || room.inter.some((i) => i.id === id)) continue;
+  for (const [id, label, fn] of list) { const a = CAST.A[id]; if (!a || !a.visible || room.inter.some((i) => i.id === id)) continue;   // no marker over someone who isn't there (the dead king, in chapter four)
     const hy = (a.curHome && a.curHome.sit ? a.curHome.sit.y - 0.5 : a.y) + (a.spec.headY || 2.05) + 0.45;   // over the head, standing or seated (in the stand, far off)
     room.interact(id, a.x, hy, a.z, 0.8, fn || (() => FEST.talk(id, FEST.TALK[id]))).label = label || 'Talk to ' + (a.name || id); }
   SCENE.buildMarks();

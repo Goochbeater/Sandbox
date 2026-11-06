@@ -50,6 +50,9 @@ SCENE.wait = (ms) => new Promise((r) => setTimeout(r, ms));
 /* ease the room's lens to { focus, dist, y, look, fov } over dur seconds (a show, a scene); SCENE.lens(room, null) eases back
    to the room's own (kept in room.cam0 the first time). The focus is still clamped by SCENE.camGoal, so near a wall a scene
    can only come part of the way: put the action where the clamp lets the lens reach (ENGINE.md §13i) */
+/* put a room's own lens back at once (no ease: SCENE.lens runs on the room's ticks, which stop when another room is entered,
+   so awaiting it for a room you've left never returns) */
+SCENE.lensReset = function (room) { if (room.cam0) Object.assign(room.cam, room.cam0); room.camFocus = null; };
 SCENE.lens = function (room, to, dur) {
   const c = room.cam; if (!room.cam0) room.cam0 = { dist: c.dist, y: c.y, look: c.look, fov: c.fov };
   const from = { focus: room.camFocus !== null && room.camFocus !== undefined ? room.camFocus : SCENE.camX, dist: c.dist, y: c.y, look: c.look, fov: c.fov }, goal = Object.assign({ focus: null }, room.cam0, to || {});

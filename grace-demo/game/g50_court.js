@@ -32,6 +32,7 @@ COURT.enterHall = function () {
   const room = THRONE, A = CAST.A;
   if (!COURT.wired) { COURT.wired = true;
     for (const id of ['steward', 'queen', 'commander', 'spymaster']) { const a = A[id]; room.interact(id, a.x, a.y + (a.spec.headY || 2.1) + 0.45, room.KZ, 0.75, () => {
+      if (CAL.phase === 'crisis' && INV.TALK[id]) return INV.talk(id);   // chapter four (g48)
       a.faceTo(SCENE.player.x); a.lookYaw = Math.sign(SCENE.player.x - a.x) * 0.9; SCENE.say(a, SCENE.cycle(id + (COURT.done ? 'A' : 'B'), COURT.TALK[id][COURT.done ? 'after' : 'before'])); }).label = 'Talk to the ' + id; }
     room.interact('rise', room.TX, 3.75, room.KZ, 99, () => COURT.rise()).seated = true;
     SCENE.buildMarks(); }

@@ -40,6 +40,8 @@ Contents
 13j. Animals: CC0 models through the people's sprite pass
 13k. The calendar
 13l. The feast
+13m. The investigation
+13n. The battle (a preview)
 14. Credits and licences
 
 ---
@@ -985,6 +987,30 @@ inner group's z. Signs were found by eye on this rig; another rig needs its own.
 | `bay` | horse | pavilions 12.1 | 2.2 | re-dyed a true bay (the pack's brown read orange in the sun) |
 | `joustHorseK`/`B` | grey / horse | the lists' lanes | 2.3 | caparisons; §13h |
 
+**Before and after, and why it worked.** Before: each animal was one code-painted card (the hound 40 × 20 px, the horse
+60 × 50) with a frame or two swapped for petting, flat-lit, outlined by hand, drawn at a different density from the
+people. After: the same model pipeline as the people, so the same 32 px/m, the same key and rim lights, the same 1 px rim
+and 24-level posterise, the same floor shadows; real gaits matched to speed; idles that change; a head that turns to the
+hand. The lesson for any new kind of thing on screen: if it stands beside the people, draw it the way they are drawn.
+
+**Adding a new animal, step by step.**
+1. Find a CC0 rigged, animated glTF (Quaternius's packs are the house style). In the sandbox: npm packages and public
+   GitHub raw files are reachable; check the licence file travels with it (§14).
+2. Add it to `LIST` in `tools/animals.mjs` with the clips you'll play, run the tool (its header has the npm line), and
+   check the log: size, clip names, and `missing clips` if a name differs (the dog pack says `Idle_2_HeadLow`, the horse
+   pack `Idle_Headlow`).
+3. Write a spec in `game/g44_cast_beasts.js`: `beast` (the baked file's name), `h` (head-up height in metres), `box` (the
+   sprite frame: the animal plus a margin, or its ears clip), `homes`, `col` by material name (print them:
+   `BEAST.kinds[k].J.materials.map(m => m.name)`), `idles`, `yawK`. Lazy, always.
+4. If it's petted: `petSpot` in its room's `onEnter`, with its own clip (`Idle_Headlow`, the cat's `Headbutt`), `wag`,
+   `stand` (the king's distance), `headY` (the marker).
+5. Frame it with `SCENE.lens` (focus on it, dist 7–9) and shoot. Check: the size against a person, the feet on the floor,
+   the colours under the room's light (a saturated colour can go black under a coloured light, §13i), the outline, the
+   petting from both sides.
+6. Something no pack has (the bear): reshape the nearest rig with `spec.bones` scales, recolour it, and give it what it
+   does with the pose layer (`rear`). Find the axes by shooting variants side by side: four frames answer what an hour of
+   reasoning about bone rolls won't.
+
 **Checking an animal headlessly.** Frame it with `SCENE.lens(room, { focus, dist: 7–9, y, look }, 0.1)` and shoot; drive a
 pet with the marker (`DRV.use(id)`), wait for `beast.held || beast.one` and shoot the reaction, then run it out with the lock
 back to 0. For the skinning, compare the rest box (`beast.rest`) with the skinned box of the live pose: a box hundreds of
@@ -1078,6 +1104,118 @@ strip with the first choice each time until `CAL.feastDone` and the bedchamber. 
 the hall), and game time runs at real time only if the loop can catch up: `&catchup=N` (g90) lets a test frame step up to
 N seconds of game time where the default is 0.5, which a software renderer at 1.5 s a frame needs. Run it at
 `W=800 H=357 DPR=1` and in the background.
+
+## 13m. The investigation (`game/g48_inv.js`)
+
+Chapter four's twelve days (STORY.md §7). `INV` holds `found` (clue → the crisis day it was found), `notes` (the red
+herrings' own secrets), `said`, `outcome`; all saved (`GAME.state.inv`).
+
+**Eight clues in their places**, each found by talking or looking, each needing the one before it where the story says so:
+
+| clue | where | needs | found by |
+|---|---|---|---|
+| `lip` | the Swan Cup on the throne room's council table (a `FEAST.makeCup` copy, crisis only) | | `INV.cup` |
+| `signet` | Ser Bogdan, throne room | | his marker → `INV.talk('commander')` |
+| `oldSeal` | Hanna, House of the Lantern | `signet` | *Ask her about the feast* |
+| `wolfsHood` | Father Ambroży at Gniewomir's bier, chapel | | `INV.bier` (the bier, or the priest) |
+| `dried` | the Woman, the hut | `wolfsHood` | `INV.woman` |
+| `ledger` | Wanda, House of the Lantern | `dried` | her marker |
+| `grey` | Mira at the camp if the Salamanders played the hall; Konrad at the camp if he unmasked; the House's lute player if it was only a song (`INV.witness()`) | | their marker |
+| `report` | Ilka's report on the study desk | `lip` | `INV.report` |
+
+**How it plugs into rooms that already exist.** Rooms can only build in `build()`, so everything chapter four shows is
+built there and hidden: the chapel's bier (`room.bier`: the box with `bierFront`, the shrouded body `bierBody`, four candle
+stands with flames, a light), the throne room's cup (`room.crisisCup`) and its `swanCup` and `accuse` markers, the study's
+`report` marker. `INV.stage(room)` (called from `SCENE.afterEnter`) shows them in the crisis and hides them otherwise. The
+people's ordinary conversations hand over in one line each, at the top of the function: `FEST.talk` (everyone at the
+festival grounds), COURT's markers (the household in the throne room), `CHAPEL.priest`/`CHAPEL.dorota`, `HUT.witch`,
+`HOUSE.wanda`, `HOUSE.meet` (a fourth choice, *Ask her about the feast*), the lute player. `INV.TALK[id]` is a function that
+returns the lines for the moment (so a clue already found changes what's said), with `['find', id]` and `['note', id]`
+entries inline. The camp gets Konrad at the black tent and Mira at the Salamanders' wagon (homes added here, shown only in
+the crisis).
+
+**The dead stay dead.** `spec.gone` (Gniewomir: `() => CAL.feastDone`) parks an actor offstage when it's built
+(`CAST.make`) and when a save loads, and `INV.stage` drops markers over him. A save loaded in chapter four used to rebuild
+him alive at the camp.
+
+**The journal** (`#journal`, the book in the top bar, or J; shown from chapter four on): the clues found, in order, with
+where and on which day (the grey lady's witness named by the feast's variant), and what people said. A gold dot on the book
+when something's new. `SCENE.modal` while open.
+
+**The accusation** (`INV.accuse`, the marker before the dais): Mściwoj (a `throne` home, hidden except for this) walks in;
+the player names the hand (six choices) and the king says it. Ilka holds only with `lip`, `oldSeal` and `ledger` or
+`report` (§7.4); short of that Mściwoj laughs and it costs two days. With them she walks out to face him and confesses, and
+the player decides: hand her over, her poison, or the tunnel. Every other name has its outcome (`INV.OUT`). Past the twelfth
+day with no name, `CAL.next` calls `INV.timeout()`: war. `INV.conclude` sets `phase 'ch5'`, shows the chapter card, plays the
+battle (§13n) if the outcome is a war, and wakes the king in the bedchamber.
+
+**A trap found testing it.** `SCENE.lens` runs on the room's ticks. Awaiting it for a room the scene has already left (the
+accusation's `finally`, after `conclude` went to the bedchamber) never returns, and the lock was never released.
+`SCENE.lensReset(room)` puts a room's lens back at once; use it whenever the room may be behind you.
+
+**Testing it.** From the bedchamber with `CAL.phase 'crisis'` set: go to each room, `DRV.use` each marker (or call
+`INV.talk(id)` where the strip's first choice would be the 18+ one), check `Object.keys(INV.found)` after each; then the
+accusation with the first choice each time. Headless, all eight clues and the Ilka outcome ran in about four minutes.
+
+## 13n. The battle (a preview: `game/g49_battle.js`)
+
+A thousand soldiers on a field, two armies charging and meeting, the king commanding from a rise: the first draft of
+chapter five's war, and the base for the war camp to come. Reached from the map (*The Kalina Field*, `pl.play` →
+`BATTLE.play`) and after any accusation that ends in war (`INV.conclude`).
+
+**Impostors baked from the real cast.** The people are 3D models drawn into sprites (§6); a thousand of them would be a
+thousand sprite renders a frame. So the battle bakes once (`BATTLE.bake`, behind the fade, "The armies gather…"):
+- four kinds: a man-at-arms of each side (the `knight` spec: helmet, tabard, sword) and a mounted knight of each side (a
+  destrier `Beast` in a caparison, a knight `Actor` seated on it, lance couched);
+- each posed through its clips (`Sword_Idle` 4 frames, `Walk_Loop` 8, `Jog_Fwd_Loop` 8, `Sword_Regular_Combo` 8; the
+  horse's `Idle`, `Walk`, `Gallop`), each from three sides (facing the lens, its back to it, side-on facing right), rendered
+  with an orthographic camera into a cell of an atlas (8 columns × anims × 3 rows; cells at the rooms' 32 px/m: 61 × 83 px
+  for a man, 115 × 109 for a horse and rider) using `renderTarget.viewport`/`scissor`;
+- lit for an overcast day (a hemisphere on the bake's layer, `Actor.key`/`Actor.rim` moved for the bake and put back);
+- then the people's own sprite pass (`Actor.fxMat`: the 1 px rim, 24-level posterise) over the whole sheet at once.
+The bake actors live on layer 31 (anyone holding it is parked first) and are never added to `SCENE.actors`; their cards
+are removed after. Mounted: the horse's clip time is set directly (`act.time`, `mixer.update(0)`), the rider sits at the
+saddle with a small gallop bob, and the lance is pointed along the facing by hand (the prop is placed in `Actor.update`,
+which the bake doesn't run).
+
+**Drawn as instances.** Each kind is one `InstancedBufferGeometry` quad (`BATTLE.mesh`) with per-instance `iPos`, `iYaw`,
+`iAnim` (row, frame count, fps, phase), `iFall`, `iTint`; the vertex shader stands it upright facing the camera
+(cylindrical: `right = normalize(toCam.z, 0, -toCam.x)`), picks the row by the angle between the man's facing and the
+camera (front within 45°, back past 135°, else side, mirrored when he faces left on screen), the frame from time and phase,
+and tilts the quad back onto the ground as he falls. The fragment shader discards below alpha 0.5 and applies the room's fog
+by hand (`uFogCol`, `uFogD` from `R.scene.fog`) and the lightning (`uFlash`). Four draw calls for a thousand men; a soft
+blob under each (one more instanced mesh); a banner on a pole over each block's second rank, its cloth waved on the CPU;
+dust from a pool of 160 sprites.
+
+**The field.** World metres, the armies along Z: ours (blue) with its front at z −40 facing −Z, theirs (red) at −200 facing
++Z; five blocks a side of 16 files × 6 ranks (1.25 × 1.4 m), two cavalry wings of 6 × 2 at x ±86; 1008 men. The king's rise
+at (34, 12), 6.5 m high; the swan standard planted beside it. The land: a plain with a little roll, low hills along both
+sides and behind the enemy (`BATTLE.h`), ridges far off. The sky is a cylinder all round (a gradient `skyBattle` and two
+bands of `cloudsDay`) because the cameras look every way: a single backdrop plane, as the rooms use, left black voids in
+every side-on shot. Fog 0x8a94a6 at 0.0021; a drizzle, not a curtain (the first pass's rain hid the armies); depth of field
+only past 380 m (the rooms' 0.8 m near ramp smeared every soldier).
+
+**The fight** (`BATTLE.step`, on the room's ticks). Each man: hold until the order; walk four seconds; charge (5–6 m/s,
+cavalry 9.5–10.5 from t 9). Rank discipline: each man knows the man ahead of him in his file and stops a pace behind him.
+Contact: each side's front is computed per 4 m strip across the field each frame; a man stops and fights within 1.4 m of the
+enemy's front in his strip, **or the nearest strip within two**: the first version only looked in his own strip, so the men
+in the gaps between the enemy's blocks found no front and ran straight through their army. Once the lines have met, nobody
+runs past where they met (`A.lineZ`). In the fight the line sways; men of the first three ranks fall now and then
+(`iFall` eases to 1), more on the side that's flanked. Orders change it: *advance* (both charge, they meet near z −117),
+*flank* (our horse swings wide round their left before turning in), *hold* (our foot stays at −40; the sim is stepped 15 s
+on, silently, behind the cut, so they still meet in shot 5).
+
+**The shots** (`BATTLE.play`, `BATTLE.shot` drives `CUT.cam`; Skip works): 1. over the king's shoulder down the field;
+2. the king and Bogdan on the rise, Bogdan's line, then the player's order and the king's call; 3. beside our front as it
+steps off; 4. low behind our running ranks, the red wall coming on; 5. the clash, side-on and close on the meeting line;
+6. a high crane over the whole line; 7. behind the king, watching. Each camera was placed by distance: at 40 m a man is about
+25 px tall, at 120 m a block is a band. The first pass framed both armies from the side at once, 160 m apart, and they were
+two thin lines at the frame's edges.
+
+**Testing it.** `?test&room=garden&catchup=4`, call `BATTLE.play({ preview: true })`, wrap `BATTLE.shot` to count shots and
+shoot after each, drive the order with `DRV.adv` (or patch `NIGHT.ask` to pick another). Measured: the bake takes a few
+seconds headless (software WebGL); 1008 men, the infantry meet about 18 s after the order, ~450 fighting and ~200 fallen by
+the end.
 
 ## 14. Credits and licences
 

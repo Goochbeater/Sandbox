@@ -142,10 +142,18 @@
   #mapBtn { pointer-events: auto; width: 44px; height: 44px; border: 0; padding: 0; margin-left: 10px; cursor: pointer; background: transparent; position: relative; }
   #mapBtn::before { content: ""; position: absolute; left: 9px; top: 10px; width: 26px; height: 22px; border: 2px solid #fff; border-radius: 2px; background:
     linear-gradient(90deg, transparent 31%, #fff 31%, #fff 36%, transparent 36%, transparent 64%, #fff 64%, #fff 69%, transparent 69%); }
-  #mapBtn:focus-visible, #pauseBtn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  #mapBtn:focus-visible, #pauseBtn:focus-visible, #jrnBtn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  /* the journal (chapter four's investigation): a book in the top bar, a gold dot when something new is in it */
+  #jrnBtn { display: none; pointer-events: auto; width: 44px; height: 44px; border: 0; padding: 0; margin-left: 10px; cursor: pointer; background: transparent; position: relative; }
+  body.inv #jrnBtn { display: block; }
+  #jrnBtn::before { content: ""; position: absolute; left: 11px; top: 9px; width: 17px; height: 22px; border: 2px solid #fff; border-left-width: 5px; border-radius: 2px 3px 3px 2px; }
+  #jrnBtn::after { content: ""; position: absolute; left: 21px; top: 15px; width: 8px; height: 2px; background: #fff; box-shadow: 0 5px 0 #fff; }
+  #jrnBtn.new::after { box-shadow: 0 5px 0 #fff, 10px -11px 0 2px #e3b75a; }
+  #journal .sub { color: var(--dim); margin-top: -6px; }
+  #journal .clue { margin: 0.2em 0 0.9em; } #journal .clue b { color: #f0dfb8; font-weight: 600; } #journal .clue small { color: #9a8a70; }
   .bar .grow { flex: 1; }
   #skipBtn { display: none; pointer-events: auto; margin-right: 3%; padding: 0.25em 1em; font-size: clamp(13px, 1.7vw, 17px); min-width: 0; }
-  body.cine #skipBtn { display: inline-block; } body.cine #pauseBtn, body.cine #mapBtn, body.cine #hint, body.cine .mk, body.intitle #pauseBtn, body.intitle #mapBtn, body.intitle #hint, body.intitle .mk { visibility: hidden; }
+  body.cine #skipBtn { display: inline-block; } body.cine #pauseBtn, body.cine #mapBtn, body.cine #jrnBtn, body.intitle #jrnBtn, body.cine #hint, body.cine .mk, body.intitle #pauseBtn, body.intitle #mapBtn, body.intitle #hint, body.intitle .mk { visibility: hidden; }
   #cutCap { position: absolute; left: 6%; right: 6%; bottom: 7%; text-align: center; font-size: clamp(15px, 2.4vw, 28px); color: #fbf3e4; text-shadow: 0 2px 10px #000, 0 0 3px #000; opacity: 0; transition: opacity 0.9s; pointer-events: none; text-wrap: balance; }
   #cutCap.on { opacity: 1; }
   #map { position: absolute; inset: 0; z-index: 7; background: rgba(6, 4, 3, 0.86); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 12px; }
@@ -179,7 +187,7 @@
     </div>
     <div id="fade"></div>
   </div>
-  <div class="bar" id="topbar"><button id="pauseBtn" aria-label="Pause"></button><button id="mapBtn" aria-label="Open the map"></button><span class="grow"></span><button id="skipBtn" class="btn">Skip ›</button></div>
+  <div class="bar" id="topbar"><button id="pauseBtn" aria-label="Pause"></button><button id="mapBtn" aria-label="Open the map"></button><button id="jrnBtn" aria-label="Open the journal"></button><span class="grow"></span><button id="skipBtn" class="btn">Skip ›</button></div>
   <div class="bar" id="botbar"><div id="hint"></div></div>
   <div id="toast" role="status" aria-live="polite"></div>
   <div class="sheet" id="court" hidden role="dialog" aria-labelledby="cpWho">
@@ -210,6 +218,11 @@
     <label class="slider"><span id="walkLbl">Walk 100%</span><input type="range" id="walkSpd" min="70" max="160" step="5" aria-label="Walking speed"></label>
     <div class="row"><button class="btn" id="jogBtn">Long walks: Jog</button><button class="btn" id="qualBtn">Quality: High</button><button class="btn" id="fxBtn">Effects: On</button></div>
     <div class="row"><button class="btn gold" id="setBack">Back</button></div>
+  </div>
+  <div class="panel" id="journal" hidden role="dialog" aria-labelledby="jrnTitle">
+    <h2 id="jrnTitle">The Dead King</h2><div class="sub" id="jrnSub"></div>
+    <div class="scroll" id="jrnText"></div>
+    <div class="row"><button class="btn gold" id="jrnBack">Close</button></div>
   </div>
   <div class="panel" id="credits" hidden role="dialog" aria-labelledby="credTitle">
     <h2 id="credTitle">Credits</h2>

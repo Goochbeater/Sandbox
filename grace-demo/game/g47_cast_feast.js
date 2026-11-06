@@ -8,6 +8,7 @@ const seatLow = (x) => ({ x, z: 0.72, face: 1, sit: { x, y: 0.47, z: 0.72, yaw: 
 CAST.specs.queen.homes.feast = seatHigh(0.3);
 CAST.specs.dorota.homes.feast = seatHigh(-0.85);
 CAST.specs.gniewomir.homes.feast = seatHigh(2.8);
+CAST.specs.gniewomir.gone = () => CAL.feastDone;   // after the feast he lies in the chapel, then goes home: never at the camp again
 CAST.specs.wieslawa.homes.feast = seatHigh(3.95);
 CAST.specs.commander.homes.feast = seatLow(-9.7);
 CAST.specs.jarek.homes.feast = seatLow(-8.3);

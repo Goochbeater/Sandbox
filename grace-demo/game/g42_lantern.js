@@ -70,7 +70,7 @@ LANTERN.build = function () {
   room.lights.fire = BUILD.light(new THREE.PointLight(0xff8a3c, 8, 0, 2), 3.8, 0.9, 1.1, { flicker: 7 });
   room.interact('hearth', 3.8, 2.2, KZ, 0.7, () => say('hearth'));
   /* the lute player, the river window and its moonlight */
-  BUILD.card(T.lutePlayer, 5.9, 0, 0.7); room.interact('lute', 5.9, 1.9, KZ, 0.5, () => { AUDIO.sfx('chime', { gain: 0.3 }); say('lute'); });
+  BUILD.card(T.lutePlayer, 5.9, 0, 0.7); room.interact('lute', 5.9, 1.9, KZ, 0.5, () => { AUDIO.sfx('chime', { gain: 0.3 }); if (CAL.phase === 'crisis') return INV.talk('lute'); say('lute'); });
   BUILD.card(T.riverWindow, 7.1, 1.0, 0.03, { basic: true, k: 1.1, cast: false }); BUILD.glow(7.1, 1.8, 0.2, 1.8, 0x8aa8e8, 0.2);
   room.lights.moon = BUILD.shadow(BUILD.light(new THREE.SpotLight(0x8aa8e0, 60, 0, 0.55, 0.8, 2), 7.1, 2.4, 0.3), R.q === 'low' ? 512 : 1024); room.lights.moon.target.position.set(6.2, 0, 2.6);
   room.interact('window', 7.1, 2.9, KZ, 0.5, () => say('window'));
@@ -175,12 +175,14 @@ HOUSE.meet = async function (id) {
   try {
     if (!HOUSE.met[id]) { HOUSE.met[id] = true; HOUSE.trust[id] = (HOUSE.trust[id] || 0) + 1; await SCENE.talk(W.first.map(([k, t]) => [who(k), t])); }
     else await SCENE.say(Q, SCENE.cycle('hm' + id, W.more), { wait: true });
-    const i = await NIGHT.ask(['Go upstairs with her (18+)', 'Talk a while', 'Leave her be']);
+    const crisis = CAL.phase === 'crisis', i = await NIGHT.ask(['Go upstairs with her (18+)', 'Talk a while', 'Leave her be'].concat(crisis ? ['Ask her about the feast'] : []));
+    if (i === 3) { SCENE.lock--; locked = false; await INV.talk(id); return; }   // chapter four (g48)
     if (i === 1) { HOUSE.trust[id] = (HOUSE.trust[id] || 0) + 1; await SCENE.say(Q, SCENE.cycle('ht' + id, W.talk), { wait: true }); }
     else if (i === 0) { SCENE.lock--; locked = false; AUDIO.sfx('coin', { gain: 0.5 }); NIGHT.confirm(() => HOUSE.scene(id).catch(fail)); }
   } finally { if (locked) SCENE.lock--; if (!Q.sitting) Q.lookYaw = null; }
 };
 HOUSE.wanda = async function () {
+  if (CAL.phase === 'crisis' && HOUSE.met.wanda) return INV.talk('wanda');   // chapter four (g48): her ledger
   const A = CAST.A, Wd = A.wanda, K = SCENE.player, W = HOUSE.W.wanda; if (!Wd || SCENE.lock) return;
   K.faceTo(Wd.x); SCENE.lock++;
   try {

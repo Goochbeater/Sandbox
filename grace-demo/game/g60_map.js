@@ -98,6 +98,7 @@ WORLD.places = [   // at3: a point in the fortress diorama (exterior room coordi
   { id: 'town', name: 'Lower Town', sub: 'not yet', x: 378, y: 222, locked: true },
   { id: 'meadow', name: 'Swan Meadow', sub: 'the festival', x: 318, y: 270, side: 'l', room: 'fair', at: { x: FAIR.ENTRY, face: 1 } },
   { id: 'wood', name: 'The Wood', sub: 'the clearing', x: 64, y: 164, room: 'wood', at: { x: -9.8, face: 1 } },
+  { id: 'field', name: 'The Kalina Field', sub: 'the war · a preview', x: 440, y: 120, play: () => BATTLE.play({ preview: true }).catch(fail) },   // the battle (g49): plays, then brings you back
 ];
 WORLD.init = function () {
   for (const pl of WORLD.places) if (pl.room && !SCENE.rooms[pl.room]) { pl.locked = true; pl.sub = 'being built'; }   // rooms not in this build yet
@@ -105,6 +106,7 @@ WORLD.init = function () {
   MAP.setup(WORLD.paint, WORLD.W, WORLD.H, WORLD.places); MAP.music = 'map';
   MAP.onPick = (pl) => {
     const K = SCENE.player;
+    if (pl.play) { if (MAP.prev) AUDIO.playMusic(MAP.prev, 1.2); pl.play(); return; }
     if (pl.room === 'throne' && !K.crownMesh.visible) { if (MAP.prev) AUDIO.playMusic(MAP.prev, 1.2); SCENE.say(K, 'I can’t hold court bare-headed. The crown first.'); return; }
     GAME.save(); SCENE.go(pl.room, pl.at).then(() => GAME.save());
   };

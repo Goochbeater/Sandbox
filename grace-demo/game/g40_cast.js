@@ -122,7 +122,7 @@ CAST.make = function (k) {
   if (CAST.A[k]) return Promise.resolve(CAST.A[k]); if (CAST.inflight[k]) return CAST.inflight[k];
   const spec = CAST.specs[k];
   return (CAST.inflight[k] = (async () => { const a = await (spec.beast ? new Beast(spec) : new Actor(spec)).build();   // spec.beast: an animal (engine/e15)
-    SCENE.addActor(a); CAST.A[k] = a; if (spec.offstage) a.offstage = true; a.setLayer(Actor.PARK); a.setVisible(false); delete CAST.inflight[k]; return a; })());
+    SCENE.addActor(a); CAST.A[k] = a; if (spec.offstage || (spec.gone && spec.gone())) a.offstage = true; a.setLayer(Actor.PARK); a.setVisible(false); delete CAST.inflight[k]; return a; })());   // spec.gone: dead or departed by now (Gniewomir after the feast)
 };
 CAST.lazyFor = (roomId) => Object.keys(CAST.specs).filter((k) => { const s = CAST.specs[k]; return s && s.lazy && !CAST.A[k] && (s.home === roomId || (s.homes && s.homes[roomId])); });
 CAST.ensure = async function (roomId) { for (const k of CAST.lazyFor(roomId)) { await CAST.make(k); await nextFrame(); } };

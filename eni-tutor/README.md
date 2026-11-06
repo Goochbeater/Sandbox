@@ -25,7 +25,7 @@ eni-tutor/
 │   ├── build_kb.py         kb/ -> data/kb.js
 │   ├── fetch_arxiv.py      ingests arXiv papers listed in arxiv_manifest.json
 │   └── arxiv_manifest.json candidate papers and how far each was verified
-├── netlify/edge-functions/chat.js  OpenRouter relay that streams replies; reads OPENROUTER_API_KEY and TAVILY_API_KEY
+├── netlify/edge-functions/chat.js  DeepSeek relay that streams replies; reads DEEPSEEK_API_KEY and TAVILY_API_KEY
 ├── build.js                netlify-index.html -> dist/index.html (single file)
 ├── netlify.toml            publish dist/, build, function route, headers
 ├── dist/index.html         built page (committed so a drag-and-drop deploy works)
@@ -40,7 +40,7 @@ Open `index.html` directly, or serve the folder:
 python3 -m http.server 8080 --directory eni-tutor
 ```
 
-Starts in **demo** mode with no network. Open Menu → Model to pick OpenRouter, paste a key
+Starts in **demo** mode with no network. Open Menu → Model to pick a provider, paste a key
 into this browser, and Save. The dev page sends the key straight to the provider, so use a
 key you are happy to keep in local storage. The Netlify build never does this.
 
@@ -50,7 +50,7 @@ The chat needs the function, and the function needs a key. That means a Git-conn
 
 1. Push this folder to a repository and in Netlify choose **Add new site → Import an existing project**.
 2. Build command `npm run build`, publish directory `dist` (both already in `netlify.toml`).
-3. In **Site configuration → Environment variables**, add `OPENROUTER_API_KEY` with your OpenRouter key, and `TAVILY_API_KEY` with your Tavily key for web search. Without the Tavily key the tutor still answers, but its web search reports that it is not configured.
+3. In **Site configuration → Environment variables**, add `DEEPSEEK_API_KEY` with your DeepSeek API key (from platform.deepseek.com, API keys), and `TAVILY_API_KEY` with your Tavily key for web search. Without the Tavily key the tutor still answers, but its web search reports that it is not configured.
 4. Deploy. Check that the page loads and that a question gets an answer.
 
 **Drag-and-drop (`eni-tutor-netlify.zip`)** publishes only the page. The chat will show an error
@@ -74,8 +74,8 @@ preview (demo mode) writes a plain list of what the student asked instead.
 
 ### The model
 
-`nvidia/nemotron-3.5-super-vl:free` on OpenRouter. The function forces this model, so the page
-cannot select another. Limits set in the function:
+`deepseek-flash` on the DeepSeek API (`https://api.deepseek.com`), currently served by DeepSeek-V4.1-Flash-1017.
+The model is one constant in `chat.js`, and the function forces it, so the page cannot select another. Limits set in the function:
 
 - replies stream as they arrive, with a heartbeat while the model is still thinking, so no request sits idle long enough to hit a gateway timeout (the old synchronous function hit a 504 at about ten seconds);
 - replies are capped at 2048 tokens;
@@ -83,8 +83,8 @@ cannot select another. Limits set in the function:
 - calls are accepted only from the site's own origin;
 - web search goes through Tavily (`https://api.tavily.com/search`, the same call the harness makes), with at most three searches per reply. Its key stays in the function's environment as `TAVILY_API_KEY`.
 
-**Free tier.** OpenRouter's listing for this model says usage is logged for security and to help
-NVIDIA improve its products, so do not send confidential or personal material through it.
+**Data.** Requests go to DeepSeek's API, billed per token to your DeepSeek account. Check DeepSeek's
+privacy and data-retention terms before sending confidential or personal material through it.
 
 ## Knowledge base
 
@@ -137,7 +137,7 @@ suites did not run in the v2 build environment, so they have not been verified i
   rely on it.
 - **`X-Frame-Options: DENY`** in `netlify.toml` blocks embedding the page in an iframe. Remove it
   if an embedded preview is needed.
-- **Access.** The Netlify URL is public unless you protect it. Every visit spends your OpenRouter
+- **Access.** The Netlify URL is public unless you protect it. Every visit spends your DeepSeek
   key, so add a password or token before you share the link.
 
 ## Typography

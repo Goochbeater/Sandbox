@@ -9,14 +9,16 @@
 // A request with mode "scribe" is Mini-ENI, the session note-taker: the same
 // model with the scribe's own prompt, no tools and no library, one round.
 //
-// The key is read from OPENROUTER_API_KEY and, for search, TAVILY_API_KEY.
+// The key is read from DEEPSEEK_API_KEY and, for search, TAVILY_API_KEY.
 // Neither reaches the browser. The model, the persona and the limits are fixed
 // here, not by the caller.
 
 import { PERSONA, SCRIBE, INDEX, DOCS } from '../edge-lib/knowledge.js';
 
-const MODEL = 'nvidia/nemotron-3.5-super-vl:free';
-const UPSTREAM = 'https://openrouter.ai/api/v1/chat/completions';
+// DeepSeek's direct API, model deepseek-flash (served by DeepSeek-V4.1-Flash-1017).
+// The model is one constant, so a new ID is a one-line change.
+const MODEL = 'deepseek-flash';
+const UPSTREAM = 'https://api.deepseek.com/chat/completions';
 const SEARCH_URL = 'https://api.tavily.com/search';
 const MAX_BODY_BYTES = 64 * 1024;
 const MAX_MESSAGES = 40;
@@ -149,10 +151,6 @@ async function streamRound(ctx, messages, tools) {
     max_tokens: ctx.maxTokens,
     temperature: ctx.temperature,
     top_p: ctx.topP,
-    // Route only to providers that accept every parameter sent. Without this,
-    // OpenRouter can drop `tools` without an error and the model answers as if
-    // it had no tools.
-    provider: { require_parameters: true },
   };
   if (tools) { payload.tools = tools; payload.tool_choice = 'auto'; }
 
@@ -163,19 +161,17 @@ async function streamRound(ctx, messages, tools) {
       headers: {
         Authorization: 'Bearer ' + ctx.key,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://eni-tutor.netlify.app',
-        'X-Title': 'ENI Tutor',
       },
       body: JSON.stringify(payload),
       signal: ctx.signal,
     });
   } catch (e) {
-    ctx.fail('could not reach OpenRouter: ' + e.message);
+    ctx.fail('could not reach DeepSeek: ' + e.message);
     return null;
   }
   if (!upstream.ok) {
     const text = await upstream.text();
-    ctx.fail('HTTP ' + upstream.status + ' from OpenRouter: ' + text.slice(0, 300));
+    ctx.fail('HTTP ' + upstream.status + ' from DeepSeek: ' + text.slice(0, 300));
     return null;
   }
 
@@ -278,8 +274,8 @@ export default async (request) => {
   const site = new URL(request.url).origin;
   if (origin && origin !== site) return json(403, { error: 'origin not allowed' });
 
-  const key = Deno.env.get('OPENROUTER_API_KEY');
-  if (!key) return json(503, { error: 'OPENROUTER_API_KEY is not set for this site' });
+  const key = Deno.env.get('DEEPSEEK_API_KEY');
+  if (!key) return json(503, { error: 'DEEPSEEK_API_KEY is not set for this site' });
 
   const raw = await request.text();
   if (encoder.encode(raw).length > MAX_BODY_BYTES) return json(413, { error: 'request too large' });

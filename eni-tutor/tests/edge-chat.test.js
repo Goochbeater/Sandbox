@@ -24,7 +24,7 @@ const loaded = import(pathToFileURL(path.join(dir, 'edge-functions', 'chat.mjs')
 const knowledge = import(pathToFileURL(path.join(dir, 'edge-lib', 'knowledge.js')).href);
 
 const SITE = 'https://eni.example.netlify.app';
-const UPSTREAM = 'https://openrouter.ai/api/v1/chat/completions';
+const UPSTREAM = 'https://api.deepseek.com/chat/completions';
 const SEARCH = 'https://api.tavily.com/search';
 const encoder = new TextEncoder();
 
@@ -78,7 +78,7 @@ const interviewId = async () => {
 };
 
 test.beforeEach(() => {
-  env.OPENROUTER_API_KEY = 'test-key-123';
+  env.DEEPSEEK_API_KEY = 'test-key-123';
   delete env.TAVILY_API_KEY;
 });
 
@@ -95,11 +95,11 @@ test('rejects an origin that is not this site', async () => {
 });
 
 test('fails closed when the key is not configured', async () => {
-  delete env.OPENROUTER_API_KEY;
+  delete env.DEEPSEEK_API_KEY;
   const handler = await loaded;
   const res = await handler(post(goodBody()));
   assert.equal(res.status, 503);
-  assert.match(await res.text(), /OPENROUTER_API_KEY/);
+  assert.match(await res.text(), /DEEPSEEK_API_KEY/);
 });
 
 test('rejects bodies that are not JSON or break the message rules', async () => {
@@ -138,12 +138,11 @@ test('a plain answer: one model call, the persona and index in the system messag
     const calls = modelCalls(up.calls);
     assert.equal(calls.length, 1);
     const sent = bodyOf(calls[0]);
-    assert.equal(sent.model, 'nvidia/nemotron-3.5-super-vl:free');
+    assert.equal(sent.model, 'deepseek-flash');
     assert.equal(sent.stream, true);
     assert.equal(sent.max_tokens, 2048);
     assert.equal(sent.temperature, 1.5);
     assert.equal(sent.tool_choice, 'auto');
-    assert.deepEqual(sent.provider, { require_parameters: true }, 'tools are never dropped silently');
     assert.deepEqual(sent.tools.map((t) => t.function.name), ['open_document', 'web_search']);
     assert.equal(sent.messages[0].role, 'system');
     assert.match(sent.messages[0].content, /# LIBRARY INDEX/);

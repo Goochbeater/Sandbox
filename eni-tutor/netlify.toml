@@ -4,7 +4,7 @@
   command = "npm run build"
 
 # The page posts to /api/v1/chat/completions. The edge function relays it to
-# OpenRouter, reading OPENROUTER_API_KEY from the site's environment.
+# DeepSeek, reading DEEPSEEK_API_KEY from the site's environment.
 [[edge_functions]]
   path = "/api/v1/chat/completions"
   function = "chat"

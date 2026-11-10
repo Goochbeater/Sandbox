@@ -3,7 +3,7 @@
    window that faces a moon that isn't where the moon is, and the Woman herself by the fire. Violet and plum throughout: the
    light is violet from the hearth, the window and the orb, the motes are violet, and the wattle walls hold a faint glow.
    Only the king comes here. No one else in the household has a home in this room, and the path into the trees is his alone. */
-const HUT = SCENE.addRoom(new Room('hut', { X0: -10, X1: 10, CEIL: 5.2, KZ: 2.6, cam: { y: 2.4, look: 2.2, dist: 19.4, fov: 19 }, exposure: 1.0, reflK: 0.5,
+const HUT = SCENE.addRoom(new Room('hut', { grade: { s: [0.97, 0.93, 1.1], h: [1.03, 0.98, 1.05] }, X0: -10, X1: 10, CEIL: 5.2, KZ: 2.6, cam: { y: 2.4, look: 2.2, dist: 19.4, fov: 19 }, exposure: 1.0, reflK: 0.5,
   music: 'title', ambience: { wind: 0.2, tone: 0.3 }, acoustics: { size: 2.4, wet: 0.35 }, surface: 'wood',
   caption: ['The Woman’s Hut', 'Only the king comes this way'] }));
 HUT.ENTRY = -10.6;   // from the path: the door is in the back wall, at the left

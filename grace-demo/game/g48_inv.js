@@ -56,7 +56,7 @@ INV.stage = function (room) {
   const A = CAST.A, on = INV.on(), id = room.id, show = (a, v) => { if (a) { a.offstage = !v; a.setVisible(v); } };
   if (CAL.feastDone && A.gniewomir && A.gniewomir.visible) show(A.gniewomir, false);   // dead since the feast, wherever his homes are
   room.inter = room.inter.filter((i) => !(CAST.A[i.id] && CAST.A[i.id].spec.gone && CAST.A[i.id].spec.gone()));   // no marker over the dead (only them: petitioners are hidden at entry and walk in later)
-  document.body.classList.toggle('inv', on || CAL.phase === 'ch5' || Object.keys(INV.found).length > 0);
+  document.body.classList.toggle('inv', true);   // the book is always there: the week before the crisis, the clues in it
   if (id === 'chapel') { for (const m of room.bier || []) m.visible = on; if (room.bierLight) room.bierLight.intensity = on ? 3.2 : 0;
     const it = room.inter.find((i) => i.id === 'bier'); if (it) it.hidden = !on;
     const P = A.priest; if (P && on) { P.x = -1.9; P.z = 2.25; P.face = 1; } }
@@ -148,9 +148,17 @@ INV.report = async function () {
 };
 /* ---------------------------------------------------------------- the journal */
 INV.badge = (on) => { const b = $('jrnBtn'); if (b) b.classList.toggle('new', !!on); };
+INV.WORD = (v) => (v >= 8 ? 'devoted' : v >= 5 ? 'close' : v >= 3 ? 'watchful' : v >= 1 ? 'cold' : 'lost to you');
 INV.render = function () {
+  if (CAL.phase === 'court' || CAL.phase === 'festival') {   // before the crisis the book is the king's week: what waits, and how the house stands
+    const c = CAL.caption() || ['The King’s Week', '']; $('jrnTitle').textContent = c[0].split(' · ')[0]; $('jrnSub').textContent = c[0].split(' · ')[1] || c[1];
+    const todo = CAL.phase === 'court' ? REALM.todo() : [c[1], CAL.fest === 3 ? 'Tonight: the feast. The bedchamber door leads to the hall.' : 'The bed ends the day.'];
+    const F = REALM.fam; $('jrnText').innerHTML = `<h4>This ${CAL.phase === 'court' ? 'week' : 'day'}</h4>${todo.map((t) => `<p>${t}</p>`).join('')}
+      <h4>The realm</h4><p>Gold ${COURT.stats.gold} · Stores ${COURT.stats.stores} · Mood ${COURT.stats.mood} · Army ${REALM.army}</p>
+      <h4>The family</h4><p>Halina is ${INV.WORD(F.halina)}. Zofia is ${INV.WORD(F.zofia)}. Kazik is ${INV.WORD(F.kazik)}.</p>`; return; }
+  $('jrnTitle').textContent = CAL.phase === 'done' && END.seen ? END.TITLES[END.seen] : 'The Dead King';
   const n = INV.ORDER.filter((id) => INV.found[id]).length, sub = INV.outcome ? 'The name was given.' : CAL.phase === 'crisis' ? `Day ${CAL.crisis} of twelve · ${n} of 8 clues` : `${n} of 8 clues`;
-  $('jrnSub').textContent = sub;
+  $('jrnSub').textContent = sub + (CAL.phase === 'crisis' && REALM.waiting() ? ' · a petitioner waits in the hall' : '');
   const clues = INV.ORDER.filter((id) => INV.found[id]).map((id) => { const [t, d, w] = INV.CLUES[id]; const where = id === 'grey' ? { salA: 'Mira of the Salamanders', konrad: 'Konrad of Hal', lute: 'the lute player at the House' }[INV.witness()] : w;
     return `<div class="clue"><b>${t}</b><p>${d}</p><small>${where} · day ${INV.found[id]}</small></div>`; }).join('') || '<p>Nothing yet. The cup, the body, the people at the feast: start there.</p>';
   const notes = Object.keys(INV.NOTES).filter((id) => INV.notes[id]).map((id) => `<p>${INV.NOTES[id]}</p>`).join('');
@@ -220,8 +228,7 @@ INV.conclude = async function (key) {
   const O = INV.OUT[key]; INV.outcome = key; CAL.phase = 'ch5'; GAME.save();
   await NIGHT.fade(true); SCENE.caption('Chapter Five · The War of the Cup', O.text); await SCENE.wait(6500);
   if (O.war && typeof BATTLE !== 'undefined') await BATTLE.play({ enemy: O.war });
-  await SCENE.prepare('bedroom'); SCENE.player.stand(); SCENE.enter('bedroom', { x: -6.4, face: 1 }); R.r.compile(R.scene, R.cam); SCENE.render(); await nextFrame();
-  await NIGHT.fade(false); SCENE.caption('The War of the Cup', 'To be continued');
+  await END.play();   // chapter six: the fortieth night, the Woman's price, the ending the ledgers earned (g52); then the title
 };
 /* the twelfth day ran out (CAL.next) */
-INV.timeout = function () { if (INV.outcome) return; INV.outcome = 'none'; CAL.phase = 'ch5'; CAL.bridge = ['The twelfth day', INV.OUT.none.text]; };
+INV.timeout = function () { if (INV.outcome) return; INV.pendingEnd = true; };   // CAL.morning plays it out: the war, and the end

@@ -41,6 +41,20 @@ HOUSE.W = {
     more: ['Pay like anyone else, Falconer. Your father did. Mostly.', 'The League’s clerk is a pig with a quill. If he bothers my girls, the docker sits on him.',
       'Your father sat in that chair by the cellar door every Thursday for eleven years. He never once took his boots off.'],
     talk: ['He told me things he never told the chronicle. One day I might tell you. Not tonight.', 'Rumour is the river quarter’s other river. Mind how often you come.', 'The girls like you. That’s dangerous for both of you.'],
+    /* Wanda herself (47), once he is a regular of the house (three nights upstairs): her own room, her terms, in his lap */
+    offer: 'Three nights under my roof, and never once the landlady. I’m not offended. I’m curious. My room is the door with the lamp on it.',
+    yes: 'Mind the third step. I had it made to scream on purpose.',
+    intro: [['Q', 'Sit on the bed. Against the pillows. I’ll not climb about at my age, you’ll come where I put you.'], ['Q', 'I’m not your father’s keepsake, Falconer. Whatever this is, it’s mine.']],
+    undress: ['Hooks, not laces. Top to bottom. Take your time: I did, getting into it.', ['Q', 'Forty-seven years, all of them mine. Look as long as you like.']],
+    enter: { kiss: [['Q', 'Slowly. I’ve kissed men who were in a hurry. None of them are worth remembering.']], lap: [['Q', 'There. Sit up, and hold me where I can see your face.']], missionary: [['Q', 'On my back, then. Be worth the trouble.']],
+      ride: [['Q', 'Lie down. I’ll take it from here.']], behind: [['Q', 'Bold. Go on. Mind my hair.']], reverse: [['Q', 'I’ll turn round. You may admire the view. Quietly.']], edge: [['Q', 'On your feet, then. I’ll have the bed.']] },
+    lines: { kiss: [[['Q', 'Mm. Better than I expected.']], [['Q', 'Hands. Use them. I’m not glass.']], [['Q', 'Enough kissing. In.']]],
+      ride: [[['Q', 'Slowly. I set the pace in this house.']], [['Q', 'That’s it. Stay with me— there—']], [['Q', 'Don’t you finish before I say—']]],
+      missionary: [[['Q', 'Look at me, not the ceiling.']], [['Q', 'Deeper. I know what I like.']], [['Q', 'Yes— like that— don’t change a thing—']]],
+      behind: [[['Q', 'Steady. I’m not one of the girls.']], [['Q', 'Harder, then, if you’ve the back for it.']], [['Q', 'Oh— there— yes—']]],
+      after: [[['Q', 'Hm.']]] },
+    finish: ['Now. With me. Now—', 'Wanda—', 'Oh— there it is— there—'], cuddle: 'Kissing only? Careful. I might start to like you.',
+    after: [['Q', 'Well. You’re not him. That’s the best thing I can say of any man.'], ['Q', 'Go down the stair the way you came, Falconer. And pay at the counter. You pay like anyone else.']], fav: 'lap',
     warn: ['Half the quarter is guessing who the Falconer is. Use the cellar, not the door, and don’t talk to the clerk.', 'A man asked me today whether the Falconer wears a crown. I said he wears a cellar key and a bad back. Be careful.']
   },
   clerk: { first: [['clerk', 'Evening, sir. The League keeps accounts of everything. Every visit, every silver.'], ['king', 'Not mine.'], ['clerk', 'Everyone says that, sir. Have we done business? You look familiar.']],
@@ -74,14 +88,14 @@ HOUSE.W = {
     yes: 'Yes. Upstairs. Walk ahead of me. I like to watch how a man climbs stairs.',
     intro: [['Q', 'My room. My maps. My rules. Take off the coat, Falconer.'], ['K', 'Is that a rule?'], ['Q', 'The first one.']],
     undress: ['Undo the clasp. One hand. Show me you can.', ['K', 'Like that?'], ['Q', 'Like that. Now onto the bed.']],
-    enter: { kiss: [['Q', 'Slowly. I want to learn your mouth.']], missionary: [['Q', 'On top of me, then. Eyes open.'], ['K', 'Yes.']], ride: [['Q', 'Lie back. I set the pace.']],
+    enter: { edge: [['Q', 'Stand up. At the foot of the bed. I want to see a king on his feet.']], kiss: [['Q', 'Slowly. I want to learn your mouth.']], missionary: [['Q', 'On top of me, then. Eyes open.'], ['K', 'Yes.']], ride: [['Q', 'Lie back. I set the pace.']],
       behind: [['Q', 'From behind. Hold my hips and don’t hurry.'], ['K', 'As you say.']] },
     lines: { kiss: [[['Q', 'Good.'], ['Q', 'Again. Slower.']], [['Q', 'Your hands are shaking. Steady them on me.']], [['Q', 'Now.']]],
       missionary: [[['Q', 'Deeper. Don’t ask. Do.'], ['K', 'Nadia...']], [['Q', 'Yes. That. Keep that.'], ['Q', 'Harder.']], [['Q', 'Don’t stop. Don’t you stop.']]],
       ride: [[['Q', 'Watch me.'], ['K', 'I can’t look anywhere else.']], [['Q', 'Mm. You’re learning.'], ['Q', 'There— exactly there.']], [['Q', 'I’m close. Hold on to me.']]],
       behind: [[['Q', 'Steady. Like that.']], [['Q', 'Harder. I’m not glass.'], ['K', 'Gods...']], [['Q', 'Yes— now— now—']]], after: [[['Q', 'Hm.']]] },
     finish: ['Now. Don’t hold back.', 'Nadia—', 'Ah— yes— yes—'], cuddle: 'Hold me, then. Quietly.',
-    after: [['Q', 'Hm. Not bad, for a king.'], ['K', 'I’m not a king.'], ['Q', 'Of course. Go down the stairs the way you came, Falconer.']], fav: 'behind'
+    after: [['Q', 'Hm. Not bad, for a king.'], ['K', 'I’m not a king.'], ['Q', 'Of course. Go down the stairs the way you came, Falconer.']], fav: 'edge'
   },
   hanna: {
     first: [['hanna', 'You’re the one who comes up the cellar. Wanda says to treat you gently. I treat everyone gently.'], ['king', 'You’ve a soldier’s hands.'],
@@ -111,14 +125,14 @@ HOUSE.W = {
     yes: 'Upstairs! The water’s hot. Well, it was hot an hour ago. It’ll be hot again in a minute.',
     intro: [['Q', 'Shall I scrub your back, sir, or would you rather I didn’t stop at your back?'], ['Q', 'Coat off. You’re steaming up the window just standing there.']],
     undress: ['Let me. I undressed a queen every night for six years. You’re much easier.', ['K', 'You’re very good at this.'], ['Q', 'I’m very good at the next part, too.']],
-    enter: { kiss: [['Q', 'Kiss me, then. You taste of the river.']], missionary: [['Q', 'Ooh. On top of me. I like the weight.'], ['K', 'Like this?'], ['Q', 'Just like that, sir.']],
+    enter: { reverse: [['Q', 'I’ll turn round, sir. So I can watch the bath not go cold.']], kiss: [['Q', 'Kiss me, then. You taste of the river.']], missionary: [['Q', 'Ooh. On top of me. I like the weight.'], ['K', 'Like this?'], ['Q', 'Just like that, sir.']],
       ride: [['Q', 'My turn to be the queen.']], behind: [['Q', 'Ah, a man who knows what he wants. Hold on to me.']] },
     lines: { kiss: [[['Q', 'Mm. Warm.'], ['Q', 'Your hands are cold. Put them on me.']], [['Q', 'Lower. Oh, you’re bold.']], [['Q', 'Now, sir. Please.']]],
       missionary: [[['Q', 'Oh, that’s lovely.'], ['K', 'Lena...']], [['Q', 'Faster— oh— yes—'], ['Q', 'Don’t be polite about it.']], [['Q', 'I’m going to— oh—']]],
       ride: [[['Q', 'Lie still. Let me do it.'], ['K', 'You’re wicked.']], [['Q', 'Mm— there— oh, there—']], [['Q', 'I can’t— I can’t stop—']]],
       behind: [[['Q', 'Oh, the sheets will need washing.']], [['Q', 'Harder, sir— yes—']], [['Q', 'Oh— gods— yes—']]], after: [[['Q', 'Mm.']]] },
     finish: ['Don’t stop— oh, please—', 'Lena—', 'Oh— oh, sir— yes—'], cuddle: 'Just kissing? You’re sweet. My old mistress would have sent you away.',
-    after: [['Q', 'The water’s gone cold.'], ['K', 'I didn’t notice.'], ['Q', 'No, sir. You didn’t.']], fav: 'ride'
+    after: [['Q', 'The water’s gone cold.'], ['K', 'I didn’t notice.'], ['Q', 'No, sir. You didn’t.']], fav: 'reverse'
   },
   agata: {
     first: [['agata', 'Don’t stand there like a confessor. Sit, or go away.'], ['king', 'You were in a convent.'],

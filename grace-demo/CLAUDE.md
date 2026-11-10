@@ -13,6 +13,9 @@ Standing rules (the owner asked for these; they apply to every session):
    page log, and every new interaction driven to its end with `SCENE.lock` back to 0.
 5. **Story state is saved:** anything new goes into `GAME.reset`, `GAME.state` and `GAME.load` (`game/g22_title.js`).
 6. **Adult scenes** (§13c): adult characters only, never Zofia or Kazik or any child; every scene behind `NIGHT.confirm`
-   (the 18+ gate); the king's penis is never shown (hide `K.sexGroup` after undressing); the player picks the king's lines.
+   (the 18+ gate); the king's penis is never shown (the engine enforces it: `Actor.SHOW_SEX` stays `false`, so `undress()`
+   never draws a man's parts; do not change it); the player picks the king's lines.
 7. **Build** with `bash build.sh` (it refuses duplicate `PX.` / `BUILD.` / `SCENE.` … definitions), commit `build/` with
    the source, and keep model names out of commit messages.
+8. **The loop is weeks of court** (`ENGINE.md` §13r): petitions are data in `REALM.PETS`, family moments in `REALM.EVENTS`,
+   and everything a choice changes goes through `REALM.fx`. New story beats belong in those tables before new code.

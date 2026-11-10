@@ -2,7 +2,7 @@
    standing mirror, and the door at the far right leads to the throne room once he's wearing it. */
 const BEDROOM = SCENE.addRoom(new Room('bedroom', { X0: -11.6, X1: 11.8, CEIL: 4.7, KZ: 2.6, cam: { y: 2.45, look: 2.18, dist: 19.4, fov: 19 }, exposure: 1.0, reflK: 0.6,
   music: 'castle', ambience: { fire: 0.55, tone: 0.25 }, acoustics: { size: 1.3, wet: 0.16 }, surface: 'wood',
-  caption: ["The King's Bedchamber", 'An evening in late autumn'] }));
+  caption: ["The King's Bedchamber", 'An evening of rain, early in the summer'] }));
 BEDROOM.LINES = {
   fire: ['The hearth keeps the frost out. Mostly.', 'Grandfather said a king may be cold anywhere but in front of his people.'],
   bed: ['Not yet. The petitioners come at first light, and I have only read half their letters.', 'Sleep is for kings with smaller kingdoms.'],

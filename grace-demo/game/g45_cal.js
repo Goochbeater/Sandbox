@@ -6,10 +6,10 @@
    the morning to CAL.next. The feast is the festival's third night: on day 3 the bedchamber's door opens on the hall
    dressed for it (FEAST, g46) and the bed refuses. Chapters 1–2's weeks aren't built yet: between the court day and the
    festival a card says what happened in them. Everything here is saved (GAME.state). */
-const CAL = { phase: 'court', day: 1, fest: 0, crisis: 0, feastDone: false, doors: null, toast: null, konrad: null, fire: null };
+const CAL = { phase: 'court', week: 1, day: 1, fest: 0, crisis: 0, feastDone: false, doors: null, toast: null, konrad: null, fire: null };
 CAL.init0 = JSON.stringify(CAL);
 CAL.reset = function () { Object.assign(CAL, JSON.parse(CAL.init0)); };
-CAL.KEYS = ['phase', 'day', 'fest', 'crisis', 'feastDone', 'doors', 'toast', 'konrad', 'fire'];
+CAL.KEYS = ['phase', 'week', 'day', 'fest', 'crisis', 'feastDone', 'doors', 'toast', 'konrad', 'fire'];
 CAL.state = function () { const o = {}; for (const k of CAL.KEYS) o[k] = CAL[k]; return o; };
 CAL.load = function (s) { CAL.reset(); if (s) for (const k of CAL.KEYS) if (k in s) CAL[k] = s[k]; };
 CAL.festival = () => CAL.phase === 'festival';
@@ -20,6 +20,7 @@ CAL.DAYS = {
   crisis: (n) => [`The Dead King · Day ${n} of twelve`, n < 12 ? 'Krasna is waiting. So is the rain.' : 'The last day.'],
 };
 CAL.caption = function () {
+  if (CAL.phase === 'court') return REALM.TITLE[CAL.week] || null;
   if (CAL.phase === 'festival') return CAL.DAYS.festival[CAL.fest];
   if (CAL.phase === 'crisis') return CAL.DAYS.crisis(CAL.crisis);
   return null;
@@ -39,6 +40,7 @@ MAP.onOpen = function (places) { const m = places.find((p) => p.id === 'meadow')
 CAL.bed = async function () {
   const K = SCENE.player; if (SCENE.lock) return;
   if (CAL.festival() && CAL.fest === 3 && !CAL.feastDone) { SCENE.say(K, SCENE.cycle('calFeast', ['Not tonight. The whole of Krasna is waiting in the great hall.', 'The feast first. Then sleep, if anyone sleeps.'])); return; }
+  if (CAL.phase === 'court' && !COURT.done) { SCENE.say(K, SCENE.cycle('calCourt', ['Not yet. The petitioners are waiting in the hall, and they walked up that hill in the rain.', 'Court first. Then the bed.'])); return; }   // a week ends with its court held (g51)
   SCENE.lock++; let i;
   try { i = await NIGHT.ask(['Sleep until morning', 'Go to bed with Halina (18+)', 'Not yet']); } finally { SCENE.lock--; }
   if (i === 0) return CAL.sleep();
@@ -55,15 +57,18 @@ CAL.sleep = async function () {
 };
 /* the night is over (inside the fade): move the day on. Returns the bridging card's lines, if the day jumped */
 CAL.next = async function () {
-  if (CAL.phase === 'court') {   // chapters 1 and 2 aren't built: say what the weeks between held, then the festival
-    CAL.phase = 'festival'; CAL.fest = 1; CAL.day += 28; CAL.bridge = ['Four weeks later', 'The rain stopped on the morning the guests were due. Nobody in Lodmir remembers a June so dry.'];
+  if (CAL.phase === 'court') {   // chapters 1 and 2: four weeks, each ended by its court and its bed (g51); then the festival
+    if (CAL.week < 4) { CAL.week++; CAL.day += 7; REALM.newWeek(); }
+    else { CAL.phase = 'festival'; CAL.fest = 1; CAL.day += 7;
+      CAL.bridge = ['Midsummer', REALM.flags.bargain2 === 0 ? 'The guests rode in under a grey sky. The fair opened anyway.' : 'The rain stopped on the morning the guests were due. Nobody in Lodmir remembers a midsummer so dry.']; }
   } else if (CAL.phase === 'festival') { if (CAL.fest < 3) { CAL.fest++; CAL.day++; } }
-  else if (CAL.phase === 'crisis') { if (CAL.crisis < 12) { CAL.crisis++; CAL.day++; } else { CAL.day++; INV.timeout(); } }   // past the twelfth day with no name: war (g48)
+  else if (CAL.phase === 'crisis') { if (CAL.crisis < 12) { CAL.crisis++; CAL.day++; if (REALM.waiting()) COURT.done = false; } else { CAL.day++; INV.timeout(); } }   // a petitioner may be waiting (g51: REALM.CRISIS)   // past the twelfth day with no name: war (g48)
   else CAL.day++;
   GAME.save();
 };
 /* the morning's caption (after the fade). The bridge card, when the day jumped, goes first */
 CAL.morning = function () {
+  if (INV.pendingEnd) { INV.pendingEnd = false; INV.conclude('none').catch(fail); return; }   // the twelfth day ran out with no name
   const c = CAL.caption(), b = CAL.bridge; CAL.bridge = null;
   if (b) { SCENE.caption(b[0], b[1]); if (c) setTimeout(() => SCENE.caption(c[0], c[1]), 5200); }
   else if (c) SCENE.caption(c[0], c[1]); else SCENE.caption('Morning', 'The rain again, on the glass.');
@@ -72,6 +77,7 @@ CAL.morning = function () {
 CAL.OUT = ['garden', 'yard', 'wood', 'fair', 'lists', 'camp'];
 SCENE.afterEnter = function (room) {
   INV.stage(room);   // chapter four's props and people (g48)
+  REALM.enter(room);   // the bar at the top, and whatever is waiting in this room this week (g51)
   if (CAL.phase !== 'crisis' || CUT.playing || !room.ambience) return;
   AUDIO.ambience(Object.assign({}, room.ambience, CAL.OUT.includes(room.id) ? { rain: 0.8, birds: 0 } : { rainGlass: 0.75 }));
 };

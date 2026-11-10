@@ -64,13 +64,14 @@ COURT.rise = async function () {
 COURT.run = async function () {
   COURT.busy = true; SCENE.lock++;
   const A = CAST.A;
-  await SCENE.talk([[A.steward, 'Court is in session. Let the first petitioner in.']]);
-  for (const p of COURT.PETS) await COURT.petition(p);
-  await SCENE.talk([[A.steward, 'That is everyone for tonight, Your Grace.']]);
+  const Q = REALM.queue();   // this week's petitioners (g51), or the crisis's
+  await SCENE.talk([[A.steward, Q.length ? 'Court is in session. Let the first petitioner in.' : 'Nobody waits below today, Your Grace.']]);
+  for (const p of Q) { await COURT.petition(p); REALM.heard(p); }
+  if (Q.length) await SCENE.talk([[A.steward, 'That is everyone for today, Your Grace.']]);
   SCENE.lock--;
-  await COURT.week();
-  COURT.done = true; COURT.busy = false;
-  SCENE.say(A.queen, 'Well done. Now come away from that chair before it grows into you.');
+  if (Q.length) { await COURT.week(); REALM.upkeep(); }
+  COURT.done = true; COURT.busy = false; REALM.hud(); GAME.save();
+  if (CAL.phase === 'court') SCENE.say(A.queen, SCENE.cycle('courtEnd', ['Well done. Now come away from that chair before it grows into you.', 'Enough for one week. To bed, when you’re ready: the morning will bring more of them.']));
 };
 COURT.petition = async function (p) {
   const A = CAST.A, pet = A[p.who], room = THRONE;
@@ -80,11 +81,12 @@ COURT.petition = async function (p) {
   const walking = arrive(pet, room.SPOT); setTimeout(() => COURT.door(false), 2600); await walking;
   pet.lookYaw = -0.95; pet.act('Interact'); await SCENE.wait(900);
   await SCENE.talk(p.intro.map((t) => [pet, t]));
-  const res = await COURT.panel(p);
-  const lines = p[res.kind];
-  if (res.kind === 'yes') COURT.toast('+' + res.gain + ' Prosperity'); else if (res.kind === 'short') COURT.toast('Prosperity −1');
-  await SCENE.talk(lines.map((t) => [pet, t]));
-  for (const w of res.notes) await SCENE.talk([[A.steward, w]]);
+  if (p.options) { await REALM.choose(p, pet); }   // a decision (g51): the king answers in his own words, and it costs what it costs
+  else { const res = await COURT.panel(p), lines = p[res.kind];
+    if (res.kind === 'yes') COURT.toast('+' + res.gain + ' Prosperity'); else if (res.kind === 'short') COURT.toast('Prosperity −1');
+    await SCENE.talk(lines.map((t) => [pet, t]));
+    for (const w of res.notes) await SCENE.talk([[A.steward, w]]);
+    const fx = res.kind === 'yes' ? p.yesFx : res.kind === 'no' ? p.noFx : null; if (fx) REALM.fx(fx); }
   pet.lookYaw = null; COURT.door(true); await arrive(pet, room.DOORX + 0.3); pet.setVisible(false); pet.offstage = true; COURT.door(false);
   await SCENE.wait(500);
 };
@@ -92,7 +94,7 @@ COURT.petition = async function (p) {
 COURT.panel = function (p) {
   return new Promise((done) => {
     SCENE.modal = true; const el = $('court'); el.hidden = false;
-    const use = {}; for (const a of COURT.agents) use[a.id] = 0; const items = new Set(), seq = [];
+    const use = {}; for (const a of COURT.agents) use[a.id] = 0; const items = new Set(), seq = [], pay = p.pay || {}; for (const k in pay) use['$' + k] = 0;
     $('cpWho').textContent = p.name; $('cpAsk').textContent = p.ask;
     const sources = () => { const s = []; for (const q of seq) s.push(q); return s; };
     const total = () => seq.reduce((t, q) => t + q.pts, 0);
@@ -119,6 +121,16 @@ COURT.panel = function (p) {
         minus.onclick = () => { use[a.id]--; seq.splice(seq.map((q) => q.src).lastIndexOf(a.id), 1); render(); };
         plus.onclick = () => { use[a.id]++; seq.push({ src: a.id, pts: fit }); render(); };
         ctl.append(minus, n, plus); card.appendChild(ctl); ag.appendChild(card); }
+      // the treasury itself: gold or stores, at this petition's price (p.pay = { gold: { cost, pts }, stores: { … } })
+      for (const k in pay) { const c = pay[k], id = '$' + k, left = Math.floor(COURT.stats[k] / c.cost) - use[id], card = document.createElement('div'); card.className = 'agent';
+        card.innerHTML = `<div class="an">${k === 'gold' ? 'Gold' : 'Stores'} <span class="at">${c.cost} for +${c.pts} · ${COURT.stats[k] - use[id] * c.cost} left</span></div>`;
+        const ctl = document.createElement('div'); ctl.className = 'ctl';
+        const minus = document.createElement('button'); minus.className = 'pm'; minus.textContent = '−'; minus.setAttribute('aria-label', 'Take back ' + k); minus.disabled = !use[id];
+        const plus = document.createElement('button'); plus.className = 'pm'; plus.textContent = '+'; plus.setAttribute('aria-label', 'Spend ' + k); plus.disabled = left <= 0 || total() >= p.cells;
+        const n = document.createElement('span'); n.className = 'n'; n.textContent = use[id];
+        minus.onclick = () => { use[id]--; seq.splice(seq.map((q) => q.src).lastIndexOf(id), 1); render(); };
+        plus.onclick = () => { use[id]++; seq.push({ src: id, pts: c.pts }); render(); };
+        ctl.append(minus, n, plus); card.appendChild(ctl); ag.appendChild(card); }
       // items
       const it = $('cpItems'); it.innerHTML = '<div class="lbl">From the treasury</div>';
       for (const i of COURT.items) { const b = document.createElement('button'); b.className = 'item' + (items.has(i.id) ? ' on' : ''); b.disabled = !i.n && !items.has(i.id);
@@ -131,6 +143,7 @@ COURT.panel = function (p) {
       el.hidden = true; SCENE.modal = false; const t = total(), notes = [];
       if (kind === 'yes') {
         for (const a of COURT.agents) a.ap -= use[a.id];
+        for (const k in pay) COURT.stats[k] -= use['$' + k] * pay[k].cost;
         for (const id of items) COURT.items.find((i) => i.id === id).n--;
         const filled = Math.min(t, p.cells); let gain = 1 + Math.max(0, filled - p.need);
         for (let i = 1; i <= filled; i++) { const fx = p.effects[i], who = COURT._owner[i - 1];

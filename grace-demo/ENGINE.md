@@ -15,6 +15,21 @@ make the look work, and the recipes for adding rooms, props, characters, convers
    read the page log for errors, and drive every new interaction to its end (`SCENE.lock` back to 0).
 5. **Adult content stays inside its rules** (§13c): adults only, behind the 18+ gate, the king's penis never shown.
 
+**If you are an agent picking this up** (ten minutes of reading that saves an hour):
+- Build: `bash build.sh` → `build/index.html`. It refuses syntax errors and duplicate `PX.` / `BUILD.` / `SCENE.` … names.
+  Files load in name order (`engine/e*.js`, then `game/g*.js`): a later file may use an earlier one's globals, never the reverse
+  at load time.
+- Look: `tools/shot.js` (§11). Use `?test&room=<id>`; add `&catchup=4` and `W=800 H=357 DPR=1` for anything long. Wait on
+  state, not on time. Read the page log every run: a shader or script error shows only there.
+- The game's spine, in order: title and opening (`g22`) → weeks of court (`g45` calendar, `g50` court, `g51` realm) → the
+  festival (`g36`–`g39`) → the feast (`g46`) → the investigation (`g48`) → the battle (`g49`) → the endings (`g52`). Adult
+  scenes: `g26` (bed), `g27` (positions), `g29` (confessional), `g42`–`g43` (the House).
+- State that must survive a reload goes in `GAME.reset` / `GAME.state` / `GAME.load` (`g22`). Each system has `reset`,
+  `state`, `load` of its own; add yours the same way.
+- A room can only build inside `build()`. Anything shown later is built there hidden. Anything that moves is `dyn`.
+- Before you say something works: every room boots with no page errors, `SCENE.walkCheck()` is `[]`, and the interaction
+  you added runs to its end with `SCENE.lock` back at 0 (the room loop in §13o is the regression).
+
 Contents
 1. What it is, in one paragraph
 2. Folder map and build
@@ -43,6 +58,10 @@ Contents
 13m. The investigation
 13n. The battle (a preview)
 13o. A full polish pass, and what it found
+13p. The picture: bokeh depth of field, occlusion, rack focus, the grade
+13q. Adult scenes: the rhythm, the positions, the lens
+13r. The realm: weeks, the court's queue, the ledgers
+13s. The endings
 14. Credits and licences
 
 ---
@@ -1245,6 +1264,134 @@ What it found and fixed, and the rule behind each, for the next room:
   got a soft band so it reads over the castle.
 The opening's six shots, the bedchamber, the throne room, the garden, the yard, the wood, the fair, the lists, the House and
 the feast were checked and left as they are.
+
+## 13p. The picture: bokeh depth of field, occlusion, a focus that follows speech, the grade (`engine/e01_render.js`)
+
+What *Yes, Your Grace: Snowfall* and the HD-2D games share is pixel art inside a real lens: a shallow depth of field whose
+blur has shape, bloom on everything that burns, contact shadow where things meet, and a graded picture. The frame already
+had the first two in simple form; this is what was added and why. Order of passes each frame (`R.frame`):
+`reflection → scene (HDR + depth) → down (half res, depth in alpha) → blur (gather) → fill → ao → aoBlur → bloom chain → final`.
+
+**Bokeh** (`mat.blur`). The gather is the same golden-angle spiral, up to 11 px at a 640 px half buffer, but each accepted
+sample is weighted `1 + uBokeh · smoothstep(uBThr, 3·uBThr, max(r,g,b))` (uBokeh 5, uBThr 1.25 in linear HDR). A lit wall
+is about 0.3–0.8 and a flame card 2.6–3.2, so only fire and windows cross the threshold: out of focus they open into
+round bright discs instead of dimming into a smear. `mat.fill` then runs a 3×3 tent (four bilinear taps) over the gather:
+it rounds the discs and hides the spiral's sparseness; the near-field alpha takes half its max, so blurred foreground
+edges stay soft. The far field's cap went from 2 to `R.farMax` 3.2 px. Per-room ramps (`room.dof`) are unchanged.
+
+**Ambient occlusion** (`mat.ao`, `mat.aoBlur`; high quality only; `R.aoK` 0.85, `?noao` turns it off). From the depth
+buffer alone: view position from depth (`uProj` = tan(fov/2) × (aspect, 1)), the normal from the nearer of each pair of
+neighbours, ten taps on a per-pixel rotated spiral inside 0.6 m, each adding `max(v·n − bias, 0) / (v·v + 0.02)` with a
+range falloff; then a 4-tap depth-aware blur. It reads the **full-resolution 24-bit depth texture**, not the half buffer's
+alpha: half-float depth steps 1.5 cm at 20 m, which banded every wall. Bias 0.03 m + 0.0015·depth keeps cards hung a few
+centimetres off a wall (paintings, sconces, banners) from haloing. What it buys: the dais steps, furniture on floors, the
+wall-floor line, and a contact shadow under every sprite's feet (the card is a plane standing on the floor). It fades
+where the picture is out of focus and stops at 45 m.
+
+**Rack focus** (`SCENE.update`). The focal plane is the walking line (`cam.dist + room.focusDz`). When someone speaks from
+beyond the sharp zone (further behind the line than `0.8 × uFar0`: the royal stand calling down, a king at his pavilion
+table), the focus eases to bring them just inside it (`damp` 3.5/s) and back when the king answers. `room.rack = false`
+turns it off for a room; `SCENE.focusSnap` (set on entry) skips the ease.
+
+**Grade** (`R.grade`, `mat.final`). After ACES and the warm mid curve: `col *= mix(uTintS, uTintH, smoothstep(0.12, 0.7,
+luma))`, a split tone. Default `R.GRADE = { s: [0.95, 0.99, 1.06], h: [1.04, 1.0, 0.95] }` (cool shadows, warm
+highlights); a room overrides with `room.grade = { s: [r,g,b], h: [r,g,b] }` (multipliers, not colours).
+
+**Cost.** Three more half-resolution passes (fill, ao, aoBlur). `Quality: Low` skips the occlusion; `Effects: Off` skips
+everything but the scene. The automatic drop to Low (average frame over 30 ms) is unchanged.
+
+**To judge a change to the picture**: shoot the throne room at x 0 and x −9 (the brazier in the near field) and the
+bedroom at x −9 (the near candle) before and after, crop the same region, and put them side by side. Toggle one thing
+at a time from the console (`R.aoK = 0`, `R.mat.blur.uniforms.uBokeh.value = 0`).
+
+## 13q. Adult scenes: the rhythm, the positions, the lens (`game/g27_lovers.js`, `g26_night.js`)
+
+**The rule lives in the engine now.** `Actor.SHOW_SEX = false`: `undress('all')` builds a man's parts (the poses pin to
+them) and never draws them. The royal bed scene had been showing them: only the confessional and the House hid them by
+hand. No scene has to remember any more, and no scene can forget.
+
+**One phase, read several ways.** The old poses moved as blocks: one stroke curve slid a rigid body. Now `LOVERS.pose`
+derives from the same phase `ph`:
+- `stroke(ph)`: 0..1, a quick drive (30% of the cycle), a beat held at the deep end (8%), a slower draw back;
+- `jolt(ph)`: the impact, `e^(−7d)·sin(22d)` from the deep end on, scaled by how worked-up they are;
+- `stroke(ph − 0.7)` and `stroke(ph − 1.3)`: the chest answers the hips a beat later, the head a beat after that;
+- three slow turns that never line up with the stroke: `amp` (0.8..1, how deep this stroke goes), `sway` (the head rolling
+  side to side), `br` (breath).
+They are all functions of `ph`, so they quicken with the pace. In each position the body that drives tips its pelvis
+(`hips: LOVERS.tilt(up, fwd, 0.26·S − 0.1)`, a rotation toward its own front) with the spine curling against it; the body
+that receives is pushed along by `S` and `jolt`, arches by the lagged stroke, and its head follows last. As `k` (0..1)
+rises the poses change shape, not only amplitude: an arm goes back to grip the pillow, she drops from her hands to her
+forearms, she sits up and leans back, heads tip.
+
+**Positions** (`LOVERS.MENU`): kiss · missionary · ride · **reverse** (astride, facing the foot of the bed, hands on his
+knees, sitting up as it builds) · behind · **lap** (he sits against the pillows, she astride face to face; slow:
+`LOVERS.RATE.lap` 0.6) · **edge** (she across the foot of the bed, he standing on the floor, feet planted by leg IK) ·
+after. A scene can offer fewer (`stage.menu`). Lines for a position a scene didn't write fall back through `LOVERS.LIKE`.
+Left and right: a body's left is `up × fwd`; hands go to the partner's matching side or elbows cross.
+
+**Staging.** `LOVERS.stage({ x, y, z })` offsets every constant in the poses (`X()`, `Y()`, `zc`), the shared sprite's
+frame (`LOVERS.FRAME`: 4.7 × 3.0 m, big enough for a man standing at the bed's foot) and the lens, so the same positions
+can be played on another bed anywhere. Bone-relative points (`LOVERS.at`) need no offset.
+
+**The lens** (`NIGHT.zoom`, the *Closer / Closer still / Wider* button): 0 the room re-centred, 1 the bed (fov 13.5),
+2 close (fov 8.6, about 6 m across), and in 2 it follows the position (`LOVERS.FOCUS`). At the bed's edge the shared
+card is moved 0.32 m toward the lens (`LOVERS.CARD`) so the near foot post doesn't cut the standing man in two.
+
+**Scenes placed in the story.** Halina's night opens with what the week has been (`NIGHT.OPEN` by calendar phase; only she
+speaks, the choice is the player's). Wanda (47) offers her own room once he has spent three nights in the house (her
+position is the lap). Nadia's favourite is the bed's edge, Lena's the reverse. Every scene: adults only, behind
+`NIGHT.confirm`.
+
+**Checking a position** (`t/pos.js` in the scratchpad pattern): `?test&room=bedroom&night`, `NIGHT.to(name)`, hold the
+phase at the deep end (`NIGHT.hold = true; NIGHT.ph = 6π + 0.66π`), then compare each pelvis with its pose's `at`: the
+difference is the pin's slide, and it should be near zero (lap began 16 cm off, the edge 17 cm); read the feet's heights
+(0.10 on the floor for a standing man); shoot at zoom 2.
+
+## 13r. The realm: weeks, the court's queue, the ledgers (`game/g51_realm.js`, `g50_court.js`)
+
+The game's loop is *Yes, Your Grace*'s: a week of walking the castle, a court of petitioners, a ledger, a bed.
+- **Weeks.** `CAL.phase 'court'` has `CAL.week` 1–4 (chapters one and two). The bed refuses until court has sat
+  (`COURT.done`); then *Sleep* (or the night with Halina) calls `CAL.next`: `REALM.newWeek()` and the week's caption
+  (`REALM.TITLE`). After week four: midsummer, the festival.
+- **The queue.** `REALM.WEEKS[week]` lists petition ids; `REALM.queue()` returns the ones not yet heard whose actor
+  exists. `COURT.run` walks each in (`COURT.petition`), then the ledger (`COURT.week`), then `REALM.upkeep()` (stores −1
+  a week; mood −1 if gold or stores have run out).
+- **A petition is data** (`REALM.PETS`). *Aid*: the cell panel, now with the treasury as a source: `pay: { gold: { cost,
+  pts }, stores: {…} }` adds a row that spends `cost` for `pts` cells; `yesFx` / `noFx` apply on the outcome. *Decision*:
+  `options: [{ label, reply, fx }]`: advice from the hall first (`advice: [[who, line]]`), then the choice strip; the king
+  says the label (the player's words), the petitioner replies, `REALM.fx(fx)` applies.
+- **`REALM.fx`** moves Gold / Stores / Mood (`COURT.stats`), Army, the family (`fam: { halina, zofia, kazik }`, 0–10, never
+  shown as numbers: the journal says *devoted / warm / watchful / cold*), flags, the house's rumour, Dorota's coolness, and
+  in the crisis `days` (Krasna's patience). It toasts what moved and pulses the bar.
+- **The bar** (`#realm`, top right): a coin, a sack, a heart, a shield, with names above 820 px. `REALM.hud()` on every
+  room entry and change.
+- **Moments** (`REALM.EVENTS`): `{ id, week, room, who, note, talk, options }`. Entering the room in its week, once the
+  room is free (the same poll as Wanda's welcome), the person speaks first and the player chooses. Six so far: Zofia's
+  sword, the old king's letter, Kazik's crow, the truth for Halina, the fostering, the second bargain.
+- **The journal** before the crisis is the week: what waits (`REALM.todo()`), the realm, the family in words.
+- **Petitioners** are lazy actors living offstage in the throne room (`home: 'throne'`, `offstage: true`): made from the
+  festival's `townsman` / `townswoman` helpers, or copies of existing specs (`bartoszPet`, `marshalPet`, `canon` from the
+  priest). Never reuse an actor that also lives elsewhere: `COURT.petition` sets `offstage` when it leaves, which would hide
+  it in its other home.
+- **What carries forward.** `flags.fire === 0`: no fire at the fair or the feast. `flags.masked === 0`: no black knight at
+  the feast. `flags.krasna < 0`: the crisis opens on day two. `flags.inquiry`: Dorota cools. `flags.bargain2`, `hela`,
+  `letter`, `told`: the endings (§13s).
+- **The crisis's court** (`REALM.CRISIS`): three petitions that arrive on days 2, 5 and 8; `CAL.next` reopens court when
+  one is waiting, and the journal says so.
+
+**Adding a petition**: write it in `REALM.PETS`, put its id in a week, and if nobody in the cast can speak it, add a
+petitioner spec beside the others. **Testing** (`t/realm.js` pattern): an interval that plays the two panels (click an
+enabled `+` until the note says *Meets*, then *Grant*; share out the ledger, *Seal*, *Close*), `DRV.adv` for the strips,
+and check `COURT.stats`, `REALM.flags`, `REALM.heardIds`, `CAL.week` after each step.
+
+## 13s. The endings (`game/g52_end.js`)
+
+`INV.conclude` (after the accusation, or the twelfth day running out) plays the battle if the outcome is a war and then
+`END.play()`: `END.pick()` reads the ledgers and flags (its header lists the five conditions, in order), `END.shots`
+builds a cutscene from rooms the game has (the fortress in the storm or under siege, the dark hall, the wood's fire, the
+dawn, the garden without Kazik, the yard), the last shot is the card (*The End · title*), and the title screen returns.
+`CAL.phase` becomes `'done'`; the save keeps `END.seen`. To add an ending: a branch in `END.pick`, a title, and a `tail`
+of shots.
 
 ## 14. Credits and licences
 

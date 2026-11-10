@@ -85,6 +85,7 @@ FAIR.onUpdate = function () { FEST.follow(this); };
 /* ---------------------------------------------------------------- the Salamanders */
 FAIR.fire = async function (room) {
   const A = CAST.A, S = [A.salA, A.salB, A.salC], K = SCENE.player; if (!S.every(Boolean)) return;
+  if (REALM.flags.fire === 0) { SCENE.say(A.bartosz || K, 'No licence for fire, Your Grace. Your own seal on it. The Salamanders are sulking in the wagon.'); return; }
   SCENE.lock++;
   try {
     await FEST.stepTo(room.stageX - 2.9, room.stageX);   // stand to one side: the stage is the show

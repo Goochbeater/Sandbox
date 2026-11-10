@@ -9,7 +9,9 @@
    both bodies are drawn in ONE sprite (the queen is hosted in the king's), so where they touch they overlap correctly;
    that sprite's box is widened to the whole bed and its card slid forward of the pillows. The room camera eases in
    toward the bed (the player can pull it back out), it never leaves the room. */
-const NIGHT = { AGE: 'swan.age18', on: false, pace: 1, ph: 0, k: 0, pos: null, closer: true, finishing: false };
+const NIGHT = { AGE: 'swan.age18', on: false, pace: 1, ph: 0, k: 0, pos: null, zoom: 2, finishing: false };
+/* the lens in bed: 0 the whole room, re-centred · 1 the bed · 2 close on the two of them (it follows the position: LOVERS.FOCUS) */
+NIGHT.ZOOMS = ['wide', 'bed', 'near']; NIGHT.viewLabel = () => ['Closer', 'Closer still', 'Wider'][NIGHT.zoom];
 NIGHT.aged = () => { try { return localStorage.getItem(NIGHT.AGE) === '1'; } catch (e) { return false; } };
 NIGHT.quiet = () => { SCENE.moved = true; $('hint').style.opacity = '0'; };   // the walking hint is done once a scene starts: it sat over the scene's buttons
 NIGHT.confirm = function (then) {
@@ -22,7 +24,7 @@ NIGHT.confirm = function (then) {
 NIGHT.PACE = { nSlow: 0.6, nMid: 1, nFast: 1.7 };
 NIGHT.init = function () {
   for (const id in NIGHT.PACE) $(id).onclick = () => NIGHT.setPace(NIGHT.PACE[id]);
-  $('nView').onclick = () => { NIGHT.closer = !NIGHT.closer; $('nView').textContent = NIGHT.closer ? 'Wider' : 'Closer'; };
+  $('nView').onclick = () => { NIGHT.zoom = (NIGHT.zoom + 1) % 3; $('nView').textContent = NIGHT.viewLabel(); };
   $('nFinish').onclick = () => NIGHT.finish();
 };
 NIGHT.start = function () { if (NIGHT.on || SCENE.lock || CUT.playing) return; NIGHT.confirm(() => NIGHT.play().catch(fail)); };
@@ -43,7 +45,7 @@ NIGHT.ask = function (opts) {   // a choice under the picture -> the index picke
 NIGHT.setPace = function (k) { NIGHT.pace = k; for (const id in NIGHT.PACE) $(id).classList.toggle('on', NIGHT.PACE[id] === k); };
 NIGHT.posBar = function () {
   const row = $('nPos'); row.innerHTML = '';
-  for (const n of ['kiss', 'missionary', 'ride', 'behind']) { if (n === NIGHT.pos) continue;
+  for (const n of (NIGHT.S && NIGHT.S.menu) || LOVERS.MENU) { if (n === NIGHT.pos) continue;
     const b = document.createElement('button'); b.className = 'btn'; b.textContent = LOVERS.LABEL[n]; b.onclick = (e) => { e.stopPropagation(); NIGHT.to(n); }; row.append(b); }
 };
 /* ---------------------------------------------------------------- little helpers */
@@ -55,7 +57,7 @@ NIGHT.look = (a, at) => { a.lookYaw = typeof at === 'number' ? at : (Math.sign(a
 NIGHT.say = (a, t, ms) => SCENE.say(a, t).then(() => ms ? SCENE.wait(ms) : null);   // a passing remark (no tap needed)
 NIGHT.fade = async (on) => { const f = $('fade'); f.classList.toggle('off', !on); await SCENE.wait(on ? 950 : 500); };
 /* the camera: 'room' = the room's own framing, 'bed' = eased in on the bed (or only re-centred, if the player wants it wider) */
-NIGHT.CAM = { bed: { fov: 13.5, y: 2.05, look: 1.62, focus: -7.72 }, wide: { fov: 17, y: 2.3, look: 1.9, focus: -7.72 } };
+NIGHT.CAM = { bed: { fov: 13.5, y: 2.05, look: 1.62, focus: -7.72 }, wide: { fov: 17, y: 2.3, look: 1.9, focus: -7.72 }, near: { fov: 8.6, y: 1.74, look: 1.44, focus: -8.1 } };
 /* the stage: the in-bed machinery (rhythm, positions, sounds, the camera, the lines, the finish) runs on NIGHT.S when a scene
    sets one, else on the royal bedchamber. A stage is { room, enter, lines, cam, lens(k), finish(), end(slept) };
    its bed must stand where LOVERS.BED is, because the positions are world places. The House of the Lantern uses this */
@@ -66,8 +68,9 @@ NIGHT.lines = () => (NIGHT.S ? NIGHT.S.lines : NIGHT.LINES);
 NIGHT.enters = () => (NIGHT.S ? NIGHT.S.enter : NIGHT.ENTER);
 NIGHT.camTick = function (dt) {
   const room = NIGHT.room(), c = room.cam, c0 = NIGHT.cam0, CAM = (NIGHT.S && NIGHT.S.cam) || NIGHT.CAM; if (!c0) return;
-  const g = NIGHT.camMode === 'bed' ? (NIGHT.closer ? CAM.bed : CAM.wide) : { fov: c0.fov, y: c0.y, look: c0.look, focus: null };
-  c.fov = damp(c.fov, g.fov, 0.7, dt); c.y = damp(c.y, g.y, 0.7, dt); c.look = damp(c.look, g.look, 0.7, dt);
+  const zm = NIGHT.ZOOMS[NIGHT.zoom], g = NIGHT.camMode === 'bed' ? Object.assign({}, CAM[zm] || CAM.bed) : { fov: c0.fov, y: c0.y, look: c0.look, focus: null };
+  if (NIGHT.camMode === 'bed') { g.focus += LOVERS.O.x; if (zm === 'near') { g.focus = (LOVERS.FOCUS[NIGHT.pos] || g.focus) + LOVERS.O.x; g.y += LOVERS.O.y; g.look += LOVERS.O.y; } }
+  c.fov = damp(c.fov, g.fov, 1.1, dt); c.y = damp(c.y, g.y, 1.1, dt); c.look = damp(c.look, g.look, 1.1, dt);
   room.focusDz = NIGHT.camMode === 'bed' ? damp(room.focusDz || 0, room.KZ - 1.97, 0.7, dt) : damp(room.focusDz || 0, 0, 0.7, dt);   // keep the bed sharp
   room.camFocus = g.focus === null ? (Math.abs(c.fov - c0.fov) < 0.15 ? c0.focus : room.camFocus) : g.focus;
 };
@@ -78,7 +81,7 @@ NIGHT.tick = function (t, dt) {
   NIGHT.lensK = clamp(NIGHT.lensK + Math.sign(NIGHT.lensT - NIGHT.lensK) * dt * 1.6, 0, 1); NIGHT.lens(NIGHT.lensK);   // the near posts clear as the camera pushes in (0.6 s)
   if (!NIGHT.inBed) return;
   const p = NIGHT.pos, slow = p === 'kiss' || p === 'after', K = NIGHT.A.K, Q = NIGHT.A.Q;
-  const rate = NIGHT.hold ? 0 : slow ? 1.1 : 3.4 * NIGHT.pace * (NIGHT.finishing ? 1.35 : 1);
+  const rate = NIGHT.hold ? 0 : slow ? 1.1 : 3.4 * NIGHT.pace * (LOVERS.RATE[p] || 1) * (NIGHT.finishing ? 1.35 : 1);
   const S0 = LOVERS.stroke(NIGHT.ph); NIGHT.ph += rate * dt; const S1 = LOVERS.stroke(NIGHT.ph);
   if (!slow && !NIGHT.finishing) NIGHT.k = Math.min(1, NIGHT.k + dt * 0.012 * NIGHT.pace);
   const ag = p === 'after' ? 0.1 : p === 'kiss' ? 0.75 : 1, ar = K.arousal || 0; K.setArousal(ar + clamp(ag - ar, -dt * 0.08, dt * 0.4));
@@ -92,13 +95,14 @@ NIGHT.tick = function (t, dt) {
     AUDIO.sfx('breath', { gain: (her ? 0.34 : 0.24) + 0.36 * k, pitch: her ? 1150 + Math.random() * 450 : 640 + Math.random() * 200, dur: slow ? 1.1 : lerp(0.75, 0.45, k), pan });
     if (p === 'kiss' && Math.random() < 0.5) AUDIO.sfx('kiss', { gain: 0.35, pan, delay: 0.2 }); }
   NIGHT.lineT -= dt;
-  if (NIGHT.lineT <= 0 && !SCENE.bubble && !NIGHT.scripted) { const L = NIGHT.lines()[p]; if (L) { const band = k < 0.35 ? 0 : k < 0.7 ? 1 : 2, set = L[Math.min(band, L.length - 1)];
+  if (NIGHT.lineT <= 0 && !SCENE.bubble && !NIGHT.scripted) { const L = NIGHT.lines()[p] || NIGHT.lines()[LOVERS.LIKE[p]]; if (L) { const band = k < 0.35 ? 0 : k < 0.7 ? 1 : 2, set = L[Math.min(band, L.length - 1)];
     const [who, text] = SCENE.cycle('night_' + p + band, set); SCENE.say(who === 'K' ? K : Q, text); }
     NIGHT.lineT = lerp(7.5, 4.2, k) * (0.8 + Math.random() * 0.5); }
 };
 /* ---------------------------------------------------------------- positions */
 NIGHT.drive = function (name, dur, lift) {
   const A = NIGHT.A; NIGHT.pos = name;
+  if (NIGHT.inBed) { const K = A.K, z0 = K.cardDz, z1 = LOVERS.CARD[name] || 0.82; if (Math.abs(z1 - z0) > 0.01) NIGHT.tween(0.5, (u) => { K.cardDz = lerp(z0, z1, u); }); }
   const fK = () => LOVERS.pose(NIGHT.pos, NIGHT.ph, NIGHT.k, A).king, fQ = () => LOVERS.pose(NIGHT.pos, NIGHT.ph, NIGHT.k, A).queen;
   return Promise.all([POSE.drive(A.K, fK, dur, { lift }), POSE.drive(A.Q, fQ, dur, { lift })]);
 };
@@ -108,6 +112,15 @@ NIGHT.to = async function (name) {
   await NIGHT.drive(name, name === 'behind' || NIGHT.pos === 'behind' ? 2.0 : 1.6, 0.12);
   NIGHT.posBar(); NIGHT.busy = false;
   const L = NIGHT.enters()[name]; if (L) { NIGHT.scripted = true; for (const [w, t] of L) await NIGHT.say(w === 'K' ? NIGHT.A.K : NIGHT.A.Q, t, 150); NIGHT.scripted = false; NIGHT.lineT = 3; }
+};
+/* what Halina says when he comes in, after the first week (whose talk is the scene's own): only she speaks, and the
+   choice that follows is the player's. Keyed by the calendar's phase */
+NIGHT.OPEN = {
+  weeks: ["Another week of other people's troubles. You carry them up the stairs with you, I can hear it in your boots.", "The rain has kept on, the children are asleep, and nobody needs a king until morning.", "I, on the other hand."],
+  festival: ["Gniewomir kissed my hand four times today. Wiesława counted them. So did I.", "The whole town is drunk and happy, and for once the sky is holding. I don't trust it.", "So I intend to use it while it lasts."],
+  crisis: ["They carry him home in a handful of days. You've walked this floor every night since the feast.", "You will not find a poisoner at this hour. You will only not sleep.", "Come to bed, Radomir. That is your queen speaking."],
+  ch5: ["So. It's done, and tomorrow has an army in it.", "Tonight doesn't. Come here."],
+  done: ["Nobody is at the gate. Nothing is owed. I keep having to remind myself.", "Remind me again."],
 };
 /* ---------------------------------------------------------------- the scene */
 NIGHT.play = async function (o) {
@@ -130,9 +143,11 @@ NIGHT.play = async function (o) {
   if (!o.fast) {
     await NIGHT.beat(700);
     await NIGHT.walk(K, 0.15); NIGHT.look(K, Q);
-    await SCENE.talk([[Q, "You're late again. The candles in your study burn faster than the ones in here."]]);
+    const late = CAL.phase === 'court' && CAL.week === 1 ? null : NIGHT.OPEN[CAL.phase === 'court' ? 'weeks' : CAL.phase] || NIGHT.OPEN.weeks;   // the night belongs to its week (ENGINE.md §13q)
+    await SCENE.talk([[Q, late ? late[0] : "You're late again. The candles in your study burn faster than the ones in here."]]);
     NIGHT.look(Q, K); await NIGHT.beat(450);
-    await SCENE.talk([
+    if (late) await SCENE.talk(late.slice(1).map((t) => [Q, t]));
+    else await SCENE.talk([
       [K, "Petitions. Grain. The Margrave's riders on the east road."],
       [Q, "And my brother's letter. Jarek is still waiting for an answer."],
       [K, "The League wants the river tolls for ten years. That isn't an alliance, Halina. It's a leash."],
@@ -172,13 +187,13 @@ NIGHT.play = async function (o) {
   await NIGHT.tween(1.3, (u) => BEDROOM.tieBack(u)); await NIGHT.beat(500);
   await Promise.all([NIGHT.walk(Q, -8.0), NIGHT.walk(K, -7.4)]); NIGHT.look(Q, K); NIGHT.look(K, Q); await NIGHT.beat(300);
   // into bed: one sprite for both bodies from here on, box widened to the whole bed, card slid forward of the pillows
-  K.reframe(3.9, 2.5); K.frame = new THREE.Vector3(-7.7, 1.5, LOVERS.BED.zc); K.cardDz = 1.6; Q.hostInto(K);
+  K.reframe(LOVERS.FRAME.w, LOVERS.FRAME.h); K.frame = new THREE.Vector3(LOVERS.FRAME.x + LOVERS.O.x, LOVERS.FRAME.y + LOVERS.O.y, LOVERS.BED.zc + LOVERS.O.z); K.cardDz = 1.6; Q.hostInto(K);
   NIGHT.camMode = 'bed'; NIGHT.lensT = 1; AUDIO.sfx('sheets', { gain: 1 }); AUDIO.sfx('creak', { gain: 0.6, delay: 0.6 });
   NIGHT.tween(2.2, (u) => { K.cardDz = lerp(1.6, LOVERS.BED.zc + 0.82 - LOVERS.BED.zc, u); });
   await NIGHT.drive('kiss', 2.1, 0.34);
   NIGHT.inBed = true; NIGHT.lineT = 5;
   NIGHT.scripted = true; for (const [w, t] of NIGHT.ENTER.kiss) await NIGHT.say(w === 'K' ? K : Q, t, 200); NIGHT.scripted = false;
-  NIGHT.setPace(1); NIGHT.posBar(); $('nView').textContent = NIGHT.closer ? 'Wider' : 'Closer'; NIGHT.bar(['pos', 'pace']);
+  NIGHT.setPace(1); NIGHT.posBar(); $('nView').textContent = NIGHT.viewLabel(); NIGHT.bar(['pos', 'pace']);
   if (o.pos) NIGHT.to(o.pos);
   await NIGHT.done;
 };
@@ -220,7 +235,10 @@ NIGHT.ENTER = {
   kiss: [['Q', "Slowly. We have all night for once."]],
   missionary: [['Q', "Lie on me. I want your weight."], ['K', "Like this?"], ['Q', "Exactly like this."]],
   ride: [['Q', "On your back, my king. Tonight I rule."], ['K', "Gods help the realm."]],
-  behind: [['Q', "Like the night after the coronation. Remember?"], ['K', "I've never forgotten."]]
+  behind: [['Q', "Like the night after the coronation. Remember?"], ['K', "I've never forgotten."]],
+  reverse: [['Q', "Stay where you are. I want to watch the fire while I have you."]],
+  lap: [['Q', "Sit up. I want your face where I can reach it."]],
+  edge: [['Q', "Up, my king. Stand at the foot of the bed. No, there."], ['Q', "Thirteen years, and you still do as you're told. Good."]]
 };
 NIGHT.LINES = {
   kiss: [[['Q', "Mm."], ['K', "You taste of wine."], ['Q', "Touch me."]], [['Q', "Your hands... yes, there."], ['K', "You're shaking."]], [['Q', "I can't wait any more."], ['K', "Then don't."]]],

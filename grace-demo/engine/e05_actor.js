@@ -105,7 +105,7 @@ class Actor {
     if (level !== 'all') return;
     await this.makeBare();
     for (const m of this.clothes) m.visible = false;
-    this.bare.visible = true; if (this.sexGroup) this.sexGroup.visible = true; this.nude = true;
+    this.bare.visible = true; if (this.sexGroup) this.sexGroup.visible = Actor.SHOW_SEX; this.nude = true;   // the house rule lives here: a man's parts are built (the poses pin to them) and never drawn
   }
   dress() { for (const m of this.clothes) m.visible = true; if (this.bare) this.bare.visible = false; if (this.sexGroup) this.sexGroup.visible = false; this.nude = false; if (this.disguised) this.disguise(true); }
   /* in disguise (the king as the Falconer, in the river quarter): no crown, no fur collar, no tabard, only the dark coat.
@@ -353,6 +353,7 @@ class Actor {
     this.shadowMat.uniforms.uK.value = 0.55 * smooth(ss[3], 1.0, Math.abs(this.x - ss[0]));
   }
 }
+Actor.SHOW_SEX = false;   // never true in this game (CLAUDE.md rule 6): undress() leaves the genitals hidden for every scene, old or new
 Actor.nextLayer = 3; Actor.seq = 3; Actor.PARK = 1; Actor._sv = {}; Actor.onStep = null;
 /* layers per room: there are only 29 actor layers (3…31), so instead of one for life, each actor gets one on entering a
    room it lives in (the player first, then everyone whose home or homes include the room, shown or offstage), and every

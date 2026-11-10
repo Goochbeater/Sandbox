@@ -36,19 +36,25 @@ CONF.LINES = [
 /* the standing pose from behind: she bends over the desk with her hands flat on its top, her back level, her belly toward
    the desk; he stands behind her with his hands on her hips. Her entry is the point his pelvis is pinned to, so each
    stroke moves him in and out. The scene is staged in profile: she faces the desk (+x), he is behind her (-x). */
+/* the standing pose, on the bed's rhythm (LOVERS.stroke / jolt and the lagged strokes: ENGINE.md §13q): he drives from the
+   hips with his knees giving; each stroke pushes her along the desk, runs up her back and lifts her head a beat later;
+   as it builds she goes down from her hands onto her forearms, and his head goes back */
 CONF.pose = function (name, ph, k, A) {
-  const S = LOVERS.stroke(ph), zc = CONF.DESK.zc, Q = A.Q, K = A.K, W = (o) => Object.assign({ world: true }, o);
-  const depth = lerp(0.035, 0.118, S) * (0.85 + 0.15 * k);
-  const pinK = (a) => LOVERS.entry(Q, LOVERS._a).sub(LOVERS.rod(a, depth, LOVERS._b));   // move him onto her
-  const hip = (sd) => LOVERS.at(Q, 'pelvis', [sd * 0.15, 0.97, -0.03]);                    // his hands on her hips
-  const hand = (sd) => [10.45, CONF.DESK.top + 0.03, zc + sd * 0.14];                       // her hands flat on the desk
+  const L = LOVERS, S = L.stroke(ph), S1 = L.stroke(ph - 0.7), S2 = L.stroke(ph - 1.3), J = L.jolt(ph) * (0.35 + 0.65 * k), amp = 0.8 + 0.2 * Math.sin(ph * 0.173 + 0.6), sway = Math.sin(ph * 0.19 + 1.1);
+  const zc = CONF.DESK.zc, Q = A.Q, K = A.K, W = (o) => Object.assign({ world: true }, o), drop = smooth(0.6, 0.92, k), push = 0.016 * S + 0.012 * J;
+  const depth = lerp(0.035, 0.118, S * amp) * (0.85 + 0.15 * k);
+  const pinK = (a) => L.entry(Q, L._a).sub(L.rod(a, depth, L._b));   // move him onto her
+  const hip = (sd) => L.at(Q, 'pelvis', [sd * 0.15, 0.97, -0.03]);                    // his hands on her hips
+  const hand = (sd) => [10.45 + 0.12 * drop + push * 0.3, CONF.DESK.top + 0.03, zc + sd * 0.14];   // her hands on the desk, sliding forward as she goes down
+  const [hu, hf] = L.tilt([0.05, 1, 0], [1, -0.05, 0], 0.24 * S - 0.08);
   return {
-    queen: W({ at: [9.3, 0.95, zc], up: [0.968, 0.25, 0], fwd: [0.25, -0.968, 0], head: [[0.7, 0.7, 0], [0.9, -0.45, 0]],
+    queen: W({ at: [9.3 + push, 0.95, zc], up: [0.968, 0.25 - 0.2 * drop, 0], fwd: [0.25 - 0.2 * drop, -0.968, 0], spine: [[0.97, 0.2 - 0.08 * S1 - 0.15 * drop, 0], [0.2, -0.97, 0]],
+      head: [[0.7, 0.7 + 0.2 * k * S2 + 0.15 * J - 0.3 * drop, 0.15 * sway], [0.9, -0.45 + 0.3 * k * S2, 0.25 * sway]],
       armL: { ik: hand(1), pole: [-0.3, -1, 0] }, armR: { ik: hand(-1), pole: [-0.3, -1, 0] },
-      legL: [[0, -1, 0], [0, -1, 0]], legR: [[0, -1, 0], [0, -1, 0]] }),
-    king: W({ at: [9.05, 0.95, zc], up: [0.05, 1, 0], fwd: [1, -0.05, 0],
+      legL: [[0.03 * S1, -1, 0.05], [-0.02, -1, 0]], legR: [[0.03 * S1, -1, -0.05], [-0.02, -1, 0]] }),
+    king: W({ at: [9.05, 0.95, zc], up: [0.05, 1, 0], fwd: [1, -0.05, 0], hips: [hu, hf], spine: [[0.05 + 0.1 * k - 0.1 * S, 1, 0], [1, -0.1, 0]], head: [[0.15 - 0.2 * S2 * k, 1, 0.05 * sway], [1, -0.45 + 0.4 * S2 * k, 0]],
       armL: { ik: hip(1), pole: [-0.3, -0.2, 1] }, armR: { ik: hip(-1), pole: [-0.3, -0.2, -1] },
-      legL: [[0, -1, 0], [0, -1, 0]], legR: [[0, -1, 0], [0, -1, 0]], pin: pinK })
+      legL: [[0.1 * S, -1, 0.07], [-0.09 * S, -1, 0]], legR: [[0.1 * S, -1, -0.07], [-0.09 * S, -1, 0]], pin: pinK })
   };
 };
 CONF.drive = function (dur) {

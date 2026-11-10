@@ -28,6 +28,7 @@ SCENE.enter = function (id, at) {
   R.cam.near = room.near || 1; R.cam.far = room.far || 70; R.dofU.uCNear.value = R.cam.near; R.dofU.uCFar.value = R.cam.far;   // outdoor rooms see much further
   R.baseFov = room.cam.fov; R.cam.fov = room.cam.fov * R.fovK; R.cam.updateProjectionMatrix();
   for (const k in SCENE.DOF0) R.dofU[k].value = SCENE.DOF0[k]; for (const k in room.dof || {}) R.dofU[k].value = room.dof[k];
+  R.grade(room.grade); SCENE.focusSnap = true;   // the room's own split tone; the focus starts on its walking line
   const P = SCENE.player; if (P) { P.stand(); P.x = at.x !== undefined ? at.x : P.x; P.z = room.KZ; P.face = at.face || P.face; P.yaw = P.face * 1.0; P.target = null; P.v = 0;
     if (P.disguise) P.disguise(!!room.disguise); }   // a room with { disguise: true } (the river quarter) has the king in his plain coat; every other room has him himself
   Actor.assignLayers(id, P);   // deal the layers first, so showing an actor never has to claim one
@@ -174,7 +175,12 @@ SCENE.update = function (dt) {
     SCENE.camX = damp(SCENE.camX, SCENE.camGoal(), 2.2, dt);
     const cam = room.cam; R.cam.position.set(SCENE.camX, cam.y, room.KZ + cam.dist); R.cam.lookAt(SCENE.camX, cam.look, room.KZ);
     if (Math.abs(R.cam.fov - cam.fov * R.fovK) > 1e-3) { R.cam.fov = cam.fov * R.fovK; R.cam.updateProjectionMatrix(); }
-    R.dofU.uFocus.value = cam.dist + (room.focusDz || 0);
+    // focus: the walking line; pulled back to whoever is speaking if they stand beyond the sharp zone (a rack focus: the
+    // royal stand calling down, a king at his pavilion's table). Eased, so the pull reads as a lens and not a cut
+    let fg = cam.dist + (room.focusDz || 0); const sp = SCENE.bubble && SCENE.bubble.actor;
+    if (sp && sp !== P && sp.z !== undefined && room.rack !== false) { const far0 = R.dofU.uFar0.value, sd = room.KZ + cam.dist - sp.z; if (sd - fg > far0 * 0.8) fg = sd - far0 * 0.8; }
+    SCENE.focus = SCENE.focus === undefined || SCENE.focusSnap ? fg : damp(SCENE.focus, fg, 3.5, dt); SCENE.focusSnap = false;
+    R.dofU.uFocus.value = SCENE.focus;
   }
   // markers, the bubble
   SCENE.near = null; let nd = 9;

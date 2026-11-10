@@ -79,6 +79,7 @@ FEAST.onEnter = function () {
   if (!CUT.playing) SCENE.caption(...this.caption);
   for (const id of FEAST.SHOW) if (A[id]) A[id].setVisible(false);
   if (A.konrad && A.konrad.maskMesh) A.konrad.maskMesh.visible = true;
+  if (A.konrad && REALM.flags.masked === 0) { A.konrad.offstage = true; A.konrad.setVisible(false); }
   this.cup.position.set(FEAST.CUP.x, FEAST.CUP.y, FEAST.CUP.z); this.cup.rotation.set(0, 0, 0);
   FEST.talkers(this, FEAST.GUESTS.filter((id) => A[id]).map((id) => [id, 'Talk to ' + (A[id].name || id), () => FEAST.talk(id)]));
 };
@@ -111,11 +112,13 @@ FEAST.play = async function () {
     await SCENE.lens(room, { focus: 1.5, dist: 15.5, y: 2.35, look: 1.75, fov: 17 }, 0.01);   // (seated, he sees only seated markers: none tonight)
     await NIGHT.fade(false); AUDIO.sfx('clink', { gain: 0.6 });
     // the steward's two questions: they set the stage, and nobody knows it
-    await FEAST.say(A.steward, 'Your Grace. Before the first course: the masked knight asks guest-right at your table.');
-    CAL.konrad = (await FEAST.pick(['He rode well. Let him eat with us.', 'No masks at my table. He can eat in the yard.'])) === 0;
+    if (REALM.flags.masked === 0) CAL.konrad = false;   // open faces only, by the king's own ruling in week three (g51): no black knight came
+    else { await FEAST.say(A.steward, 'Your Grace. Before the first course: the masked knight asks guest-right at your table.');
+    CAL.konrad = (await FEAST.pick(['He rode well. Let him eat with us.', 'No masks at my table. He can eat in the yard.'])) === 0; }
     if (!CAL.konrad && A.konrad) { const k = A.konrad; k.stand(); await FEAST.walk(k, [[-5.75, 0.85], [-5.6, 2.4], [11.9, 2.6, 1.4]]); k.setVisible(false); }
-    await FEAST.say(A.steward, 'And the Salamanders ask to play the hall between the courses.');
-    CAL.fire = (await FEAST.pick(['Let them. It’s the last night.', 'Not indoors. Not with these hangings.'])) === 0;
+    if (REALM.flags.fire === 0) CAL.fire = false;   // no licence for fire (g51)
+    else { await FEAST.say(A.steward, 'And the Salamanders ask to play the hall between the courses.');
+    CAL.fire = (await FEAST.pick(['Let them. It’s the last night.', 'Not indoors. Not with these hangings.'])) === 0; }
     // the courses
     SCENE.caption('The first course', 'Pike in saffron, and Krasnian toasts'); AUDIO.sfx('clink', { gain: 0.5, delay: 0.6 });
     await SCENE.talk([[A.gniewomir, 'Bolesław’s boy! Your father held this hall nineteen days against Hal. I’d have held it twenty, but I’d have been drunk for nineteen.'],
@@ -223,7 +226,8 @@ FEAST.after = async function () {
   await FEAST.pick(['You’ll have a name.', 'I’m sorry, Mściwoj. Truly.', 'Don’t threaten me in my own hall.']);
   // the end of the night: chapter four, and the morning after in the bedchamber
   await NIGHT.fade(true);
-  CAL.phase = 'crisis'; CAL.crisis = 1; CAL.day++; CAL.feastDone = true;
+  CAL.phase = 'crisis'; CAL.crisis = (REALM.flags.krasna || 0) < 0 ? 2 : 1;   // Krasna's ledgers are long (the customs, g51): a day already gone
+  if (REALM.waiting()) COURT.done = false; CAL.day++; CAL.feastDone = true;
   if (G) { G.puppet = null; G.offstage = true; G.setVisible(false); }
   room.camFocus = null; await SCENE.lens(room, null, 0.01);
   SCENE.caption('Chapter Four · The Dead King', 'Twelve days. Then war.'); await SCENE.wait(4800);

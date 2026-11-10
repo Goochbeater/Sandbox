@@ -7,9 +7,11 @@
    scene's positions are world places, so the bed stands exactly where the royal bed does), dressed for whoever he goes up
    with. Every woman is an adult who chooses; the scenes are behind the 18+ gate; the player picks the king's lines.
    The scenes run on the night scene's machinery with a stage of their own (NIGHT.S, g26). */
-const LANTERN = SCENE.addRoom(new Room('lantern', { X0: -12, X1: 12, CEIL: 6.4, KZ: 2.8, cam: { y: 2.9, look: 2.7, dist: 19.4, fov: 19 }, exposure: 0.95, reflK: 0.45, disguise: true,
+const LANTERN = SCENE.addRoom(new Room('lantern', { X0: -12, X1: 12, CEIL: 6.4, KZ: 2.8, cam: { y: 2.9, look: 2.7, dist: 19.4, fov: 19 }, exposure: 0.95, reflK: 0.45, disguise: true, grade: { s: [1.04, 0.95, 0.97], h: [1.05, 1.0, 0.93] },   // a red house: warm in the shadows too
+ 
   music: 'castle', ambience: { fire: 0.5, crowd: 0.35, tone: 0.2 }, acoustics: { size: 1.8, wet: 0.3 }, surface: 'wood', caption: ['The House of the Lantern', 'The river quarter, after dark'] }));
-const LROOM = SCENE.addRoom(new Room('lroom', { X0: -14.0, X1: 5.6, CEIL: 4.4, KZ: 2.6, cam: { y: 2.45, look: 2.18, dist: 19.4, fov: 19 }, exposure: 0.95, reflK: 0.4, disguise: true,
+const LROOM = SCENE.addRoom(new Room('lroom', { X0: -14.0, X1: 5.6, CEIL: 4.4, KZ: 2.6, cam: { y: 2.45, look: 2.18, dist: 19.4, fov: 19 }, exposure: 0.95, reflK: 0.4, disguise: true, grade: { s: [1.04, 0.95, 0.97], h: [1.05, 1.0, 0.93] },
+ 
   music: 'castle', ambience: { fire: 0.25, tone: 0.25 }, acoustics: { size: 1.1, wet: 0.2 }, surface: 'wood' }));
 const HOUSE = { found: false, met: {}, trust: {}, nights: {}, rumour: 0, warned: 0, with: null };
 HOUSE.init0 = JSON.stringify(HOUSE);
@@ -128,8 +130,9 @@ LROOM.build = function () {
   BUILD.card(T.mirror, -10.3, 0, 0.5, { s: 0.85, ry: 0.2 });
   room.interact('wash', -11.6, 1.6, room.KZ, 0.6, () => say('wash'));
   /* the bedside table and its candle; a red lantern over the bed; the window with the moon */
-  BUILD.box(-5.7, -5.1, 0, 0.72, 1.3, 1.9, T.woodDark); BUILD.card(T.candleStand, -5.4, 0.72, 1.6, { s: 0.45 }); BUILD.flame(-5.4, 1.32, 1.62, 0.22);
-  room.lights.candle = BUILD.light(new THREE.PointLight(0xffa050, 3.4, 0, 2), -5.4, 1.4, 1.9, { flicker: 8 });
+  // (the table stands a metre clear of the bed's foot: a man stands there in the 'edge' position)
+  BUILD.box(-4.9, -4.3, 0, 0.72, 1.3, 1.9, T.woodDark); BUILD.card(T.candleStand, -4.6, 0.72, 1.6, { s: 0.45 }); BUILD.flame(-4.6, 1.32, 1.62, 0.22);
+  room.lights.candle = BUILD.light(new THREE.PointLight(0xffa050, 3.8, 0, 2), -4.8, 1.4, 1.9, { flicker: 8 });
   BUILD.box(-7.71, -7.69, 3.3, CE, 1.19, 1.21, T.woodPost, { cast: false }); BUILD.card(T.redLantern, -7.7, 2.75, 1.2, { cast: false }); BUILD.glow(-7.7, 3.1, 1.25, 1.0, 0xff4a2a, 0.45);
   BUILD.light(new THREE.PointLight(0xff6a40, 2.6, 0, 2), -7.7, 3.0, 1.8, { flicker: 3 });   // the red lantern over the bed lights the scene
   BUILD.card(T.riverWindow, -2.6, 1.0, 0.03, { basic: true, k: 1.1, cast: false }); BUILD.glow(-2.6, 1.8, 0.2, 1.6, 0x8aa8e8, 0.2);
@@ -145,25 +148,26 @@ LROOM.build = function () {
     nadia: [D(T.mapWall, -4.2, 1.2, 0.04), D(T.mapWall, -0.2, 1.5, 0.04, { s: 0.7 })],
     hanna: [D(T.cloakPeg, -4.4, 0.8, 0.05)],
     lena: [D(T.copperBath, -0.6, 0, 1.2, { cast: true })],
-    agata: [D(T.crossTurned, -4.2, 1.7, 0.04), D(T.booksPile, -5.4, 0.72, 1.75), D(T.booksPile, 0.4, 0, 0.5)]
+    agata: [D(T.crossTurned, -4.2, 1.7, 0.04), D(T.booksPile, -4.6, 0.72, 1.75), D(T.booksPile, 0.4, 0, 0.5)]
   };
   room.steam = []; for (let i = 0; i < 4; i++) { const m = new THREE.SpriteMaterial({ map: T.smokeSoft, color: 0xd8d0d8, transparent: true, opacity: 0, depthWrite: false }); const s = new THREE.Sprite(m); BUILD.add(s, { cast: false }); room.steam.push({ s, m, ph: i / 4 }); }
   room.tick.push((t) => { const on = HOUSE.with === 'lena'; for (const p of room.steam) { const u = (t * 0.18 + p.ph) % 1; p.s.visible = on; p.s.position.set(-0.6 + Math.sin(u * 4 + p.ph * 7) * 0.3, 0.9 + u * 1.6, 1.2); p.s.scale.setScalar(0.5 + u * 1.2); p.m.opacity = 0.22 * Math.sin(u * Math.PI); } });
   BUILD.card(T.curtain, X1 - 0.5, 0, 6.8, { cast: false, col: 0xb83a2a });
   BUILD.light(new THREE.HemisphereLight(0x7a5a4a, 0x1c120c, 1.6), 0, 4, 0);
   const fill = BUILD.light(new THREE.DirectionalLight(0xc8a8a0, 0.3), 2, 4, 14); fill.target.position.set(-4, 1.2, 0);
-  room.rim = [-5.4, 1.4, 1.9, 0.5, 6, 0xffa050, room.lights.candle]; room.shadowSrc = [-5.4, 1.6, 1.9, 6];
+  room.rim = [-4.8, 1.4, 1.9, 0.5, 6, 0xffa050, room.lights.candle]; room.shadowSrc = [-4.8, 1.6, 1.9, 6];
   BUILD.motes({ n: 48, boxes: [[-13.2, 4.5, 0.4, 3.6, 0.5, 3.2, 0.2]], col: 0xffd8b0 });
   room.update(0, 0);
   return BUILD.end();
 };
-LROOM.QUILT = { roza: 0xe0947a, nadia: 0xb8b0e0, hanna: 0xece2cc, lena: 0xeca8b8, agata: 0xa0a0b0 };
+LROOM.QUILT = { wanda: 0xc8869a, roza: 0xe0947a, nadia: 0xb8b0e0, hanna: 0xece2cc, lena: 0xeca8b8, agata: 0xa0a0b0 };
 /* dress the room for her and show only her (all the women live here, for their layers; one is shown) */
 LROOM.onEnter = function () {
   const room = this, id = HOUSE.with;
   for (const k in room.dress) for (const m of room.dress[k]) m.visible = k === id;
   room.quilt.material.color.set(LROOM.QUILT[id] || 0xffffff);
   for (const w of HOUSE.WOMEN) if (CAST.A[w]) CAST.A[w].setVisible(w === id);
+  if (id === 'wanda' && CAST.A.wanda) CAST.A.wanda.setVisible(true);   // her own room (she doesn't live up here: she takes a free layer)
 };
 LROOM.downstairs = function () { if (NIGHT.on) return; GAME.save(); SCENE.go('lantern', { x: 9.0, face: -1 }); };
 /* ---------------------------------------------------------------- meeting the women */
@@ -187,7 +191,11 @@ HOUSE.wanda = async function () {
   K.faceTo(Wd.x); SCENE.lock++;
   try {
     if (!HOUSE.met.wanda) { HOUSE.met.wanda = true; HOUSE.found = true; await SCENE.talk(W.first.map(([k, t]) => [k === 'king' ? K : Wd, t])); }
-    else await SCENE.say(Wd, SCENE.cycle('hwd', W.more.concat(W.talk)), { wait: true });
+    else { const nights = Object.values(HOUSE.nights).reduce((a, b) => a + b, 0);
+      if (nights >= 3) {   // a regular of the house: the landlady herself, if he asks (18+)
+        await SCENE.say(Wd, HOUSE.nights.wanda ? SCENE.cycle('hwd2', W.more) : W.offer, { wait: true });
+        if ((await NIGHT.ask(['Go up with Wanda (18+)', 'Not tonight'])) === 0) { SCENE.lock--; AUDIO.sfx('coin', { gain: 0.5 }); NIGHT.confirm(() => HOUSE.scene('wanda').catch(fail)); SCENE.lock++; return; }
+      } else await SCENE.say(Wd, SCENE.cycle('hwd', W.more.concat(W.talk)), { wait: true }); }
   } finally { SCENE.lock--; }
 };
 HOUSE.clerk = async function () {
@@ -221,13 +229,13 @@ HOUSE.scene = async function (id) {
     await Q.undress('all'); await K.undress('all'); if (K.sexGroup) K.sexGroup.visible = false;   // the house rule: he is never shown
     K.setArousal(0.3); AUDIO.sfx('sheets', { gain: 1 }); await NIGHT.beat(500);
     // into bed: one sprite for both bodies, as the royal bed has it
-    K.reframe(3.9, 2.5); K.frame = new THREE.Vector3(-7.7, 1.5, LOVERS.BED.zc); K.cardDz = 1.6; Q.hostInto(K);
+    K.reframe(LOVERS.FRAME.w, LOVERS.FRAME.h); K.frame = new THREE.Vector3(LOVERS.FRAME.x + LOVERS.O.x, LOVERS.FRAME.y + LOVERS.O.y, LOVERS.BED.zc + LOVERS.O.z); K.cardDz = 1.6; Q.hostInto(K);
     NIGHT.camMode = 'bed'; NIGHT.lensT = 1; AUDIO.sfx('creak', { gain: 0.6, delay: 0.6 });
     NIGHT.tween(2.2, (u) => { K.cardDz = lerp(1.6, 0.82, u); });
     await NIGHT.drive('kiss', 2.1, 0.34);
     NIGHT.inBed = true; NIGHT.lineT = 5;
     NIGHT.scripted = true; for (const [w, t] of W.enter.kiss) await NIGHT.say(w === 'K' ? K : Q, t, 200); NIGHT.scripted = false;
-    NIGHT.setPace(1); NIGHT.posBar(); $('nView').hidden = false; $('nFinish').hidden = false; $('nView').textContent = NIGHT.closer ? 'Wider' : 'Closer'; NIGHT.bar(['pos', 'pace']);
+    NIGHT.setPace(1); NIGHT.posBar(); $('nView').hidden = false; $('nFinish').hidden = false; $('nView').textContent = NIGHT.viewLabel(); NIGHT.bar(['pos', 'pace']);
     if (W.fav) NIGHT.to(W.fav);   // her favourite: she moves him there herself
     await NIGHT.done;
   } finally { SCENE.lock--; }

@@ -1347,6 +1347,24 @@ speaks, the choice is the player's). Wanda (47) offers her own room once he has 
 position is the lap). Nadia's favourite is the bed's edge, Lena's the reverse. Every scene: adults only, behind
 `NIGHT.confirm`.
 
+**A second spot in the same room: the hearth** (`NIGHT.SPOTS.rug`, `BEDROOM.hearth(k)`, texture defs `fur`, `furEdge`,
+`cushionA/B`). Halina's scene offers *Take her hand* (the bed) or *Here. By the fire.* A spot is `{ O, menu, cam }`:
+`LOVERS.stage(O)` moves every position, `menu` drops what the place can't hold (no *Bed's edge* on a floor), `cam` is the
+lens for the two wider zooms in the bed's own x (the offset is added in `camTick`; the close zoom adds `O.y` too). The
+focus plane follows the shared card (`KZ − (BED.zc + O.z + 0.82)`), bed creaks are silenced, the curtains are skipped,
+and `NIGHT.end` clears the spot, the stage and the bedding. `?night&spot=rug` opens it for a test. What it took:
+- **Not in front of the fire.** The first staging put them on the fire's axis: two bodies became one black lump against
+  the brightest thing in the frame, under its bloom. A step and a half to the left (`O.x` 6.5, bodies −2.5..−0.1) they
+  are side-lit against dark panelling with the fire in the right third. Light a nude from the side, never from behind.
+- **A floor is seen edge-on.** At this camera a 2 m deep rug is a strip a few pixels tall, so a pelt painted from above
+  is invisible. What reads is its near edge: `furEdge`, a 7-pixel shaggy strip on a card 8 cm in front of the lovers'
+  card, which also sinks them a hand's breadth into the fur. Anything that must read on a floor needs a side-on card.
+- **Clear of the furniture's silhouettes.** Props behind don't occlude a sprite, but a plant touching a body's outline
+  reads as one shape. Half a metre of dark wall either side of the pair.
+- Box cushions looked like masonry; painted oval cards (pale, so a dark head reads against them) look like cushions.
+- Everything shown later is built in `build()` hidden, `dyn`, with a cloned transparent material, and faded by one function.
+A third spot is a row in `NIGHT.SPOTS` plus its props; the suite is `tools/regress/hearth.js`.
+
 **Checking a position** (`t/pos.js` in the scratchpad pattern): `?test&room=bedroom&night`, `NIGHT.to(name)`, hold the
 phase at the deep end (`NIGHT.hold = true; NIGHT.ph = 6π + 0.66π`), then compare each pelvis with its pose's `at`: the
 difference is the pin's slide, and it should be near zero (lap began 16 cm off, the edge 17 cm); read the feet's heights
@@ -1441,6 +1459,7 @@ Rules that follow from it:
 | `endings` | `END.pick` returns D, E, C, B, A for five constructed states; `END.play` runs to the title with the lock at 0 | ~5 min |
 | `realm` | week one's moment (it boots in the garden for it), a court of three, the ledger, the bed, week two; week four's court with the pay panel, the bridge to the festival, a crisis court; no timeouts, no errors | ~8 min |
 | `siege` | `REALM.ECHO`: three reports told in a court week and three more in the crisis, each once; the wall (aid panel) and the herald (decision) heard, their flags set, the day bought | ~6 min |
+| `hearth` | Halina's scene on the bearskin by the fire: the gate, the choice, staged and cleared, no *Bed's edge*, the king never drawn with his parts, the week advances | ~3 min |
 
 A suite is a module in `tools/regress/` exporting `{ name, runs: [{ label, query, steps }], check(label, evals) }`:
 `steps` is what `shot.js` takes, `evals` are that run's eval results already parsed, and `check` returns `null` or a short

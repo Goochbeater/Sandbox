@@ -156,6 +156,17 @@ BEDROOM.build = function () {
   /* rugs (no reflection on them, they stay matte) */
   BUILD.rug(T.rugA, -2.2, 3.8, 1.6, 3.85); BUILD.rug(T.rugB, 4.9, 7.9, 1.45, 2.7);
 
+  /* the hearth scene's bedding (g26, NIGHT.SPOTS.rug): a bearskin and two cushions on the rug, left of the fire, built here
+     hidden and faded in by BEDROOM.hearth(k). The bodies lie along x from about -2.5 (heads) to -0.1 on a card at z 3.32,
+     clear of the plant and the urn (x -0.3..0.2), which crowded them when they lay half a metre nearer the fire.
+     The room is seen almost edge-on to its floor, so the pelt that reads is its near edge: a shaggy strip standing just in
+     front of the lovers' card, deep enough to sink them a hand's breadth into the fur */
+  { const hp = room.hearthProps = [], add = (m) => { m.userData.dyn = true; m.material = m.material.clone(); m.material.transparent = true; m.visible = false; hp.push(m); return m; };
+    const fur = add(BUILD.rug(T.fur, -2.95, 0.55, 1.9, 3.5, { y: 0.012 })); fur.material.alphaTest = 0.4;
+    add(BUILD.card(T.furEdge, -1.2, 0, 3.4, { cast: false, dyn: true }));
+    add(BUILD.card(T.cushionB, -2.92, 0.02, 3.2, { cast: false, dyn: true }));    // two cushions just behind the lovers' card: pale, so a dark head
+    add(BUILD.card(T.cushionA, -2.52, 0.02, 3.26, { cast: false, dyn: true })); } // reads against them (boxes here looked like masonry)
+
   /* foreground: posts and a candle table close to the lens, for the depth of field to chew on. The left post sits
      dead centre of the bed once the camera pushes in on it, so these all keep their own material and fade out through
      BEDROOM.lens(k) while the night scene eases in (see g26). */
@@ -203,6 +214,10 @@ BEDROOM.lens = function (k) {
     const o = 1 - k; m.visible = o > 0.02;
     if (m.material) m.material.opacity = o;
   }
+};
+/* the bearskin and cushions by the fire: 0 = put away, 1 = laid out (they fade in while he fetches them) */
+BEDROOM.hearth = function (k) {
+  for (const m of this.hearthProps || []) { m.visible = k > 0.02; m.material.opacity = clamp(k, 0, 1); }
 };
 BEDROOM.onEnter = function () {
   const worn = SCENE.player.crownMesh.visible; this.crownCard.visible = this.crownGlow.visible = !worn;   // the crown is on his head or on its cushion

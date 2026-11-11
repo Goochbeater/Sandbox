@@ -314,6 +314,22 @@ for (const [k, f] of Object.entries({
   candelabra: PX.candelabra, books: PX.books, mirror: PX.mirror, sconce: PX.sconce, chair: PX.chair, door: PX.door, window: PX.window, logs: PX.logs, grate: PX.grate,
 })) PX.def(k, f);
 PX.def('rugA', () => PX.rug(128, 48, { field: 0x7e1a16, edge: 0x2a0e0c, gold: 0xc8923a, navy: 0x22304e, cream: 0xe2d4b4 }, 71));
+/* a bearskin, seen from above: a ragged hide (head end to the left), dark fur brushed outward from the spine, paler tips */
+PX.def('fur', () => { const W = 96, H = 40, p = new Pix(W, H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const u = (x - W / 2) / (W / 2), v = (y - H / 2) / (H / 2), a = Math.atan2(v, u);
+    const legs = 0.16 * Math.pow(Math.abs(Math.sin(a * 2)), 6), r = Math.hypot(u / (0.86 + legs), v / (0.78 + legs)) + 0.07 * noise1(a * 7.0, 91) + 0.04 * (hash(x, y, 92) - 0.5);
+    if (r > 1) continue;
+    const grain = noise1(x * 0.9 + Math.abs(v) * 9, 93) * 0.5 + hash(x, y, 94) * 0.5, tip = r > 0.82 ? 0.25 : 0, spine = Math.abs(v) < 0.08 ? -0.12 : 0;
+    p.set(x, y, C.mul(0x4a3222, 0.62 + 0.55 * grain + tip + spine)); }
+  return p.tex(); });
+/* the same pelt from the side: a low shaggy strip, ragged along the top, paler where the firelight catches the tips */
+PX.def('furEdge', () => { const W = 112, H = 7, p = new Pix(W, H);
+  for (let x = 0; x < W; x++) { const e = Math.min(x, W - 1 - x), h = Math.min(H, 2 + Math.round(3.4 * noise1(x * 0.55, 95) + 1.6 * hash(x, 96)) + (e < 4 ? e - 4 : 0));
+    for (let y = H - 1; y >= H - h && y >= 0; y--) p.set(x, y, C.mul(0x4a3222, (y === H - h ? 1.5 : 0.7 + 0.5 * hash(x, y, 97)) * (0.85 + 0.3 * noise1(x * 0.2, 98)))); }
+  return p.tex(); });
+/* floor cushions, side on: a soft squashed oval with a paler top and a seam */
+for (const [k, base, top, seam] of [['cushionA', 0xdcc8a0, 0xf0e2c0, 0xb89868], ['cushionB', 0x2e6e6a, 0x4a8e88, 0xc8923a]])
+  PX.def(k, () => { const p = new Pix(26, 11); p.ell(13, 6, 12, 4.6, base); p.ell(11, 4.6, 8, 2.4, top); p.hl(3, 23, 9, seam); return p.outline(null, 0.65).tex(); });
 PX.def('rugB', () => PX.rug(80, 40, { field: 0x6a2a18, edge: 0x200c08, gold: 0xb8862e, navy: 0x3a1a2a, cream: 0xd8c098 }, 72));
 PX.def('curtain', () => PX.curtain(PX.RED, 58)); PX.def('swag', () => PX.swag(PX.RED)); PX.def('goldCurtain', () => PX.curtain(PX.GOLD, 50));
 PX.def('cabinet', () => PX.drawers(24, 22, 3, 0x56301c)); PX.def('vanity', () => PX.drawers(40, 16, 2, 0x4e2a18));

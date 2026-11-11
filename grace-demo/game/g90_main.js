@@ -36,7 +36,7 @@ async function boot() {
   };
   requestAnimationFrame(loop);
   // ?room=bedroom&night (or &night=ride|missionary|behind) jumps straight into the night scene, for testing
-  if (f.night !== undefined && SCENE.room === BEDROOM) setTimeout(() => NIGHT.play({ fast: true, pos: LOVERS.NAMES.includes(f.night) ? f.night : null }).catch(fail), 400);
+  if (f.night !== undefined && SCENE.room === BEDROOM) setTimeout(() => NIGHT.play({ fast: true, pos: LOVERS.NAMES.includes(f.night) ? f.night : null, spot: f.spot }).catch(fail), 400);
   setTimeout(() => { window.__ready = true; }, 300);
 }
 boot().catch(fail);

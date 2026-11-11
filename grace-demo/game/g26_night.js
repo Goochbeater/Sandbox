@@ -45,7 +45,7 @@ NIGHT.ask = function (opts) {   // a choice under the picture -> the index picke
 NIGHT.setPace = function (k) { NIGHT.pace = k; for (const id in NIGHT.PACE) $(id).classList.toggle('on', NIGHT.PACE[id] === k); };
 NIGHT.posBar = function () {
   const row = $('nPos'); row.innerHTML = '';
-  for (const n of (NIGHT.S && NIGHT.S.menu) || LOVERS.MENU) { if (n === NIGHT.pos) continue;
+  for (const n of (NIGHT.S && NIGHT.S.menu) || (NIGHT.spot && NIGHT.spot.menu) || LOVERS.MENU) { if (n === NIGHT.pos) continue;
     const b = document.createElement('button'); b.className = 'btn'; b.textContent = LOVERS.LABEL[n]; b.onclick = (e) => { e.stopPropagation(); NIGHT.to(n); }; row.append(b); }
 };
 /* ---------------------------------------------------------------- little helpers */
@@ -58,6 +58,13 @@ NIGHT.say = (a, t, ms) => SCENE.say(a, t).then(() => ms ? SCENE.wait(ms) : null)
 NIGHT.fade = async (on) => { const f = $('fade'); f.classList.toggle('off', !on); await SCENE.wait(on ? 950 : 500); };
 /* the camera: 'room' = the room's own framing, 'bed' = eased in on the bed (or only re-centred, if the player wants it wider) */
 NIGHT.CAM = { bed: { fov: 13.5, y: 2.05, look: 1.62, focus: -7.72 }, wide: { fov: 17, y: 2.3, look: 1.9, focus: -7.72 }, near: { fov: 8.6, y: 1.74, look: 1.44, focus: -8.1 } };
+/* a second place for the royal scene in the same room: the bed's positions moved by an offset (LOVERS.stage), a shorter
+   menu, its own lens. The rug: a bearskin beside the fire, on the floor (no standing man at a bed's edge down there).
+   Beside, not in front: against the flames two bodies are one black lump; a step to the left they are side-lit on a dark wall.
+   Focus x values are the bed's own, like every other number here: the offset is added in camTick */
+NIGHT.SPOTS = { rug: { O: { x: 6.5, y: -0.76, z: 1.35 }, menu: ['kiss', 'missionary', 'ride', 'reverse', 'behind', 'lap'],
+  cam: { bed: { fov: 13.5, y: 1.55, look: 1.0, focus: -8.0 }, wide: { fov: 17, y: 2.3, look: 1.9, focus: -8.0 }, near: { fov: 8.6, y: 1.74, look: 1.44, focus: -8.1 } } } };
+NIGHT.spot = null;
 /* the stage: the in-bed machinery (rhythm, positions, sounds, the camera, the lines, the finish) runs on NIGHT.S when a scene
    sets one, else on the royal bedchamber. A stage is { room, enter, lines, cam, lens(k), finish(), end(slept) };
    its bed must stand where LOVERS.BED is, because the positions are world places. The House of the Lantern uses this */
@@ -67,11 +74,11 @@ NIGHT.lens = (k) => (NIGHT.S ? NIGHT.S.lens && NIGHT.S.lens(k) : BEDROOM.lens(k)
 NIGHT.lines = () => (NIGHT.S ? NIGHT.S.lines : NIGHT.LINES);
 NIGHT.enters = () => (NIGHT.S ? NIGHT.S.enter : NIGHT.ENTER);
 NIGHT.camTick = function (dt) {
-  const room = NIGHT.room(), c = room.cam, c0 = NIGHT.cam0, CAM = (NIGHT.S && NIGHT.S.cam) || NIGHT.CAM; if (!c0) return;
+  const room = NIGHT.room(), c = room.cam, c0 = NIGHT.cam0, CAM = (NIGHT.S && NIGHT.S.cam) || (NIGHT.spot && NIGHT.spot.cam) || NIGHT.CAM; if (!c0) return;
   const zm = NIGHT.ZOOMS[NIGHT.zoom], g = NIGHT.camMode === 'bed' ? Object.assign({}, CAM[zm] || CAM.bed) : { fov: c0.fov, y: c0.y, look: c0.look, focus: null };
   if (NIGHT.camMode === 'bed') { g.focus += LOVERS.O.x; if (zm === 'near') { g.focus = (LOVERS.FOCUS[NIGHT.pos] || g.focus) + LOVERS.O.x; g.y += LOVERS.O.y; g.look += LOVERS.O.y; } }
   c.fov = damp(c.fov, g.fov, 1.1, dt); c.y = damp(c.y, g.y, 1.1, dt); c.look = damp(c.look, g.look, 1.1, dt);
-  room.focusDz = NIGHT.camMode === 'bed' ? damp(room.focusDz || 0, room.KZ - 1.97, 0.7, dt) : damp(room.focusDz || 0, 0, 0.7, dt);   // keep the bed sharp
+  room.focusDz = NIGHT.camMode === 'bed' ? damp(room.focusDz || 0, room.KZ - (LOVERS.BED.zc + LOVERS.O.z + 0.82), 0.7, dt) : damp(room.focusDz || 0, 0, 0.7, dt);   // keep the bed sharp
   room.camFocus = g.focus === null ? (Math.abs(c.fov - c0.fov) < 0.15 ? c0.focus : room.camFocus) : g.focus;
 };
 /* ---------------------------------------------------------------- every frame while the night is on */
@@ -88,7 +95,7 @@ NIGHT.tick = function (t, dt) {
   const pan = clamp((K.x - R.cam.position.x) / 10, -0.8, 0.8), k = NIGHT.k;
   if (!slow && S0 < 0.9 && S1 >= 0.9) {   // the deep end of every stroke
     AUDIO.sfx('skin', { gain: 0.22 + 0.3 * k * Math.min(1.4, NIGHT.pace), pan });
-    if (Math.random() < 0.35 + 0.3 * k) AUDIO.sfx('creak', { gain: 0.5 + 0.4 * NIGHT.pace, pan, delay: 0.04 });
+    if (!NIGHT.spot && Math.random() < 0.35 + 0.3 * k) AUDIO.sfx('creak', { gain: 0.5 + 0.4 * NIGHT.pace, pan, delay: 0.04 });
   }
   NIGHT.brT -= dt;
   if (NIGHT.brT <= 0) { const her = Math.random() < 0.65; NIGHT.brT = lerp(slow ? 3.2 : 2.2, 0.75, k) / Math.sqrt(slow ? 1 : NIGHT.pace) * (0.8 + Math.random() * 0.4);
@@ -157,17 +164,30 @@ NIGHT.play = async function (o) {
       [Q, "One day you'll tell me the rest of it."]]);
     await NIGHT.walk(Q, 0.6); NIGHT.look(Q, K); Q.act('Interact');
     await SCENE.talk([[Q, "Not tonight, though. Tonight you look like a man who needs taking to bed."]]);
-    if (await NIGHT.ask(['Take her hand', 'Not tonight']) === 1) {
+    const pick = await NIGHT.ask(['Take her hand', 'Here. By the fire.', 'Not tonight']);
+    if (pick === 2) {
       await SCENE.talk([[K, "I'd only keep you awake. Go to bed, love. I'll sit by the fire a while."], [Q, "Don't sit there until dawn."]]);
       Q.act('Interact'); await NIGHT.beat(900); return NIGHT.end(false);
     }
-    await SCENE.talk([[K, "Then take me."], [Q, "Come here."]]);
-    AUDIO.sfx('kiss', { gain: 0.3 }); await NIGHT.beat(300);
-    // she leads him by the hand to the bed
-    const toBed = NIGHT.walk(Q, -8.0); await NIGHT.beat(380); const him = NIGHT.walk(K, -7.4);
-    await NIGHT.beat(2200); NIGHT.say(Q, "Leave the kingdom outside the door. One hour.");
-    await Promise.all([toBed, him]);
+    if (pick === 1) {   // the hearth: the bearskin comes down off the chest, and nobody goes anywhere
+      NIGHT.spot = NIGHT.SPOTS.rug;
+      await SCENE.talk([[K, "Not the bed. Here, where it's warm."], [Q, "On the floor. Like the winter we had this room and no furniture in it."], [Q, "Fetch the bearskin, then. I am not lying down on your grandmother's carpet."]]);
+      K.act('Interact'); AUDIO.sfx('sheets', { gain: 0.9 }); await NIGHT.beat(500);
+      await NIGHT.tween(0.9, (u) => BEDROOM.hearth(u)); await NIGHT.beat(300);
+      AUDIO.sfx('kiss', { gain: 0.3 }); await NIGHT.beat(300);
+    } else {
+      await SCENE.talk([[K, "Then take me."], [Q, "Come here."]]);
+      AUDIO.sfx('kiss', { gain: 0.3 }); await NIGHT.beat(300);
+      // she leads him by the hand to the bed
+      const toBed = NIGHT.walk(Q, -8.0); await NIGHT.beat(380); const him = NIGHT.walk(K, -7.4);
+      await NIGHT.beat(2200); NIGHT.say(Q, "Leave the kingdom outside the door. One hour.");
+      await Promise.all([toBed, him]);
+    }
   }
+  if (o.spot && NIGHT.SPOTS[o.spot]) { NIGHT.spot = NIGHT.SPOTS[o.spot]; BEDROOM.hearth(1); }   // the test's way in
+  const spot = NIGHT.spot, OX = spot ? spot.O.x : 0;
+  LOVERS.stage(spot ? spot.O : null);
+  if (spot) { if (o.fast) { Q.x = -8.0 + OX; K.x = -7.4 + OX; } await Promise.all([NIGHT.walk(Q, -8.0 + OX), NIGHT.walk(K, -7.4 + OX)]); }
   NIGHT.look(Q, K); NIGHT.look(K, Q); await NIGHT.beat(400);
   // undressing, a layer at a time: he unlaces her gown, she takes off his robe, then the rest
   await SCENE.talk([[Q, "Help me with these laces. My maids tie them like they're guarding a gate."]]);
@@ -180,15 +200,16 @@ NIGHT.play = async function (o) {
   K.act('Interact'); Q.act('Interact'); await NIGHT.beat(700);
   await Q.undress('all'); await K.undress('all'); K.setArousal(0.25); AUDIO.sfx('sheets', { gain: 1 }); await NIGHT.beat(700);
   await SCENE.talk([[K, "Gods, Halina."], [Q, "Thirteen years, and you still look at me like that."], [K, "Thirteen years, and you still let me."]]);
-  // she ties the bed curtains back to the posts, he takes the other side
-  const qc = NIGHT.walk(Q, -8.72), kc = NIGHT.walk(K, -6.62); await Promise.all([qc, kc]);
-  Q.lookYaw = Math.PI * 0.9; K.lookYaw = Math.PI * 0.9; Q.act('Interact'); K.act('Interact');
-  NIGHT.say(Q, "Leave them open. I want the firelight."); AUDIO.sfx('sheets', { gain: 0.6 });
-  await NIGHT.tween(1.3, (u) => BEDROOM.tieBack(u)); await NIGHT.beat(500);
-  await Promise.all([NIGHT.walk(Q, -8.0), NIGHT.walk(K, -7.4)]); NIGHT.look(Q, K); NIGHT.look(K, Q); await NIGHT.beat(300);
+  if (!spot) {   // she ties the bed curtains back to the posts, he takes the other side
+    const qc = NIGHT.walk(Q, -8.72), kc = NIGHT.walk(K, -6.62); await Promise.all([qc, kc]);
+    Q.lookYaw = Math.PI * 0.9; K.lookYaw = Math.PI * 0.9; Q.act('Interact'); K.act('Interact');
+    NIGHT.say(Q, "Leave them open. I want the firelight."); AUDIO.sfx('sheets', { gain: 0.6 });
+    await NIGHT.tween(1.3, (u) => BEDROOM.tieBack(u)); await NIGHT.beat(500);
+    await Promise.all([NIGHT.walk(Q, -8.0), NIGHT.walk(K, -7.4)]); NIGHT.look(Q, K); NIGHT.look(K, Q); await NIGHT.beat(300);
+  } else { NIGHT.say(Q, "Mind the hearthstone. It's the only cold thing left in here."); await NIGHT.beat(900); }
   // into bed: one sprite for both bodies from here on, box widened to the whole bed, card slid forward of the pillows
   K.reframe(LOVERS.FRAME.w, LOVERS.FRAME.h); K.frame = new THREE.Vector3(LOVERS.FRAME.x + LOVERS.O.x, LOVERS.FRAME.y + LOVERS.O.y, LOVERS.BED.zc + LOVERS.O.z); K.cardDz = 1.6; Q.hostInto(K);
-  NIGHT.camMode = 'bed'; NIGHT.lensT = 1; AUDIO.sfx('sheets', { gain: 1 }); AUDIO.sfx('creak', { gain: 0.6, delay: 0.6 });
+  NIGHT.camMode = 'bed'; NIGHT.lensT = 1; AUDIO.sfx('sheets', { gain: 1 }); if (!spot) AUDIO.sfx('creak', { gain: 0.6, delay: 0.6 });
   NIGHT.tween(2.2, (u) => { K.cardDz = lerp(1.6, LOVERS.BED.zc + 0.82 - LOVERS.BED.zc, u); });
   await NIGHT.drive('kiss', 2.1, 0.34);
   NIGHT.inBed = true; NIGHT.lineT = 5;
@@ -210,7 +231,8 @@ NIGHT.finish = async function () {
     NIGHT.hold = false; NIGHT.finishing = false;
   } else await NIGHT.say(Q, "Just hold me, then.", 300);
   AUDIO.sfx('sheets', { gain: 0.9 }); await NIGHT.drive('after', 2.4, 0.08); NIGHT.k = 0.2;
-  await SCENE.talk([[Q, "Mm. Now you can tell me about the rain."], [K, "Tomorrow."], [Q, "You always say tomorrow."], [K, "And you always ask. Stay."], [Q, "Where else would I go? Sleep, my king."]]);
+  if (NIGHT.spot) await SCENE.talk([[Q, "Mm. We are too old for floors."], [K, "Speak for yourself."], [Q, "My hip is speaking for me. Carry me to bed, then, and prove it."], [K, "In a moment."], [Q, "In a moment. Yes."]]);
+  else await SCENE.talk([[Q, "Mm. Now you can tell me about the rain."], [K, "Tomorrow."], [Q, "You always say tomorrow."], [K, "And you always ask. Stay."], [Q, "Where else would I go? Sleep, my king."]]);
   await NIGHT.beat(1200); NIGHT.scripted = false; await NIGHT.end(true);
 };
 NIGHT.end = async function (slept) {
@@ -221,6 +243,7 @@ NIGHT.end = async function (slept) {
   NIGHT.inBed = false; NIGHT.camMode = 'room'; Object.assign(room.cam, { fov: c0.fov, y: c0.y, look: c0.look }); room.camFocus = c0.focus; room.focusDz = 0;
   POSE.release(K); POSE.release(Q); Q.hostInto(null); K.frame = null; K.reframe(); K.cardDz = 0;
   K.dress(); Q.dress(); K.setArousal(0); BEDROOM.tieBack(0); room.setNight(false);
+  NIGHT.spot = null; LOVERS.stage(null); BEDROOM.hearth(0);   // the bearskin is back on its chest by morning
   Q.setVisible(false); Q.spec.idle = NIGHT.keep.idle; Q.curHome = NIGHT.keep.home; Q.baseY = Q.y = NIGHT.keep.baseY;
   K.stand(); K.x = -6.4; K.z = room.KZ; K.y = 0; K.face = 1; K.yaw = 0.42; K.lookYaw = null;
   const i = room.tick.indexOf(NIGHT.tick); if (i >= 0) room.tick.splice(i, 1);

@@ -132,7 +132,14 @@ HOUSE.W = {
       ride: [[['Q', 'Lie still. Let me do it.'], ['K', 'You’re wicked.']], [['Q', 'Mm— there— oh, there—']], [['Q', 'I can’t— I can’t stop—']]],
       behind: [[['Q', 'Oh, the sheets will need washing.']], [['Q', 'Harder, sir— yes—']], [['Q', 'Oh— gods— yes—']]], after: [[['Q', 'Mm.']]] },
     finish: ['Don’t stop— oh, please—', 'Lena—', 'Oh— oh, sir— yes—'], cuddle: 'Just kissing? You’re sweet. My old mistress would have sent you away.',
-    after: [['Q', 'The water’s gone cold.'], ['K', 'I didn’t notice.'], ['Q', 'No, sir. You didn’t.']], fav: 'reverse'
+    after: [['Q', 'The water’s gone cold.'], ['K', 'I didn’t notice.'], ['Q', 'No, sir. You didn’t.']], fav: 'reverse',
+    /* the bathhouse (g55): what she says instead, down there. Only the upright positions exist in a tub */
+    bath: { yes: 'The bathhouse? Oh, sir. Now you’re asking for the thing I’m actually good at.',
+      intro: [['Q', 'Mind the step. Everything down here is wet, including the truth.'], ['Q', 'In you get. No, sir: clothes first. I’ve seen a man try it the other way.']],
+      enter: { kiss: [['Q', 'There. Sit. Let it take the day off you.'], ['K', 'It’s hot.'], ['Q', 'It’s a bath, sir. They’re meant to be.']], lap: [['Q', 'Stay just there. I’ll come to you.'], ['Q', 'Slowly. Or we’ll have the whole tub on the floor.']] },
+      lines: { kiss: [[['Q', 'Mm. Rosemary. And you, under it.'], ['Q', 'Your shoulders are as hard as the copper. Let go of them.']], [['Q', 'There. That’s the day gone.']], [['Q', 'Now, sir. Before the water notices.']]],
+        lap: [[['Q', 'Slow. Like that. We’ve all night and forty buckets.'], ['K', 'You’re warm.']], [['Q', 'Oh— there. Don’t splash. Hold me.'], ['K', 'Hold on to me.']], [['Q', 'Sir— oh, sir—'], ['K', 'Lena—']]] },
+      after: [['Q', 'Don’t move. This is the part a queen pays for.'], ['K', 'And what does a falconer pay?'], ['Q', 'He stays till the water’s cold, sir. That’s all.']] }
   },
   agata: {
     first: [['agata', 'Don’t stand there like a confessor. Sit, or go away.'], ['king', 'You were in a convent.'],

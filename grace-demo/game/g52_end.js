@@ -11,9 +11,12 @@
 const END = { seen: null };
 END.TITLES = { A: 'The Swan Endures', B: 'The Empty Cradle', C: 'The Drowned Crown', D: 'The Bargain Broken', E: 'Two Kings’ Breath' };
 END.state = () => ({ seen: END.seen }); END.load = (s) => { END.seen = (s && s.seen) || null; }; END.reset = () => { END.seen = null; };
+/* the Woman's name: who remembers it (the midwife), what it is for (Dobrawa), where it is written (the father's letter,
+   or the roll Brother Anzelm can read) */
+END.named = () => { const F = REALM.flags; return F.hela === 1 && F.dobrawa === 1 && (F.letter === 1 || F.anzelm === 1); };
 END.pick = function () {
   const F = REALM.flags, f = REALM.fam, out = INV.outcome || '', ilka = out.indexOf('ilka') === 0, k = REALM.kingdom();
-  if (F.hela === 1 && F.letter === 1 && F.told === 1 && ilka) return 'D';
+  if (END.named() && F.told === 1 && ilka) return 'D';
   if (F.bargain2 === 1 && !ilka) return 'E';
   if (k < 20 || (COURT.stats.stores <= 2 && REALM.army <= 2)) return 'C';
   if (f.kazik > f.halina && f.kazik > f.zofia) return 'B';

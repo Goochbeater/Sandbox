@@ -13,11 +13,11 @@
                House's lute player if it was only a song             a lady in grey at the cupbearer's sideboard
      report    Ilka's report, on the study desk (after lip)        she knew which lip before anyone told her
    Naming Ilka holds only with lip, oldSeal and ledger or report (§7.4). Every outcome is saved; chapter five begins. */
-const INV = { found: {}, notes: {}, outcome: null, said: {} };
+const INV = { found: {}, notes: {}, outcome: null, said: {}, via: {} };   // via: who gave a clue, when it has more than one source (INV.ALT, g54)
 INV.init0 = JSON.stringify(INV);
 INV.reset = function () { Object.assign(INV, JSON.parse(INV.init0)); INV.accusing = false; };
-INV.state = function () { return { found: INV.found, notes: INV.notes, outcome: INV.outcome, said: INV.said }; };
-INV.load = function (s) { INV.reset(); if (s) for (const k of ['found', 'notes', 'outcome', 'said']) if (k in s) INV[k] = s[k]; };
+INV.state = function () { return { found: INV.found, notes: INV.notes, outcome: INV.outcome, said: INV.said, via: INV.via }; };
+INV.load = function (s) { INV.reset(); if (s) for (const k of ['found', 'notes', 'outcome', 'said', 'via']) if (k in s) INV[k] = s[k]; };
 INV.on = () => CAL.phase === 'crisis';
 INV.has = (...ids) => ids.every((id) => INV.found[id]);
 INV.CLUES = {
@@ -42,9 +42,10 @@ INV.NOTES = {
   konrad: 'Konrad came to ask where his father’s army went. He hated Gniewomir, who turned him away in the spring. He says he never went near the high table.',
   woman: 'The Woman: “I didn’t need to. Kings are always being killed by someone. I only knew which week.”',
 };
-INV.find = function (id) {
-  if (INV.found[id]) return false; INV.found[id] = CAL.crisis || 1;
-  COURT.toast('A clue: ' + INV.CLUES[id][0]); AUDIO.sfx('page', { gain: 0.8 }); AUDIO.sfx('chime', { gain: 0.25, delay: 0.2 }); INV.badge(true); GAME.save(); return true;
+INV.clue = (id) => (INV.ALT && INV.ALT[id] && INV.ALT[id][INV.via[id]]) || INV.CLUES[id];   // a clue's words belong to whoever gave it
+INV.find = function (id, via) {
+  if (INV.found[id]) return false; INV.found[id] = CAL.crisis || 1; if (via) INV.via[id] = via;
+  COURT.toast('A clue: ' + INV.clue(id)[0]); AUDIO.sfx('page', { gain: 0.8 }); AUDIO.sfx('chime', { gain: 0.25, delay: 0.2 }); INV.badge(true); GAME.save(); return true;
 };
 INV.note = function (id) { if (INV.notes[id]) return; INV.notes[id] = CAL.crisis || 1; INV.badge(true); GAME.save(); };
 INV.witness = () => (CAL.fire ? 'salA' : CAL.konrad ? 'konrad' : 'lute');   // who saw the lady in grey depends on how the feast went
@@ -108,7 +109,7 @@ INV.talk = async function (id) {
   const f = INV.TALK[id]; if (!f || SCENE.lock) return; const K = SCENE.player, a = CAST.A[id];
   if (a && a.visible) { K.faceTo(a.x); if (!a.sitting) { a.faceTo(K.x); a.lookYaw = Math.sign(K.x - a.x) * 0.8; } }
   SCENE.lock++;
-  try { for (const [k, t] of f()) { if (k === 'find') INV.find(t); else if (k === 'note') INV.note(t); else await SCENE.say(INV.who(k), t, { wait: true }); } }
+  try { for (const [k, t, via] of f()) { if (k === 'find') INV.find(t, via); else if (k === 'note') INV.note(t); else await SCENE.say(INV.who(k), t, { wait: true }); } }
   finally { SCENE.lock--; if (a && !a.sitting) a.lookYaw = null; }
 };
 /* the cup, the bier, the Woman, the report */
@@ -155,14 +156,14 @@ INV.render = function () {
     const todo = CAL.phase === 'court' ? REALM.todo() : [c[1], CAL.fest === 3 ? 'Tonight: the feast. The bedchamber door leads to the hall.' : 'The bed ends the day.'];
     const F = REALM.fam; $('jrnText').innerHTML = `<h4>This ${CAL.phase === 'court' ? 'week' : 'day'}</h4>${todo.map((t) => `<p>${t}</p>`).join('')}
       <h4>The realm</h4><p>Gold ${COURT.stats.gold} · Stores ${COURT.stats.stores} · Mood ${COURT.stats.mood} · Army ${REALM.army}</p>
-      <h4>The family</h4><p>Halina is ${INV.WORD(F.halina)}. Zofia is ${INV.WORD(F.zofia)}. Kazik is ${INV.WORD(F.kazik)}.</p>`; return; }
+      <h4>The family</h4><p>Halina is ${INV.WORD(F.halina)}. Zofia is ${INV.WORD(F.zofia)}. Kazik is ${INV.WORD(F.kazik)}.</p>${AGENTS.lore()}`; return; }
   $('jrnTitle').textContent = CAL.phase === 'done' && END.seen ? END.TITLES[END.seen] : 'The Dead King';
   const n = INV.ORDER.filter((id) => INV.found[id]).length, sub = INV.outcome ? 'The name was given.' : CAL.phase === 'crisis' ? `Day ${CAL.crisis} of twelve · ${n} of 8 clues` : `${n} of 8 clues`;
   $('jrnSub').textContent = sub + (CAL.phase === 'crisis' && REALM.waiting() ? ' · a petitioner waits in the hall' : '');
-  const clues = INV.ORDER.filter((id) => INV.found[id]).map((id) => { const [t, d, w] = INV.CLUES[id]; const where = id === 'grey' ? { salA: 'Mira of the Salamanders', konrad: 'Konrad of Hal', lute: 'the lute player at the House' }[INV.witness()] : w;
+  const clues = INV.ORDER.filter((id) => INV.found[id]).map((id) => { const [t, d, w] = INV.clue(id); const where = id === 'grey' ? { salA: 'Mira of the Salamanders', konrad: 'Konrad of Hal', lute: 'the lute player at the House' }[INV.witness()] : w;
     return `<div class="clue"><b>${t}</b><p>${d}</p><small>${where} · day ${INV.found[id]}</small></div>`; }).join('') || '<p>Nothing yet. The cup, the body, the people at the feast: start there.</p>';
   const notes = Object.keys(INV.NOTES).filter((id) => INV.notes[id]).map((id) => `<p>${INV.NOTES[id]}</p>`).join('');
-  $('jrnText').innerHTML = `<h4>Clues</h4>${clues}${notes ? `<h4>What people say</h4>${notes}` : ''}`;
+  $('jrnText').innerHTML = `<h4>Clues</h4>${clues}${notes ? `<h4>What people say</h4>${notes}` : ''}${AGENTS.lore()}`;
 };
 INV.panel = function (on) {
   const P = $('journal'); if (on && (SCENE.lock || SCENE.modal || CUT.playing)) return;

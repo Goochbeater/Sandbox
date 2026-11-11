@@ -63,7 +63,7 @@ SCENE.lens = function (room, to, dur) {
     if (u >= 1) { room.tick = room.tick.filter((g) => g !== f); res(); } }; room.tick.push(f); });
 };
 SCENE.caption = function (title, sub) { const c = $('caption'); c.innerHTML = ''; c.append(title); if (sub) { const s = document.createElement('small'); s.textContent = sub; c.append(s); }
-  setTimeout(() => c.classList.add('on'), 700); setTimeout(() => c.classList.remove('on'), 4600); SCENE.markDelay = G.t + 4.6; };
+  setTimeout(() => c.classList.add('on'), 700); setTimeout(() => c.classList.remove('on'), 4600); SCENE.markDelay = G.t + 4.6; SCENE.captionUntil = performance.now() + 5200; };   // captionUntil: wall-clock, for anything that must not start under the caption
 /* ---------------------------------------------------------------- speech */
 SCENE.cycle = function (key, lines) { const i = SCENE.lineIdx[key] || 0; SCENE.lineIdx[key] = (i + 1) % lines.length; return lines[i]; };
 /* show a bubble over an actor; resolves when it's gone (after its reading time, or when advanced if o.wait) */

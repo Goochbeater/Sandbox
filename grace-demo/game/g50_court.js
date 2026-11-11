@@ -113,7 +113,7 @@ COURT.panel = function (p) {
       $('cpGrant').disabled = t === 0;
       // agents
       const ag = $('cpAgents'); ag.innerHTML = '';
-      for (const a of COURT.agents) { const left = a.ap - use[a.id], fit = p.fit[a.id] || 0, card = document.createElement('div'); card.className = 'agent';
+      for (const a of COURT.agents) { const left = a.ap - use[a.id], fit = p.fit[a.id] || 0, card = document.createElement('div'); card.className = 'agent'; if (!fit && a.recruit) continue;   // a recruit is listed where he can help
         card.innerHTML = `<div class="an">${a.name} <span class="at">${a.title} · +${fit} each</span></div><div class="pips">${'<i class="on"></i>'.repeat(left)}${'<i></i>'.repeat(a.max - left)}</div>`;
         const ctl = document.createElement('div'); ctl.className = 'ctl';
         const minus = document.createElement('button'); minus.className = 'pm'; minus.textContent = '−'; minus.setAttribute('aria-label', 'Recall one action from ' + a.name); minus.disabled = !use[a.id];

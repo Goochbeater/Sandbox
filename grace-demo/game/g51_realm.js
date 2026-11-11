@@ -13,7 +13,7 @@ const REALM = { army: 5, fam: { halina: 5, zofia: 5, kazik: 5 }, flags: {}, done
 REALM.init0 = JSON.stringify(REALM);
 REALM.reset = function () { Object.assign(REALM, JSON.parse(REALM.init0)); };
 REALM.state = function () { return { army: REALM.army, fam: REALM.fam, flags: REALM.flags, done: REALM.done, heardIds: REALM.heardIds }; };
-REALM.load = function (s) { REALM.reset(); if (s) for (const k of ['army', 'fam', 'flags', 'done', 'heardIds']) if (k in s) REALM[k] = s[k]; };
+REALM.load = function (s) { REALM.reset(); if (s) for (const k of ['army', 'fam', 'flags', 'done', 'heardIds']) if (k in s) REALM[k] = s[k]; AGENTS.sync(); };
 REALM.kingdom = () => COURT.stats.gold + COURT.stats.stores + COURT.stats.mood + REALM.army;
 REALM.family = () => REALM.fam.halina + REALM.fam.zofia + REALM.fam.kazik;
 /* ---------------------------------------------------------------- the bar at the top */
@@ -30,6 +30,7 @@ REALM.fx = function (o) {
   if (o.army) { REALM.army = Math.max(0, REALM.army + o.army); said.push(`Army ${o.army > 0 ? '+' : '−'}${Math.abs(o.army)}`); }
   for (const k in o.fam || {}) REALM.fam[k] = clamp(REALM.fam[k] + o.fam[k], 0, 10);
   for (const k in o.flag || {}) REALM.flags[k] = o.flag[k];
+  if (o.flag) AGENTS.sync();   // a recruit joins the court's roster the moment he is taken on (g54)
   if (o.rumour) HOUSE.rumour += o.rumour; if (o.cold) CHAPEL.cold += o.cold;
   if (o.days && CAL.phase === 'crisis') { CAL.crisis = clamp(CAL.crisis - o.days, 1, 12); said.push(o.days > 0 ? `Krasna waits ${o.days} day${o.days > 1 ? 's' : ''} longer` : `A day lost`); }
   if (said.length) COURT.toast(said.join(' · '));
@@ -135,7 +136,8 @@ REALM.waiting = () => REALM.queue().length > 0;
 REALM.choose = async function (p, pet) {
   const A = CAST.A, K = SCENE.player;
   for (const [who, line] of p.advice || []) if (A[who] && A[who].visible) await SCENE.say(A[who], line, { wait: true });
-  const i = await NIGHT.ask(p.options.map((o) => o.label)), o = p.options[i];
+  const opts = p.options.filter((q) => !q.need || REALM.flags[q.need] === 1);   // some answers exist only with a recruit (g54)
+  const i = await NIGHT.ask(opts.map((q) => q.label)), o = opts[i];
   await SCENE.say(K, o.label, { wait: true });
   await SCENE.talk(o.reply.map((t) => [pet, t]));
   REALM.fx(o.fx);
@@ -187,7 +189,7 @@ REALM.enter = function (room) {
   REALM.hud(); if (CAL.phase !== 'court' || CUT.playing) return;
   const e = REALM.EVENTS.find((q) => q.week === CAL.week && q.room === room.id && !REALM.done[q.id]); if (!e) return;
   const t0 = performance.now(), poll = () => { if (SCENE.room !== room || REALM.done[e.id]) return;
-    if (SCENE.lock || SCENE.modal || CUT.playing || NIGHT.on || SCENE.bubble || performance.now() - t0 < 1800) { setTimeout(poll, 250); return; } REALM.moment(e).catch(fail); };
+    if (SCENE.lock || SCENE.modal || CUT.playing || NIGHT.on || SCENE.bubble || performance.now() - t0 < 1800 || performance.now() < (SCENE.captionUntil || 0)) { setTimeout(poll, 250); return; }   /* not under the room's caption */ REALM.moment(e).catch(fail); };
   setTimeout(poll, 250);
 };
 REALM.moment = async function (e) {

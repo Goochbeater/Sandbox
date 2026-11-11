@@ -76,6 +76,7 @@ CAL.morning = function () {
 /* the weather: in the crisis the rain is back, on every window (the indoor rooms) and on everything (the outdoor ones) */
 CAL.OUT = ['garden', 'yard', 'wood', 'fair', 'lists', 'camp'];
 SCENE.afterEnter = function (room) {
+  AGENTS.stage(room);   // Dobrawa and Brother Anzelm, if they are here this week or in his service (g54)
   INV.stage(room);   // chapter four's props and people (g48)
   REALM.enter(room);   // the bar at the top, and whatever is waiting in this room this week (g51)
   if (CAL.phase !== 'crisis' || CUT.playing || !room.ambience) return;

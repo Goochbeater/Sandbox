@@ -60,6 +60,9 @@ LANTERN.build = function () {
   BUILD.card(T.barCounter, -7.1, 0, 1.42, { w: 3.4, h: 1.18, cast: false });
   BUILD.card(T.bottleShelf, -7.1, 1.3, 0.04, { cast: false }); BUILD.flame(-5.8, 1.42, 1.1, 0.25); BUILD.light(new THREE.PointLight(0xffb070, 1.4, 0, 2), -5.8, 1.6, 1.6, { flicker: 7 });
   room.interact('counter', -6.3, 1.9, KZ, 0.6, () => say('counter'));
+  /* the bathhouse door, under the gallery between the counter and the tables: steam under it, a copper jug for a sign */
+  BUILD.card(T.doorBath, -3.9, 0, 0.03, { cast: false }); BUILD.glow(-3.9, 0.25, 0.15, 0.9, 0xd8d0c8, 0.22);
+  room.interact('bath', -3.9, 2.4, KZ, 0.7, () => { if (NIGHT.on) return; GAME.save(); SCENE.go('lbath', { x: -6.2, face: 1 }); }).label = 'Down to the bathhouse';
   /* two tables, benches, the regulars behind them */
   for (const tx of [-2.7, 0.4]) { BUILD.box(tx - 0.7, tx + 0.7, 0.72, 0.8, 1.0, 1.6, T.woodRed); for (const dx of [-0.6, 0.6]) BUILD.box(tx + dx - 0.05, tx + dx + 0.05, 0, 0.72, 1.25, 1.35, T.woodPost);
     BUILD.box(tx - 0.8, tx + 0.8, 0.4, 0.46, 0.5, 0.8, T.woodDark); BUILD.card(T.tableSet, tx, 0.8, 1.3, { cast: false });
@@ -179,10 +182,13 @@ HOUSE.meet = async function (id) {
   try {
     if (!HOUSE.met[id]) { HOUSE.met[id] = true; HOUSE.trust[id] = (HOUSE.trust[id] || 0) + 1; await SCENE.talk(W.first.map(([k, t]) => [who(k), t])); }
     else await SCENE.say(Q, SCENE.cycle('hm' + id, W.more), { wait: true });
-    const crisis = CAL.phase === 'crisis', i = await NIGHT.ask(['Go upstairs with her (18+)', 'Talk a while', 'Leave her be'].concat(crisis ? ['Ask her about the feast'] : []));
-    if (i === 3) { SCENE.lock--; locked = false; await INV.talk(id); return; }   // chapter four (g48)
-    if (i === 1) { HOUSE.trust[id] = (HOUSE.trust[id] || 0) + 1; await SCENE.say(Q, SCENE.cycle('ht' + id, W.talk), { wait: true }); }
-    else if (i === 0) { SCENE.lock--; locked = false; AUDIO.sfx('coin', { gain: 0.5 }); NIGHT.confirm(() => HOUSE.scene(id).catch(fail)); }
+    const opts = [['up', 'Go upstairs with her (18+)']];
+    if (W.bath && HOUSE.band(id) >= 1) opts.push(['bath', 'The bathhouse, with her (18+)']);   // Lena, once she trusts him (g55)
+    opts.push(['talk', 'Talk a while'], ['no', 'Leave her be']); if (CAL.phase === 'crisis') opts.push(['feast', 'Ask her about the feast']);
+    const pick = opts[await NIGHT.ask(opts.map((o) => o[1]))][0];
+    if (pick === 'feast') { SCENE.lock--; locked = false; await INV.talk(id); return; }   // chapter four (g48)
+    if (pick === 'talk') { HOUSE.trust[id] = (HOUSE.trust[id] || 0) + 1; await SCENE.say(Q, SCENE.cycle('ht' + id, W.talk), { wait: true }); }
+    else if (pick === 'up' || pick === 'bath') { SCENE.lock--; locked = false; AUDIO.sfx('coin', { gain: 0.5 }); NIGHT.confirm(() => HOUSE.scene(id, pick === 'bath' ? 'bath' : null).catch(fail)); }
   } finally { if (locked) SCENE.lock--; if (!Q.sitting) Q.lookYaw = null; }
 };
 HOUSE.wanda = async function () {
@@ -203,23 +209,27 @@ HOUSE.clerk = async function () {
   await FEST.talk('clerk', HOUSE.W.clerk);
 };
 /* ---------------------------------------------------------------- upstairs: her room, the bed, the night scene's engine */
-HOUSE.stage = function (id) {
-  const W = HOUSE.W[id]; return { room: LROOM, enter: W.enter, lines: W.lines, cam: NIGHT.CAM, lens: null, finish: HOUSE.finish, end: HOUSE.end };
+/* V: a venue other than her room (HOUSE.BATH, g55): its own room, the positions moved (O, px), a shorter menu, its own lens,
+   and W.bath's words where it has them */
+HOUSE.stage = function (id, V) {
+  const W = Object.assign({}, HOUSE.W[id], V && HOUSE.W[id].bath);
+  return Object.assign({ room: LROOM, enter: W.enter, lines: W.lines, cam: NIGHT.CAM, lens: null, finish: HOUSE.finish, end: HOUSE.end, W }, V || {});
 };
-HOUSE.scene = async function (id) {
-  const K = SCENE.player, Q = CAST.A[id], W = HOUSE.W[id]; if (!Q || NIGHT.on) return;
+HOUSE.scene = async function (id, venue) {
+  const K = SCENE.player, Q = CAST.A[id], V = venue === 'bath' ? HOUSE.BATH : null; if (!Q || NIGHT.on) return;
+  const S = HOUSE.stage(id, V), W = S.W, room = S.room, dx = V ? V.O.x + (V.px.kiss || 0) + 0.3 : 0;
   SCENE.lock++;
   try {
     await SCENE.say(Q, W.yes, { wait: true });
-    HOUSE.with = id; await SCENE.go('lroom', { x: 3.4, face: -1 });   // LROOM.onEnter dresses the room for her
-    const room = LROOM;
-    NIGHT.S = HOUSE.stage(id); NIGHT.on = true; NIGHT.A = { K, Q }; NIGHT.lensK = 0; NIGHT.lensT = 0; NIGHT.pos = null; NIGHT.k = 0; NIGHT.ph = 0; NIGHT.inBed = false; NIGHT.finishing = false; NIGHT.hold = false; NIGHT.brT = 1; NIGHT.lineT = 5;
+    HOUSE.with = id; HOUSE.venue = venue || null; await SCENE.go(room.id, { x: V ? -6.2 : 3.4, face: V ? 1 : -1 });   // the room's onEnter shows her, and only her
+    LOVERS.stage(V ? V.O : null);
+    NIGHT.S = S; NIGHT.on = true; NIGHT.A = { K, Q }; NIGHT.lensK = 0; NIGHT.lensT = 0; NIGHT.pos = null; NIGHT.k = 0; NIGHT.ph = 0; NIGHT.inBed = false; NIGHT.finishing = false; NIGHT.hold = false; NIGHT.brT = 1; NIGHT.lineT = 5;
     NIGHT.tweens = []; room.tick.push(NIGHT.tick); NIGHT.camMode = 'room'; NIGHT.cam0 = { fov: room.cam.fov, y: room.cam.y, look: room.cam.look, focus: room.camFocus };
     NIGHT.done = new Promise((r) => { NIGHT.resolve = r; });
-    Q.x = 2.4; Q.z = room.KZ - 0.15; Q.face = -1; Q.yaw = -0.42; Q.lookYaw = null;
+    Q.x = V ? -3.7 : 2.4; Q.z = room.KZ - 0.15; Q.face = V ? 1 : -1; Q.yaw = V ? 0.42 : -0.42; Q.lookYaw = null;   // ahead of him, toward the bed or the tub
     await Promise.all([K.makeBare(), Q.makeBare()]);
     NIGHT.look(Q, K); await SCENE.talk(W.intro.map(([k, t]) => [k === 'K' ? K : Q, t]));
-    const her = NIGHT.walk(Q, -7.9); await NIGHT.beat(350); const him = NIGHT.walk(K, -7.3); await Promise.all([her, him]);
+    const her = NIGHT.walk(Q, -7.9 + dx); await NIGHT.beat(350); const him = NIGHT.walk(K, -7.3 + dx); await Promise.all([her, him]);
     NIGHT.look(Q, K); NIGHT.look(K, Q); await NIGHT.beat(300);
     await SCENE.talk([[Q, W.undress[0]]]);
     K.act('Interact'); AUDIO.sfx('sheets', { gain: 0.45 }); await NIGHT.beat(900); await Q.undress('outer'); AUDIO.sfx('sheets', { gain: 0.8 });
@@ -230,18 +240,18 @@ HOUSE.scene = async function (id) {
     K.setArousal(0.3); AUDIO.sfx('sheets', { gain: 1 }); await NIGHT.beat(500);
     // into bed: one sprite for both bodies, as the royal bed has it
     K.reframe(LOVERS.FRAME.w, LOVERS.FRAME.h); K.frame = new THREE.Vector3(LOVERS.FRAME.x + LOVERS.O.x, LOVERS.FRAME.y + LOVERS.O.y, LOVERS.BED.zc + LOVERS.O.z); K.cardDz = 1.6; Q.hostInto(K);
-    NIGHT.camMode = 'bed'; NIGHT.lensT = 1; AUDIO.sfx('creak', { gain: 0.6, delay: 0.6 });
+    NIGHT.camMode = 'bed'; NIGHT.lensT = 1; if (!S.quiet) AUDIO.sfx('creak', { gain: 0.6, delay: 0.6 });
     NIGHT.tween(2.2, (u) => { K.cardDz = lerp(1.6, 0.82, u); });
     await NIGHT.drive('kiss', 2.1, 0.34);
     NIGHT.inBed = true; NIGHT.lineT = 5;
     NIGHT.scripted = true; for (const [w, t] of W.enter.kiss) await NIGHT.say(w === 'K' ? K : Q, t, 200); NIGHT.scripted = false;
     NIGHT.setPace(1); NIGHT.posBar(); $('nView').hidden = false; $('nFinish').hidden = false; $('nView').textContent = NIGHT.viewLabel(); NIGHT.bar(['pos', 'pace']);
-    if (W.fav) NIGHT.to(W.fav);   // her favourite: she moves him there herself
+    const fav = S.menu ? (S.menu.includes(W.fav) ? W.fav : S.menu[S.menu.length - 1]) : W.fav; if (fav) NIGHT.to(fav);   // her favourite: she moves him there herself
     await NIGHT.done;
   } finally { SCENE.lock--; }
 };
 HOUSE.finish = async function () {
-  const K = NIGHT.A.K, Q = NIGHT.A.Q, W = HOUSE.W[HOUSE.with]; NIGHT.bar([]); NIGHT.scripted = true;
+  const K = NIGHT.A.K, Q = NIGHT.A.Q, W = NIGHT.S.W; NIGHT.bar([]); NIGHT.scripted = true;
   if (NIGHT.pos !== 'kiss') {
     NIGHT.finishing = true; NIGHT.k = Math.max(NIGHT.k, 0.85); NIGHT.pace = Math.max(NIGHT.pace, 1.5);
     await NIGHT.say(Q, W.finish[0], 900); await NIGHT.say(K, W.finish[1], 700);
@@ -250,17 +260,17 @@ HOUSE.finish = async function () {
     await NIGHT.say(Q, W.finish[2], 1400); await NIGHT.beat(1100);
     NIGHT.hold = false; NIGHT.finishing = false;
   } else await NIGHT.say(Q, W.cuddle, 300);
-  AUDIO.sfx('sheets', { gain: 0.9 }); await NIGHT.drive('after', 2.4, 0.08); NIGHT.k = 0.2;
+  if (!NIGHT.S.quiet) AUDIO.sfx('sheets', { gain: 0.9 }); await NIGHT.drive(NIGHT.S.after || 'after', 2.4, 0.08); NIGHT.k = 0.2; NIGHT.pos = 'after';   // the tub rests upright (stage.after): under its rim nobody lying down would be seen
   await SCENE.talk(W.after.map(([w, t]) => [w === 'K' ? K : Q, t]));
   await NIGHT.beat(700); NIGHT.scripted = false; await HOUSE.end(true);
 };
 HOUSE.end = async function (slept) {
-  const K = NIGHT.A.K, Q = NIGHT.A.Q, room = LROOM, c0 = NIGHT.cam0, id = HOUSE.with;
+  const K = NIGHT.A.K, Q = NIGHT.A.Q, room = NIGHT.S.room, c0 = NIGHT.cam0, id = HOUSE.with;
   NIGHT.bar([]); await NIGHT.fade(true);
   NIGHT.inBed = false; NIGHT.camMode = 'room'; Object.assign(room.cam, { fov: c0.fov, y: c0.y, look: c0.look }); room.camFocus = c0.focus; room.focusDz = 0;
   POSE.release(K); POSE.release(Q); Q.hostInto(null); K.frame = null; K.reframe(); K.cardDz = 0;
   K.dress(); Q.dress(); K.setArousal(0);   // dress() puts the disguise back on
-  room.tick = room.tick.filter((f) => f !== NIGHT.tick); NIGHT.tweens = []; NIGHT.on = false; NIGHT.S = null;
+  room.tick = room.tick.filter((f) => f !== NIGHT.tick); NIGHT.tweens = []; NIGHT.on = false; NIGHT.S = null; LOVERS.stage(null); HOUSE.venue = null;
   HOUSE.trust[id] = (HOUSE.trust[id] || 0) + (slept ? 2 : 1); HOUSE.nights[id] = (HOUSE.nights[id] || 0) + 1; HOUSE.rumour++; HOUSE.with = null;
   await SCENE.prepare('lantern'); SCENE.enter('lantern', { x: 8.6, face: -1 }); R.r.compile(R.scene, R.cam); SCENE.render(); await nextFrame();
   SCENE.caption('Later', 'The common room has thinned. The fire hasn’t.'); GAME.save();

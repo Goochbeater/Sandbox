@@ -95,7 +95,7 @@ NIGHT.tick = function (t, dt) {
   const pan = clamp((K.x - R.cam.position.x) / 10, -0.8, 0.8), k = NIGHT.k;
   if (!slow && S0 < 0.9 && S1 >= 0.9) {   // the deep end of every stroke
     AUDIO.sfx('skin', { gain: 0.22 + 0.3 * k * Math.min(1.4, NIGHT.pace), pan });
-    if (!NIGHT.spot && Math.random() < 0.35 + 0.3 * k) AUDIO.sfx('creak', { gain: 0.5 + 0.4 * NIGHT.pace, pan, delay: 0.04 });
+    if (!NIGHT.spot && !(NIGHT.S && NIGHT.S.quiet) && Math.random() < 0.35 + 0.3 * k) AUDIO.sfx('creak', { gain: 0.5 + 0.4 * NIGHT.pace, pan, delay: 0.04 });
   }
   NIGHT.brT -= dt;
   if (NIGHT.brT <= 0) { const her = Math.random() < 0.65; NIGHT.brT = lerp(slow ? 3.2 : 2.2, 0.75, k) / Math.sqrt(slow ? 1 : NIGHT.pace) * (0.8 + Math.random() * 0.4);
@@ -108,7 +108,8 @@ NIGHT.tick = function (t, dt) {
 };
 /* ---------------------------------------------------------------- positions */
 NIGHT.drive = function (name, dur, lift) {
-  const A = NIGHT.A; NIGHT.pos = name;
+  const A = NIGHT.A, st = NIGHT.S || NIGHT.spot; NIGHT.pos = name;
+  if (st && st.px) LOVERS.O.x = st.O.x + (st.px[name] || 0);   // a stage that keeps every position in one small place (a tub): each gets its own shift
   if (NIGHT.inBed) { const K = A.K, z0 = K.cardDz, z1 = LOVERS.CARD[name] || 0.82; if (Math.abs(z1 - z0) > 0.01) NIGHT.tween(0.5, (u) => { K.cardDz = lerp(z0, z1, u); }); }
   const fK = () => LOVERS.pose(NIGHT.pos, NIGHT.ph, NIGHT.k, A).king, fQ = () => LOVERS.pose(NIGHT.pos, NIGHT.ph, NIGHT.k, A).queen;
   return Promise.all([POSE.drive(A.K, fK, dur, { lift }), POSE.drive(A.Q, fQ, dur, { lift })]);

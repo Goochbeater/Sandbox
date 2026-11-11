@@ -18,7 +18,9 @@ The plan for the whole game's story. Names are placeholders; change them in one 
 | Court during the crisis: nine petitions across days 2–10 (the siege's daily court), and the steward's reports of what earlier choices came to (`REALM.ECHO`) | built |
 | Chapter six and the five endings (§11), as cutscenes, back to the title | built |
 | Halina's night can be played on the bearskin by the bedchamber fire instead of the bed | built |
-| Still planned: the war camp, Dobrawa and Brother Anzelm, the House's bathhouse | planned |
+| Dobrawa (garden, week 3) and Brother Anzelm (study, week 4): recruited by a choice; court agents, their own answers in later petitions, their own roads to clues 5 and 3, and two of the three parts of the Woman's name | built |
+| The House's bathhouse (a room of its own under the gallery) and Lena's scene in the tub | built |
+| Still planned: the war camp | planned |
 
 ---
 
@@ -403,7 +405,7 @@ The Woman's collection (what the king holds dearest) is crossed with the crisis'
 | **A · The Swan Endures** | family and kingdom both high and close | the Woman takes the king himself. He walks into the Wood at dawn. Zofia is crowned with Halina as regent; the last shot is Zofia in the yard, in real armour |
 | **B · The Empty Cradle** | the family's highest trust is Kazik's, and the kingdom is strong | the Woman takes Kazik, gently; he goes with her as if he knew (the bear walks beside them). The rain ends. The crows stay at the fountain |
 | **C · The Drowned Crown** | the kingdom neglected (Stores and Army low) | she takes the kingdom: the rain never stops, the river takes the lower town, the family leaves over the mountains together. The swan banner left on the empty throne |
-| **D · The Bargain Broken** | Dobrawa, Anzelm and Babka Hela heard, the true name found, Halina told the truth before chapter 5, **and Ilka named** | the king calls the Woman by her name; she has to bargain again. She takes the rain itself and twelve years of the king's life (he ages on screen). Everyone lives |
+| **D · The Bargain Broken** | the true name found (Babka Hela protected, Dobrawa in service, and the name in writing: the father's letter kept or Brother Anzelm in the archive), Halina told the truth before chapter 5, **and Ilka named** | the king calls the Woman by her name; she has to bargain again. She takes the rain itself and twelve years of the king's life (he ages on screen). Everyone lives |
 | **E · Two Kings' Breath** | the festival bargain taken, and the wrong name given in chapter 4 | the Woman explains her price at last: she was owed *a* king's breath, and the dead king's was taken by someone else, so she takes Radomir's at the fortieth night. Mściwoj's army finds an empty throne and a queen with the keys |
 
 Every ending ends in the garden, the place the family meets. The crisis colours each one: under a Krasnian banner, a Hal

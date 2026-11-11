@@ -4,7 +4,7 @@
 const DRV = require('./drv.js');
 
 const pick = `(() => { const out = {}; const set = (F, fam, st, army, oc) => { REALM.flags = F; Object.assign(REALM.fam, fam); Object.assign(COURT.stats, st); REALM.army = army; INV.outcome = oc; return END.pick(); };
-  out.D = set({ hela: 1, letter: 1, told: 1 }, { halina: 6, zofia: 6, kazik: 6 }, { gold: 8, stores: 8, mood: 8 }, 5, 'ilkaHand');
+  out.D = set({ hela: 1, dobrawa: 1, anzelm: 1, told: 1 }, { halina: 6, zofia: 6, kazik: 6 }, { gold: 8, stores: 8, mood: 8 }, 5, 'ilkaHand');
   out.E = set({ bargain2: 1 }, { halina: 6, zofia: 6, kazik: 6 }, { gold: 8, stores: 8, mood: 8 }, 5, 'konrad');
   out.C = set({}, { halina: 6, zofia: 6, kazik: 6 }, { gold: 2, stores: 2, mood: 5 }, 2, 'ilkaHand');
   out.B = set({}, { halina: 5, zofia: 6, kazik: 9 }, { gold: 8, stores: 8, mood: 8 }, 5, 'ilkaHand');

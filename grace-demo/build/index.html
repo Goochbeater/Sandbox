@@ -54472,7 +54472,7 @@ SCENE.lens = function (room, to, dur) {
     if (u >= 1) { room.tick = room.tick.filter((g) => g !== f); res(); } }; room.tick.push(f); });
 };
 SCENE.caption = function (title, sub) { const c = $('caption'); c.innerHTML = ''; c.append(title); if (sub) { const s = document.createElement('small'); s.textContent = sub; c.append(s); }
-  setTimeout(() => c.classList.add('on'), 700); setTimeout(() => c.classList.remove('on'), 4600); SCENE.markDelay = G.t + 4.6; };
+  setTimeout(() => c.classList.add('on'), 700); setTimeout(() => c.classList.remove('on'), 4600); SCENE.markDelay = G.t + 4.6; SCENE.captionUntil = performance.now() + 5200; };   // captionUntil: wall-clock, for anything that must not start under the caption
 /* ---------------------------------------------------------------- speech */
 SCENE.cycle = function (key, lines) { const i = SCENE.lineIdx[key] || 0; SCENE.lineIdx[key] = (i + 1) % lines.length; return lines[i]; };
 /* show a bubble over an actor; resolves when it's gone (after its reading time, or when advanced if o.wait) */
@@ -57752,6 +57752,58 @@ for (const [k, f] of Object.entries({
     for (const cx of [8, 24, 40]) { p.ell(cx, 30, 3, 2, 0x5a6a7a); p.line(cx - 1, 28, cx - 3, 18, 0x5a6a7a); p.line(cx, 32, cx - 1, 42, 0x3a3a3a); p.line(cx + 1, 32, cx + 2, 42, 0x3a3a3a); }
     return p.outline(null, 0.6).tex(); },
 })) PX.def(k, f);
+/* ---------------------------------------------------------------- the bathhouse under the gallery (g55) */
+PX.def('tubStaves', () => { const p = new Pix(32, 32);   // oak staves, two iron hoops; goes round the tub (repeat)
+  for (let x = 0; x < 32; x++) { const s = Math.floor(x / 4), k = 0.78 + 0.3 * hash(s, 7, 61), edge = x % 4 === 0 ? 0.62 : x % 4 === 3 ? 0.9 : 1;
+    for (let y = 0; y < 32; y++) p.set(x, y, C.mul(0x7a4e2a, k * edge * (0.92 + 0.14 * hash(x, y, 62)) * (y < 2 ? 1.25 : 1))); }
+  for (const y of [7, 24]) for (let x = 0; x < 32; x++) { p.set(x, y, 0x5a5a62); p.set(x, y + 1, 0x2a2a30); p.set(x, y + 2, C.mul(p.get(x, y + 2), 0.7)); if (x % 8 === 3) p.set(x, y, 0x9a9aa2); }
+  return p.tex({ repeat: true }); });
+PX.def('copperBoiler', () => { const W = 34, H = 62, p = new Pix(W, H);   // a riveted copper on a brick firebox, the fire door ajar
+  for (let y = 44; y < H; y++) for (let x = 2; x < W - 2; x++) { const row = Math.floor((y - 44) / 4), bx = (x + (row % 2) * 4) % 8; p.set(x, y, bx === 0 || (y - 44) % 4 === 0 ? 0x3a2a24 : C.mul(0x8a4a3a, 0.8 + 0.3 * hash(Math.floor((x + (row % 2) * 4) / 8), row, 63))); }
+  p.rect(11, 49, 12, 10, 0x1a1210); for (let y = 51; y < 58; y++) for (let x = 13; x < 21; x++) p.set(x, y, C.ramp([0xb83a10, 0xff8a2a, 0xffd070], clamp(1 - Math.hypot(x - 17, y - 56) / 6, 0, 1)));
+  for (let y = 8; y < 44; y++) for (let x = 5; x < W - 5; x++) { const u = (x - 5) / (W - 11), l = clamp(0.85 - Math.abs(u - 0.32) * 1.5, 0, 1); p.set(x, y, C.ramp([0x4a2210, 0x8a4a22, 0xc87a3a, 0xf0b070], l)); }
+  for (let x = 5; x < W - 5; x++) { const u = (x - 5) / (W - 11), dy = Math.round(5 * Math.sqrt(Math.max(0, 1 - Math.pow(u * 2 - 1, 2)))); for (let y = 8 - dy; y < 8; y++) p.set(x, y, C.ramp([0x4a2210, 0x8a4a22, 0xc87a3a, 0xf0b070], clamp(0.9 - Math.abs(u - 0.32) * 1.5, 0, 1))); }
+  for (const y of [14, 28, 42]) for (let x = 5; x < W - 5; x++) { p.set(x, y, 0x5a2a14); if (x % 4 === 1) p.set(x, y - 1, 0xf8c890); }
+  p.rect(15, 0, 4, 4, 0x8a4a22); p.rect(W - 6, 30, 5, 3, 0xc87a3a); p.rect(W - 3, 30, 2, 6, 0x8a4a22);
+  return p.outline(null, 0.55).tex(); });
+PX.def('towelRail', () => { const W = 44, H = 36, p = new Pix(W, H);   // a drying rail: two linens and a red house robe
+  p.rect(2, 4, 2, 32, 0x4a3020); p.rect(W - 4, 4, 2, 32, 0x4a3020); p.rect(2, 4, W - 4, 2, 0x6a4428); p.hl(0, 5, 35, 0x3a2418); p.hl(W - 6, W - 1, 35, 0x3a2418);
+  for (const [x0, w, h, c] of [[7, 9, 20, 0xe8dcc4], [18, 9, 24, 0xd8ccb0], [29, 10, 28, 0xa82a2a]]) for (let y = 5; y < 5 + h; y++) for (let x = x0; x < x0 + w; x++)
+    p.set(x, y, C.mul(c, (0.82 + 0.2 * noise1((x - x0) * 0.9, 64 + x0)) * (y === 5 ? 1.2 : 1) * (y > 5 + h - 3 && (x + y) % 2 ? 0.85 : 1)));
+  return p.outline(null, 0.6).tex(); });
+PX.def('bathBucket', () => { const p = new Pix(13, 13); for (let y = 3; y < 13; y++) { const hw = 5 - (y - 3) * 0.12; for (let x = -Math.round(hw); x <= hw; x++) p.set(6 + x, y, C.mul(0x7a4e2a, (x % 2 ? 0.85 : 1) * (0.9 + 0.2 * hash(x, y, 65)))); }
+  p.hl(1, 11, 5, 0x3a3a42); p.hl(2, 10, 10, 0x3a3a42); p.hl(2, 10, 3, 0x6a98c0); p.line(1, 3, 6, 0, 0x4a3020); p.line(6, 0, 11, 3, 0x4a3020); return p.outline(null, 0.6).tex(); });
+PX.def('bathStool', () => { const p = new Pix(16, 22);   // a three-legged stool with a jug, a soap dish and a folded cloth
+  p.rect(1, 12, 14, 2, 0x6a4428); p.vl(2, 14, 21, 0x4a3020); p.vl(13, 14, 21, 0x4a3020); p.vl(8, 14, 20, 0x3a2418);
+  p.rect(2, 5, 4, 7, 0xb86a32); p.rect(3, 3, 2, 2, 0xb86a32); p.set(6, 6, 0xb86a32); p.rect(7, 9, 4, 3, 0xe8dcc4); p.hl(7, 10, 8, 0xf8f0e0); p.rect(11, 10, 4, 2, 0xd8c8a0);
+  return p.outline(null, 0.6).tex(); });
+PX.def('bathPlaster', () => { const p = new Pix(64, 64);   // limewash over stone, damp-stained toward the floor
+  for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) { const blot = 0.5 * noise1(x * 0.13, 66 + Math.floor(y / 9)) + 0.5 * noise1(y * 0.13, 69 + Math.floor(x / 9));   // blotches, not streaks: one noise along a diagonal read as wood grain
+    p.set(x, y, C.mul(0xc8b496, 0.86 + 0.14 * blot + 0.05 * hash(x, y, 67))); }
+  for (let i = 0; i < 5; i++) { let x = Math.floor(hash(i, 1, 68) * 64), y = Math.floor(hash(i, 2, 68) * 64); for (let k = 0; k < 9; k++) { p.set(x, y, 0x8a7a66); x += hash(i, k, 70) > 0.5 ? 1 : 0; y += 1; } }   // hairline cracks
+  return p.tex({ repeat: true }); });
+PX.def('doorBath', () => { const W = 34, H = 66, p = new Pix(W, H);   // the bathhouse door: low, arched, planked, a copper jug painted on it
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const top = 14 - Math.round(Math.sqrt(Math.max(0, 196 - Math.pow((x - 16.5) * 0.85, 2)))); if (y < top) continue;
+    const fr = x < 3 || x > W - 4 || y < top + 3; p.set(x, y, fr ? C.mul(0x3a2418, 0.9 + 0.2 * hash(x, y, 72)) : C.mul(0x6a4a30, (x % 6 === 3 ? 0.7 : 1) * (0.85 + 0.25 * noise1(y * 0.3 + x, 73)))); }
+  for (const y of [22, 52]) p.hl(4, W - 5, y, 0x2a2a30); p.rect(14, 30, 6, 8, 0xc87a3a); p.rect(15, 28, 4, 2, 0xc87a3a); p.set(20, 31, 0xc87a3a); p.set(21, 32, 0xc87a3a); p.hl(14, 19, 30, 0xf0b070); p.set(W - 8, 40, 0xd8b060);
+  for (let x = 4; x < W - 4; x++) if (hash(x, 9, 74) > 0.5) p.set(x, H - 1, 0xd8d0c8);
+  return p.tex(); });
+PX.def('bathShelf', () => { const W = 46, H = 30, p = new Pix(W, H);   // two shelves of jars, soap, a stack of cloths, a sprig drying
+  for (const y of [13, 28]) { p.rect(0, y, W, 2, 0x5a3c24); p.hl(0, W - 1, y, 0x7a5434); }
+  const jar = (x, y, w, h, c) => { p.rect(x, y - h, w, h, c); p.hl(x, x + w - 1, y - h, C.mul(c, 1.35)); p.rect(x + 1, y - h - 2, w - 2, 2, 0xc8b490); };
+  jar(2, 13, 5, 8, 0x4a7a6a); jar(9, 13, 4, 6, 0xb86a32); jar(15, 13, 6, 9, 0x6a5a8a); jar(24, 13, 4, 5, 0xa83a3a); p.rect(31, 9, 9, 4, 0xe8dcc4); p.hl(31, 39, 9, 0xf8f0e0); p.hl(31, 39, 11, 0xc8bca4);
+  jar(3, 28, 6, 7, 0x8a6a3a); p.rect(12, 24, 6, 4, 0xe8d8a8); p.rect(20, 25, 5, 3, 0xd8c8e0); jar(28, 28, 5, 9, 0x3a6a8a); jar(36, 28, 7, 6, 0x4a7a4a); p.line(41, 0, 43, 8, 0x4a6a3a); p.line(43, 0, 42, 9, 0x5a7a4a);
+  return p.outline(null, 0.6).tex(); });
+PX.def('bathPegs', () => { const W = 60, H = 44, p = new Pix(W, H);   // a peg rail: a linen shift, a towel, a red robe, a hat
+  p.rect(0, 2, W, 3, 0x5a3c24); p.hl(0, W - 1, 2, 0x7a5434); for (const x of [6, 20, 34, 50]) p.rect(x, 4, 2, 3, 0x3a2418);
+  const hang = (x0, w, h, c, flare) => { for (let y = 6; y < 6 + h; y++) { const f = Math.round((y - 6) / h * flare); for (let x = x0 - f; x < x0 + w + f; x++) p.set(x, y, C.mul(c, (0.8 + 0.22 * noise1((x - x0) * 0.8, 75 + x0)) * (y < 8 ? 1.15 : 1))); } };
+  hang(3, 8, 30, 0xe8dcc4, 3); hang(17, 8, 18, 0xd0c4a8, 0); hang(30, 10, 36, 0xa82a2a, 3); p.ell(51, 9, 5, 2.5, 0x4a3a2a); p.rect(48, 5, 6, 3, 0x4a3a2a);
+  return p.outline(null, 0.6).tex(); });
+PX.def('herbBunch', () => { const p = new Pix(10, 16); p.vl(5, 0, 3, 0x8a6a3a); for (let y = 3; y < 16; y++) { const hw = Math.min(4, 1 + (y - 3) * 0.4); for (let x = -Math.round(hw); x <= hw; x++) if (hash(x, y, 76) > 0.25) p.set(5 + x, y, C.mul(hash(x, y, 77) > 0.8 ? 0x9a7aa8 : 0x5a7a4a, 0.75 + 0.4 * hash(x, y, 78))); } return p.outline(null, 0.6).tex(); });
+PX.def('streetSlit', () => { const W = 40, H = 18, p = new Pix(W, H);   // a barred slit at street level: night, a wet cobble or two, the moon on them
+  p.rect(0, 0, W, H, 0x4a4038); for (let y = 2; y < H - 2; y++) for (let x = 2; x < W - 2; x++) p.set(x, y, C.mul(0x2a3a68, 0.7 + 0.5 * (y / H) + 0.25 * hash(Math.floor(x / 5), Math.floor(y / 3), 79)));
+  for (const x of [9, 19, 29]) p.vl(x, 2, H - 3, 0x1a1a20); p.hl(1, W - 2, 1, 0x7a6e60); return p.tex(); });
+PX.def('duckboard', () => { const p = new Pix(32, 16); for (let y = 0; y < 16; y++) for (let x = 0; x < 32; x++) p.set(x, y, y % 4 === 3 ? 0x1a140e : C.mul(0x8a6844, 0.8 + 0.3 * noise1(x * 0.4 + Math.floor(y / 4) * 9, 80))); return p.tex({ repeat: true }); });
 
 /* ==== game/g20_bedroom.js ==== */
 /* THE BEDCHAMBER — laid out from the reference frame. The king starts here; the crown waits on its cushion beside the
@@ -58820,7 +58872,7 @@ NIGHT.tick = function (t, dt) {
   const pan = clamp((K.x - R.cam.position.x) / 10, -0.8, 0.8), k = NIGHT.k;
   if (!slow && S0 < 0.9 && S1 >= 0.9) {   // the deep end of every stroke
     AUDIO.sfx('skin', { gain: 0.22 + 0.3 * k * Math.min(1.4, NIGHT.pace), pan });
-    if (!NIGHT.spot && Math.random() < 0.35 + 0.3 * k) AUDIO.sfx('creak', { gain: 0.5 + 0.4 * NIGHT.pace, pan, delay: 0.04 });
+    if (!NIGHT.spot && !(NIGHT.S && NIGHT.S.quiet) && Math.random() < 0.35 + 0.3 * k) AUDIO.sfx('creak', { gain: 0.5 + 0.4 * NIGHT.pace, pan, delay: 0.04 });
   }
   NIGHT.brT -= dt;
   if (NIGHT.brT <= 0) { const her = Math.random() < 0.65; NIGHT.brT = lerp(slow ? 3.2 : 2.2, 0.75, k) / Math.sqrt(slow ? 1 : NIGHT.pace) * (0.8 + Math.random() * 0.4);
@@ -58833,7 +58885,8 @@ NIGHT.tick = function (t, dt) {
 };
 /* ---------------------------------------------------------------- positions */
 NIGHT.drive = function (name, dur, lift) {
-  const A = NIGHT.A; NIGHT.pos = name;
+  const A = NIGHT.A, st = NIGHT.S || NIGHT.spot; NIGHT.pos = name;
+  if (st && st.px) LOVERS.O.x = st.O.x + (st.px[name] || 0);   // a stage that keeps every position in one small place (a tub): each gets its own shift
   if (NIGHT.inBed) { const K = A.K, z0 = K.cardDz, z1 = LOVERS.CARD[name] || 0.82; if (Math.abs(z1 - z0) > 0.01) NIGHT.tween(0.5, (u) => { K.cardDz = lerp(z0, z1, u); }); }
   const fK = () => LOVERS.pose(NIGHT.pos, NIGHT.ph, NIGHT.k, A).king, fQ = () => LOVERS.pose(NIGHT.pos, NIGHT.ph, NIGHT.k, A).queen;
   return Promise.all([POSE.drive(A.K, fK, dur, { lift }), POSE.drive(A.Q, fQ, dur, { lift })]);
@@ -60977,6 +61030,9 @@ LANTERN.build = function () {
   BUILD.card(T.barCounter, -7.1, 0, 1.42, { w: 3.4, h: 1.18, cast: false });
   BUILD.card(T.bottleShelf, -7.1, 1.3, 0.04, { cast: false }); BUILD.flame(-5.8, 1.42, 1.1, 0.25); BUILD.light(new THREE.PointLight(0xffb070, 1.4, 0, 2), -5.8, 1.6, 1.6, { flicker: 7 });
   room.interact('counter', -6.3, 1.9, KZ, 0.6, () => say('counter'));
+  /* the bathhouse door, under the gallery between the counter and the tables: steam under it, a copper jug for a sign */
+  BUILD.card(T.doorBath, -3.9, 0, 0.03, { cast: false }); BUILD.glow(-3.9, 0.25, 0.15, 0.9, 0xd8d0c8, 0.22);
+  room.interact('bath', -3.9, 2.4, KZ, 0.7, () => { if (NIGHT.on) return; GAME.save(); SCENE.go('lbath', { x: -6.2, face: 1 }); }).label = 'Down to the bathhouse';
   /* two tables, benches, the regulars behind them */
   for (const tx of [-2.7, 0.4]) { BUILD.box(tx - 0.7, tx + 0.7, 0.72, 0.8, 1.0, 1.6, T.woodRed); for (const dx of [-0.6, 0.6]) BUILD.box(tx + dx - 0.05, tx + dx + 0.05, 0, 0.72, 1.25, 1.35, T.woodPost);
     BUILD.box(tx - 0.8, tx + 0.8, 0.4, 0.46, 0.5, 0.8, T.woodDark); BUILD.card(T.tableSet, tx, 0.8, 1.3, { cast: false });
@@ -61096,10 +61152,13 @@ HOUSE.meet = async function (id) {
   try {
     if (!HOUSE.met[id]) { HOUSE.met[id] = true; HOUSE.trust[id] = (HOUSE.trust[id] || 0) + 1; await SCENE.talk(W.first.map(([k, t]) => [who(k), t])); }
     else await SCENE.say(Q, SCENE.cycle('hm' + id, W.more), { wait: true });
-    const crisis = CAL.phase === 'crisis', i = await NIGHT.ask(['Go upstairs with her (18+)', 'Talk a while', 'Leave her be'].concat(crisis ? ['Ask her about the feast'] : []));
-    if (i === 3) { SCENE.lock--; locked = false; await INV.talk(id); return; }   // chapter four (g48)
-    if (i === 1) { HOUSE.trust[id] = (HOUSE.trust[id] || 0) + 1; await SCENE.say(Q, SCENE.cycle('ht' + id, W.talk), { wait: true }); }
-    else if (i === 0) { SCENE.lock--; locked = false; AUDIO.sfx('coin', { gain: 0.5 }); NIGHT.confirm(() => HOUSE.scene(id).catch(fail)); }
+    const opts = [['up', 'Go upstairs with her (18+)']];
+    if (W.bath && HOUSE.band(id) >= 1) opts.push(['bath', 'The bathhouse, with her (18+)']);   // Lena, once she trusts him (g55)
+    opts.push(['talk', 'Talk a while'], ['no', 'Leave her be']); if (CAL.phase === 'crisis') opts.push(['feast', 'Ask her about the feast']);
+    const pick = opts[await NIGHT.ask(opts.map((o) => o[1]))][0];
+    if (pick === 'feast') { SCENE.lock--; locked = false; await INV.talk(id); return; }   // chapter four (g48)
+    if (pick === 'talk') { HOUSE.trust[id] = (HOUSE.trust[id] || 0) + 1; await SCENE.say(Q, SCENE.cycle('ht' + id, W.talk), { wait: true }); }
+    else if (pick === 'up' || pick === 'bath') { SCENE.lock--; locked = false; AUDIO.sfx('coin', { gain: 0.5 }); NIGHT.confirm(() => HOUSE.scene(id, pick === 'bath' ? 'bath' : null).catch(fail)); }
   } finally { if (locked) SCENE.lock--; if (!Q.sitting) Q.lookYaw = null; }
 };
 HOUSE.wanda = async function () {
@@ -61120,23 +61179,27 @@ HOUSE.clerk = async function () {
   await FEST.talk('clerk', HOUSE.W.clerk);
 };
 /* ---------------------------------------------------------------- upstairs: her room, the bed, the night scene's engine */
-HOUSE.stage = function (id) {
-  const W = HOUSE.W[id]; return { room: LROOM, enter: W.enter, lines: W.lines, cam: NIGHT.CAM, lens: null, finish: HOUSE.finish, end: HOUSE.end };
+/* V: a venue other than her room (HOUSE.BATH, g55): its own room, the positions moved (O, px), a shorter menu, its own lens,
+   and W.bath's words where it has them */
+HOUSE.stage = function (id, V) {
+  const W = Object.assign({}, HOUSE.W[id], V && HOUSE.W[id].bath);
+  return Object.assign({ room: LROOM, enter: W.enter, lines: W.lines, cam: NIGHT.CAM, lens: null, finish: HOUSE.finish, end: HOUSE.end, W }, V || {});
 };
-HOUSE.scene = async function (id) {
-  const K = SCENE.player, Q = CAST.A[id], W = HOUSE.W[id]; if (!Q || NIGHT.on) return;
+HOUSE.scene = async function (id, venue) {
+  const K = SCENE.player, Q = CAST.A[id], V = venue === 'bath' ? HOUSE.BATH : null; if (!Q || NIGHT.on) return;
+  const S = HOUSE.stage(id, V), W = S.W, room = S.room, dx = V ? V.O.x + (V.px.kiss || 0) + 0.3 : 0;
   SCENE.lock++;
   try {
     await SCENE.say(Q, W.yes, { wait: true });
-    HOUSE.with = id; await SCENE.go('lroom', { x: 3.4, face: -1 });   // LROOM.onEnter dresses the room for her
-    const room = LROOM;
-    NIGHT.S = HOUSE.stage(id); NIGHT.on = true; NIGHT.A = { K, Q }; NIGHT.lensK = 0; NIGHT.lensT = 0; NIGHT.pos = null; NIGHT.k = 0; NIGHT.ph = 0; NIGHT.inBed = false; NIGHT.finishing = false; NIGHT.hold = false; NIGHT.brT = 1; NIGHT.lineT = 5;
+    HOUSE.with = id; HOUSE.venue = venue || null; await SCENE.go(room.id, { x: V ? -6.2 : 3.4, face: V ? 1 : -1 });   // the room's onEnter shows her, and only her
+    LOVERS.stage(V ? V.O : null);
+    NIGHT.S = S; NIGHT.on = true; NIGHT.A = { K, Q }; NIGHT.lensK = 0; NIGHT.lensT = 0; NIGHT.pos = null; NIGHT.k = 0; NIGHT.ph = 0; NIGHT.inBed = false; NIGHT.finishing = false; NIGHT.hold = false; NIGHT.brT = 1; NIGHT.lineT = 5;
     NIGHT.tweens = []; room.tick.push(NIGHT.tick); NIGHT.camMode = 'room'; NIGHT.cam0 = { fov: room.cam.fov, y: room.cam.y, look: room.cam.look, focus: room.camFocus };
     NIGHT.done = new Promise((r) => { NIGHT.resolve = r; });
-    Q.x = 2.4; Q.z = room.KZ - 0.15; Q.face = -1; Q.yaw = -0.42; Q.lookYaw = null;
+    Q.x = V ? -3.7 : 2.4; Q.z = room.KZ - 0.15; Q.face = V ? 1 : -1; Q.yaw = V ? 0.42 : -0.42; Q.lookYaw = null;   // ahead of him, toward the bed or the tub
     await Promise.all([K.makeBare(), Q.makeBare()]);
     NIGHT.look(Q, K); await SCENE.talk(W.intro.map(([k, t]) => [k === 'K' ? K : Q, t]));
-    const her = NIGHT.walk(Q, -7.9); await NIGHT.beat(350); const him = NIGHT.walk(K, -7.3); await Promise.all([her, him]);
+    const her = NIGHT.walk(Q, -7.9 + dx); await NIGHT.beat(350); const him = NIGHT.walk(K, -7.3 + dx); await Promise.all([her, him]);
     NIGHT.look(Q, K); NIGHT.look(K, Q); await NIGHT.beat(300);
     await SCENE.talk([[Q, W.undress[0]]]);
     K.act('Interact'); AUDIO.sfx('sheets', { gain: 0.45 }); await NIGHT.beat(900); await Q.undress('outer'); AUDIO.sfx('sheets', { gain: 0.8 });
@@ -61147,18 +61210,18 @@ HOUSE.scene = async function (id) {
     K.setArousal(0.3); AUDIO.sfx('sheets', { gain: 1 }); await NIGHT.beat(500);
     // into bed: one sprite for both bodies, as the royal bed has it
     K.reframe(LOVERS.FRAME.w, LOVERS.FRAME.h); K.frame = new THREE.Vector3(LOVERS.FRAME.x + LOVERS.O.x, LOVERS.FRAME.y + LOVERS.O.y, LOVERS.BED.zc + LOVERS.O.z); K.cardDz = 1.6; Q.hostInto(K);
-    NIGHT.camMode = 'bed'; NIGHT.lensT = 1; AUDIO.sfx('creak', { gain: 0.6, delay: 0.6 });
+    NIGHT.camMode = 'bed'; NIGHT.lensT = 1; if (!S.quiet) AUDIO.sfx('creak', { gain: 0.6, delay: 0.6 });
     NIGHT.tween(2.2, (u) => { K.cardDz = lerp(1.6, 0.82, u); });
     await NIGHT.drive('kiss', 2.1, 0.34);
     NIGHT.inBed = true; NIGHT.lineT = 5;
     NIGHT.scripted = true; for (const [w, t] of W.enter.kiss) await NIGHT.say(w === 'K' ? K : Q, t, 200); NIGHT.scripted = false;
     NIGHT.setPace(1); NIGHT.posBar(); $('nView').hidden = false; $('nFinish').hidden = false; $('nView').textContent = NIGHT.viewLabel(); NIGHT.bar(['pos', 'pace']);
-    if (W.fav) NIGHT.to(W.fav);   // her favourite: she moves him there herself
+    const fav = S.menu ? (S.menu.includes(W.fav) ? W.fav : S.menu[S.menu.length - 1]) : W.fav; if (fav) NIGHT.to(fav);   // her favourite: she moves him there herself
     await NIGHT.done;
   } finally { SCENE.lock--; }
 };
 HOUSE.finish = async function () {
-  const K = NIGHT.A.K, Q = NIGHT.A.Q, W = HOUSE.W[HOUSE.with]; NIGHT.bar([]); NIGHT.scripted = true;
+  const K = NIGHT.A.K, Q = NIGHT.A.Q, W = NIGHT.S.W; NIGHT.bar([]); NIGHT.scripted = true;
   if (NIGHT.pos !== 'kiss') {
     NIGHT.finishing = true; NIGHT.k = Math.max(NIGHT.k, 0.85); NIGHT.pace = Math.max(NIGHT.pace, 1.5);
     await NIGHT.say(Q, W.finish[0], 900); await NIGHT.say(K, W.finish[1], 700);
@@ -61167,17 +61230,17 @@ HOUSE.finish = async function () {
     await NIGHT.say(Q, W.finish[2], 1400); await NIGHT.beat(1100);
     NIGHT.hold = false; NIGHT.finishing = false;
   } else await NIGHT.say(Q, W.cuddle, 300);
-  AUDIO.sfx('sheets', { gain: 0.9 }); await NIGHT.drive('after', 2.4, 0.08); NIGHT.k = 0.2;
+  if (!NIGHT.S.quiet) AUDIO.sfx('sheets', { gain: 0.9 }); await NIGHT.drive(NIGHT.S.after || 'after', 2.4, 0.08); NIGHT.k = 0.2; NIGHT.pos = 'after';   // the tub rests upright (stage.after): under its rim nobody lying down would be seen
   await SCENE.talk(W.after.map(([w, t]) => [w === 'K' ? K : Q, t]));
   await NIGHT.beat(700); NIGHT.scripted = false; await HOUSE.end(true);
 };
 HOUSE.end = async function (slept) {
-  const K = NIGHT.A.K, Q = NIGHT.A.Q, room = LROOM, c0 = NIGHT.cam0, id = HOUSE.with;
+  const K = NIGHT.A.K, Q = NIGHT.A.Q, room = NIGHT.S.room, c0 = NIGHT.cam0, id = HOUSE.with;
   NIGHT.bar([]); await NIGHT.fade(true);
   NIGHT.inBed = false; NIGHT.camMode = 'room'; Object.assign(room.cam, { fov: c0.fov, y: c0.y, look: c0.look }); room.camFocus = c0.focus; room.focusDz = 0;
   POSE.release(K); POSE.release(Q); Q.hostInto(null); K.frame = null; K.reframe(); K.cardDz = 0;
   K.dress(); Q.dress(); K.setArousal(0);   // dress() puts the disguise back on
-  room.tick = room.tick.filter((f) => f !== NIGHT.tick); NIGHT.tweens = []; NIGHT.on = false; NIGHT.S = null;
+  room.tick = room.tick.filter((f) => f !== NIGHT.tick); NIGHT.tweens = []; NIGHT.on = false; NIGHT.S = null; LOVERS.stage(null); HOUSE.venue = null;
   HOUSE.trust[id] = (HOUSE.trust[id] || 0) + (slept ? 2 : 1); HOUSE.nights[id] = (HOUSE.nights[id] || 0) + 1; HOUSE.rumour++; HOUSE.with = null;
   await SCENE.prepare('lantern'); SCENE.enter('lantern', { x: 8.6, face: -1 }); R.r.compile(R.scene, R.cam); SCENE.render(); await nextFrame();
   SCENE.caption('Later', 'The common room has thinned. The fire hasn’t.'); GAME.save();
@@ -61319,7 +61382,14 @@ HOUSE.W = {
       ride: [[['Q', 'Lie still. Let me do it.'], ['K', 'You’re wicked.']], [['Q', 'Mm— there— oh, there—']], [['Q', 'I can’t— I can’t stop—']]],
       behind: [[['Q', 'Oh, the sheets will need washing.']], [['Q', 'Harder, sir— yes—']], [['Q', 'Oh— gods— yes—']]], after: [[['Q', 'Mm.']]] },
     finish: ['Don’t stop— oh, please—', 'Lena—', 'Oh— oh, sir— yes—'], cuddle: 'Just kissing? You’re sweet. My old mistress would have sent you away.',
-    after: [['Q', 'The water’s gone cold.'], ['K', 'I didn’t notice.'], ['Q', 'No, sir. You didn’t.']], fav: 'reverse'
+    after: [['Q', 'The water’s gone cold.'], ['K', 'I didn’t notice.'], ['Q', 'No, sir. You didn’t.']], fav: 'reverse',
+    /* the bathhouse (g55): what she says instead, down there. Only the upright positions exist in a tub */
+    bath: { yes: 'The bathhouse? Oh, sir. Now you’re asking for the thing I’m actually good at.',
+      intro: [['Q', 'Mind the step. Everything down here is wet, including the truth.'], ['Q', 'In you get. No, sir: clothes first. I’ve seen a man try it the other way.']],
+      enter: { kiss: [['Q', 'There. Sit. Let it take the day off you.'], ['K', 'It’s hot.'], ['Q', 'It’s a bath, sir. They’re meant to be.']], lap: [['Q', 'Stay just there. I’ll come to you.'], ['Q', 'Slowly. Or we’ll have the whole tub on the floor.']] },
+      lines: { kiss: [[['Q', 'Mm. Rosemary. And you, under it.'], ['Q', 'Your shoulders are as hard as the copper. Let go of them.']], [['Q', 'There. That’s the day gone.']], [['Q', 'Now, sir. Before the water notices.']]],
+        lap: [[['Q', 'Slow. Like that. We’ve all night and forty buckets.'], ['K', 'You’re warm.']], [['Q', 'Oh— there. Don’t splash. Hold me.'], ['K', 'Hold on to me.']], [['Q', 'Sir— oh, sir—'], ['K', 'Lena—']]] },
+      after: [['Q', 'Don’t move. This is the part a queen pays for.'], ['K', 'And what does a falconer pay?'], ['Q', 'He stays till the water’s cold, sir. That’s all.']] }
   },
   agata: {
     first: [['agata', 'Don’t stand there like a confessor. Sit, or go away.'], ['king', 'You were in a convent.'],
@@ -61460,6 +61530,7 @@ CAL.morning = function () {
 /* the weather: in the crisis the rain is back, on every window (the indoor rooms) and on everything (the outdoor ones) */
 CAL.OUT = ['garden', 'yard', 'wood', 'fair', 'lists', 'camp'];
 SCENE.afterEnter = function (room) {
+  AGENTS.stage(room);   // Dobrawa and Brother Anzelm, if they are here this week or in his service (g54)
   INV.stage(room);   // chapter four's props and people (g48)
   REALM.enter(room);   // the bar at the top, and whatever is waiting in this room this week (g51)
   if (CAL.phase !== 'crisis' || CUT.playing || !room.ambience) return;
@@ -61758,11 +61829,11 @@ Object.assign(CAST.specs, {
                House's lute player if it was only a song             a lady in grey at the cupbearer's sideboard
      report    Ilka's report, on the study desk (after lip)        she knew which lip before anyone told her
    Naming Ilka holds only with lip, oldSeal and ledger or report (§7.4). Every outcome is saved; chapter five begins. */
-const INV = { found: {}, notes: {}, outcome: null, said: {} };
+const INV = { found: {}, notes: {}, outcome: null, said: {}, via: {} };   // via: who gave a clue, when it has more than one source (INV.ALT, g54)
 INV.init0 = JSON.stringify(INV);
 INV.reset = function () { Object.assign(INV, JSON.parse(INV.init0)); INV.accusing = false; };
-INV.state = function () { return { found: INV.found, notes: INV.notes, outcome: INV.outcome, said: INV.said }; };
-INV.load = function (s) { INV.reset(); if (s) for (const k of ['found', 'notes', 'outcome', 'said']) if (k in s) INV[k] = s[k]; };
+INV.state = function () { return { found: INV.found, notes: INV.notes, outcome: INV.outcome, said: INV.said, via: INV.via }; };
+INV.load = function (s) { INV.reset(); if (s) for (const k of ['found', 'notes', 'outcome', 'said', 'via']) if (k in s) INV[k] = s[k]; };
 INV.on = () => CAL.phase === 'crisis';
 INV.has = (...ids) => ids.every((id) => INV.found[id]);
 INV.CLUES = {
@@ -61787,9 +61858,10 @@ INV.NOTES = {
   konrad: 'Konrad came to ask where his father’s army went. He hated Gniewomir, who turned him away in the spring. He says he never went near the high table.',
   woman: 'The Woman: “I didn’t need to. Kings are always being killed by someone. I only knew which week.”',
 };
-INV.find = function (id) {
-  if (INV.found[id]) return false; INV.found[id] = CAL.crisis || 1;
-  COURT.toast('A clue: ' + INV.CLUES[id][0]); AUDIO.sfx('page', { gain: 0.8 }); AUDIO.sfx('chime', { gain: 0.25, delay: 0.2 }); INV.badge(true); GAME.save(); return true;
+INV.clue = (id) => (INV.ALT && INV.ALT[id] && INV.ALT[id][INV.via[id]]) || INV.CLUES[id];   // a clue's words belong to whoever gave it
+INV.find = function (id, via) {
+  if (INV.found[id]) return false; INV.found[id] = CAL.crisis || 1; if (via) INV.via[id] = via;
+  COURT.toast('A clue: ' + INV.clue(id)[0]); AUDIO.sfx('page', { gain: 0.8 }); AUDIO.sfx('chime', { gain: 0.25, delay: 0.2 }); INV.badge(true); GAME.save(); return true;
 };
 INV.note = function (id) { if (INV.notes[id]) return; INV.notes[id] = CAL.crisis || 1; INV.badge(true); GAME.save(); };
 INV.witness = () => (CAL.fire ? 'salA' : CAL.konrad ? 'konrad' : 'lute');   // who saw the lady in grey depends on how the feast went
@@ -61853,7 +61925,7 @@ INV.talk = async function (id) {
   const f = INV.TALK[id]; if (!f || SCENE.lock) return; const K = SCENE.player, a = CAST.A[id];
   if (a && a.visible) { K.faceTo(a.x); if (!a.sitting) { a.faceTo(K.x); a.lookYaw = Math.sign(K.x - a.x) * 0.8; } }
   SCENE.lock++;
-  try { for (const [k, t] of f()) { if (k === 'find') INV.find(t); else if (k === 'note') INV.note(t); else await SCENE.say(INV.who(k), t, { wait: true }); } }
+  try { for (const [k, t, via] of f()) { if (k === 'find') INV.find(t, via); else if (k === 'note') INV.note(t); else await SCENE.say(INV.who(k), t, { wait: true }); } }
   finally { SCENE.lock--; if (a && !a.sitting) a.lookYaw = null; }
 };
 /* the cup, the bier, the Woman, the report */
@@ -61900,14 +61972,14 @@ INV.render = function () {
     const todo = CAL.phase === 'court' ? REALM.todo() : [c[1], CAL.fest === 3 ? 'Tonight: the feast. The bedchamber door leads to the hall.' : 'The bed ends the day.'];
     const F = REALM.fam; $('jrnText').innerHTML = `<h4>This ${CAL.phase === 'court' ? 'week' : 'day'}</h4>${todo.map((t) => `<p>${t}</p>`).join('')}
       <h4>The realm</h4><p>Gold ${COURT.stats.gold} · Stores ${COURT.stats.stores} · Mood ${COURT.stats.mood} · Army ${REALM.army}</p>
-      <h4>The family</h4><p>Halina is ${INV.WORD(F.halina)}. Zofia is ${INV.WORD(F.zofia)}. Kazik is ${INV.WORD(F.kazik)}.</p>`; return; }
+      <h4>The family</h4><p>Halina is ${INV.WORD(F.halina)}. Zofia is ${INV.WORD(F.zofia)}. Kazik is ${INV.WORD(F.kazik)}.</p>${AGENTS.lore()}`; return; }
   $('jrnTitle').textContent = CAL.phase === 'done' && END.seen ? END.TITLES[END.seen] : 'The Dead King';
   const n = INV.ORDER.filter((id) => INV.found[id]).length, sub = INV.outcome ? 'The name was given.' : CAL.phase === 'crisis' ? `Day ${CAL.crisis} of twelve · ${n} of 8 clues` : `${n} of 8 clues`;
   $('jrnSub').textContent = sub + (CAL.phase === 'crisis' && REALM.waiting() ? ' · a petitioner waits in the hall' : '');
-  const clues = INV.ORDER.filter((id) => INV.found[id]).map((id) => { const [t, d, w] = INV.CLUES[id]; const where = id === 'grey' ? { salA: 'Mira of the Salamanders', konrad: 'Konrad of Hal', lute: 'the lute player at the House' }[INV.witness()] : w;
+  const clues = INV.ORDER.filter((id) => INV.found[id]).map((id) => { const [t, d, w] = INV.clue(id); const where = id === 'grey' ? { salA: 'Mira of the Salamanders', konrad: 'Konrad of Hal', lute: 'the lute player at the House' }[INV.witness()] : w;
     return `<div class="clue"><b>${t}</b><p>${d}</p><small>${where} · day ${INV.found[id]}</small></div>`; }).join('') || '<p>Nothing yet. The cup, the body, the people at the feast: start there.</p>';
   const notes = Object.keys(INV.NOTES).filter((id) => INV.notes[id]).map((id) => `<p>${INV.NOTES[id]}</p>`).join('');
-  $('jrnText').innerHTML = `<h4>Clues</h4>${clues}${notes ? `<h4>What people say</h4>${notes}` : ''}`;
+  $('jrnText').innerHTML = `<h4>Clues</h4>${clues}${notes ? `<h4>What people say</h4>${notes}` : ''}${AGENTS.lore()}`;
 };
 INV.panel = function (on) {
   const P = $('journal'); if (on && (SCENE.lock || SCENE.modal || CUT.playing)) return;
@@ -62394,7 +62466,7 @@ COURT.panel = function (p) {
       $('cpGrant').disabled = t === 0;
       // agents
       const ag = $('cpAgents'); ag.innerHTML = '';
-      for (const a of COURT.agents) { const left = a.ap - use[a.id], fit = p.fit[a.id] || 0, card = document.createElement('div'); card.className = 'agent';
+      for (const a of COURT.agents) { const left = a.ap - use[a.id], fit = p.fit[a.id] || 0, card = document.createElement('div'); card.className = 'agent'; if (!fit && a.recruit) continue;   // a recruit is listed where he can help
         card.innerHTML = `<div class="an">${a.name} <span class="at">${a.title} · +${fit} each</span></div><div class="pips">${'<i class="on"></i>'.repeat(left)}${'<i></i>'.repeat(a.max - left)}</div>`;
         const ctl = document.createElement('div'); ctl.className = 'ctl';
         const minus = document.createElement('button'); minus.className = 'pm'; minus.textContent = '−'; minus.setAttribute('aria-label', 'Recall one action from ' + a.name); minus.disabled = !use[a.id];
@@ -62484,7 +62556,7 @@ const REALM = { army: 5, fam: { halina: 5, zofia: 5, kazik: 5 }, flags: {}, done
 REALM.init0 = JSON.stringify(REALM);
 REALM.reset = function () { Object.assign(REALM, JSON.parse(REALM.init0)); };
 REALM.state = function () { return { army: REALM.army, fam: REALM.fam, flags: REALM.flags, done: REALM.done, heardIds: REALM.heardIds }; };
-REALM.load = function (s) { REALM.reset(); if (s) for (const k of ['army', 'fam', 'flags', 'done', 'heardIds']) if (k in s) REALM[k] = s[k]; };
+REALM.load = function (s) { REALM.reset(); if (s) for (const k of ['army', 'fam', 'flags', 'done', 'heardIds']) if (k in s) REALM[k] = s[k]; AGENTS.sync(); };
 REALM.kingdom = () => COURT.stats.gold + COURT.stats.stores + COURT.stats.mood + REALM.army;
 REALM.family = () => REALM.fam.halina + REALM.fam.zofia + REALM.fam.kazik;
 /* ---------------------------------------------------------------- the bar at the top */
@@ -62501,6 +62573,7 @@ REALM.fx = function (o) {
   if (o.army) { REALM.army = Math.max(0, REALM.army + o.army); said.push(`Army ${o.army > 0 ? '+' : '−'}${Math.abs(o.army)}`); }
   for (const k in o.fam || {}) REALM.fam[k] = clamp(REALM.fam[k] + o.fam[k], 0, 10);
   for (const k in o.flag || {}) REALM.flags[k] = o.flag[k];
+  if (o.flag) AGENTS.sync();   // a recruit joins the court's roster the moment he is taken on (g54)
   if (o.rumour) HOUSE.rumour += o.rumour; if (o.cold) CHAPEL.cold += o.cold;
   if (o.days && CAL.phase === 'crisis') { CAL.crisis = clamp(CAL.crisis - o.days, 1, 12); said.push(o.days > 0 ? `Krasna waits ${o.days} day${o.days > 1 ? 's' : ''} longer` : `A day lost`); }
   if (said.length) COURT.toast(said.join(' · '));
@@ -62606,7 +62679,8 @@ REALM.waiting = () => REALM.queue().length > 0;
 REALM.choose = async function (p, pet) {
   const A = CAST.A, K = SCENE.player;
   for (const [who, line] of p.advice || []) if (A[who] && A[who].visible) await SCENE.say(A[who], line, { wait: true });
-  const i = await NIGHT.ask(p.options.map((o) => o.label)), o = p.options[i];
+  const opts = p.options.filter((q) => !q.need || REALM.flags[q.need] === 1);   // some answers exist only with a recruit (g54)
+  const i = await NIGHT.ask(opts.map((q) => q.label)), o = opts[i];
   await SCENE.say(K, o.label, { wait: true });
   await SCENE.talk(o.reply.map((t) => [pet, t]));
   REALM.fx(o.fx);
@@ -62658,7 +62732,7 @@ REALM.enter = function (room) {
   REALM.hud(); if (CAL.phase !== 'court' || CUT.playing) return;
   const e = REALM.EVENTS.find((q) => q.week === CAL.week && q.room === room.id && !REALM.done[q.id]); if (!e) return;
   const t0 = performance.now(), poll = () => { if (SCENE.room !== room || REALM.done[e.id]) return;
-    if (SCENE.lock || SCENE.modal || CUT.playing || NIGHT.on || SCENE.bubble || performance.now() - t0 < 1800) { setTimeout(poll, 250); return; } REALM.moment(e).catch(fail); };
+    if (SCENE.lock || SCENE.modal || CUT.playing || NIGHT.on || SCENE.bubble || performance.now() - t0 < 1800 || performance.now() < (SCENE.captionUntil || 0)) { setTimeout(poll, 250); return; }   /* not under the room's caption */ REALM.moment(e).catch(fail); };
   setTimeout(poll, 250);
 };
 REALM.moment = async function (e) {
@@ -62686,9 +62760,12 @@ REALM.moment = async function (e) {
 const END = { seen: null };
 END.TITLES = { A: 'The Swan Endures', B: 'The Empty Cradle', C: 'The Drowned Crown', D: 'The Bargain Broken', E: 'Two Kings’ Breath' };
 END.state = () => ({ seen: END.seen }); END.load = (s) => { END.seen = (s && s.seen) || null; }; END.reset = () => { END.seen = null; };
+/* the Woman's name: who remembers it (the midwife), what it is for (Dobrawa), where it is written (the father's letter,
+   or the roll Brother Anzelm can read) */
+END.named = () => { const F = REALM.flags; return F.hela === 1 && F.dobrawa === 1 && (F.letter === 1 || F.anzelm === 1); };
 END.pick = function () {
   const F = REALM.flags, f = REALM.fam, out = INV.outcome || '', ilka = out.indexOf('ilka') === 0, k = REALM.kingdom();
-  if (F.hela === 1 && F.letter === 1 && F.told === 1 && ilka) return 'D';
+  if (END.named() && F.told === 1 && ilka) return 'D';
   if (F.bargain2 === 1 && !ilka) return 'E';
   if (k < 20 || (COURT.stats.stores <= 2 && REALM.army <= 2)) return 'C';
   if (f.kazik > f.halina && f.kazik > f.zofia) return 'B';
@@ -62816,6 +62893,204 @@ REALM.echo = async function () {   // the steward's report, before the first pet
   for (const [f, v, , line, fx] of rows) { REALM.done['echo:' + f + ':' + v] = 1; await SCENE.say(S, line, { wait: true }); REALM.fx(fx); }
   return rows.length;
 };
+
+/* ==== game/g54_agents.js ==== */
+/* AGENTS — the two people the king can take into his service (STORY.md §2): Dobrawa the herbalist, who comes down from the
+   hills in week three to treat Kazik, and Brother Anzelm the chronicler, who is at the study's shelves in week four.
+   Each is a moment (REALM.EVENTS) that sets a flag. A recruit then matters in four places:
+     the court     a new agent in the aid panel (COURT.agents; shown only on petitions they are fit for), and an option in
+                   later petitions that exists only with them (`need: 'dobrawa'` on an option; REALM.choose filters)
+     the murder    their own road to a clue (INV.TALK): Anzelm reads the old seal, Dobrawa smells that the root was dried
+     the Woman     a piece of what the king needs to name her (END.named; the journal lists what he has: AGENTS.lore)
+     the room      they stay where they were met, with something to say in every chapter (AGENTS.talk)
+   Whoever is turned away is gone when the king next comes in. */
+const AGENTS = {
+  dobrawa: { room: 'garden', week: 3, name: 'Dobrawa', agent: { id: 'herbalist', name: 'Dobrawa', title: 'Herbalist', ap: 2, max: 2, wound: 0, recruit: true } },
+  anzelm: { room: 'study', week: 4, name: 'Brother Anzelm', agent: { id: 'chronicler', name: 'Brother Anzelm', title: 'Chronicler', ap: 2, max: 2, wound: 0, recruit: true } },
+};
+/* ---------------------------------------------------------------- who they are */
+CAST.specs.dobrawa = Object.assign(townswoman('dobrawa', 0x4a5a3a, 0x9a9488, 'Hair_Buns', { garden: { x: 7.35, z: 2.2, face: -1, idle: 'Idle_Loop' } }),
+  { name: 'Dobrawa', s: 0.95, skin: 0xd8a888, brows: 0x6a6258, robe: { col: 0x3e4c30, top: 0.95, bot: 0.05, rx: [0.16, 0.34], rz: [0.13, 0.28], trim: 0x8a6a3a, leg: 0.45 } });
+CAST.specs.anzelm = { id: 'anzelm', name: 'Brother Anzelm', lazy: true, bind: 'rmale', s: 0.98, skin: 0xd8b094, skinK: 0.9, home: 'study', x: -5.55, z: 1.5, face: -1, headY: 2.08, idle: 'Idle_Loop',
+  parts: [part(P_M('Body'), { L: 0x7a6040, P: 0x8a7048 }), part(P_M('Arms'), { L: 0x7a6040, P: 0x7a6040 }), part(P_M('Arms'), 'skin'), part(P_M('Legs'), { L: 0x4a3a28, P: 0x4a3a28 }), part(P_M('Feet'), { L: 0x2a1a10, P: 0x3a2a1a })],
+  brows: 0x8a8278, hair: [['Hair_Buzzed', 0x9a9288]], robe: { col: 0x7a6040, top: 1.0, bot: 0.04, rx: [0.17, 0.33], rz: [0.13, 0.28], trim: 0xd0c098, leg: 0.5 }, prop: 'scroll' };   // an undyed habit with a pale hem: a dark one vanished against the shelves
+/* ---------------------------------------------------------------- the two moments */
+REALM.EVENTS.push(
+  { id: 'dobrawa', week: 3, room: 'garden', who: 'dobrawa', note: 'A hill-woman is in the garden with Kazik, and a jar of something',
+    talk: [['dobrawa', 'Hold still, little prince. Coltsfoot and honey. It tastes like a wet dog, and it works.'], ['kazik', 'The big crow gave me this. For luck.'],
+      ['dobrawa', '(She takes a black feather out of his fist. It is knotted with red thread. She looks at you, and not at him.)'],
+      ['dobrawa', 'Dobrawa, Your Grace. The Queen sent to the hills for me. I know whose knot that is. So do you.']],
+    options: [{ label: 'Stay in the castle, Dobrawa. For the boy. And for what you know.', reply: [['dobrawa', 'For the boy. What I know costs extra: I’ll want the old still-room, and no priest in it.']], fx: { gold: -1, fam: { kazik: 1, halina: 1 }, flag: { dobrawa: 1 } } },
+      { label: 'Treat his cough. The feather is a child’s toy.', reply: [['dobrawa', 'Then I’ll burn the toy, and go home. Send to the hills again when it rains.']], fx: { fam: { kazik: 1 }, flag: { dobrawa: 0 } } },
+      { label: 'We have a physician. Thank the Queen for her trouble.', reply: [['dobrawa', 'You have a man who bleeds children. Good day, Your Grace.']], fx: { fam: { halina: -1 }, flag: { dobrawa: 0 } } }] },
+  { id: 'anzelm', week: 4, room: 'study', who: 'anzelm', note: 'A monk is at the shelves in the study',
+    talk: [['anzelm', 'Forgive me, Your Grace. The steward said the shelves, not the desk. I have not touched the desk.'],
+      ['anzelm', 'Brother Anzelm, of the Kalina cloister. The abbot wants a chronicle of the siege, to be read at midsummer.'],
+      ['anzelm', 'The rolls stop on the nineteenth night. They begin again on the twenty-first, in another hand. I would like to know what the twentieth was.']],
+    options: [{ label: 'The archive is yours. Write what you find, and bring it to me first.', reply: [['anzelm', 'To you first. And then as it was, Your Grace. I am too old to write it twice.']], fx: { gold: -1, fam: { halina: 1 }, flag: { anzelm: 1 } } },
+      { label: 'Write the siege the town remembers. Nineteen days.', reply: [['anzelm', 'Nineteen days and a miracle. It reads well aloud. I will write that one at the cloister, then.']], fx: { mood: 1, flag: { anzelm: 0 } } }] });
+/* ---------------------------------------------------------------- what a recruit changes in court */
+Object.assign(REALM.PETS.flood.fit, { herbalist: 1 }); Object.assign(REALM.PETS.sWall.fit, { herbalist: 1 }); Object.assign(REALM.PETS.warehouse.fit, { chronicler: 2 });   // poultices for the diggers and the hauliers; a mob won't push a monk off a doorstep
+REALM.PETS.sGate.options.push({ need: 'dobrawa', label: 'Open the gate. Dobrawa looks at every one of them before they pass.', reply: ['Then the sick get a bed, and the well get a wall to sleep under. That is more than we came to ask.'], fx: { stores: -2, mood: 2, army: 1, flag: { sGate: 4 } } });
+REALM.PETS.mother.options.push({ need: 'anzelm', label: 'He goes to the Kalina cloister, under Brother Anzelm’s roof. Not a cell, and not the street.', reply: ['A cloister. He can’t even sing. But yes. God keep you, Your Grace.'], fx: { mood: 1, flag: { jacek: 2 } } });
+REALM.PETS.sQuarter.options.push({ need: 'anzelm', label: 'They go. Brother Anzelm writes down every house and what is in it, to be given back.', reply: ['A roll, under a monk’s seal. My lord did not expect that of Lodmir. Nor did I.'], fx: { days: 2, mood: -1, flag: { sQuarter: 4 } } });
+REALM.ECHO.push(['sGate', 4, 'c7', 'No fever inside the Ostrów gate, Your Grace. Dobrawa turned eleven aside to the pest-house, and nobody argued with her.', null],
+  ['jacek', 2, 'c8', 'The cupbearer is copying psalms at the Kalina cloister. Badly, the brothers say. Krasna has not asked for him.', null]);
+AGENTS.has = (k) => REALM.flags[k] === 1;
+/* the aid panel's roster follows the flags (a new game or a load starts from Bogdan and Ilka: COURT.reset) */
+AGENTS.sync = function () {
+  for (const k in AGENTS) { const d = AGENTS[k]; if (!d.agent) continue; const i = COURT.agents.findIndex((a) => a.id === d.agent.id);
+    if (AGENTS.has(k) && i < 0) COURT.agents.push(Object.assign({}, d.agent)); else if (!AGENTS.has(k) && i >= 0) COURT.agents.splice(i, 1); }
+  if (SCENE.room && SCENE.room.built) { AGENTS.stage(SCENE.room, true); SCENE.buildMarks(); }   // the marker over a new recruit, without waiting for the next visit
+};
+/* ---------------------------------------------------------------- in their rooms */
+AGENTS.here = (k) => AGENTS.has(k) || (CAL.phase === 'court' && CAL.week === AGENTS[k].week && REALM.flags[k] === undefined);
+AGENTS.stage = function (room, keep) {   // keep: don't touch who is standing there (mid-visit); only the talk markers
+  for (const k in AGENTS) { const d = AGENTS[k], a = CAST.A[k]; if (!d.room || d.room !== room.id || !a) continue;
+    if (!keep) { const v = AGENTS.here(k); a.offstage = !v; a.setVisible(v); }
+    let it = room.inter.find((i) => i.id === k);
+    if (!it && AGENTS.has(k)) { it = room.interact(k, a.x, (a.spec.headY || 2) + 0.7, room.KZ, 0.9, () => AGENTS.talk(k)); it.label = 'Talk to ' + d.name; }
+    if (it) it.hidden = !(AGENTS.has(k) && a.visible); }
+};
+AGENTS.TALK = {
+  dobrawa: { lore: ['My grandmother left milk on the step for her, and called her by a name. I won’t say it in a garden.', 'But know this much: a thing that is named has to bargain. That is the whole of the old law.'],
+    court: ['He slept through the night. It’s the honey. The coltsfoot is there to make him respect it.', 'Your still-room had forty years of dust in it, and one dead owl. I kept the owl.'],
+    festival: ['Seven dry days in a year like this one. I’d ask who paid for them, if I thought I’d like the answer.', 'I’ve told the prince the bear is not for freeing. He is thinking about it.'],
+    ch5: ['Lint, honey, strong wine and a saw. That is all there is to a war, from where I stand.'], done: ['It rains like rain now. Just rain. I had forgotten the sound of it.'] },
+  anzelm: { lore: ['The twentieth night is not in the rolls, Your Grace. But your father wrote a word in the margin of the nineteenth, and scraped it out.', 'Scraped vellum remembers. In a slanting light I can read it. I think it is a name.'],
+    court: ['Your father’s clerks wrote a fine hand, and lied in it very evenly. One gets fond of them.', 'Nineteen days of siege, Your Grace, and somebody counted every loaf. I know what Lodmir ate. Not yet why it lived.'],
+    festival: ['They will read my chronicle at the Blessing of the Lists. I have left the twentieth night as a blank line. Let them wonder.', 'A fair is a chronicle with the dull parts taken out.'],
+    ch5: ['I am writing this week as it happens. It is harder. Nobody has decided yet what it was.'], done: ['It is written, Your Grace. All twenty nights. You may burn it or bind it.'] },
+};
+AGENTS.talk = async function (k) {
+  if (SCENE.lock) return; if (CAL.phase === 'crisis' && INV.TALK[k] && REALM.done['lore:' + k]) return INV.talk(k);
+  const a = CAST.A[k], K = SCENE.player, T = AGENTS.TALK[k]; K.faceTo(a.x); a.faceTo(K.x); a.lookYaw = Math.sign(K.x - a.x) * 0.8;
+  SCENE.lock++;
+  try { if (!REALM.done['lore:' + k]) { REALM.done['lore:' + k] = 1; for (const t of T.lore) await SCENE.say(a, t, { wait: true }); INV.badge(true); GAME.save(); }
+    else await SCENE.say(a, SCENE.cycle('ag_' + k + CAL.phase, T[CAL.phase] || T.court), { wait: true }); }
+  finally { SCENE.lock--; a.lookYaw = null; }
+};
+/* ---------------------------------------------------------------- the murder: their own road to a clue (g48) */
+INV.ALT = {
+  oldSeal: { anzelm: ['The old Margrave’s seal', 'Brother Anzelm counted the boar’s tusks: four. Dietrich’s seal has two. This is his father’s, struck for the captains who died under my walls. Somebody took it from a dead hand and kept it twelve years.', 'Brother Anzelm, in the study'] },
+  dried: { dobrawa: ['Dried in a cellar', 'Dobrawa smelled the scraping from the cup: no bite in the nose. Fresh root makes the eyes run. This was dried and kept somewhere damp: cellar stock, sold by the measure in the river quarter, for rats.', 'Dobrawa, in the garden'] },
+};
+INV.TALK.anzelm = () => (INV.has('signet') && !INV.has('oldSeal')
+  ? [['king', '(He lays the signet on the open roll.)'], ['anzelm', 'A boar, and HAL round it. But count the tusks, Your Grace: four. Dietrich’s seal has two. He changed it when he buried his father.'],
+    ['anzelm', 'This is the old Margrave’s. They were struck for his captains, and his captains died under your walls. Somebody took this from a dead hand, and kept it twelve years.'], ['find', 'oldSeal', 'anzelm']]
+  : [['anzelm', SCENE.cycle('iAnzelm', ['A king dead at a feast. I have nine of those in the chronicles. In seven of them it was somebody at the table.', 'Bring me anything with writing on it, Your Grace. Or a seal. Seals don’t know how to lie.'])]]);
+INV.TALK.dobrawa = () => (INV.has('lip', 'wolfsHood') && !INV.has('dried')
+  ? [['king', '(He shows her a scraping from the cup’s lip, in a fold of linen.)'], ['dobrawa', '(She smells it. She does not taste it.) Wolf’s hood, yes. But there’s no bite in the nose. Fresh root makes your eyes run.'],
+    ['dobrawa', 'This was dried, and kept somewhere damp. Cellar stock. They sell it by the measure in the river quarter, for rats.'], ['find', 'dried', 'dobrawa']]
+  : [['dobrawa', SCENE.cycle('iDobrawa', [INV.has('wolfsHood') ? 'Whoever did it knew the dose. A measure kills rats. A pinch more kills a king.' : 'Blue lips and a stopped heart, they say in the kitchen. Ask whoever laid him out what his tongue looked like.', 'Bring me what’s left on that cup, if anything is. My nose is older than your priest’s.'])]]);
+/* ---------------------------------------------------------------- the Woman's name: what the king has of it (the journal) */
+AGENTS.lore = function () {
+  const F = REALM.flags, out = [];
+  if (F.hela === 1) out.push('Babka Hela delivered half of Lodmir. She says the old people had a name for the Woman, and that she has not forgotten it.');
+  if (F.letter === 1) out.push('My father’s letter is in the desk. There is a name in it that I have not said aloud.');
+  if (F.anzelm === 1 && REALM.done['lore:anzelm']) out.push('Brother Anzelm: a word was scraped out of the siege rolls on the nineteenth night. He can read it in a slanting light.');
+  if (F.dobrawa === 1 && REALM.done['lore:dobrawa']) out.push('Dobrawa: a thing that is named has to bargain.');
+  if (!out.length) return '';
+  return `<h4>The Woman in the Wood</h4>${out.map((t) => `<p>${t}</p>`).join('')}${END.named() ? '<p><i>Who remembers it, where it is written, what it is for. I think I could say it, if I had to.</i></p>' : ''}`;
+};
+
+/* ==== game/g55_bath.js ==== */
+/* LBATH — the House of the Lantern's bathhouse, under the gallery: a limewashed cellar room, a great oak tub that is
+   always hot, the copper that heats it, a drying rail, steam. Lena's domain: once she trusts the Falconer she would rather
+   be here than upstairs (HOUSE.scene(id, 'bath'), 18+, behind NIGHT.confirm like every other).
+   The scene is the night scene's engine on a stage (g26, g42) with the positions moved into the tub (LOVERS.stage):
+   only the upright ones are offered, because a tub's wall hides anyone lying down. See ENGINE.md §13v. */
+const LBATH = SCENE.addRoom(new Room('lbath', { X0: -8.6, X1: 8.6, CEIL: 4.0, KZ: 3.35, cam: { y: 2.3, look: 1.95, dist: 19.4, fov: 19 }, exposure: 1.05, reflK: 0.4, disguise: true,
+  grade: { s: [0.96, 1.0, 1.05], h: [1.06, 1.0, 0.92] },   // cool in the wet shadows, warm where the fire and the lantern reach
+  music: 'castle', ambience: { fountain: 0.22, fire: 0.3, tone: 0.2 }, acoustics: { size: 0.9, wet: 0.3 }, surface: 'stone', caption: ['The Bathhouse', 'Under the gallery. The water is always hot'] }));
+LBATH.TUB = { x: -2.4, z: 1.55, r: 1.45, rim: 0.88, water: 0.83, seat: 0.5 };
+LBATH.LINES = {
+  door: ['Back up to the common room.'],
+  tub: ['Oak, and older than the house. The water is hot. It is always hot, and nobody has ever seen Lena carry a bucket.', 'Rosemary in it. And something from the south that I can’t name.'],
+  copper: ['The copper ticks as it heats. Somebody feeds this fire all night.', 'My father paid for that copper. Wanda told me so, as if it were a compliment.'],
+  rail: ['Clean linen, and a red robe for whoever forgot his own.', 'Folded the way a lady’s maid folds. Corners like knives.'],
+  window: ['A slit at the level of the street. Boots go by. Nobody looks down.'],
+};
+LBATH.build = function () {
+  const room = BUILD.begin(this), T = PX.T, X0 = room.X0, X1 = room.X1, CE = room.CEIL, KZ = room.KZ, L = room.LINES, U = LBATH.TUB;
+  const say = (k) => SCENE.say(SCENE.player, SCENE.cycle('lb' + k, L[k]));
+  /* shell: limewash over a stone footing, wet flags, a low beamed ceiling */
+  BUILD.plane('z', X0, X1, 0, CE, 0, T.bathPlaster);
+  BUILD.box(X0, X1, 0, 1.45, 0, 0.14, T.ashlar, { col: 0xa89884 }); BUILD.box(X0, X1, 1.45, 1.53, 0, 0.19, T.ashlar, { col: 0xc0b098, cast: false });
+  BUILD.box(X0, X1, 2.62, 2.7, 0, 0.03, T.woodRed, { col: 0xb04a3a, cast: false });   // a painted band round the room at head height: the house's red, even down here
+  for (const [x, ax] of [[X0, 'x+'], [X1, 'x-']]) BUILD.plane(ax, 0, 9, 0, CE, x, T.bathPlaster, { col: 0x6a5c50 });   // the end walls are in shot (the room is narrower than the lens): kept dim, or they are two orange slabs
+  room.floorMat = BUILD.reflective(T.chFlags, { k: 0.42, rough: 0.5 }); BUILD.plane('y+', X0, X1, 0, 9, 0, T.chFlags, { mat: room.floorMat, layer: 2 });   // wet flagstones: a sheen, not a mirror
+  BUILD.plane('y-', X0, X1, 0, 9, CE, T.housePlanks, { col: 0x5a4a3a });
+  for (let x = X0 + 1.0; x < X1; x += 2.45) BUILD.box(x - 0.15, x + 0.15, CE - 0.4, CE, 0, 9, T.beam, { cast: false });
+  for (const x of [-5.6, 0.9]) BUILD.box(x - 0.13, x + 0.13, 0, CE, 0.14, 0.4, T.beam);   // posts against the wall, holding the gallery up
+  /* the door up to the common room, a red lantern beside it */
+  BUILD.card(T.doorBath, -7.3, 0, 0.16, { cast: false }); BUILD.card(T.redLantern, -6.35, 2.2, 0.3, { cast: false }); BUILD.glow(-6.35, 2.5, 0.4, 0.9, 0xff4a2a, 0.4);
+  BUILD.light(new THREE.PointLight(0xff6a40, 1.6, 0, 2), -6.35, 2.4, 0.9, { flicker: 3 });
+  room.interact('door', -7.3, 2.4, KZ, 0.8, () => { if (NIGHT.on) return; GAME.save(); SCENE.go('lantern', { x: -8.6, face: 1 }); }).label = 'Back up to the common room';
+  /* the bench under the pegs: folded linen, two buckets */
+  BUILD.card(T.bathPegs, -4.7, 1.25, 0.2, { cast: false });
+  BUILD.box(-5.3, -4.1, 0.42, 0.5, 0.25, 0.8, T.woodDark); for (const x of [-5.2, -4.2]) BUILD.box(x - 0.04, x + 0.04, 0, 0.42, 0.3, 0.75, T.woodDark);
+  BUILD.card(T.linen, -4.9, 0.5, 0.55, { w: 0.42, h: 0.16, cast: false }); BUILD.card(T.linen, -4.45, 0.5, 0.5, { w: 0.36, h: 0.22, cast: false, col: 0xd8c8b0 });
+  BUILD.card(T.bathBucket, -5.0, 0, 0.95); BUILD.card(T.bathBucket, -4.5, 0, 1.1, { s: 0.9 });
+  /* the tub: eight-sided oak, staves and hoops; inside it a bench under the water. Its rim stands a hand above the water,
+     and the water is a real surface: from this lens it shows as a bright band behind the near rim, which is all the water
+     anyone needs to see (a floor seen edge-on: ENGINE.md §13q) */
+  BUILD.cyl(U.x, U.z, 0, U.rim, U.r, T.tubStaves, { seg: 12, open: true });
+  BUILD.cyl(U.x, U.z, 0.1, U.rim, U.r - 0.09, T.tubStaves, { seg: 12, open: true, mat: BUILD.std(T.tubStaves, { col: 0x8a6a4a, side: THREE.BackSide }) });
+  { const g = new THREE.RingGeometry(U.r - 0.09, U.r, 12); g.rotateX(-Math.PI / 2); g.rotateY(Math.PI / 12); g.translate(U.x, U.rim, U.z); BUILD.add(new THREE.Mesh(g, BUILD.std(T.woodDark, { col: 0xb89a70 })), { cast: false }); }
+  room.pool = BUILD.pool(T.water, U.x, U.water, U.z, U.r - 0.1, { seg: 12, rate: 4, glow: 0.5, col: 0xb8e0d8 });
+  BUILD.box(U.x - 2.05, U.x - 1.55, 0, 0.3, U.z + 0.2, U.z + 0.9, T.woodDark);   // the step up into it
+  BUILD.rug(T.duckboard, U.x - 1.3, U.x + 1.3, U.z + U.r + 0.05, U.z + U.r + 0.75, { ru: 3, rv: 1 });   // a duckboard where wet feet come down
+  BUILD.card(T.bathStool, U.x + 1.95, 0, U.z + 0.5); BUILD.card(T.candles, U.x + 2.35, 0, U.z + 0.1, { s: 0.8 }); for (const [dx, y] of [[2.23, 0.3], [2.35, 0.4], [2.47, 0.26]]) BUILD.flame(U.x + dx, y, U.z + 0.11, 0.3);
+  room.lights.candle = BUILD.light(new THREE.PointLight(0xffa050, 3.4, 0, 2), U.x + 2.25, 0.9, U.z + 0.7, { flicker: 8 });
+  BUILD.box(U.x - 0.01, U.x + 0.01, 3.2, CE, U.z - 0.01, U.z + 0.01, T.woodPost, { cast: false }); BUILD.card(T.redLantern, U.x, 2.65, U.z, { cast: false }); BUILD.glow(U.x, 3.0, U.z + 0.05, 1.1, 0xff4a2a, 0.45);
+  room.lights.lantern = BUILD.light(new THREE.PointLight(0xff7a50, 3.0, 0, 2), U.x, 2.9, U.z + 0.6, { flicker: 3 });
+  room.interact('tub', U.x, 2.0, KZ, 1.2, () => say('tub'));
+  /* shelves of jars over the stool; the drying rail; herbs hung from the beams to keep the damp sweet */
+  BUILD.card(T.bathShelf, U.x + 2.5, 1.62, 0.2, { cast: false });
+  BUILD.card(T.towelRail, 2.2, 0, 0.7); room.interact('rail', 2.2, 1.8, KZ, 0.7, () => say('rail'));
+  for (const [x, z, s] of [[-6.6, 0.9, 1], [-3.9, 1.3, 1.1], [-0.6, 0.8, 0.9], [0.4, 1.4, 1.1], [3.2, 1.0, 1], [6.0, 1.2, 0.9], [7.6, 0.7, 1.1]]) BUILD.card(T.herbBunch, x, CE - 0.4 - 0.5 * s, z, { s, cast: false });
+  /* the copper on its firebox, its pipe along the wall to the tub, firewood */
+  const CX = 4.9; BUILD.box(CX - 0.6, CX + 0.6, 0, 0.56, 0.14, 1.0, T.brick, { col: 0x9a6a5a }); BUILD.card(T.copperBoiler, CX, 0, 1.02);
+  BUILD.box(U.x + 0.9, CX - 0.3, 1.5, 1.57, 0.2, 0.27, T.woodDark, { col: 0xd08a4a, cast: false }); BUILD.box(U.x + 0.9, U.x + 0.97, 0.95, 1.57, 0.2, 0.27, T.woodDark, { col: 0xd08a4a, cast: false });
+  BUILD.glow(CX, 0.3, 1.1, 0.9, 0xff7a2a, 0.3);
+  room.lights.fire = BUILD.shadow(BUILD.light(new THREE.PointLight(0xff8a3c, 4.2, 0, 2), CX, 0.5, 2.0, { flicker: 7 }), R.q === 'low' ? 256 : 512); room.lights.fire.shadow.camera.near = 0.2;
+  BUILD.card(T.logs, 6.6, 0, 0.6, { s: 1.2 }); BUILD.card(T.logs, 7.2, 0, 0.75); BUILD.card(T.bathBucket, 3.6, 0, 1.2);
+  room.interact('copper', CX, 2.3, KZ, 0.9, () => say('copper'));
+  /* the floor has to carry the front of the picture: a duckboard walk from the door to the copper, a drain, wet patches */
+  BUILD.rug(T.duckboard, -7.9, 5.6, 3.0, 3.7, { ru: 14, rv: 1 });
+  BUILD.rug(T.soot, 0.9, 1.5, 4.7, 5.1); for (const [x0, x1, z0, z1] of [[-4.6, -2.9, 4.3, 5.0], [2.6, 4.4, 5.3, 6.0], [-1.0, 0.2, 5.6, 6.1]]) { const m = BUILD.rug(T.soot, x0, x1, z0, z1, { y: 0.002 }); m.material = m.material.clone(); m.material.transparent = true; m.material.opacity = 0.28; }
+  /* a slit of a window at street level, the moon in it */
+  BUILD.card(T.streetSlit, 6.9, 2.85, 0.04, { basic: true, k: 1.2, cast: false }); BUILD.glow(6.9, 3.1, 0.12, 1.3, 0x8aa8e8, 0.3);
+  room.lights.moon = BUILD.shadow(BUILD.light(new THREE.SpotLight(0x8aa8e0, 34, 0, 0.5, 0.8, 2), 6.9, 3.2, 0.3), R.q === 'low' ? 512 : 1024); room.lights.moon.target.position.set(2.5, 0, 2.6);
+  room.interact('window', 6.9, 3.3, KZ, 0.5, () => say('window'));
+  /* steam: off the water, and a thread of it from the copper */
+  room.steam = []; for (let i = 0; i < 9; i++) { const m = new THREE.SpriteMaterial({ map: T.smokeSoft, color: 0xe0dcd8, transparent: true, opacity: 0, depthWrite: false }); const s = new THREE.Sprite(m); BUILD.add(s, { cast: false, dyn: true }); room.steam.push({ s, m, ph: i / 9, cu: i > 6 }); }
+  room.tick.push((t) => { for (const p of room.steam) { const u = (t * (p.cu ? 0.22 : 0.13) + p.ph * 3.1) % 1, x0 = p.cu ? CX : U.x + (hash(Math.floor(p.ph * 9), 3, 71) - 0.5) * 1.9;
+    p.s.position.set(x0 + Math.sin(u * 3 + p.ph * 9) * 0.35, (p.cu ? 2.0 : U.water + 0.1) + u * (p.cu ? 1.6 : 2.3), (p.cu ? 1.0 : U.z + 0.2)); p.s.scale.setScalar((p.cu ? 0.4 : 0.9) + u * 1.6); p.m.opacity = (p.cu ? 0.16 : 0.24) * Math.sin(u * Math.PI); } });
+  /* near the lens: a post, the end of a bench with a heap of linen */
+  BUILD.box(7.6, 7.9, 0, CE, 6.3, 6.6, T.beam, { cast: false }); BUILD.box(-8.6, -6.2, 0.42, 0.52, 6.9, 7.7, T.woodDark, { cast: false }); BUILD.card(T.linen, -7.4, 0.52, 7.3, { w: 1.1, h: 0.38, cast: false });
+  /* light */
+  BUILD.light(new THREE.HemisphereLight(0x9a8c88, 0x2a1e16, 2.3), 0, 4, 0);
+  BUILD.card(T.redLantern, 3.4, 2.75, 0.5, { cast: false }); BUILD.glow(3.4, 3.05, 0.55, 0.9, 0xff4a2a, 0.4); BUILD.light(new THREE.PointLight(0xff6a40, 1.8, 0, 2), 3.4, 2.9, 1.0, { flicker: 3 });
+  const fill = BUILD.light(new THREE.DirectionalLight(0xc8c0c8, 0.7), -2, 4, 14); fill.target.position.set(-2, 1.0, 0);
+  room.rim = [CX, 1.2, 1.4, 0.5, 6, 0xffa050, room.lights.fire]; room.shadowSrc = [CX, 1.6, 1.7, 6];
+  BUILD.motes({ n: 60, boxes: [[X0 + 0.5, X1 - 0.5, 0.5, 3.8, 0.5, 3.4, 0.22]], col: 0xe8e0d8 });
+  room.update(0, 0);
+  return BUILD.end();
+};
+CAST.specs.lena.homes.lbath = { x: 1.2, z: 3.1, face: -1, idle: 'Idle_Loop' };   // she lives here for her layer; she is shown only when she brings him down
+LBATH.onEnter = function () {
+  const L = CAST.A.lena, on = HOUSE.with === 'lena' && HOUSE.venue === 'bath'; if (L) L.setVisible(on);
+  if (!CUT.playing && !on) SCENE.caption(...this.caption);
+};
+/* ---------------------------------------------------------------- the scene's stage: the positions, moved into the tub
+   O      where the bed's positions go: a bench under the water (seat), the lovers' card on the tub's centre line
+   px     an extra x for a position whose place on the bed is elsewhere (the kiss is mid-bed, the lap is at the pillows)
+   after  what they come to rest in (the bed's 'after' lies down: under a tub's rim nobody would see it) */
+HOUSE.BATH = { room: LBATH, menu: ['kiss', 'lap'], after: 'kiss', quiet: true,
+  O: { x: LBATH.TUB.x + 8.6, y: LBATH.TUB.seat - LOVERS.BED.top, z: LBATH.TUB.z - LOVERS.BED.zc - 0.82 }, px: { kiss: -0.85, after: -0.85 },
+  cam: { bed: { fov: 13.5, y: 2.0, look: 1.5, focus: -8.6 }, wide: { fov: 17, y: 2.3, look: 1.9, focus: -8.6 }, near: { fov: 8.6, y: 1.74 + 0.5, look: 1.44 + 0.42, focus: -8.6 } } };
 
 /* ==== game/g60_map.js ==== */
 /* THE MAP — a chart of the Swan Fortress and its valley on old parchment, 480 × 300 px, shown at twice that.

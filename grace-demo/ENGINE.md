@@ -65,7 +65,9 @@ Contents
 13q. Adult scenes: the rhythm, the positions, the lens
 13r. The realm: weeks, the court's queue, the ledgers
 13s. The endings
+13r-2, 13r-3. The siege's court and consequences; the recruits
 13t. The regression suites
+13v. The bathhouse
 13u. Working with worker agents
 14. Credits and licences
 
@@ -1448,6 +1450,83 @@ Rules that follow from it:
 - Court only sits in the crisis while a petition waits (`REALM.waiting()`), and the last petition is day 10, so a 'c' row
   later than `c10` would never be read.
 
+## 13r-3. Recruits: Dobrawa and Brother Anzelm (`game/g54_agents.js`)
+
+Two people the king can take into his service, each met once: Dobrawa the herbalist in the garden in week three (she is
+treating Kazik and finds the Woman's knotted feather), Brother Anzelm the chronicler at the study's shelves in week four
+(the siege rolls skip the twentieth night). Each is a row in `REALM.EVENTS` whose first answer sets `flags.<id>` to 1.
+A recruit has to be worth the gold, so the flag is read in four places:
+
+| where | what it does | code |
+|---|---|---|
+| the aid panel | a third and fourth agent (`herbalist`, `chronicler`, 2 actions each), listed only on petitions whose `fit` names them | `AGENTS.sync()` keeps `COURT.agents` equal to the flags; `recruit: true` hides a zero-fit row |
+| decisions | answers that exist only with them: `need: 'dobrawa'` on an option | `REALM.choose` filters `options` by `need` |
+| the murder | their own road to a clue: Anzelm reads the old seal (instead of Hanna), Dobrawa smells that the root was dried (instead of the Woman) | `INV.TALK.<id>`, `['find', clue, via]`, `INV.ALT[clue][via]` holds that source's wording, `INV.via` is saved |
+| the Woman's name | `END.named()`: the midwife remembers it (`hela`), Dobrawa knows what a name is for, and it is written down (the kept `letter`, or Anzelm's roll). Ending D needs it, the truth told to Halina, and Ilka named | `END.named`, `AGENTS.lore()` in the journal |
+
+They stay in the room where they were met for the rest of the game, with a line per chapter (`AGENTS.TALK`); the first
+talk after recruiting is their piece of the name (`REALM.done['lore:<id>']`). Turned away, they are gone at the next visit.
+
+How it is made, and what went wrong:
+- **Shown by story, not by spec.** Both are `lazy` actors with a home room; `AGENTS.stage(room)` runs first in
+  `SCENE.afterEnter` and decides who is standing there (`AGENTS.here`: in service, or it is their week and nothing has
+  been decided), before `REALM.enter` looks for a moment whose actor must be visible. A new recruit gets a talk marker at
+  once (`sync` re-stages the markers only, `keep`), not at the next visit.
+- **A clue's words belong to whoever gave it.** The journal used to print `INV.CLUES[id]`; with two sources that put
+  the priest's words in Dobrawa's mouth. `INV.clue(id)` picks the wording by `INV.via[id]`.
+- **Placement.** Dobrawa first stood 1.4 m from Zofia's sword routine, and at 4.5 she would have been inside the
+  fountain (centre 3.2, radius 1.75: check a round prop's radius, not its marker). She is at 7.35, z 2.2. Anzelm first
+  stood in a dark habit at the dark end of the dark shelves and could not be seen; he is at −5.55 in an undyed habit with
+  a pale hem, in the fire's light. A new figure is judged in the room's real light before anything else about him.
+- **Moments waited 1.8 s and then spoke under the room's caption.** `SCENE.caption` now sets `SCENE.captionUntil`
+  (wall-clock); `REALM.enter` waits for it. (`SCENE.markDelay` is in game time and runs fast under `catchup`.)
+- A `//` comment inside a one-line function ate the rest of the line and the build refused it. Again. `/* */` there.
+- Loading: `COURT` loads before `REALM`, so a recruit's spent actions are not restored (he is back at full). Accepted.
+
+Adding a third recruit: a row in `AGENTS` (`room`, `week`, `name`, `agent`), a spec, a `REALM.EVENTS` row, `fit` entries,
+`AGENTS.TALK`, and something that reads the flag. The suite is `tools/regress/agents.js`.
+
+## 13v. The bathhouse (`game/g55_bath.js`, textures at the end of `g19_paint_lantern.js`)
+
+`lbath`: the House's cellar bathhouse, through a plank door in the common room (x −3.9). Limewash over a stone footing,
+wet flags with a duckboard walk, a twelve-sided oak tub (`LBATH.TUB`: centre −2.4 / 1.55, radius 1.45, rim 0.88, water
+0.83, an underwater bench at 0.5), a peg rail and bench, shelves of jars, a drying rail, the copper on its firebox with a
+pipe along the wall, herbs from the beams, a slit window at street level, steam. Lena, once she trusts the Falconer
+(`HOUSE.band('lena') ≥ 1`), offers *The bathhouse, with her (18+)* beside *Go upstairs*: `HOUSE.scene(id, 'bath')`.
+
+**A venue is a stage with the positions moved** (`HOUSE.BATH`; `HOUSE.stage(id, V)` merges it over her room's stage):
+
+| field | what it does |
+|---|---|
+| `room` | where the scene plays (`SCENE.go(room.id)`; the room's `onEnter` shows her, and only her) |
+| `O` | `LOVERS.stage(O)`: x puts the bed's pillow end on the tub's centre, y puts the quilt (0.80) on the bench, z puts the lovers' card (`BED.zc + 0.82`) on the tub's centre line |
+| `px` | an extra x per position (`NIGHT.drive` re-stages on every change): the kiss is mid-bed and the lap is at the pillows, 0.85 m apart, and a tub has room for neither to wander |
+| `menu` | `['kiss', 'lap']`: only upright positions. Anyone lying down is below the rim |
+| `after` | `'kiss'`: what they come to rest in (the bed's `after` lies down) |
+| `quiet` | no bed creaks, no sheets |
+| `cam` | the lens, in the bed's own x |
+| `W.bath` | her words down here (`yes`, `intro`, `enter`, `lines`, `after`), merged over her room's |
+
+`HOUSE.finish` and `HOUSE.end` read `NIGHT.S` (the room, the words, `after`), and `end` clears the stage and the venue.
+
+**What the picture taught:**
+- **Water does show, as a band.** The lens looks down about five degrees, so a 2.9 m pool is a strip a handful of
+  pixels tall behind the near rim: enough, if the rim stands only 5 cm above the water and the water glows a little
+  (`BUILD.pool`, glow 0.5). Bodies rise out of it; nothing else is needed to say "bath". (The first plan, a translucent
+  water card in front of a low rim, would have had water standing higher than its tub.)
+- **Textures: look at the name's meaning, not its sound.** `T.flag` is a festival banner, not a flagstone: the first
+  floor was a blood-red mirror. The chapel's `chFlags` is the stone. And one noise sampled along `x·a + y·b` paints
+  diagonal streaks: the plaster looked like wood grain until it was two noises, one per axis, in blocks.
+- **A room narrower than the lens shows its end walls.** Lit like the back wall they were two orange slabs that made
+  a box of it; tinted to a third (`col: 0x6a5c50`) they fall away. Rooms wider than 26 m never meet this.
+- **An empty floor is a third of the frame.** The duckboard walk along the walking line, a drain and a few wet patches
+  (rugs, flat, so nothing blocks the king) carry the bottom of the picture; shelves, pegs and hung herbs carry the top.
+  The first version had everything on one band at knee height and read as a dollhouse.
+- **The copper glowed like a furnace** (a 1.3 m glow at 0.5 and a light 0.7 m in front of it): glow 0.9 m at 0.3, the
+  light further out and weaker. A fire should light what is round it, not itself.
+- A wet floor is `BUILD.reflective(tex, { k: 0.42, rough: 0.5 })`: a sheen. At 0.75 / 0.35 every flame was a pillar.
+The suite is `tools/regress/bath.js`.
+
 ## 13t. The regression suites (`tools/regress.js`, `tools/regress/`)
 
 `node tools/regress.js [suite ...]` runs the built page headlessly (through `tools/shot.js`) and prints one `PASS` or
@@ -1455,11 +1534,13 @@ Rules that follow from it:
 
 | suite | what it proves | time |
 |---|---|---|
-| `rooms` | all fourteen rooms boot: right room, no page error, `SCENE.walkCheck()` empty, nobody left parked on layer 1 | ~4 min |
+| `rooms` | all fifteen rooms boot: right room, no page error, `SCENE.walkCheck()` empty, nobody left parked on layer 1 | ~4 min |
 | `endings` | `END.pick` returns D, E, C, B, A for five constructed states; `END.play` runs to the title with the lock at 0 | ~5 min |
 | `realm` | week one's moment (it boots in the garden for it), a court of three, the ledger, the bed, week two; week four's court with the pay panel, the bridge to the festival, a crisis court; no timeouts, no errors | ~8 min |
 | `siege` | `REALM.ECHO`: three reports told in a court week and three more in the crisis, each once; the wall (aid panel) and the herald (decision) heard, their flags set, the day bought | ~6 min |
 | `hearth` | Halina's scene on the bearskin by the fire: the gate, the choice, staged and cleared, no *Bed's edge*, the king never drawn with his parts, the week advances | ~3 min |
+| `agents` | Dobrawa met and taken on (roster, marker, her piece of the name); in the crisis she and Anzelm give `dried` and `oldSeal` by their own roads, the gate petition gains its fourth answer, `END.named()` | ~2 min |
+| `bath` | Lena's bathhouse scene: her option, the gate, staged in the tub with only *Kiss* / *In his lap*, cleared, the night counted, back in the common room | ~3 min |
 
 A suite is a module in `tools/regress/` exporting `{ name, runs: [{ label, query, steps }], check(label, evals) }`:
 `steps` is what `shot.js` takes, `evals` are that run's eval results already parsed, and `check` returns `null` or a short

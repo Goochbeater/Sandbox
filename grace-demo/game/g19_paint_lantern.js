@@ -109,3 +109,55 @@ for (const [k, f] of Object.entries({
     for (const cx of [8, 24, 40]) { p.ell(cx, 30, 3, 2, 0x5a6a7a); p.line(cx - 1, 28, cx - 3, 18, 0x5a6a7a); p.line(cx, 32, cx - 1, 42, 0x3a3a3a); p.line(cx + 1, 32, cx + 2, 42, 0x3a3a3a); }
     return p.outline(null, 0.6).tex(); },
 })) PX.def(k, f);
+/* ---------------------------------------------------------------- the bathhouse under the gallery (g55) */
+PX.def('tubStaves', () => { const p = new Pix(32, 32);   // oak staves, two iron hoops; goes round the tub (repeat)
+  for (let x = 0; x < 32; x++) { const s = Math.floor(x / 4), k = 0.78 + 0.3 * hash(s, 7, 61), edge = x % 4 === 0 ? 0.62 : x % 4 === 3 ? 0.9 : 1;
+    for (let y = 0; y < 32; y++) p.set(x, y, C.mul(0x7a4e2a, k * edge * (0.92 + 0.14 * hash(x, y, 62)) * (y < 2 ? 1.25 : 1))); }
+  for (const y of [7, 24]) for (let x = 0; x < 32; x++) { p.set(x, y, 0x5a5a62); p.set(x, y + 1, 0x2a2a30); p.set(x, y + 2, C.mul(p.get(x, y + 2), 0.7)); if (x % 8 === 3) p.set(x, y, 0x9a9aa2); }
+  return p.tex({ repeat: true }); });
+PX.def('copperBoiler', () => { const W = 34, H = 62, p = new Pix(W, H);   // a riveted copper on a brick firebox, the fire door ajar
+  for (let y = 44; y < H; y++) for (let x = 2; x < W - 2; x++) { const row = Math.floor((y - 44) / 4), bx = (x + (row % 2) * 4) % 8; p.set(x, y, bx === 0 || (y - 44) % 4 === 0 ? 0x3a2a24 : C.mul(0x8a4a3a, 0.8 + 0.3 * hash(Math.floor((x + (row % 2) * 4) / 8), row, 63))); }
+  p.rect(11, 49, 12, 10, 0x1a1210); for (let y = 51; y < 58; y++) for (let x = 13; x < 21; x++) p.set(x, y, C.ramp([0xb83a10, 0xff8a2a, 0xffd070], clamp(1 - Math.hypot(x - 17, y - 56) / 6, 0, 1)));
+  for (let y = 8; y < 44; y++) for (let x = 5; x < W - 5; x++) { const u = (x - 5) / (W - 11), l = clamp(0.85 - Math.abs(u - 0.32) * 1.5, 0, 1); p.set(x, y, C.ramp([0x4a2210, 0x8a4a22, 0xc87a3a, 0xf0b070], l)); }
+  for (let x = 5; x < W - 5; x++) { const u = (x - 5) / (W - 11), dy = Math.round(5 * Math.sqrt(Math.max(0, 1 - Math.pow(u * 2 - 1, 2)))); for (let y = 8 - dy; y < 8; y++) p.set(x, y, C.ramp([0x4a2210, 0x8a4a22, 0xc87a3a, 0xf0b070], clamp(0.9 - Math.abs(u - 0.32) * 1.5, 0, 1))); }
+  for (const y of [14, 28, 42]) for (let x = 5; x < W - 5; x++) { p.set(x, y, 0x5a2a14); if (x % 4 === 1) p.set(x, y - 1, 0xf8c890); }
+  p.rect(15, 0, 4, 4, 0x8a4a22); p.rect(W - 6, 30, 5, 3, 0xc87a3a); p.rect(W - 3, 30, 2, 6, 0x8a4a22);
+  return p.outline(null, 0.55).tex(); });
+PX.def('towelRail', () => { const W = 44, H = 36, p = new Pix(W, H);   // a drying rail: two linens and a red house robe
+  p.rect(2, 4, 2, 32, 0x4a3020); p.rect(W - 4, 4, 2, 32, 0x4a3020); p.rect(2, 4, W - 4, 2, 0x6a4428); p.hl(0, 5, 35, 0x3a2418); p.hl(W - 6, W - 1, 35, 0x3a2418);
+  for (const [x0, w, h, c] of [[7, 9, 20, 0xe8dcc4], [18, 9, 24, 0xd8ccb0], [29, 10, 28, 0xa82a2a]]) for (let y = 5; y < 5 + h; y++) for (let x = x0; x < x0 + w; x++)
+    p.set(x, y, C.mul(c, (0.82 + 0.2 * noise1((x - x0) * 0.9, 64 + x0)) * (y === 5 ? 1.2 : 1) * (y > 5 + h - 3 && (x + y) % 2 ? 0.85 : 1)));
+  return p.outline(null, 0.6).tex(); });
+PX.def('bathBucket', () => { const p = new Pix(13, 13); for (let y = 3; y < 13; y++) { const hw = 5 - (y - 3) * 0.12; for (let x = -Math.round(hw); x <= hw; x++) p.set(6 + x, y, C.mul(0x7a4e2a, (x % 2 ? 0.85 : 1) * (0.9 + 0.2 * hash(x, y, 65)))); }
+  p.hl(1, 11, 5, 0x3a3a42); p.hl(2, 10, 10, 0x3a3a42); p.hl(2, 10, 3, 0x6a98c0); p.line(1, 3, 6, 0, 0x4a3020); p.line(6, 0, 11, 3, 0x4a3020); return p.outline(null, 0.6).tex(); });
+PX.def('bathStool', () => { const p = new Pix(16, 22);   // a three-legged stool with a jug, a soap dish and a folded cloth
+  p.rect(1, 12, 14, 2, 0x6a4428); p.vl(2, 14, 21, 0x4a3020); p.vl(13, 14, 21, 0x4a3020); p.vl(8, 14, 20, 0x3a2418);
+  p.rect(2, 5, 4, 7, 0xb86a32); p.rect(3, 3, 2, 2, 0xb86a32); p.set(6, 6, 0xb86a32); p.rect(7, 9, 4, 3, 0xe8dcc4); p.hl(7, 10, 8, 0xf8f0e0); p.rect(11, 10, 4, 2, 0xd8c8a0);
+  return p.outline(null, 0.6).tex(); });
+PX.def('bathPlaster', () => { const p = new Pix(64, 64);   // limewash over stone, damp-stained toward the floor
+  for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) { const blot = 0.5 * noise1(x * 0.13, 66 + Math.floor(y / 9)) + 0.5 * noise1(y * 0.13, 69 + Math.floor(x / 9));   // blotches, not streaks: one noise along a diagonal read as wood grain
+    p.set(x, y, C.mul(0xc8b496, 0.86 + 0.14 * blot + 0.05 * hash(x, y, 67))); }
+  for (let i = 0; i < 5; i++) { let x = Math.floor(hash(i, 1, 68) * 64), y = Math.floor(hash(i, 2, 68) * 64); for (let k = 0; k < 9; k++) { p.set(x, y, 0x8a7a66); x += hash(i, k, 70) > 0.5 ? 1 : 0; y += 1; } }   // hairline cracks
+  return p.tex({ repeat: true }); });
+PX.def('doorBath', () => { const W = 34, H = 66, p = new Pix(W, H);   // the bathhouse door: low, arched, planked, a copper jug painted on it
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const top = 14 - Math.round(Math.sqrt(Math.max(0, 196 - Math.pow((x - 16.5) * 0.85, 2)))); if (y < top) continue;
+    const fr = x < 3 || x > W - 4 || y < top + 3; p.set(x, y, fr ? C.mul(0x3a2418, 0.9 + 0.2 * hash(x, y, 72)) : C.mul(0x6a4a30, (x % 6 === 3 ? 0.7 : 1) * (0.85 + 0.25 * noise1(y * 0.3 + x, 73)))); }
+  for (const y of [22, 52]) p.hl(4, W - 5, y, 0x2a2a30); p.rect(14, 30, 6, 8, 0xc87a3a); p.rect(15, 28, 4, 2, 0xc87a3a); p.set(20, 31, 0xc87a3a); p.set(21, 32, 0xc87a3a); p.hl(14, 19, 30, 0xf0b070); p.set(W - 8, 40, 0xd8b060);
+  for (let x = 4; x < W - 4; x++) if (hash(x, 9, 74) > 0.5) p.set(x, H - 1, 0xd8d0c8);
+  return p.tex(); });
+PX.def('bathShelf', () => { const W = 46, H = 30, p = new Pix(W, H);   // two shelves of jars, soap, a stack of cloths, a sprig drying
+  for (const y of [13, 28]) { p.rect(0, y, W, 2, 0x5a3c24); p.hl(0, W - 1, y, 0x7a5434); }
+  const jar = (x, y, w, h, c) => { p.rect(x, y - h, w, h, c); p.hl(x, x + w - 1, y - h, C.mul(c, 1.35)); p.rect(x + 1, y - h - 2, w - 2, 2, 0xc8b490); };
+  jar(2, 13, 5, 8, 0x4a7a6a); jar(9, 13, 4, 6, 0xb86a32); jar(15, 13, 6, 9, 0x6a5a8a); jar(24, 13, 4, 5, 0xa83a3a); p.rect(31, 9, 9, 4, 0xe8dcc4); p.hl(31, 39, 9, 0xf8f0e0); p.hl(31, 39, 11, 0xc8bca4);
+  jar(3, 28, 6, 7, 0x8a6a3a); p.rect(12, 24, 6, 4, 0xe8d8a8); p.rect(20, 25, 5, 3, 0xd8c8e0); jar(28, 28, 5, 9, 0x3a6a8a); jar(36, 28, 7, 6, 0x4a7a4a); p.line(41, 0, 43, 8, 0x4a6a3a); p.line(43, 0, 42, 9, 0x5a7a4a);
+  return p.outline(null, 0.6).tex(); });
+PX.def('bathPegs', () => { const W = 60, H = 44, p = new Pix(W, H);   // a peg rail: a linen shift, a towel, a red robe, a hat
+  p.rect(0, 2, W, 3, 0x5a3c24); p.hl(0, W - 1, 2, 0x7a5434); for (const x of [6, 20, 34, 50]) p.rect(x, 4, 2, 3, 0x3a2418);
+  const hang = (x0, w, h, c, flare) => { for (let y = 6; y < 6 + h; y++) { const f = Math.round((y - 6) / h * flare); for (let x = x0 - f; x < x0 + w + f; x++) p.set(x, y, C.mul(c, (0.8 + 0.22 * noise1((x - x0) * 0.8, 75 + x0)) * (y < 8 ? 1.15 : 1))); } };
+  hang(3, 8, 30, 0xe8dcc4, 3); hang(17, 8, 18, 0xd0c4a8, 0); hang(30, 10, 36, 0xa82a2a, 3); p.ell(51, 9, 5, 2.5, 0x4a3a2a); p.rect(48, 5, 6, 3, 0x4a3a2a);
+  return p.outline(null, 0.6).tex(); });
+PX.def('herbBunch', () => { const p = new Pix(10, 16); p.vl(5, 0, 3, 0x8a6a3a); for (let y = 3; y < 16; y++) { const hw = Math.min(4, 1 + (y - 3) * 0.4); for (let x = -Math.round(hw); x <= hw; x++) if (hash(x, y, 76) > 0.25) p.set(5 + x, y, C.mul(hash(x, y, 77) > 0.8 ? 0x9a7aa8 : 0x5a7a4a, 0.75 + 0.4 * hash(x, y, 78))); } return p.outline(null, 0.6).tex(); });
+PX.def('streetSlit', () => { const W = 40, H = 18, p = new Pix(W, H);   // a barred slit at street level: night, a wet cobble or two, the moon on them
+  p.rect(0, 0, W, H, 0x4a4038); for (let y = 2; y < H - 2; y++) for (let x = 2; x < W - 2; x++) p.set(x, y, C.mul(0x2a3a68, 0.7 + 0.5 * (y / H) + 0.25 * hash(Math.floor(x / 5), Math.floor(y / 3), 79)));
+  for (const x of [9, 19, 29]) p.vl(x, 2, H - 3, 0x1a1a20); p.hl(1, W - 2, 1, 0x7a6e60); return p.tex(); });
+PX.def('duckboard', () => { const p = new Pix(32, 16); for (let y = 0; y < 16; y++) for (let x = 0; x < 32; x++) p.set(x, y, y % 4 === 3 ? 0x1a140e : C.mul(0x8a6844, 0.8 + 0.3 * noise1(x * 0.4 + Math.floor(y / 4) * 9, 80))); return p.tex({ repeat: true }); });

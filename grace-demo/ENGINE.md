@@ -29,6 +29,9 @@ make the look work, and the recipes for adding rooms, props, characters, convers
 - A room can only build inside `build()`. Anything shown later is built there hidden. Anything that moves is `dyn`.
 - Before you say something works: every room boots with no page errors, `SCENE.walkCheck()` is `[]`, and the interaction
   you added runs to its end with `SCENE.lock` back at 0 (the room loop in §13o is the regression).
+- The regression lives in the repo: `node tools/regress.js` (all suites) or `node tools/regress.js rooms` (§13t). Run it
+  before every commit; add a suite when you add a system.
+- Handing work to smaller, cheaper agents is §13u: what to delegate, the packet, and what always stays with the lead.
 
 Contents
 1. What it is, in one paragraph
@@ -62,6 +65,8 @@ Contents
 13q. Adult scenes: the rhythm, the positions, the lens
 13r. The realm: weeks, the court's queue, the ledgers
 13s. The endings
+13t. The regression suites
+13u. Working with worker agents
 14. Credits and licences
 
 ---
@@ -1376,8 +1381,8 @@ The game's loop is *Yes, Your Grace*'s: a week of walking the castle, a court of
 - **What carries forward.** `flags.fire === 0`: no fire at the fair or the feast. `flags.masked === 0`: no black knight at
   the feast. `flags.krasna < 0`: the crisis opens on day two. `flags.inquiry`: Dorota cools. `flags.bargain2`, `hela`,
   `letter`, `told`: the endings (§13s).
-- **The crisis's court** (`REALM.CRISIS`): three petitions that arrive on days 2, 5 and 8; `CAL.next` reopens court when
-  one is waiting, and the journal says so.
+- **The crisis's court** (`REALM.CRISIS`): three petitions here on days 2, 5 and 8 and six more in g53 (§13r-2);
+  `CAL.next` reopens court when one is waiting, and the journal says so.
 
 **Adding a petition**: write it in `REALM.PETS`, put its id in a week, and if nobody in the cast can speak it, add a
 petitioner spec beside the others. **Testing** (`t/realm.js` pattern): an interval that plays the two panels (click an
@@ -1392,6 +1397,91 @@ builds a cutscene from rooms the game has (the fortress in the storm or under si
 dawn, the garden without Kazik, the yard), the last shot is the card (*The End · title*), and the title screen returns.
 `CAL.phase` becomes `'done'`; the save keeps `END.seen`. To add an ending: a branch in `END.pick`, a title, and a `tail`
 of shots.
+
+## 13r-2. The siege's court, and what came of it (`game/g53_siege.js`)
+
+**Six more petitions** make the twelve days a daily court: salt hoarders (day 3), three hundred at the Ostrów gate (4),
+deserters (6), the undercut north wall (7, an aid petition), the cathedral's bells (9), Krasna's households (10). With
+`flour`, `mother` and `warehouse` that is a petition on nine of the first ten days. They are added to `REALM.PETS` with
+`Object.assign` and to `REALM.CRISIS` with `push` + `sort`, so g51 stays the schema and g53 stays data. They reuse existing
+petitioner actors (`who` must be an id that already has a spec: a new face needs a spec in g51's block first).
+
+**`REALM.ECHO`: no choice goes unread.** An audit found eleven flags that a petition or a moment set and nothing ever
+read (the choice changed a number once and was forgotten). The fix is one table, not eleven special cases:
+
+```js
+REALM.ECHO = [ [flag, value, when, "the steward's report", fx], ... ];   // when: 'w3' = court week ≥ 3, 'c4' = crisis day ≥ 4
+```
+
+`COURT.run` calls `REALM.echo()` before the first petitioner: up to three due rows are read out by the steward ("Before
+the hall fills, Your Grace: what came of it."), each applies its `fx` through `REALM.fx`, and each is marked once in
+`REALM.done['echo:flag:value']` (saved with the realm). A 'w' row that was missed is still due in the crisis. A row with
+`null` fx is a line only.
+
+Rules that follow from it:
+- **Every new flag gets a reader in the same commit**: an ending (`END.pick`), a scene, or an ECHO row. To check, grep the
+  flag name: one hit that is only an assignment means it is dead.
+- An echo arrives **at least a week (or two crisis days) after** its choice, and says the consequence in a concrete image
+  ("the widows lit forty candles"), never in numbers: the toast carries the numbers.
+- Echo fx are small (±1, a rare ±2). The choice already paid its price; the echo is the world remembering.
+- Court only sits in the crisis while a petition waits (`REALM.waiting()`), and the last petition is day 10, so a 'c' row
+  later than `c10` would never be read.
+
+## 13t. The regression suites (`tools/regress.js`, `tools/regress/`)
+
+`node tools/regress.js [suite ...]` runs the built page headlessly (through `tools/shot.js`) and prints one `PASS` or
+`FAIL` line per run, then `N passed, M failed`; the exit code is 1 on any failure. No arguments runs every suite.
+
+| suite | what it proves | time |
+|---|---|---|
+| `rooms` | all fourteen rooms boot: right room, no page error, `SCENE.walkCheck()` empty, nobody left parked on layer 1 | ~4 min |
+| `endings` | `END.pick` returns D, E, C, B, A for five constructed states; `END.play` runs to the title with the lock at 0 | ~5 min |
+| `realm` | week one's moment, a court of three petitions, the ledger, the bed, on to week two; no timeouts, no errors | ~6 min |
+
+A suite is a module in `tools/regress/` exporting `{ name, runs: [{ label, query, steps }], check(label, evals) }`:
+`steps` is what `shot.js` takes, `evals` are that run's eval results already parsed, and `check` returns `null` or a short
+reason. `tools/regress/drv.js` is the in-page driver string (`DRV.until(cond, ms)` waits; `DRV.adv(cond, ms)` also clicks
+the first choice, passes the age gate and advances bubbles; `DRV.use(id)` uses a hotspot): inject it with
+`['eval', DRV + '1']`. Suites take no screenshots: looking is still done by hand with `shot.js` (§11).
+
+Software WebGL is slow and timing varies: every wait in a suite is on state with a generous timeout, never on a clock.
+Run one suite at a time, and never while `build.sh` is writing `build/index.html`.
+
+## 13u. Working with worker agents (lead and workers)
+
+The owner's setup: one lead (the strongest model) plans, reviews and integrates; cheap, fast workers
+(`.claude/agents/haiku-coder.md`, capped at a 100k-token context) each do one bounded task. What made it work here:
+
+**The worker definition matters more than the prompt.** A worker started as a general-purpose agent inherits every tool
+schema and arrives with most of its window already spent; `haiku-coder` allows six tools (`Read, Edit, Write, Grep, Glob,
+Bash`), cannot spawn agents, and compacts at 100k. Its body holds the standing rules (scope, context diet, report format),
+so a packet only has to carry the task. A new `.claude/agents/` folder is only seen by a session started after it exists.
+
+**This repo's context traps**, which every packet must fence off: `build/` (8.8 MB in two files), `vendor/`, `assets/`,
+`ENGINE.md` (30k tokens: give line ranges), `STORY.md` (10k tokens: give line ranges), screenshots (each costs tokens).
+
+**What to delegate**: read-only audits answered by grep (dead flags, unused helpers, missing `reset/state/load` entries);
+porting or writing test suites; data rows against a schema that already has ten examples (petitions, echo rows, shop lines)
+as a *draft*; mechanical renames. **What stays with the lead**: rooms and anything measured against the throne room,
+poses and cameras, the render pipeline, every adult scene and its rules (`CLAUDE.md` rule 6), story decisions, the final
+wording of any line the player reads, the build, the commit.
+
+**The packet** (each of these was needed at least once): the objective in a sentence; the exact files it may create or
+change, and "touch nothing else"; line ranges to read; the allowed values of every enum (actor ids, fx keys and ranges);
+the checks to run and how long they take; "do not run `build.sh`, do not commit" (workers share the checkout, and a build
+under a running test corrupts the test); the report format; and "if the check fails and your port is faithful, report it,
+do not weaken the check".
+
+**Review, every time**: read the diff, not the summary; run the worker's check yourself; then judge what a check cannot
+(tone, period, whether a choice is a real dilemma, whether a line contradicts `STORY.md`). In the first round the audit
+was right as delivered; the petition draft passed its validator and still needed most of its lines rewritten (cannon in a
+world of lances, a choice that paid gold for doing nothing, a petition that repeated day 8's) and one fact corrected
+against the story bible. Schema checks catch shape, not sense: budget the lead's time for the second.
+
+**Parallel work** needs disjoint files and no shared outputs: one new file per worker, the lead alone builds. Workers
+run in the background and report once; they cannot be steered mid-flight here, so keep tasks small enough that a wrong
+turn costs minutes. To correct a finished worker, message the same worker with the specific mistake, why it is wrong in
+this codebase, the right method, and what to re-run; take the task over after a second miss.
 
 ## 14. Credits and licences
 

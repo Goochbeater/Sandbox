@@ -19,3 +19,9 @@ Standing rules (the owner asked for these; they apply to every session):
    the source, and keep model names out of commit messages.
 8. **The loop is weeks of court** (`ENGINE.md` §13r): petitions are data in `REALM.PETS`, family moments in `REALM.EVENTS`,
    and everything a choice changes goes through `REALM.fx`. New story beats belong in those tables before new code.
+9. **No dead choices** (`ENGINE.md` §13r-2): every flag a choice sets is read in the same commit, by an ending, a scene or
+   a row in `REALM.ECHO`.
+10. **Run `node tools/regress.js` before a commit** (§13t), one suite at a time and never during a build.
+11. **Delegating to worker agents** (§13u, `.claude/agents/haiku-coder.md`): one bounded packet per worker, disjoint files,
+    workers never build or commit, the lead reads every diff and rewrites any line the player will read. Rooms, poses,
+    the renderer, story decisions and all adult content (rule 6) are never delegated.

@@ -65,6 +65,7 @@ COURT.run = async function () {
   COURT.busy = true; SCENE.lock++;
   const A = CAST.A;
   const Q = REALM.queue();   // this week's petitioners (g51), or the crisis's
+  await REALM.echo();   // what came of earlier choices (g53)
   await SCENE.talk([[A.steward, Q.length ? 'Court is in session. Let the first petitioner in.' : 'Nobody waits below today, Your Grace.']]);
   for (const p of Q) { await COURT.petition(p); REALM.heard(p); }
   if (Q.length) await SCENE.talk([[A.steward, 'That is everyone for today, Your Grace.']]);

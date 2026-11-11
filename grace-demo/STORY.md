@@ -15,9 +15,9 @@ The plan for the whole game's story. Names are placeholders; change them in one 
 | The twelve days: the investigation, its eight clues and the red herrings (§7), the journal, the accusation and its outcomes | built |
 | Chapter five's war: a battle preview (the king commands, two armies charge and meet); the war camp | preview built; the camp next |
 | Chapters 1–2 as four playable weeks: a queue of petitioners each week (eleven petitions: aid and decisions), six family moments, the ledgers (Gold, Stores, Mood, Army; the family in words), the journal's week page | built |
-| Court during the crisis (three petitions on days 2, 5, 8) | built |
+| Court during the crisis: nine petitions across days 2–10 (the siege's daily court), and the steward's reports of what earlier choices came to (`REALM.ECHO`) | built |
 | Chapter six and the five endings (§11), as cutscenes, back to the title | built |
-| Still planned: the war camp, Dobrawa and Brother Anzelm, the siege's daily court, the House's bathhouse | planned |
+| Still planned: the war camp, Dobrawa and Brother Anzelm, the House's bathhouse | planned |
 
 ---
 

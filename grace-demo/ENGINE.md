@@ -1436,7 +1436,8 @@ Rules that follow from it:
 |---|---|---|
 | `rooms` | all fourteen rooms boot: right room, no page error, `SCENE.walkCheck()` empty, nobody left parked on layer 1 | ~4 min |
 | `endings` | `END.pick` returns D, E, C, B, A for five constructed states; `END.play` runs to the title with the lock at 0 | ~5 min |
-| `realm` | week one's moment, a court of three petitions, the ledger, the bed, on to week two; no timeouts, no errors | ~6 min |
+| `realm` | week one's moment (it boots in the garden for it), a court of three, the ledger, the bed, week two; week four's court with the pay panel, the bridge to the festival, a crisis court; no timeouts, no errors | ~8 min |
+| `siege` | `REALM.ECHO`: three reports told in a court week and three more in the crisis, each once; the wall (aid panel) and the herald (decision) heard, their flags set, the day bought | ~6 min |
 
 A suite is a module in `tools/regress/` exporting `{ name, runs: [{ label, query, steps }], check(label, evals) }`:
 `steps` is what `shot.js` takes, `evals` are that run's eval results already parsed, and `check` returns `null` or a short

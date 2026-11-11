@@ -1,6 +1,6 @@
 // Kingdom-loop check: plays the court and the weeks of the realm from the throne room to the bedroom and back, with
 // the court and weekly-seal panels answered by an automatic clicker, then checks no step timed out and no errors were logged.
-// The scratch original gave no query, so this uses the same boot query as the other suites.
+// It boots in the garden: week one's moment (Zofia and the wooden sword) only happens there, and the suite waits for it.
 // Run: node tools/regress.js realm
 const DRV = require('./drv.js');
 
@@ -14,8 +14,8 @@ const st = ['eval', `JSON.stringify({ week: CAL.week, phase: CAL.phase, stats: C
 module.exports = {
   name: 'realm',
   runs: [{
-    label: 'bedroom',
-    query: '?test&room=bedroom&catchup=4',
+    label: 'garden',
+    query: '?test&room=garden&catchup=4',
     steps: [['wait', 4000], ['eval', DRV + '1'], ['eval', auto], ['eval', `SCENE.player.crownMesh.visible = true; 1`],
       ['eval', `DRV.adv(() => REALM.done.zofiaSword && SCENE.lock === 0 && !SCENE.bubble, 90000)`], st,
       ...go('throne', -8), ['wait', 1500], ['eval', `SCENE.advance(); DRV.use('throne')`], ['eval', `DRV.adv(() => COURT.done && SCENE.lock === 0 && !SCENE.bubble && !SCENE.modal, 400000)`], st,

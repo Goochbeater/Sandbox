@@ -37,6 +37,7 @@
   #pauseBtn::before { left: 12px; } #pauseBtn::after { left: 24px; }
   #pauseBtn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
   #hint { color: var(--dim); font-size: clamp(11px, 1.6vw, 16px); letter-spacing: 0.04em; transition: opacity 1.2s; text-align: center; }
+  body:has(#night:not([hidden])) #hint { opacity: 0; transition: none; }   /* a choice strip can wrap onto the hint's line */
   #caption { position: absolute; left: 0; right: 0; top: 38%; text-align: center; font-family: var(--caps); font-size: clamp(16px, 3vw, 34px); letter-spacing: 0.16em;
              color: var(--paper); text-shadow: 0 2px 12px #000; opacity: 0; transition: opacity 1.6s; pointer-events: none; }
   #caption small { display: block; font-family: var(--serif); font-style: italic; letter-spacing: 0.04em; font-size: 0.55em; color: #d8c6a8; margin-top: 0.3em; }

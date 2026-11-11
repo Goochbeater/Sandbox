@@ -1418,6 +1418,9 @@ the hall fills, Your Grace: what came of it."), each applies its `fx` through `R
 `REALM.done['echo:flag:value']` (saved with the realm). A 'w' row that was missed is still due in the crisis. A row with
 `null` fx is a line only.
 
+A three-option strip wraps to a second row on a wide screen and lands on the hint line at the bottom, so the hint is
+hidden while any choice strip is up (`body:has(#night:not([hidden])) #hint` in `head.html`).
+
 Rules that follow from it:
 - **Every new flag gets a reader in the same commit**: an ending (`END.pick`), a scene, or an ECHO row. To check, grep the
   flag name: one hit that is only an assignment means it is dead.

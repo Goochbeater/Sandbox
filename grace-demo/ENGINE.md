@@ -22,8 +22,8 @@ make the look work, and the recipes for adding rooms, props, characters, convers
 - Look: `tools/shot.js` (§11). Use `?test&room=<id>`; add `&catchup=4` and `W=800 H=357 DPR=1` for anything long. Wait on
   state, not on time. Read the page log every run: a shader or script error shows only there.
 - The game's spine, in order: title and opening (`g22`) → weeks of court (`g45` calendar, `g50` court, `g51` realm) → the
-  festival (`g36`–`g39`) → the feast (`g46`) → the investigation (`g48`) → the battle (`g49`) → the endings (`g52`). Adult
-  scenes: `g26` (bed), `g27` (positions), `g29` (confessional), `g42`–`g43` (the House).
+  festival (`g36`–`g39`) → the feast (`g46`) → the investigation (`g48`) → the war camp (`g56`) and the battle (`g49`) → the endings (`g52`). Recruits: `g54`. Adult
+  scenes: `g26` (bed and hearth), `g27` (positions), `g29` (confessional), `g42`–`g43` (the House), `g55` (the bathhouse).
 - State that must survive a reload goes in `GAME.reset` / `GAME.state` / `GAME.load` (`g22`). Each system has `reset`,
   `state`, `load` of its own; add yours the same way.
 - A room can only build inside `build()`. Anything shown later is built there hidden. Anything that moves is `dyn`.
@@ -68,6 +68,7 @@ Contents
 13r-2, 13r-3. The siege's court and consequences; the recruits
 13t. The regression suites
 13v. The bathhouse
+13w. The war camp
 13u. Working with worker agents
 14. Credits and licences
 
@@ -1527,6 +1528,56 @@ pipe along the wall, herbs from the beams, a slit window at street level, steam.
 - A wet floor is `BUILD.reflective(tex, { k: 0.42, rough: 0.5 })`: a sheen. At 0.75 / 0.35 every flame was a pillar.
 The suite is `tools/regress/bath.js`.
 
+## 13w. The war camp (`game/g56_warcamp.js`; textures `canvasWar`, `soldiers`, `shieldStack` at the end of `g18_paint_fest.js`)
+
+Chapter five, when the accusation made a war (`INV.OUT[key].war`): `INV.conclude` no longer cuts straight to the battle,
+it calls `WARCAMP.begin(war)`. The room is a festival ground (`FEST.room`, the same 32 m strip and lens) under the
+battle's sky: baggage and stores · the men's tents and fire, the sergeant · the armourer's rack · the king's pavilion with
+the map table, Ser Bogdan · the surgeon's tent (Dobrawa, if she is in service) · the horse lines, Burza · the stakes at
+the camp's edge and the enemy's fires across the field. Zofia has ridden out in a groom's coat if `fam.zofia ≥ 6`.
+
+**What the king does there** (`WARCAMP.ask(actor, lines, options)`: somebody speaks, the player's words, a reply, `fx`,
+`set`; state in `WARCAMP.plan / fed / spoke / zofia / fought / war`, saved as `camp` in `GAME.state`):
+
+| where | choice | effect |
+|---|---|---|
+| the map table | hold the rise · the horse round their left · one line, no reserve | `plan` 1 / 2 / 3 |
+| the stores | a double ration and the wine (Stores −2) · the usual | `fed` 1 / 2 |
+| the fire | their homes (Mood +1) · silver (Gold −2) · sit with them | `spoke` 1 / 2 / 3 |
+| Zofia | she carries water (zofia +2, halina −1) · sent home (zofia −1, halina +1) | `zofia` 1 / 2 |
+
+**The order** (`WARCAMP.ride`, at the stakes; refused until there is a plan): `BATTLE.play`, which returns to this room,
+now at dusk (`WARCAMP.dusk`: sky light × 0.4, fires × 1.6, exposure × 0.86, a colder grade, denser fog). Bogdan tells
+the result and `REALM.fx` applies it, then `END.play`.
+
+```
+strength = army + (fed a double ration: 1) + (homes or silver at the fire: 1)
+         + (the rise: 1 · the flanking ride: 2 if army ≥ 5, else −1 · one line: 0)
+≥ 8 won   (army −1, mood +2, flags.battle 2)      5..7 held (army −2, flags.battle 1)
+< 5 broke (army −3, mood −2, stores −1, flags.battle 0)        Dobrawa in service: one fewer lost
+```
+`flags.battle` gives the ending a line of its own (`END.shots`), and the army it leaves feeds `END.pick` (C: the drowned
+crown). The map is refused in the camp (`MAP.gate`, a hook in `engine/e11_map.js`).
+
+**Additions to shared code:** `FEST.backdrop(room, { sky, skyK, cans, pens })` (another day's weather; whose tents fill
+the meadow); `MAP.gate()`; `END.shots` reads `flags.battle`; `BATTLE`'s last caption no longer promises this room.
+
+**What the picture taught:**
+- **Stripes are a fair.** The first camp reused the festival's canvases: blue-white, teal-yellow. It was a carnival
+  under a grey sky. A host sleeps under undyed canvas (`canvasWar`: buff, seamed, rain-dark at the hem, patched); only
+  the king's pavilion keeps its stripes, and so it is the one thing the eye goes to.
+- **`T.mud` is not a repeating texture.** Stretched over a 36 m rug it smeared into diagonal zebra stripes. The yard's
+  `T.sand` (packed sand and mud, boot prints, puddles; `repeat`) tinted `0x8e7e68` is the street. Check `tex({ repeat })`
+  before giving any texture a `ru` / `rv`.
+- **Three actors are not a host.** Nine painted knots of men-at-arms (`soldiers`, 96 × 44: helmets, spears, one sitting)
+  stand between the tents from 3 m to 12 m back, some mirrored (`w: -3.45`), half with a fire: the far ones dissolve into
+  the depth of field as a blur of blue, three stand near enough to have faces. Shields on rails, more fires than tents.
+  Cards, so they cost nothing and nobody expects them to answer.
+- **The enemy has to be in the picture.** Their fires were first 150 m out, behind the far trees' cards: invisible.
+  At 62–96 m, in front of the trees, they are a line of sparks across the field on the right.
+- **A time of day is light, not a caption.** "Dusk" over the morning's picture was a lie the eye caught at once.
+The suite is `tools/regress/warcamp.js` (it skips the battle's shots with `CUT.skip`).
+
 ## 13t. The regression suites (`tools/regress.js`, `tools/regress/`)
 
 `node tools/regress.js [suite ...]` runs the built page headlessly (through `tools/shot.js`) and prints one `PASS` or
@@ -1534,13 +1585,14 @@ The suite is `tools/regress/bath.js`.
 
 | suite | what it proves | time |
 |---|---|---|
-| `rooms` | all fifteen rooms boot: right room, no page error, `SCENE.walkCheck()` empty, nobody left parked on layer 1 | ~4 min |
+| `rooms` | all sixteen rooms boot: right room, no page error, `SCENE.walkCheck()` empty, nobody left parked on layer 1 | ~4 min |
 | `endings` | `END.pick` returns D, E, C, B, A for five constructed states; `END.play` runs to the title with the lock at 0 | ~5 min |
 | `realm` | week one's moment (it boots in the garden for it), a court of three, the ledger, the bed, week two; week four's court with the pay panel, the bridge to the festival, a crisis court; no timeouts, no errors | ~8 min |
 | `siege` | `REALM.ECHO`: three reports told in a court week and three more in the crisis, each once; the wall (aid panel) and the herald (decision) heard, their flags set, the day bought | ~6 min |
 | `hearth` | Halina's scene on the bearskin by the fire: the gate, the choice, staged and cleared, no *Bed's edge*, the king never drawn with his parts, the week advances | ~3 min |
 | `agents` | Dobrawa met and taken on (roster, marker, her piece of the name); in the crisis she and Anzelm give `dried` and `oldSeal` by their own roads, the gate petition gains its fourth answer, `END.named()` | ~2 min |
 | `bath` | Lena's bathhouse scene: her option, the gate, staged in the tub with only *Kiss* / *In his lap*, cleared, the night counted, back in the common room | ~3 min |
+| `warcamp` | an accusation that makes a war opens the camp; the map refused; plan, stores, fire; the order; the battle (skipped); the result applied (strength 8: won); the ending to the title | ~4 min |
 
 A suite is a module in `tools/regress/` exporting `{ name, runs: [{ label, query, steps }], check(label, evals) }`:
 `steps` is what `shot.js` takes, `evals` are that run's eval results already parsed, and `check` returns `null` or a short

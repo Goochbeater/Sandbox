@@ -15,6 +15,7 @@ MAP.setup = function (paint, w, h, places) {
 };
 MAP.open = function () {
   if (MAP.open_ || !MAP.places.length) return;
+  if (MAP.gate && MAP.gate()) return;   // the game can refuse the map where there is nowhere to go (the war camp)
   if (!MAP.painted) { const p = new Pix(MAP.W, MAP.H), cv = $('mapCanvas'); MAP.paint(p); cv.width = MAP.W; cv.height = MAP.H; cv.getContext('2d').putImageData(new ImageData(p.d, MAP.W, MAP.H), 0, 0); MAP.painted = true;
     for (const pl of MAP.places) { pl.el.style.left = (pl.x / MAP.W * 100) + '%'; pl.el.style.top = (pl.y / MAP.H * 100) + '%'; } }   // the painter may move pins (onto the photographed castle)
   if (MAP.onOpen) MAP.onOpen(MAP.places);   // the game can lock or relabel pins for the day (the calendar: the meadow only in the festival)

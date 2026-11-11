@@ -215,3 +215,21 @@ for (const [k, f] of Object.entries({
     for (let x = 11; x < 20; x++) p.set(x, 7, hash(x, 2, 881) < 0.5 ? 0xf06a18 : 0xc83a10);
     return p.outline(null, 0.6).tex(); },
 })) PX.def(k, f);
+/* ---------------------------------------------------------------- the war camp (g56): a host's canvas, and the host */
+PX.def('canvasWar', () => { const p = new Pix(64, 64);   // undyed campaign canvas: seams every eight pixels, rain-dark toward the hem, a patch or two
+  for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) { const seam = x % 8 === 0 ? 0.82 : 1, wet = y > 44 ? 1 - (y - 44) / 60 : 1;
+    p.set(x, y, C.mul(0xb4a98e, seam * wet * (0.9 + 0.12 * noise1(x * 0.4, 801 + Math.floor(y / 6)) + 0.06 * hash(x, y, 802)))); }
+  for (const [x, y] of [[11, 20], [43, 34]]) { p.rect(x, y, 5, 5, 0x8a8068); p.hl(x, x + 4, y, 0x6a6250); p.vl(x, y, y + 4, 0x6a6250); }
+  return p.tex({ repeat: true }); });
+PX.def('soldiers', () => { const W = 96, H = 44, p = new Pix(W, H);   // a knot of men-at-arms waiting: helmets, spears, a shield or two, one sitting
+  const man = (x, sit, blue, spear) => { const top = sit ? 20 : 8, body = blue ? 0x2c4478 : 0x5a5248;
+    p.rect(x - 3, top + 6, 7, sit ? 12 : 20, body); p.rect(x - 3, top + (sit ? 18 : 26), 3, H - top - (sit ? 18 : 26), 0x2a2620); p.rect(x + 1, top + (sit ? 18 : 26), 3, H - top - (sit ? 18 : 26), 0x2a2620);
+    p.rect(x - 2, top + 1, 5, 5, 0xc89878); p.rect(x - 3, top - 1, 7, 3, 0x8a929e); p.hl(x - 3, x + 3, top - 1, 0xb8c0cc); p.vl(x, top + 8, top + 16, 0xe0d8c8);
+    if (spear) { p.vl(x + 5, 0, H - 1, 0x4a3a28); p.set(x + 5, 0, 0xc8d0d8); p.set(x + 5, 1, 0xc8d0d8); } };
+  man(8, false, true, true); man(20, false, false, false); man(31, true, true, false); man(44, false, false, true); man(57, false, true, false); man(68, true, false, false); man(82, false, true, true);
+  p.ell(25, 36, 4, 6, 0x2c4478); p.ell(25, 36, 2, 3.5, 0xe8e2d6); p.ell(63, 37, 4, 6, 0x6a2a24); p.jitter(0.14, 803);
+  return p.outline(null, 0.55).tex(); });
+PX.def('shieldStack', () => { const p = new Pix(30, 22);   // shields leaned against a rail, the swan on two of them
+  p.rect(0, 6, 30, 2, 0x4a3a28); p.vl(1, 6, 21, 0x3a2c1c); p.vl(28, 6, 21, 0x3a2c1c);
+  for (const [x, c] of [[6, 0x2c4478], [14, 0xd8d0c0], [22, 0x2c4478]]) { p.ell(x, 13, 4, 7, c); p.ell(x, 12, 1.6, 2.6, c === 0xd8d0c0 ? 0x2c4478 : 0xe8e2d6); p.set(x, 13, 0x9aa2ae); }
+  return p.outline(null, 0.6).tex(); });

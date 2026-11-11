@@ -34,6 +34,8 @@ END.shots = function (e, war) {
   const open = [S(X(() => EXTERIOR.mode(war ? 'siege' : 'present')), war ? siege : storm, 8.5, walls, { music: 'intro', musicFade: 2, sfx: [['thunder', 1.4, { gain: 0.9 }]] }),
     S(X(() => EXTERIOR.mode('present')), storm, 8, 'It rained for forty days, as it had rained for his father. On the fortieth night it stopped all at once.'),
     S({ room: 'throne', setup: () => THRONE.night(true), ambience: { rainGlass: 0.1, tone: 0.5 }, done: () => THRONE.night(false) }, hall, 8.5, 'Nobody stopped the Woman at the gate. Nobody remembered afterwards that there had been a gate.')];
+  if (war && REALM.flags.battle !== undefined) open.splice(1, 0, S(X(() => EXTERIOR.mode('siege')), siege, 7.5,   // what the field came to (the war camp, g56)
+    ['The host of Lodmir broke on the first day. What was left of it held the walls.', 'The host of Lodmir held its field for a day, and then the walls for the rest.', 'The host of Lodmir won its field. The rain won everything after.'][REALM.flags.battle]));
   const tail = {
     A: [S(X(() => EXTERIOR.mode('wood')), wood, 9, 'She had sold him his kingdom twice. He had kept it, and his house with it. So she asked for the only thing left that was his alone.'),
       S(X(() => EXTERIOR.mode('dawn')), dawn, 8.5, 'King Radomir walked into the Wood at dawn. He did not look back; Halina had asked him not to.'),

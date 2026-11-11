@@ -13,14 +13,15 @@ The plan for the whole game's story. Names are placeholders; change them in one 
 | The House of the Lantern (§9): the tunnel, the common room, five women's rooms | built |
 | The calendar (§12), the feast and King Gniewomir's death (chapter 3's night), the opening of chapter 4 | built |
 | The twelve days: the investigation, its eight clues and the red herrings (§7), the journal, the accusation and its outcomes | built |
-| Chapter five's war: a battle preview (the king commands, two armies charge and meet); the war camp | preview built; the camp next |
+| Chapter five's war: the war camp, then the battle (the king commands, two armies charge and meet) | built |
 | Chapters 1–2 as four playable weeks: a queue of petitioners each week (eleven petitions: aid and decisions), six family moments, the ledgers (Gold, Stores, Mood, Army; the family in words), the journal's week page | built |
 | Court during the crisis: nine petitions across days 2–10 (the siege's daily court), and the steward's reports of what earlier choices came to (`REALM.ECHO`) | built |
 | Chapter six and the five endings (§11), as cutscenes, back to the title | built |
 | Halina's night can be played on the bearskin by the bedchamber fire instead of the bed | built |
 | Dobrawa (garden, week 3) and Brother Anzelm (study, week 4): recruited by a choice; court agents, their own answers in later petitions, their own roads to clues 5 and 3, and two of the three parts of the Woman's name | built |
 | The House's bathhouse (a room of its own under the gallery) and Lena's scene in the tub | built |
-| Still planned: the war camp | planned |
+| The war camp: chapter five as a place (the plan with Bogdan, the stores, the fire, Zofia, Dobrawa's tent), the order, the battle, and its result carried into the ending | built |
+| Still planned: Halina and the kept letter (chapter five's "worst conversation"); chapter six's siege days as court; the House's cellar and gallery as rooms; Róża, Nadia, Agata and Hanna's troubles | planned |
 
 ---
 

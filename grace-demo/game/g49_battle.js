@@ -286,7 +286,7 @@ BATTLE.play = async function (o) {
     if (await BATTLE.shot([58, 24, meet + 48, 0, 0, meet - 4, 36], [40, 36, meet + 38, 0, 0, meet - 6, 36], 8)) return;
     // 7. back on the rise, behind the king: the battle below him
     if (await BATTLE.shot([R0.x + 3.2, ky + 3.4, R0.z + 7.5, R0.x - 18, ky - 4, meet + 10, 32], [R0.x + 2.6, ky + 3.2, R0.z + 6.6, R0.x - 18, ky - 4, meet + 6, 30], 6)) return;
-    BATTLE.cap('The War of the Cup · to be continued in the war camp');
+    BATTLE.cap('The War of the Cup');
     await BATTLE.wait(4500);
   } finally {
     fade.classList.remove('off'); await SCENE.wait(900);

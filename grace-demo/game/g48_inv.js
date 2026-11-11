@@ -228,7 +228,7 @@ INV.accuse = async function () {
 INV.conclude = async function (key) {
   const O = INV.OUT[key]; INV.outcome = key; CAL.phase = 'ch5'; GAME.save();
   await NIGHT.fade(true); SCENE.caption('Chapter Five · The War of the Cup', O.text); await SCENE.wait(6500);
-  if (O.war && typeof BATTLE !== 'undefined') await BATTLE.play({ enemy: O.war });
+  if (O.war) return WARCAMP.begin(O.war);   // a war: the camp first (g56). The order given there plays the battle, then the ending
   await END.play();   // chapter six: the fortieth night, the Woman's price, the ending the ledgers earned (g52); then the title
 };
 /* the twelfth day ran out (CAL.next) */

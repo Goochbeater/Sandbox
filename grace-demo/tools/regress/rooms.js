@@ -1,7 +1,7 @@
 // Per-room boot check: loads each room with ?test&room=<id>&catchup=4 and checks the player stands in that room,
 // nothing solid is on the walking line, nothing is parked on layer 1, and the page logged no errors.
 // Run: node tools/regress.js rooms
-const ROOMS = ['bedroom', 'study', 'garden', 'yard', 'chapel', 'throne', 'wood', 'hut', 'fair', 'lists', 'camp', 'lantern', 'lroom', 'lbath', 'feast'];
+const ROOMS = ['bedroom', 'study', 'garden', 'yard', 'chapel', 'throne', 'wood', 'hut', 'fair', 'lists', 'camp', 'lantern', 'lroom', 'lbath', 'warcamp', 'feast'];
 
 module.exports = {
   name: 'rooms',

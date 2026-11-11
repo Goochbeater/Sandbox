@@ -17,7 +17,7 @@ FEST.room = function (id, title, sub, more) {
 FEST.backdrop = function (room, o) {
   o = o || {}; const T = PX.T, RP = RAMP, D = 12;
   BUILD.plane('y+', -150, 150, -300, 14, 0, T.fairGround);
-  BUILD.sky(T.skySummer, { z: -300, w: 760, h: 260, y: -50, k: 1.0 });
+  BUILD.sky(o.sky || T.skySummer, { z: -300, w: 760, h: 260, y: -50, k: o.skyK || 1.0 });   // o.sky: another day's weather (the war camp's overcast)
   /* far trees in haze, the hill with the Swan Fortress on it, the near trees at its foot */
   BUILD.card(T.forestFar, o.fx || 0, 0, -240, { w: 420, h: 52, basic: true, cast: false });
   const hx = o.fx || 0, hz = -230;
@@ -44,7 +44,7 @@ FEST.backdrop = function (room, o) {
     BUILD.facade(x0, x1, 0, hh, z0, z1, F(RP.inner, PX.stoneTile(RP.inner, D, seed), seed, { win: [[(x1 - x0) * 0.3, hh - 2.6, 'square', 0], [(x1 - x0) * 0.7, hh - 2.6, 'square', 0]], grime: 0.3 }));
     BUILD.roof(x0, x1, z0, z1, hh, 3.6, tile.red, { gable: tile.stone, over: 0.4 }); }
   /* a sea of tents behind the ground, flags on every one */
-  const cans = [T.canvasKrasna, T.canvasSwan, T.canvasTeal, T.canvasLilac], pens = [T.pennantRed, T.pennantBlue, T.pennantLeague, T.pennantKrasna];
+  const cans = o.cans || [T.canvasKrasna, T.canvasSwan, T.canvasTeal, T.canvasLilac], pens = o.pens || [T.pennantRed, T.pennantBlue, T.pennantLeague, T.pennantKrasna];   // o.cans / o.pens: whose camp it is
   for (const [x, z, r, i] of o.tents || []) BUILD.tent(x, z, r, r * 1.05, r * 0.9, cans[i % 4], cans[i % 4], { pennant: pens[i % 4], seg: 12 });
   BUILD.flock(T.crow, [[-20, 26, -60, 12, 2, 0.3], [24, 30, -80, 16, 3, -0.25]], { s: 2.0 });
 };

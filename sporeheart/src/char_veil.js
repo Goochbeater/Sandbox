@@ -109,14 +109,14 @@
 
   /* ----------------------------------------------------------- Bld (welder)
      Collects transformed copies of geometries; geo() returns one BufferGeometry. */
-  let _m4, _n3, _eu, _qt, _va, _vs;
+  let _m4, _n3, _eu, _qt, _va, _vs, _col;
   function scratch() {
     if (_m4) return;
     const TH = T();
     _m4 = new TH.Matrix4(); _n3 = new TH.Matrix3(); _eu = new TH.Euler(); _qt = new TH.Quaternion();
-    _va = new TH.Vector3(); _vs = new TH.Vector3();
+    _va = new TH.Vector3(); _vs = new TH.Vector3(); _col = new TH.Color();
   }
-  function Bld() { this.pos = []; this.nor = []; this.uv = []; this.idx = []; this.n = 0; }
+  function Bld() { this.pos = []; this.nor = []; this.uv = []; this.col = []; this.idx = []; this.n = 0; }
   /* o: {p, r, s, order, uv:[u0,v0,du,dv]} */
   Bld.prototype.add = function (g, o) {
     o = o || {}; scratch();
@@ -126,9 +126,11 @@
     _va.set(p[0], p[1], p[2]); _vs.set(s[0], s[1], s[2]);
     _m4.compose(_va, _qt, _vs); _n3.getNormalMatrix(_m4);
     const det = s[0] * s[1] * s[2];
-    const pa = g.attributes.position, na = g.attributes.normal, ua = g.attributes.uv;
+    const pa = g.attributes.position, na = g.attributes.normal, ua = g.attributes.uv, ca = g.attributes.color;
     const e = _m4.elements, ne = _n3.elements, base = this.n, cnt = pa.count;
     const uvm = o.uv;
+    let cr = 1, cg = 1, cb = 1;
+    if (o.c !== undefined) { _col.setHex(o.c); cr = _col.r; cg = _col.g; cb = _col.b; }
     for (let i = 0; i < cnt; i++) {
       const x = pa.getX(i), y = pa.getY(i), z = pa.getZ(i);
       this.pos.push(e[0] * x + e[4] * y + e[8] * z + e[12], e[1] * x + e[5] * y + e[9] * z + e[13], e[2] * x + e[6] * y + e[10] * z + e[14]);
@@ -142,6 +144,7 @@
         const u = ua.getX(i), v = ua.getY(i);
         if (uvm) this.uv.push(uvm[0] + u * uvm[2], uvm[1] + v * uvm[3]); else this.uv.push(u, v);
       } else this.uv.push(0, 0);
+      if (ca && o.c === undefined) this.col.push(ca.getX(i), ca.getY(i), ca.getZ(i)); else this.col.push(cr, cg, cb);
     }
     const ix = g.index;
     const ni = ix ? ix.count : cnt;
@@ -158,6 +161,7 @@
     g.setAttribute("position", new TH.BufferAttribute(new Float32Array(this.pos), 3));
     g.setAttribute("normal", new TH.BufferAttribute(new Float32Array(this.nor), 3));
     g.setAttribute("uv", new TH.BufferAttribute(new Float32Array(this.uv), 2));
+    g.setAttribute("color", new TH.BufferAttribute(new Float32Array(this.col), 3));
     g.setIndex(new TH.BufferAttribute(this.n > 65535 ? new Uint32Array(this.idx) : new Uint16Array(this.idx), 1));
     g.computeBoundingSphere(); g.computeBoundingBox();
     return g;
@@ -192,6 +196,7 @@
       for (let k = 0; k < 4; k++) {
         const key = K4[k];
         out[key] = h00 * f[key][i] + h10 * h * d[key][i] + h01 * f[key][i + 1] + h11 * h * d[key][i + 1];
+        if (k < 2 && out[key] < 0) out[key] = 0;
       }
     };
   }
@@ -532,11 +537,11 @@
   function paintSkirt(ctx, w, h) {
     const R = rng(13);
     const g = ctx.createLinearGradient(0, 0, 0, h);
-    g.addColorStop(0, "#a8b36a"); g.addColorStop(1, "#b9c37a");
+    g.addColorStop(0, "#8b9a68"); g.addColorStop(1, "#9aa97a");
     ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
     for (let x = 0; x < w; x += w / 24) {
-      ctx.fillStyle = "rgba(60,80,34,0.18)"; ctx.fillRect(x, 0, w / 60, h);
-      ctx.fillStyle = "rgba(240,246,180,0.12)"; ctx.fillRect(x + w / 40, 0, w / 70, h);
+      ctx.fillStyle = "rgba(40,60,50,0.20)"; ctx.fillRect(x, 0, w / 60, h);
+      ctx.fillStyle = "rgba(232,240,214,0.14)"; ctx.fillRect(x + w / 40, 0, w / 70, h);
     }
     for (let i = 0; i < 240; i++) {
       ctx.strokeStyle = R() < 0.5 ? "rgba(50,70,28,0.12)" : "rgba(236,242,170,0.10)";
@@ -602,6 +607,12 @@
   function paintFace(form) {
     return function (ctx, w, h) {
       ctx.clearRect(0, 0, w, h);
+      const sg = ctx.createLinearGradient(0, 0, 0, h);
+      sg.addColorStop(0, "#d9cbe2"); sg.addColorStop(0.28, "#f1e2ee"); sg.addColorStop(1, "#f6e9f1");
+      ctx.fillStyle = sg; ctx.fillRect(0, 0, w, h);
+      const sh = ctx.createLinearGradient(w * 0.5, 0, w, 0);
+      sh.addColorStop(0, "rgba(150,130,190,0)"); sh.addColorStop(1, "rgba(150,130,190,0.30)");
+      ctx.fillStyle = sh; ctx.fillRect(w * 0.5, 0, w * 0.5, h);
       const Y = (yw) => (0.2 - yw) / 0.2 * h;
       const X = (th) => (th + 0.8) / 1.6 * w;
       /* blush */
@@ -668,6 +679,20 @@
     };
   }
 
+  function featherFace(fn) {
+    return function (ctx, w, h) {
+      fn(ctx, w, h);
+      ctx.globalCompositeOperation = "destination-in";
+      let g = ctx.createLinearGradient(0, 0, w, 0);
+      g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(0.1, "rgba(0,0,0,1)"); g.addColorStop(0.9, "rgba(0,0,0,1)"); g.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+      g = ctx.createLinearGradient(0, 0, 0, h);
+      g.addColorStop(0, "rgba(0,0,0,1)"); g.addColorStop(0.9, "rgba(0,0,0,1)"); g.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+      ctx.globalCompositeOperation = "source-over";
+    };
+  }
+
   /* soft red glow disc used for the iris/lens glow overlays */
   function paintGlow(ctx, w, h) {
     const g = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
@@ -679,6 +704,7 @@
   const GEO = Object.create(null);      /* welded geometry cache: form|bone|mat */
   const MATS = Object.create(null);     /* material tables per form */
   const SHARED = Object.create(null);   /* shared one-off geometries */
+  let VCM = null;
 
   function shared(key, make) { return SHARED[key] || (SHARED[key] = make()); }
   function eulerTo(nx, ny, nz) {        /* XYZ euler turning +Y into the given direction */
@@ -688,6 +714,14 @@
     return [e.x, e.y, e.z];
   }
 
+  /* flat palette baked into vertex colours (albedo; the toon ramp + key light lift it) */
+  const C = {
+    skin: 0xf2dce8, boot: 0xe6edf0, guard: 0xa8bdb6, sole: 0x37424f, metal: 0xa6bac9, metalD: 0x5a6d82, glove: 0x182029,
+    rubber: 0x1f2a36, rubberHi: 0x58728a, red: 0xe9402e, redD: 0x8e231c, helmP: 0x88a6c0, helmD: 0x56708c, helmBlk: 0x141c28,
+    lens: 0x0b1118, tape: 0xee5f56, tapeTip: 0xa5b9b2, poppy: 0xff4636, poppyH: 0x2a1119, poppyS: 0xffe19a, suitD: 0x1a212c,
+    coatDk: 0x182332, tsuba: 0x3a475a, sayaTip: 0xe8e2d4, white: 0xffffff
+  };
+
   /* poppy: five cupped petals + dark heart; local +Y is the bloom axis, radius 1 */
   function petalGeo() {
     return shared("petal", () => grid(6, 7, function (u, v, out) {
@@ -695,35 +729,23 @@
       const hw = (0.12 + 0.5 * sin(Math.min(v, 1) * PI * 0.62)) * sqrt(Math.max(0, 1 - Math.pow(v, 7)));
       const X = x * hw;
       out[0] = X; out[2] = v * 1.0; out[1] = 0.32 * Math.pow(v, 1.4) + 0.95 * X * X;
-    }, { flip: false }));
+    }, {}));
   }
-  function poppyPetals() {
-    return shared("poppyP", () => {
+  function poppyGeo() {
+    return shared("poppy", () => {
       const b = new Bld();
-      for (let k = 0; k < 5; k++) b.add(petalGeo(), { r: [-0.62 + (k % 2) * 0.14, k * TAU / 5 + 0.3, 0], order: "YXZ", s: [1.02 + (k % 3) * 0.06, 1, 1.0 + (k % 2) * 0.08] });
-      return b.geo();
-    });
-  }
-  function poppyHeart() {
-    return shared("poppyH", () => {
-      const b = new Bld();
-      b.add(K.geo.sphereLo(), { p: [0, 0.06, 0], s: [0.2, 0.13, 0.2] });
-      return b.geo();
-    });
-  }
-  function poppyStamens() {
-    return shared("poppyS", () => {
-      const b = new Bld();
+      for (let k = 0; k < 5; k++) b.add(petalGeo(), { c: k % 2 ? 0xff4a38 : 0xf23b2c, r: [-0.62 + (k % 2) * 0.14, k * TAU / 5 + 0.3, 0], order: "YXZ", s: [1.02 + (k % 3) * 0.06, 1, 1.0 + (k % 2) * 0.08] });
+      b.add(K.geo.sphereLo(), { c: C.poppyH, p: [0, 0.06, 0], s: [0.2, 0.13, 0.2] });
       for (let k = 0; k < 8; k++) {
         const a = k * TAU / 8;
-        b.add(K.geo.sphereLo(), { p: [cos(a) * 0.17, 0.13, sin(a) * 0.17], s: 0.035 });
+        b.add(K.geo.sphereLo(), { c: C.poppyS, p: [cos(a) * 0.17, 0.13, sin(a) * 0.17], s: 0.035 });
       }
       return b.geo();
     });
   }
 
   /* hammerhead crown shell (helmet-local; +Z front). */
-  const CROWN = { a: 0.29, bf: 0.145, bb: 0.155, H: 0.155, n: 3.4, D: 0.052 };
+  const CROWN = { a: 0.31, bf: 0.145, bb: 0.155, H: 0.145, n: 3.4, D: 0.056 };
   function crownPt(th, k, out, lift) {
     const c0 = CROWN, ph = k * PI * 0.5, sc = sin(ph) + (lift || 0);
     const hgt = c0.H * Math.pow(cos(ph), 0.85);
@@ -736,7 +758,7 @@
   function crownGeo() {
     return shared("crown", () => grid(44, 16, function (u, v, out) {
       crownPt((u - 0.5) * TAU, v, out, 0);
-      out[3] = 0.5 + out[0] / 0.66; out[4] = 0.5 + out[2] / 0.66;
+      out[3] = 0.5 + out[0] / 0.70; out[4] = 0.5 + out[2] / 0.70;
     }, { auto: true, closeU: true }));
   }
   function crownUnder() {
@@ -744,7 +766,7 @@
       crownPt((u - 0.5) * TAU, 1, out, 0);
       const f = 1 - v * 0.985;
       out[0] *= f; out[2] *= f; out[1] = out[1] * (1 - v) + (-0.02 - CROWN.D * Math.pow(out[0] / CROWN.a, 2)) * v;
-    }, { flip: false }));
+    }, {}));
   }
 
   /* katana blade prism; which 0 = body faces, 1 = edge bevels. section: spine, right, ridge, edge, ridge, left */
@@ -754,7 +776,7 @@
       const rows = 18, L = BLADE_LEN, y0 = 0.165, sori = 0.055;
       const sect = (s) => {
         const tipf = s > 0.92 ? Math.pow(Math.max(0, 1 - (s - 0.92) / 0.08), 0.65) : 1;
-        const w = (0.056 - 0.012 * s) * tipf + (grow || 0) * 0.5 * tipf, t = (0.0115 - 0.003 * s) * tipf + (grow || 0) * 0.3 * tipf;
+        const w = (0.064 - 0.014 * s) * tipf + (grow || 0) * 0.5 * tipf, t = (0.0125 - 0.003 * s) * tipf + (grow || 0) * 0.3 * tipf;
         const cy = y0 + L * s, cz = -sori * s * s + (s > 0.92 ? 0.3 * w * (s - 0.92) / 0.08 : 0);
         return [[-t / 2, cy, cz - w * 0.45], [t / 2, cy, cz - w * 0.45], [t / 2, cy, cz + w * 0.02], [0, cy, cz + w * 0.55], [-t / 2, cy, cz + w * 0.02]];
       };
@@ -762,15 +784,14 @@
       const pos = [], idx = [];
       for (let r = 0; r < rows; r++) {
         const sA = sect(r / rows), sB = sect((r + 1) / rows);
-        const cA = (sA[0][1]), czA = (sA[0][2] + sA[3][2]) * 0.5;
+        const czA = (sA[0][2] + sA[3][2]) * 0.5;
         for (let q = 0; q < faces.length; q++) {
           const f = faces[q], f2 = (f + 1) % 5;
           const A0 = sA[f], B0 = sA[f2], C0 = sB[f], D0 = sB[f2];
           const base = pos.length / 3;
           pos.push(A0[0], A0[1], A0[2], B0[0], B0[1], B0[2], C0[0], C0[1], C0[2], D0[0], D0[1], D0[2]);
-          /* orient outward from the blade centre line */
           const ux = C0[0] - A0[0], uy = C0[1] - A0[1], uz = C0[2] - A0[2], vx = B0[0] - A0[0], vy = B0[1] - A0[1], vz = B0[2] - A0[2];
-          const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+          const nx = uy * vz - uz * vy, nz = ux * vy - uy * vx;
           const dot = nx * (A0[0]) + nz * (A0[2] - czA);
           if (dot >= 0) idx.push(base, base + 2, base + 1, base + 1, base + 2, base + 3);
           else idx.push(base, base + 1, base + 2, base + 1, base + 3, base + 2);
@@ -807,7 +828,10 @@
     const map = (tx, o) => M.mapToon(0xffffff, tx, Object.assign({ transparent: false }, o || {}));
     const t = {};
     const INK = 0x0b0e15;
-    /* texture set */
+    if (!VCM) {
+      const mk = (side) => { const m = A().mat.toon(0xffffff, { noCache: true, side: side }); m.vertexColors = true; m.needsUpdate = true; return m; };
+      VCM = { solid: mk(undefined), ds: mk(DS) };
+    }
     const txHairCap = tex("v_haircap", 128, 256, paintHairCap);
     const txHair = tex("v_hair" + form, 256, 512, paintHair(F2, true));
     const txCoat = tex("v_coat", 512, 512, paintCoat, true);
@@ -816,51 +840,30 @@
     const txWrap = tex("v_wrap", 128, 128, paintWrap, true);
     const txSaya = tex("v_saya", 64, 256, paintSaya, true);
     const txSuit = tex("v_suit", 256, 256, paintSuit, true);
-    const txFace = tex("v_face" + form, 512, 320, paintFace(form));
+    const txFace = tex("v_face" + form, 512, 320, featherFace(paintFace(form)));
     const txGlow = tex("v_glow", 64, 64, paintGlow);
 
-    t.skin = { m: toon(0xf4e0ea), o: 0.022, oc: 0x4a2e44 };
+    t.vc = { m: VCM.solid, o: 0.026, oc: INK };
+    t.vcn = { m: VCM.solid, o: 0 };
+    t.vcd = { m: VCM.ds, o: 0, shadow: false };
     t.face = { m: M.eye(txFace), o: 0, shadow: false };
-    t.hairCap = { m: map(txHairCap), o: 0.02, oc: 0x41567c };
-    const hc = map(txHair, { side: DS }); hc.alphaTest = 0.45; hc.needsUpdate = true;
-    t.hair = { m: hc, o: 0, shadow: true };
-    t.coat = { m: map(txCoat, { side: DS }), o: 0.035, oc: INK };
-    t.coatIn = { m: toon(0x101a28, { side: DS }), o: 0 };
-    t.coatDk = { m: toon(0x16202e), o: 0.03, oc: INK };
-    t.rubber = { m: toon(0x1d2834), o: 0.03, oc: INK };
-    t.rubberHi = { m: toon(0x4a6478), o: 0 };
+    t.hairCap = { m: map(txHairCap, { emissive: 0xa4b6d6, emissiveIntensity: 0.38 }), o: 0.02, oc: 0x41567c };
+    const hc = map(txHair, { side: DS, emissive: 0xa4b6d6, emissiveIntensity: 0.42 }); hc.alphaTest = 0.45; hc.needsUpdate = true;
+    t.hair = { m: hc, o: 0 };
+    const coatM = map(txCoat, { side: DS });
+    t.coat = { m: coatM, o: 0.035, oc: INK };
+    t.coatN = { m: coatM, o: 0 };
     t.helm = { m: map(txHelm), o: 0.032, oc: 0x14222f };
-    t.helmP = { m: toon(0x8aa8c2), o: 0.03, oc: 0x14222f };
-    t.helmD = { m: toon(0x56708c), o: 0.025, oc: 0x101c28 };
-    t.helmBlk = { m: toon(0x131b26, { side: DS }), o: 0.025, oc: 0x05080c };
-    t.lens = { m: toon(0x0b1118), o: 0 };
-    t.red = { m: toon(0xea4331), o: 0 };
-    t.redO = { m: toon(0xea4331), o: 0.02, oc: 0x5a1210 };
     t.redGlow = { m: M.glow(0xff3a28, 1.9), o: 0, shadow: false };
-    t.metal = { m: toon(0xa5b9c9), o: 0.026, oc: 0x101a26 };
-    t.metalD = { m: toon(0x5a6d82), o: 0.02, oc: 0x0d1520 };
-    t.glove = { m: toon(0x171e29), o: 0.022, oc: 0x05070b };
-    t.boot = { m: toon(0xe4ebee), o: 0.026, oc: 0x1b2a38 };
-    t.guard = { m: toon(0xa9bdb8), o: 0.028, oc: 0x142026 };
-    t.sole = { m: toon(0x3a4552), o: 0, oc: 0x0 };
     t.skirt = { m: map(txSkirt, { side: DS }), o: 0.028, oc: 0x25301a };
-    t.lining = { m: toon(0x1f69a8, { side: DS }), o: 0.02, oc: 0x0b2038 };
-    t.tape = { m: toon(0xf1645a, { side: DS }), o: 0, shadow: false };
-    t.tapeTip = { m: toon(0xa5b9b2), o: 0, shadow: false };
-    t.poppy = { m: toon(0xff4a38, { side: DS }), o: 0, shadow: false };
-    t.poppyH = { m: toon(0x2a1119), o: 0, shadow: false };
-    t.poppyS = { m: toon(0xffe19a), o: 0, shadow: false };
+    t.lining = { m: toon(0x17497a, { side: DS }), o: 0.02, oc: 0x0b2038 };
     t.saya = { m: map(txSaya), o: 0.022, oc: 0x05070b };
-    t.sayaTip = { m: toon(0xe8e2d4), o: 0.015, oc: 0x1a1a1a };
     t.suit = { m: map(txSuit), o: 0.026, oc: 0x05070b };
-    t.suitD = { m: toon(0x1a212c), o: 0.026, oc: 0x05070b };
     t.blade = { m: toon(0xff5a36, { emissive: 0xff3b1c, emissiveIntensity: 0.85 }), o: 0.022, oc: 0x9a1a0c };
     t.bladeEdge = { m: M.glow(0xffa468, F2 ? 2.6 : 2.0), o: 0, shadow: false };
     const bh = A().mat.flat(0xff4a24, { transparent: true, opacity: F2 ? 0.34 : 0.22, side: DS, depthWrite: false, blending: TH.AdditiveBlending });
     t.bladeHalo = { m: bh, o: 0, shadow: false };
     t.handle = { m: map(txWrap), o: 0.02, oc: 0x3a0e0c };
-    t.tsuba = { m: toon(0x394658), o: 0.02, oc: 0x05070b };
-    /* glow overlays (eyes) */
     const eg = A().mat.flat(0xff2a1c, { map: txGlow, transparent: true, depthWrite: false, blending: TH.AdditiveBlending, side: DS, fog: false });
     eg.color.multiplyScalar(F2 ? 2.4 : 1.7);
     t.eyeGlow = { m: eg, o: 0 };
@@ -877,7 +880,6 @@
     const MT = makeMats(form);
     const rig = K.rig({ name: F2 ? "veil2" : "veil", height: 1.85 });
     const bone = rig.bone.bind(rig);
-    const rnd = rng(F2 ? 99 : 77);
 
     /* ------------------------------------------------------------ welder */
     const buckets = Object.create(null), order = [];
@@ -891,6 +893,9 @@
       }
       if (b.bld) b.bld.add(factory(), xf);
     }
+    const pc = (b, col, f, xf) => put(b, "vc", f, Object.assign({ c: col }, xf || {}));     /* solid + ink outline */
+    const pn = (b, col, f, xf) => put(b, "vcn", f, Object.assign({ c: col }, xf || {}));    /* solid, no outline */
+    const pd = (b, col, f, xf) => put(b, "vcd", f, Object.assign({ c: col }, xf || {}));    /* double sided, no outline */
     function flush() {
       for (let i = 0; i < order.length; i++) {
         const b = buckets[order[i]];
@@ -905,42 +910,41 @@
     }
     const box = () => g.box();
     const sph = () => g.sphere();
-    const sphLo = () => g.sphereLo();
 
     /* ----------------------------------------------------------- skeleton */
-    const BH = 0.97;                                    /* hips height */
+    const BH = 1.0;                                     /* hips height */
     bone("hips", null, [0, BH, 0]);
     bone("chest", "hips", [0, 0.20, 0]);
     bone("neck", "chest", [0, 0.25, 0]);
     bone("head", "neck", [0, 0.07, 0]);
-    bone("helmet", "head", [0, 0.19, 0]);
-    bone("visor", "helmet", [0, 0.045, 0.125], [F2 ? 0.04 : -1.15, 0, 0]);
+    bone("helmet", "head", [0, 0.185, 0]);
+    bone("visor", "helmet", [0, 0.045, 0.125], [F2 ? 0.04 : -1.3, 0, 0]);
     bone("flapR", "helmet", [-0.255, -0.01, 0.045], null, { sway: 0.03, phase: 0.6 });
-    bone("flapL", "helmet", [0.205, -0.01, 0.10], null, { sway: 0.026, phase: 1.9 });
+    bone("flapL", "helmet", [0.2, -0.01, 0.105], null, { sway: 0.026, phase: 1.9 });
     bone("cable", "helmet", [-0.215, -0.08, 0.02], null, { sway: 0.07, phase: 2.7 });
     bone("hairBack", "head", [0, 0.12, -0.075], F2 ? [0.62, 0, 0] : [0.04, 0, 0], { sway: 0.03, phase: 0.4 });
-    bone("hairBack2", "hairBack", [0, -0.30, 0.0], F2 ? [0.30, 0, 0] : [0.05, 0, 0], { sway: 0.05, phase: 1.1 });
+    bone("hairBack2", "hairBack", [0, -0.32, -0.128], F2 ? [0.30, 0, 0] : [0.05, 0, 0], { sway: 0.05, phase: 1.1 });
     for (const [S, sx] of [["L", 1], ["R", -1]]) {
       bone("lock" + S, "head", [sx * 0.098, 0.14, 0.035], F2 ? [0.5, 0, sx * 0.30] : [0.02, 0, sx * 0.03], { sway: 0.022, phase: sx > 0 ? 0.2 : 1.7 });
-      bone("lock" + S + "2", "lock" + S, [sx * 0.012, -0.26, 0.05], F2 ? [0.3, 0, sx * 0.18] : [0.03, 0, 0], { sway: 0.04, phase: sx > 0 ? 1.4 : 2.6 });
+      bone("lock" + S + "2", "lock" + S, [sx * 0.026, -0.20, 0.108], F2 ? [0.3, 0, sx * 0.18] : [0.03, 0, 0], { sway: 0.04, phase: sx > 0 ? 1.4 : 2.6 });
     }
-    /* arms: rest pose = arms hanging slightly out, right (blade) arm bent forward */
-    bone("armL.sh", "chest", [0.165, 0.15, 0], [F2 ? 0.14 : 0.06, 0, F2 ? 0.34 : 0.30]);
-    bone("armL.el", "armL.sh", [0, -0.27, 0], [F2 ? -0.52 : -0.20, 0, 0]);
+    /* arms: rest = hanging slightly out; right (blade) arm a little forward */
+    bone("armL.sh", "chest", [0.15, 0.15, 0], [F2 ? 0.14 : 0.03, 0, F2 ? 0.34 : 0.17]);
+    bone("armL.el", "armL.sh", [0, -0.27, 0], [F2 ? -0.52 : -0.10, 0, 0]);
     bone("armL.hand", "armL.el", [0, -0.26, 0], [0, 0, 0]);
-    bone("armR.sh", "chest", [-0.165, 0.15, 0], [F2 ? 0.14 : 0.10, 0, F2 ? -0.34 : -0.28]);
-    bone("armR.el", "armR.sh", [0, -0.27, 0], [F2 ? -0.52 : -0.34, 0, 0]);
+    bone("armR.sh", "chest", [-0.15, 0.15, 0], [F2 ? 0.14 : 0.06, 0, F2 ? -0.34 : -0.17]);
+    bone("armR.el", "armR.sh", [0, -0.27, 0], [F2 ? -0.52 : -0.20, 0, 0]);
     bone("armR.hand", "armR.el", [0, -0.26, 0], [0, 0, 0]);
     if (!F2) {
       bone("cuffL", "armL.el", [0, -0.02, 0], null, { sway: 0.05, phase: 0.9 });
       bone("cuffR", "armR.el", [0, -0.02, 0], null, { sway: 0.05, phase: 2.0 });
     }
     bone("legL.hip", "hips", [0.085, -0.04, 0]);
-    bone("legL.knee", "legL.hip", [0, -0.46, 0]);
-    bone("legL.foot", "legL.knee", [0, -0.43, 0]);
+    bone("legL.knee", "legL.hip", [0, -0.47, 0]);
+    bone("legL.foot", "legL.knee", [0, -0.45, 0]);
     bone("legR.hip", "hips", [-0.085, -0.04, 0]);
-    bone("legR.knee", "legR.hip", [0, -0.46, 0]);
-    bone("legR.foot", "legR.knee", [0, -0.43, 0]);
+    bone("legR.knee", "legR.hip", [0, -0.47, 0]);
+    bone("legR.foot", "legR.knee", [0, -0.45, 0]);
     bone("propR", "armR.hand", [0, -0.05, 0.004]);
     if (F2) bone("propL", "armL.hand", [0, -0.05, 0.004]);
     else bone("propL", "hips", [-0.205, 0.02, 0.085]);        /* saya mouth anchor */
@@ -954,50 +958,49 @@
       { y: 0.11, rx: 0.097, rz: 0.100, cz: -0.004 }, { y: 0.075, rx: 0.085, rz: 0.088, cz: 0.003 },
       { y: 0.045, rx: 0.066, rz: 0.072, cz: 0.012 }, { y: 0.022, rx: 0.040, rz: 0.046, cz: 0.024 },
       { y: 0.007, rx: 0.016, rz: 0.018, cz: 0.034 }, { y: 0.0, rx: 0.002, rz: 0.002, cz: 0.036 }]);
-    const coatFold = (th, y) => 1 + 0.022 * sin(5 * th + 3.0 * y) + 0.016 * sin(9 * th - 5 * y + 1.0) + 0.010 * sin(15 * th + 2);
-    /* chest-local coat shell */
+    const coatFold = (th, y) => 1 + 0.020 * sin(5 * th + 3.0 * y) + 0.014 * sin(9 * th - 5 * y + 1.0) + 0.008 * sin(15 * th + 2);
     const COAT = loftSurf([
-      { y: 0.28, rx: 0.12, rz: 0.115, cz: -0.012 }, { y: 0.21, rx: 0.20, rz: 0.145, cz: -0.012 },
-      { y: 0.15, rx: 0.262, rz: 0.168 }, { y: 0.05, rx: 0.276, rz: 0.182 },
-      { y: -0.08, rx: 0.284, rz: 0.190 }, { y: -0.22, rx: 0.292, rz: 0.2 }], { fold: coatFold, sq: 2.25 });
-    /* hips-local coat flare (panels) */
+      { y: 0.27, rx: 0.125, rz: 0.12, cz: -0.012 }, { y: 0.20, rx: 0.17, rz: 0.135, cz: -0.012 },
+      { y: 0.145, rx: 0.212, rz: 0.158 }, { y: 0.05, rx: 0.25, rz: 0.175 },
+      { y: -0.08, rx: 0.272, rz: 0.186 }, { y: -0.22, rx: 0.288, rz: 0.196 }], { fold: coatFold, sq: 2.25 });
     const FLARE = loftSurf([
-      { y: 0.02, rx: 0.292, rz: 0.200 }, { y: -0.04, rx: 0.318, rz: 0.228 },
-      { y: -0.10, rx: 0.355, rz: 0.275 }, { y: -0.16, rx: 0.395, rz: 0.318 }], { fold: coatFold, sq: 2.25 });
+      { y: 0.02, rx: 0.292, rz: 0.200 }, { y: -0.04, rx: 0.315, rz: 0.225 },
+      { y: -0.10, rx: 0.345, rz: 0.262 }, { y: -0.14, rx: 0.372, rz: 0.292 }], { fold: coatFold, sq: 2.25 });
     const SKIRT = loftSurf([
       { y: 0.04, rx: 0.180, rz: 0.160 }, { y: -0.08, rx: 0.232, rz: 0.208 },
-      { y: -0.24, rx: 0.288, rz: 0.256 }, { y: -0.40, rx: 0.322, rz: 0.292 }],
+      { y: -0.24, rx: 0.288, rz: 0.256 }, { y: -0.40, rx: 0.325, rz: 0.292 }],
       { fold: (th, y) => 1 + 0.05 * sin(th * 22 + y * 2.0) * sstep(0.0, -0.3, y) + 0.012 * sin(th * 5 + 1) });
+    const waveHem = (a, b, c) => (th) => -a * (0.5 + 0.5 * sin(th * b + c));
 
     /* ======================================================================
        LEGS
        ====================================================================== */
     for (const [S, sx] of [["L", 1], ["R", -1]]) {
-      put("leg" + S + ".hip", "skin", () => tube([[0, 0.03, 0], [0, -0.22, 0.006], [0, -0.455, 0]],
-        [[0.066, 0.07], [0.056, 0.059], [0.046, 0.049]], 12, 6), null);
+      const hip = "leg" + S + ".hip", knee = "leg" + S + ".knee", foot = "leg" + S + ".foot";
+      pc(hip, C.skin, () => tube([[0, 0.03, 0], [0, -0.23, 0.006], [0, -0.475, 0]], [[0.066, 0.07], [0.056, 0.059], [0.046, 0.049]], 12, 6));
       /* knee guard + boot shaft */
-      put("leg" + S + ".knee", "guard", () => superG(3.2, 16, 10), { p: [0, -0.015, 0.016], s: [0.066, 0.092, 0.07] });
-      put("leg" + S + ".knee", "metalD", () => g.torus(0.06, 0.012, TAU, 6, 16), { p: [0, -0.115, 0.004], r: [PI / 2, 0, 0], s: [1, 0.95, 1.1] });
-      put("leg" + S + ".knee", "boot", () => tube([[0, -0.05, 0], [0, -0.21, 0.004], [0, -0.40, -0.004]],
-        [[0.054, 0.056], [0.05, 0.052], [0.04, 0.043]], 14, 6), null);
-      put("leg" + S + ".knee", "red", () => g.circle(), { p: [0, -0.03, 0.088], s: 0.016 });
-      put("leg" + S + ".foot", "boot", () => superG(3.0, 14, 9), { p: [0, -0.005, 0.045], s: [0.05, 0.034, 0.105] });
-      put("leg" + S + ".foot", "boot", () => superG(3.0, 12, 8), { p: [0, 0.018, -0.01], s: [0.044, 0.034, 0.05] });
-      put("leg" + S + ".foot", "guard", () => superG(3.0, 12, 8), { p: [0, 0.0, 0.12], s: [0.04, 0.026, 0.05] });
-      put("leg" + S + ".foot", "sole", () => box(), { p: [0, -0.035, 0.04], s: [0.054, 0.014, 0.125] });
-      put("leg" + S + ".foot", "sole", () => box(), { p: [0, -0.03, -0.035], s: [0.046, 0.024, 0.04] });
+      pc(knee, C.guard, () => superG(3.2, 16, 10), { p: [0, -0.07, 0.016], s: [0.068, 0.098, 0.072] });
+      pc(knee, C.metalD, () => g.torus(0.06, 0.012, TAU, 6, 16), { p: [0, -0.175, 0.004], r: [PI / 2, 0, 0], s: [1, 0.95, 1.1] });
+      pc(knee, C.boot, () => tube([[0, -0.06, 0], [0, -0.22, 0.006], [0, -0.425, -0.004]],
+        [[0.05, 0.052], [0.048, 0.053], [0.036, 0.04]], 14, 6));
+      pc(knee, C.red, () => g.circle(), { p: [0, -0.08, 0.092], s: 0.016 });
+      pc(foot, C.boot, () => superG(3.0, 14, 9), { p: [0, -0.005, 0.045], s: [0.05, 0.034, 0.105] });
+      pc(foot, C.boot, () => superG(3.0, 12, 8), { p: [0, 0.018, -0.01], s: [0.044, 0.034, 0.05] });
+      pc(foot, C.guard, () => superG(3.0, 12, 8), { p: [0, 0.0, 0.12], s: [0.04, 0.026, 0.05] });
+      pc(foot, C.sole, () => box(), { p: [0, -0.035, 0.04], s: [0.054, 0.014, 0.125] });
+      pc(foot, C.sole, () => box(), { p: [0, -0.03, -0.035], s: [0.046, 0.024, 0.04] });
     }
 
     /* ======================================================================
        HEAD, FACE, NECK
        ====================================================================== */
-    put("head", "skin", () => loft(HEAD, 0.225, 0.0, 22, 30, {}), null);
+    pc("head", C.skin, () => loft(HEAD, 0.225, 0.0, 22, 30, {}));
     put("head", "face", () => grid(22, 16, function (u, v, out) {
       HEAD(0.2 - 0.2 * v, -0.8 + 1.6 * u, out, 0.0025);
-    }, { axis: [0, 0] }), null);
-    put("neck", "skin", () => tube([[0, -0.06, 0], [0, 0.02, 0.004], [0, 0.085, 0.012]], [[0.04, 0.042], [0.036, 0.038], [0.034, 0.036]], 12, 4), null);
+    }, { axis: [0, 0] }));
+    pn("neck", C.skin, () => tube([[0, -0.06, 0], [0, 0.02, 0.004], [0, 0.085, 0.012]], [[0.04, 0.042], [0.036, 0.038], [0.034, 0.036]], 12, 4));
 
-    /* iris / slit glow overlays (exposed as parts.eyes) */
+    /* iris glow overlays (parts.eyes in form 1) */
     const eyes = [];
     if (!F2) {
       for (const sx of [-1, 1]) {
@@ -1013,89 +1016,84 @@
     /* ======================================================================
        HAIR  (silver hime: blunt fringe, long front locks, long back curtains)
        ====================================================================== */
-    put("head", "hairCap", () => loft(HEAD, 0.232, 0.13, 8, 30, { lift: 0.011 }), null);
-    put("head", "hairCap", () => loft(HEAD, 0.14, 0.035, 8, 22, { lift: 0.011, th0: 0.78, th1: TAU - 0.78 }), null);
-    put("head", "hairCap", () => loft(HEAD, 0.2, 0.139, 6, 22, { lift: 0.017, th0: -1.05, th1: 1.05, hem: (th) => 0.0035 * sin(th * 9) + 0.002 * sin(th * 23) }), null);
-    /* back curtains, in hairBack coordinates (origin head+(0,.12,-.075)) */
+    put("head", "hairCap", () => loft(HEAD, 0.232, 0.13, 8, 30, { lift: 0.011 }));
+    put("head", "hairCap", () => loft(HEAD, 0.14, 0.035, 8, 22, { lift: 0.011, th0: 0.78, th1: TAU - 0.78 }));
+    put("head", "hairCap", () => loft(HEAD, 0.2, 0.139, 6, 22, { lift: 0.017, th0: -1.05, th1: 1.05, hem: (th) => 0.0035 * sin(th * 9) + 0.002 * sin(th * 23) }));
     const BACKW = (v, base) => base * (0.86 + 0.34 * sin(Math.min(1, v * 1.15) * PI * 0.5));
     const bAcross = () => [1, 0, 0];
     const curtainTop = [[0, 0.02, -0.02], [0, -0.07, -0.062], [0, -0.20, -0.108], [0, -0.32, -0.128]];
-    const curtainBot = [[0, 0.02, -0.0], [0, -0.14, -0.012], [0, -0.30, -0.020], [0, -0.46, -0.026], [0, -0.60, -0.030]];
-    for (const [off, wid, ln, u0] of [[0, 0.115, 1.0, 0.0], [-0.085, 0.07, 0.92, 0.35], [0.085, 0.07, 0.95, 0.6]]) {
-      put("hairBack", "hair", () => hairSheet(curtainTop.map((p) => [p[0] + off * 0.9, p[1] + 0.0, p[2] - Math.abs(off) * 0.12]), (v) => BACKW(v * 0.5, wid), bAcross, 1.8, 6, 6),
+    const curtainBot = [[0, 0.02, 0.0], [0, -0.08, -0.006], [0, -0.17, -0.012], [0, -0.25, -0.016], [0, -0.32, -0.02]];
+    for (const [off, wid, ln, u0] of [[0, 0.088, 1.0, 0.0], [-0.062, 0.05, 0.9, 0.35], [0.062, 0.05, 0.94, 0.6]]) {
+      put("hairBack", "hair", () => hairSheet(curtainTop.map((p) => [p[0] + off * 0.9, p[1], p[2] - Math.abs(off) * 0.12]), (v) => BACKW(v * 0.5, wid), bAcross, 1.8, 6, 6),
         { uv: [u0, 0.62, 0.4, 0.38] });
       put("hairBack2", "hair", () => hairSheet(curtainBot.map((p) => [p[0] + off * 1.05, p[1] * ln, p[2] - Math.abs(off) * 0.10]), (v) => BACKW(0.5 + v * 0.5, wid) * (1 + 0.1 * v), bAcross, 1.8, 6, 9),
         { uv: [u0, 0.0, 0.4, 0.64] });
     }
-    /* hime side locks: two sheets per side (inner long, outer short) */
     for (const [S, sx] of [["L", 1], ["R", -1]]) {
       const lockAcross = (v) => { const psi = lerp(1.15, 0.12, sstep(0.0, 0.6, v)); return [cos(psi) * sx, 0, -sin(psi)]; };
       const top = [[0.0, 0.0, 0.0], [0.014 * sx, -0.10, 0.052], [0.026 * sx, -0.20, 0.108]];
-      const bot = [[0.0, 0.03, -0.0], [0.004 * sx, -0.12, 0.034], [0.0 * sx, -0.26, 0.052], [-0.004 * sx, -0.40, 0.062]];
-      put("lock" + S, "hair", () => hairSheet(top.map((p) => [p[0], p[1] + 0.0, p[2]]), (v) => 0.034 + 0.008 * v, lockAcross, 0.0, 4, 5), { uv: [0.1, 0.62, 0.34, 0.38] });
+      const bot = [[0.0, 0.03, 0.0], [0.004 * sx, -0.12, 0.034], [0.0, -0.26, 0.056], [-0.004 * sx, -0.40, 0.068]];
+      put("lock" + S, "hair", () => hairSheet(top, (v) => 0.034 + 0.008 * v, lockAcross, 0.0, 4, 5), { uv: [0.1, 0.62, 0.34, 0.38] });
       put("lock" + S + "2", "hair", () => hairSheet(bot, (v) => 0.042 - 0.016 * v, (v) => lockAcross(0.55 + v * 0.45), 0.0, 4, 8), { uv: [0.5, 0.0, 0.34, 0.64] });
-      /* thin outer strand */
       put("lock" + S + "2", "hair", () => hairSheet(bot.map((p) => [p[0] + 0.03 * sx, p[1] * 0.78, p[2] - 0.012]), (v) => 0.02 - 0.008 * v, (v) => lockAcross(0.55 + v * 0.45), 0.0, 2, 6), { uv: [0.0, 0.1, 0.18, 0.6] });
     }
 
     /* ======================================================================
        HELMET  (hammerhead)
        ====================================================================== */
-    put("helmet", "helm", crownGeo, null);
-    put("helmet", "helmBlk", crownUnder, null);
-    /* end blocks */
+    put("helmet", "helm", crownGeo);
+    pc("helmet", C.helmBlk, crownUnder);
     for (const sx of [-1, 1]) {
-      put("helmet", "helmP", () => superG(4.2, 16, 10), { p: [sx * 0.338, 0.002, 0.026], s: [0.056, 0.085, 0.106] });
-      put("helmet", "helmD", () => box(), { p: [sx * 0.338, -0.06, 0.03], s: [0.05, 0.016, 0.09] });
+      pc("helmet", C.helmP, () => superG(4.2, 16, 10), { p: [sx * 0.345, 0.0, 0.02], s: [0.052, 0.078, 0.1] });
+      pc("helmet", C.helmD, () => box(), { p: [sx * 0.345, -0.05, 0.03], s: [0.046, 0.014, 0.088] });
     }
-    put("helmet", "red", () => g.circle(), { p: [-0.338, 0.01, 0.1335], s: 0.036 });
-    put("helmet", "helmBlk", () => g.torus(0.04, 0.006, TAU, 6, 18), { p: [-0.338, 0.01, 0.1335], s: 1 });
-    put("helmet", "redGlow", () => g.circle(), { p: [0.338, 0.012, 0.1335], s: 0.012 });
-    put("helmet", "helmBlk", () => g.torus(0.026, 0.006, TAU, 6, 14), { p: [0.338, 0.012, 0.1335] });
+    /* embossed circle on the right block (painting), small red lens on the left block */
+    pc("helmet", C.metalD, () => g.torus(0.034, 0.006, TAU, 6, 18), { p: [-0.345, 0.006, 0.122] });
+    pc("helmet", C.metalD, () => g.torus(0.02, 0.005, TAU, 6, 14), { p: [-0.345, 0.006, 0.122] });
+    pc("helmet", C.helmBlk, () => g.torus(0.026, 0.006, TAU, 6, 14), { p: [0.345, 0.008, 0.122] });
+    put("helmet", "redGlow", () => g.circle(), { p: [0.345, 0.008, 0.124], s: 0.014 });
     /* camera module (character right, -X) */
-    put("helmet", "helmP", () => g.cyl(0.056, 0.056, 0.095, 18), { p: [-0.205, -0.045, 0.082], r: [PI / 2, 0, 0], o: 0 });
-    put("helmet", "helmD", () => g.cyl(0.064, 0.064, 0.03, 18), { p: [-0.205, -0.045, 0.04], r: [PI / 2, 0, 0] });
-    put("helmet", "lens", () => g.cyl(0.042, 0.042, 0.03, 16), { p: [-0.205, -0.045, 0.138], r: [PI / 2, 0, 0] });
-    put("helmet", "metalD", () => g.torus(0.044, 0.008, TAU, 6, 18), { p: [-0.205, -0.045, 0.14] });
+    pc("helmet", C.helmP, () => g.cyl(0.056, 0.056, 0.095, 18), { p: [-0.205, -0.045, 0.082], r: [PI / 2, 0, 0] });
+    pc("helmet", C.helmD, () => g.cyl(0.064, 0.064, 0.03, 18), { p: [-0.205, -0.045, 0.04], r: [PI / 2, 0, 0] });
+    pc("helmet", C.lens, () => g.cyl(0.042, 0.042, 0.03, 16), { p: [-0.205, -0.045, 0.138], r: [PI / 2, 0, 0] });
+    pc("helmet", C.metalD, () => g.torus(0.044, 0.008, TAU, 6, 18), { p: [-0.205, -0.045, 0.14] });
     put("helmet", "redGlow", () => g.circle(), { p: [-0.205, -0.045, 0.1555], s: 0.016 });
-    put("helmet", "helmP", () => superG(3.4, 12, 8), { p: [-0.205, 0.0, 0.0], s: [0.046, 0.05, 0.06] });
+    pc("helmet", C.helmP, () => superG(3.4, 12, 8), { p: [-0.205, 0.0, 0.0], s: [0.046, 0.05, 0.06] });
     /* red lens eye on the crown */
-    put("helmet", "helmD", () => g.torus(0.034, 0.008, TAU, 6, 18), { p: [-0.095, 0.108, 0.082], r: [0.95, 0, 0] });
-    put("helmet", "redGlow", () => g.circle(), { p: [-0.095, 0.108, 0.082], r: [-0.62, 0, 0], s: 0.026 });
-    /* left-side black cheek flap (beak) */
-    put("flapL", "helmBlk", () => slab(4, 7, function (u, v, o) {
-      const w = lerp(0.052, 0.014, Math.pow(v, 1.4));
-      o[0] = (u - 0.5) * 2 * w; o[1] = -v * 0.22; o[2] = 0.012 * Math.sin(v * 2.4) - 0.02 * (u - 0.5) * (u - 0.5);
-    }, 0.016), null);
-    put("flapL", "helmD", () => box(), { p: [0, -0.02, 0.012], s: [0.07, 0.014, 0.03] });
-    /* right grey cheek plate + dangling plate */
-    put("flapR", "helmP", () => slab(4, 6, function (u, v, o) {
-      const w = lerp(0.052, 0.036, v);
-      o[0] = (u - 0.5) * 2 * w; o[1] = -v * 0.18; o[2] = -0.016 * (u - 0.5) * (u - 0.5) * 4 + 0.01 * v;
-    }, 0.016), { p: [0.035, 0.02, -0.02] });
-    put("flapR", "helmD", () => g.cyl(0.011, 0.011, 0.02, 10), { p: [0.035, -0.07, 0.0], r: [PI / 2, 0, 0] });
-    put("cable", "lens", () => tube([[0, 0, 0], [-0.01, -0.07, 0.01], [0.02, -0.14, -0.02], [0.04, -0.22, -0.07], [0.02, -0.30, -0.12]], 0.0085, 6, 10), null);
+    pc("helmet", C.helmD, () => g.torus(0.034, 0.008, TAU, 6, 18), { p: [-0.105, 0.1, 0.075], r: [0.95, 0, 0] });
+    put("helmet", "redGlow", () => g.circle(), { p: [-0.105, 0.1, 0.075], r: [-0.62, 0, 0], s: 0.026 });
     /* rear grille */
-    put("helmet", "helmBlk", () => box(), { p: [0, 0.015, -0.16], s: [0.32, 0.045, 0.03] });
-    for (let i = -2; i <= 2; i++) put("helmet", "redGlow", () => box(), { p: [i * 0.05, 0.015, -0.1765], s: [0.016, 0.026, 0.004] });
-    put("helmet", "red", () => g.circle(), { p: [0.15, 0.06, -0.1], r: [-0.7, PI, 0], s: 0.022 });
-    /* visor plate (hinged at crown front) */
-    const VW = 0.255;
+    pc("helmet", C.helmBlk, () => box(), { p: [0, 0.015, -0.16], s: [0.32, 0.045, 0.03] });
+    for (let i = -2; i <= 2; i++) pn("helmet", C.red, () => box(), { p: [i * 0.05, 0.015, -0.1765], s: [0.016, 0.026, 0.004] });
+    /* black beak flap (left, +X) — hangs in front of the cheek */
+    pc("flapL", C.helmBlk, () => slab(4, 8, function (u, v, o) {
+      const w = lerp(0.07, 0.018, Math.pow(v, 1.3));
+      o[0] = (u - 0.5) * 2 * w; o[1] = -v * 0.27; o[2] = 0.016 * Math.sin(v * 2.4) - 0.03 * (u - 0.5) * (u - 0.5);
+    }, 0.016));
+    pc("flapL", C.helmD, () => box(), { p: [0, -0.02, 0.012], s: [0.09, 0.014, 0.03] });
+    /* grey cheek plate + dangling plate (right, -X) and cable */
+    pc("flapR", C.helmP, () => slab(4, 6, function (u, v, o) {
+      const w = lerp(0.052, 0.036, v);
+      o[0] = (u - 0.5) * 2 * w; o[1] = -v * 0.2; o[2] = -0.016 * (u - 0.5) * (u - 0.5) * 4 + 0.01 * v;
+    }, 0.016), { p: [0.035, 0.02, -0.02] });
+    pc("flapR", C.helmD, () => g.cyl(0.011, 0.011, 0.02, 10), { p: [0.035, -0.08, 0.0], r: [PI / 2, 0, 0] });
+    pn("cable", C.lens, () => tube([[0, 0, 0], [-0.01, -0.07, 0.01], [0.02, -0.14, -0.02], [0.04, -0.22, -0.07], [0.02, -0.30, -0.12]], 0.0085, 6, 10));
+    /* visor plate (hinged at the crown front): raised brim (form 1) / lowered faceplate (form 2) */
+    const VW = 0.265;
     const visorSurf = (u, v, o) => {
       const x = (u - 0.5) * 2, L = 0.165 - 0.068 * x * x;
       o[0] = x * VW; o[1] = -v * L; o[2] = -0.11 * x * x - 0.018 * v * v + 0.012 * sin(v * PI);
     };
-    put("visor", F2 ? "helmP" : "helmP", () => slab(22, 6, visorSurf, 0.02), null);
-    put("visor", "red", () => grid(8, 3, function (u, v, o) { visorSurf(0.22 + u * 0.1, 0.0 + v * 0.3, o); o[2] += 0.012; o[1] += 0.0; }, { flip: true }), null);
+    pc("visor", C.helmP, () => slab(22, 6, visorSurf, 0.02));
+    pn("visor", C.red, () => grid(10, 3, function (u, v, o) { visorSurf(0.5 + 0.36 + u * 0.1, 0.0 + v * 0.26, o); o[2] += 0.0125; }, {}));
     if (F2) {
-      /* glowing slit eyes on the lowered visor */
       for (const sx of [-1, 1]) {
-        const slit = (K.mk(shared("slit" + sx, () => slab(8, 2, function (u, v, o) {
-          const x = (u - 0.5) * 2;
-          o[0] = sx * (0.03 + 0.065 * (u)) - 0.0; o[1] = -0.074 - 0.014 * v - sx * sx * 0.018 * u * 0.0 + 0.018 * u * (1 - 0) * (sx < 0 ? 1 : 1) * 0.0 + (-0.012 * u); o[2] = -0.11 * Math.pow(o[0] / VW, 2) - 0.018 * 0.45 * 0.45 + 0.012 * sin(0.45 * PI) + 0.014;
-          o[1] += 0.022 * (1 - u) * 0.0 + (v - 0.5) * -0.012 + (sx > 0 ? 0 : 0) + 0.02 * u;
-        }, 0.008)), MT.redGlow.m, { shadow: false }));
-        slit.userData.keep = true; slit.userData.noOutline = true;
+        const geo = slab(8, 2, function (u, v, o) {
+          visorSurf(0.5 + sx * (0.03 + 0.1 * u), 0.46 + (v - 0.5) * 0.12 - 0.1 * u, o);
+          o[2] += 0.0145;
+        }, 0.008);
+        const slit = new TH.Mesh(geo, MT.redGlow.m);
+        slit.userData.keep = true; slit.userData.noOutline = true; slit.castShadow = false;
         rig.attach("visor", slit);
         eyes.push(slit);
       }
@@ -1104,165 +1102,122 @@
     /* ======================================================================
        RESPIRATOR COLLAR
        ====================================================================== */
-    put("neck", "rubber", () => g.torus(0.118, 0.042, TAU, 8, 20), { p: [0, -0.005, 0.0], r: [PI / 2, 0, 0], s: [1.0, 0.92, 1.0] });
-    put("neck", "rubber", () => g.torus(0.108, 0.036, TAU, 8, 20), { p: [0, 0.042, 0.004], r: [PI / 2 + 0.1, 0, 0], s: [1.0, 0.95, 1.0] });
-    put("neck", "rubber", () => g.torus(0.132, 0.034, TAU, 8, 20), { p: [0, -0.052, -0.004], r: [PI / 2, 0, 0], s: [1.0, 0.9, 1.0] });
-    put("neck", "rubber", () => superG(2.8, 14, 10), { p: [0.072, 0.012, 0.112], s: [0.066, 0.056, 0.06] });
-    put("neck", "rubber", () => superG(3, 12, 8), { p: [0, 0.062, 0.07], s: [0.052, 0.02, 0.042] });
-    put("neck", "rubberHi", () => g.torus(0.022, 0.006, TAU, 6, 14), { p: [0.078, 0.022, 0.168], s: 1 });
-    put("neck", "lens", () => g.circle(), { p: [0.078, 0.022, 0.168], s: 0.018 });
-    put("neck", "rubber", () => g.cyl(0.02, 0.022, 0.05, 10), { p: [-0.07, -0.002, 0.118], r: [PI / 2 - 0.3, 0.2, 0] });
-    put("neck", "red", () => g.torus(0.022, 0.005, TAU, 5, 12), { p: [-0.07, -0.002, 0.145], r: [0.4, 0.2, 0] });
-    put("neck", "rubber", () => tube([[0.1, 0.0, 0.1], [0.15, -0.015, 0.0], [0.115, -0.01, -0.11], [0.04, 0.0, -0.15]], 0.015, 6, 12), null);
-    put("neck", "rubberHi", () => sphLo(), { p: [0.045, 0.045, 0.145], s: 0.012 });
+    pc("neck", C.rubber, () => g.torus(0.118, 0.042, TAU, 8, 20), { p: [0, -0.005, 0.0], r: [PI / 2, 0, 0], s: [1.0, 0.92, 1.0] });
+    pc("neck", C.rubber, () => g.torus(0.108, 0.036, TAU, 8, 20), { p: [0, 0.042, 0.004], r: [PI / 2 + 0.1, 0, 0], s: [1.0, 0.95, 1.0] });
+    pc("neck", C.rubber, () => g.torus(0.132, 0.034, TAU, 8, 20), { p: [0, -0.052, -0.004], r: [PI / 2, 0, 0], s: [1.0, 0.9, 1.0] });
+    pc("neck", C.rubber, () => superG(2.8, 14, 10), { p: [0.072, 0.012, 0.112], s: [0.066, 0.056, 0.06] });
+    pc("neck", C.rubber, () => superG(3, 12, 8), { p: [0, 0.062, 0.07], s: [0.052, 0.02, 0.042] });
+    pc("neck", C.rubberHi, () => g.torus(0.022, 0.006, TAU, 6, 14), { p: [0.078, 0.022, 0.168] });
+    pc("neck", C.lens, () => g.circle(), { p: [0.078, 0.022, 0.168], s: 0.018 });
+    pc("neck", C.rubber, () => g.cyl(0.02, 0.022, 0.05, 10), { p: [-0.07, -0.002, 0.118], r: [PI / 2 - 0.3, 0.2, 0] });
+    pc("neck", C.red, () => g.torus(0.022, 0.005, TAU, 5, 12), { p: [-0.07, -0.002, 0.145], r: [0.4, 0.2, 0] });
+    pc("neck", C.rubber, () => tube([[0.1, 0.0, 0.1], [0.15, -0.015, 0.0], [0.115, -0.01, -0.11], [0.04, 0.0, -0.15]], 0.015, 6, 12));
 
-    /* ======================================================================
-       COAT (form 1) / SUIT (form 2)
-       ====================================================================== */
-    const poppyAt = (boneName, p, n, sz, big) => {
+    /* ----------------------------------------------------------------------
+       helpers: poppies + hanging chains
+       ---------------------------------------------------------------------- */
+    const poppyAt = (boneName, p, n, sz) => {
       const eul = eulerTo(n[0], n[1], n[2]);
-      put(boneName, "poppy", poppyPetals, { p: p, r: eul, s: sz });
-      put(boneName, "poppyH", poppyHeart, { p: p, r: eul, s: sz });
-      put(boneName, "poppyS", poppyStamens, { p: p, r: eul, s: sz });
+      put(boneName, "vcd", poppyGeo, { p: p, r: eul, s: sz });
     };
-
-    /* free-hanging chain helper (tapes, ribbons) */
-    const chains = [];
-    function chain(name, parent, p, r, n, segLen, w0, w1, sway, phase, matKey, tipKey) {
+    function chain(name, parent, p, r, n, segLen, w0, w1, sway, phase, col, tipCol) {
       for (let k = 0; k < n; k++) {
         const bn = name + "." + k;
         bone(bn, k === 0 ? parent : name + "." + (k - 1), k === 0 ? p : [0, -segLen, 0], k === 0 ? r : [0.05, 0, 0], { sway: sway * (1 + 0.28 * k), phase: phase + k * 0.8 });
         const w = lerp(w0, w1, k / Math.max(1, n - 1));
-        put(bn, matKey || "tape", () => box(), { p: [0, -segLen * 0.5, 0], s: [w, segLen * 1.03, 0.0045] });
-        if (k === n - 1) {
-          put(bn, tipKey || matKey || "tape", () => g.cone(), { p: [0, -segLen - w * 0.35, 0], r: [0, PI / 4, PI], s: [w * 0.72, w * 0.9, 0.0045 * 0.9] });
-        }
+        pd(bn, col, () => box(), { p: [0, -segLen * 0.5, 0], s: [w, segLen * 1.03, 0.0045] });
+        if (k === n - 1) pd(bn, tipCol || col, () => g.cone(), { p: [0, -segLen - w * 0.35, 0], r: [0, PI / 4, PI], s: [w * 0.72, w * 0.9, 0.004] });
       }
     }
 
+    /* ======================================================================
+       COAT (form 1) / SUIT (form 2)
+       ====================================================================== */
     if (!F2) {
-      /* ---- upper shell + hood ---------------------------------------- */
-      put("chest", "coat", () => loft(COAT, 0.29, -0.215, 18, 44, { th0: -PI, th1: PI }), null);
-      /* hood: rolled collar, low in front */
-      const HOOD = loftSurf([
-        { y: 0.40, rx: 0.150, rz: 0.150, cz: -0.02 }, { y: 0.33, rx: 0.178, rz: 0.178, cz: -0.025 },
-        { y: 0.25, rx: 0.215, rz: 0.19, cz: -0.025 }, { y: 0.17, rx: 0.255, rz: 0.2, cz: -0.015 }],
-        { fold: (th, y) => 1 + 0.045 * sin(th * 6 + 1) + 0.03 * sin(th * 11 - y * 9) });
-      put("chest", "coat", () => loft(HOOD, 0.40, 0.17, 10, 36, { hem: (th) => 0 }), null);
-      put("chest", "coat", () => g.torus(0.158, 0.05, TAU, 8, 24), { p: [0, 0.385, -0.022], r: [PI / 2 + 0.12, 0, 0], s: [1.0, 1.0, 1.15] });
-      put("chest", "coatDk", () => superG(2.6, 14, 8), { p: [0.0, 0.34, -0.15], s: [0.14, 0.085, 0.07] });
-      put("chest", "coatIn", () => loft(HOOD, 0.40, 0.25, 6, 28, { lift: -0.03 }), null);
-      /* ---- panels (cloak.n) ------------------------------------------ */
+      put("chest", "coat", () => loft(COAT, 0.29, -0.215, 18, 44, { th0: -PI, th1: PI }));
+      /* rolled hood collar + back pile */
+      pc("chest", C.coatDk, () => g.torus(0.145, 0.05, TAU, 8, 24), { p: [0, 0.255, -0.012], r: [PI / 2 + 0.08, 0, 0], s: [1.0, 1.0, 1.05] });
+      pc("chest", C.coatDk, () => superG(2.6, 14, 8), { p: [0.0, 0.285, -0.14], s: [0.15, 0.09, 0.075] });
+      /* panels (cloak.n): hinge at the waist, one hem shell each */
       const NP = 6, PW = 0.62;
       const hingeR = (a) => [0.292 * sin(a), 0.02, 0.2 * cos(a)];
       for (let i = 0; i < NP; i++) {
-        const a = i * TAU / NP;
-        const h = hingeR(a);
+        const a = i * TAU / NP, h = hingeR(a);
         bone("cloakBase." + i, "hips", h, [0, a, 0]);
-        bone("cloak." + i, "cloakBase." + i, [0, 0, 0], [0.0, 0, 0], { sway: 0.04 + (i % 2) * 0.012, phase: i * 1.1 });
-        bone("cloakTip." + i, "cloak." + i, [0, -0.095, 0.018], [0.04, 0, 0], { sway: 0.06, phase: i * 1.1 + 0.6 });
-        /* geometry in panel space: hips-local point -> rotate by -a, translate by -hinge */
-        const ca = cos(-a), sa = sin(-a);
-        const hx = h[0], hy = h[1], hz = h[2];
-        const px = -(hx * ca + hz * sa), pz = -(-hx * sa + hz * ca);
-        const xf = { p: [px, -hy, pz], r: [0, -a, 0] };
-        const xfT = { p: [px, -hy + 0.095, pz - 0.018], r: [0, -a, 0] };
-        put("cloak." + i, "coat", () => loft(FLARE, 0.02, -0.065, 4, 12, { th0: a - PW, th1: a + PW }), xf);
-        put("cloakTip." + i, "coat", () => loft(FLARE, -0.058, -0.16, 5, 12, { th0: a - PW, th1: a + PW, hem: (th) => -0.012 * Math.abs(sin(th * 4.5 + 0.6)) }), xfT);
-        if (i === 0) {
-          /* long front strap continues over the panel */
-          const sth = -0.16;
-          put("cloak.0", "red", () => decal(FLARE, sth, -0.025, 2, 6, rectShape(0.034, 0.1, 0), 0.004), { p: [0, -h[1], 0], r: [0, 0, 0] });
-        }
+        bone("cloak." + i, "cloakBase." + i, [0, 0, 0], [0, 0, 0], { sway: 0.04 + (i % 2) * 0.012, phase: i * 1.1 });
+        bone("cloakTip." + i, "cloak." + i, [0, -0.1, 0.02], [0.03, 0, 0], { sway: 0.055, phase: i * 1.1 + 0.6 });
+        const ca = cos(-a), sa = sin(-a), hx = h[0], hz = h[2];
+        const xf = { p: [-(hx * ca + hz * sa), -h[1], -(-hx * sa + hz * ca)], r: [0, -a, 0] };
+        put("cloak." + i, "coat", () => loft(FLARE, 0.02, -0.14, 6, 12, { th0: a - PW, th1: a + PW, hem: (th) => -0.012 * (0.5 + 0.5 * sin(th * 4.5 + 0.6)) }), xf);
+        if (i === 0) pn("cloak.0", C.red, () => decal(FLARE, -0.17, -0.055, 2, 8, rectShape(0.036, 0.15, 0), 0.0045), { p: [0, -h[1], 0] });
       }
-      /* red tape straps: front long, plus hanging side/back ends */
-      put("chest", "red", () => decal(COAT, -0.17, -0.075, 2, 10, rectShape(0.036, 0.285, 0), 0.0045), null);
-      put("chest", "red", () => decal(COAT, -0.17, 0.095, 2, 2, rectShape(0.05, 0.022, 0), 0.0055), null);
-      /* emblem ring (red O) + thin zipper line */
-      put("chest", "redO", () => decal(COAT, 0.2, 0.065, 20, 3, ringShape(0.062, 0.078, 0.036, 0.05, 0.3), 0.005), null);
-      put("chest", "red", () => decal(COAT, 0.03, -0.04, 2, 12, rectShape(0.007, 0.34, 0), 0.0045), null);
-      put("chest", "red", () => decal(COAT, -0.55, 0.19, 2, 3, rectShape(0.022, 0.05, 0.4), 0.005), null);
+      /* red tape: long front strap + hanging ends */
+      pn("chest", C.red, () => decal(COAT, -0.17, -0.075, 2, 10, rectShape(0.036, 0.285, 0), 0.0045));
+      pn("chest", C.red, () => decal(COAT, -0.17, 0.095, 2, 2, rectShape(0.05, 0.022, 0), 0.0055));
+      pn("chest", C.red, () => decal(COAT, 0.2, 0.065, 20, 3, ringShape(0.062, 0.078, 0.036, 0.05, 0.3), 0.005));
+      pn("chest", C.red, () => decal(COAT, 0.03, -0.04, 2, 12, rectShape(0.006, 0.34, 0), 0.0045));
+      pn("chest", C.red, () => decal(COAT, -0.55, 0.19, 2, 3, rectShape(0.022, 0.05, 0.4), 0.005));
       /* right-shoulder patch: circle emblem + red tab */
-      put("chest", "redO", () => decal(COAT, -0.92, 0.185, 16, 2, ringShape(0.032, 0.032, 0.0, 0.0, 0), 0.006), null);
-      put("chest", "helmBlk", () => decal(COAT, -0.92, 0.185, 16, 2, ringShape(0.026, 0.026, 0.0, 0.0, 0), 0.0072), null);
-      put("chest", "red", () => decal(COAT, -0.92, 0.185, 16, 2, ringShape(0.016, 0.016, 0.0, 0.0, 0), 0.0084), null);
-      put("chest", "red", () => decal(COAT, -0.92, 0.135, 2, 3, rectShape(0.036, 0.05, 0.0), 0.006), null);
-      /* belt tie under the coat, tape ties */
-      chain("strapF", "cloakTip.0", [-0.07, -0.02, 0.0], [0.0, 0, 0], 2, 0.15, 0.036, 0.034, 0.035, 0.3, "tape", "tapeTip");
-      chain("strapS", "cloakTip.1", [-0.04, -0.02, 0.0], [0.02, 0, 0], 2, 0.13, 0.03, 0.028, 0.045, 1.7, "tape", "tapeTip");
-      chain("strapB", "cloakTip.4", [0.07, -0.02, 0.0], [0.0, 0, 0], 2, 0.17, 0.03, 0.028, 0.04, 2.6, "tape", "tapeTip");
-      chain("strapC", "cloakTip.3", [0.0, -0.02, 0.0], [0.0, 0, 0], 2, 0.2, 0.026, 0.024, 0.045, 0.9, "tape", "tapeTip");
-
-      /* ---- sleeves ----------------------------------------------------- */
+      pn("chest", C.red, () => decal(COAT, -0.92, 0.185, 16, 2, ringShape(0.032, 0.032, 0.0, 0.0, 0), 0.006));
+      pn("chest", C.helmBlk, () => decal(COAT, -0.92, 0.185, 16, 2, ringShape(0.026, 0.026, 0.0, 0.0, 0), 0.0072));
+      pn("chest", C.red, () => decal(COAT, -0.92, 0.185, 16, 2, ringShape(0.016, 0.016, 0.0, 0.0, 0), 0.0084));
+      pn("chest", C.red, () => decal(COAT, -0.92, 0.135, 2, 3, rectShape(0.036, 0.05, 0.0), 0.006));
+      chain("strapF", "cloakTip.0", [-0.07, -0.02, 0.0], [0.0, 0, 0], 2, 0.15, 0.036, 0.034, 0.035, 0.3, C.tape, C.tapeTip);
+      chain("strapS", "cloakTip.1", [-0.04, -0.02, 0.0], [0.02, 0, 0], 2, 0.13, 0.03, 0.028, 0.045, 1.7, C.tape, C.tapeTip);
+      chain("strapB", "cloakTip.4", [0.07, -0.02, 0.0], [0.0, 0, 0], 2, 0.17, 0.03, 0.028, 0.04, 2.6, C.tape, C.tapeTip);
+      /* sleeves */
       for (const [S, sx] of [["L", 1], ["R", -1]]) {
-        const SL = loftSurf([{ y: 0.04, rx: 0.098, rz: 0.098 }, { y: -0.10, rx: 0.115, rz: 0.12 }, { y: -0.22, rx: 0.14, rz: 0.15 }, { y: -0.30, rx: 0.15, rz: 0.158 }],
+        const SL = loftSurf([{ y: 0.04, rx: 0.088, rz: 0.09 }, { y: -0.10, rx: 0.10, rz: 0.108 }, { y: -0.22, rx: 0.122, rz: 0.134 }, { y: -0.30, rx: 0.134, rz: 0.144 }],
           { fold: (th, y) => 1 + 0.05 * sin(th * 3 + y * 8) + 0.03 * sin(th * 7 + 1) });
-        put("arm" + S + ".sh", "coat", () => loft(SL, 0.05, -0.30, 8, 20, {}), null);
-        put("arm" + S + ".sh", "coat", () => sph(), { p: [-sx * 0.01, 0.01, 0], s: [0.108, 0.1, 0.11] });
-        const CL = loftSurf([{ y: 0.0, rx: 0.145, rz: 0.15 }, { y: -0.08, rx: 0.17, rz: 0.178 }, { y: -0.16, rx: 0.196, rz: 0.205 }, { y: -0.215, rx: 0.205, rz: 0.215 }],
+        put("arm" + S + ".sh", "coat", () => loft(SL, 0.05, -0.30, 8, 20, {}));
+        put("arm" + S + ".sh", "coat", () => sph(), { p: [-sx * 0.01, 0.01, 0], s: [0.098, 0.092, 0.1] });
+        const CL = loftSurf([{ y: 0.0, rx: 0.13, rz: 0.14 }, { y: -0.07, rx: 0.155, rz: 0.168 }, { y: -0.14, rx: 0.178, rz: 0.19 }],
           { fold: (th, y) => 1 + 0.06 * sin(th * 4 + y * 12 + (sx > 0 ? 1 : 3)) + 0.035 * sin(th * 9 + 2) });
-        put("cuff" + S, "coat", () => loft(CL, 0.0, -0.215, 7, 22, { hem: (th) => 0.03 * Math.sin(th - 0.4) - 0.012 * Math.abs(sin(th * 3)) }), null);
-        put("cuff" + S, "coatIn", () => loft(CL, -0.02, -0.19, 4, 18, { lift: -0.02 }), null);
-        /* red wrist tape ties */
+        put("cuff" + S, "coat", () => loft(CL, 0.0, -0.14, 6, 22, { hem: (th) => 0.03 * Math.sin(th - 0.4) - 0.012 * (0.5 + 0.5 * sin(th * 3)) }));
       }
-      /* mech right forearm + hand (see below), left hand relaxed glove */
     } else {
       /* =================== FORM 2: bodysuit ====================== */
       const TORSO = loftSurf([
         { y: 0.26, rx: 0.044, rz: 0.044 }, { y: 0.215, rx: 0.095, rz: 0.062 }, { y: 0.17, rx: 0.145, rz: 0.088 },
         { y: 0.09, rx: 0.138, rz: 0.098, cz: 0.006 }, { y: 0.0, rx: 0.122, rz: 0.092, cz: 0.004 },
         { y: -0.1, rx: 0.10, rz: 0.08 }, { y: -0.2, rx: 0.108, rz: 0.084 }]);
-      put("chest", "suit", () => loft(TORSO, 0.26, -0.21, 16, 30, { uvu: (u) => u * 1.2 }), null);
-      put("chest", "suitD", () => g.torus(0.1, 0.03, TAU, 8, 20), { p: [0, -0.16, 0], r: [PI / 2, 0, 0], s: [1.15, 0.9, 1.0] });
-      /* pelvis */
+      put("chest", "suit", () => loft(TORSO, 0.26, -0.21, 16, 30, { uvu: (u) => u * 1.2 }));
+      pn("chest", C.red, () => decal(TORSO, 0.2, 0.09, 20, 3, ringShape(0.06, 0.074, 0.034, 0.048, 0.3), 0.004));
+      pc("chest", C.helmP, () => superG(3.2, 14, 8), { p: [0, 0.12, 0.062], s: [0.1, 0.06, 0.04] });
+      pn("chest", C.red, () => box(), { p: [0, 0.135, 0.1], s: [0.1, 0.008, 0.004] });
       const PELV = loftSurf([{ y: 0.06, rx: 0.108, rz: 0.084 }, { y: -0.02, rx: 0.14, rz: 0.106 }, { y: -0.1, rx: 0.15, rz: 0.11 }]);
-      put("hips", "suit", () => loft(PELV, 0.06, -0.10, 6, 24, {}), null);
-      /* belt + buckle */
-      put("hips", "suitD", () => g.torus(0.133, 0.026, TAU, 8, 24), { p: [0, 0.045, 0], r: [PI / 2, 0, 0], s: [1.0, 0.82, 1.0] });
-      put("hips", "red", () => g.torus(0.136, 0.011, TAU, 6, 24), { p: [0, 0.012, 0], r: [PI / 2, 0, 0], s: [1.0, 0.82, 1.0] });
-      put("hips", "metal", () => superG(3.4, 12, 8), { p: [0, 0.042, 0.118], s: [0.045, 0.036, 0.02] });
-      put("hips", "red", () => g.circle(), { p: [0, 0.042, 0.1385], s: 0.022 });
+      put("hips", "suit", () => loft(PELV, 0.06, -0.10, 6, 24, {}));
+      pc("hips", C.suitD, () => g.torus(0.133, 0.026, TAU, 8, 24), { p: [0, 0.045, 0], r: [PI / 2, 0, 0], s: [1.0, 0.82, 1.0] });
+      pc("hips", C.red, () => g.torus(0.136, 0.011, TAU, 6, 24), { p: [0, 0.012, 0], r: [PI / 2, 0, 0], s: [1.0, 0.82, 1.0] });
+      pc("hips", C.metal, () => superG(3.4, 12, 8), { p: [0, 0.042, 0.118], s: [0.045, 0.036, 0.02] });
+      pn("hips", C.red, () => g.circle(), { p: [0, 0.042, 0.1385], s: 0.022 });
       for (const sx of [-1, 1]) {
-        put("hips", "helmP", () => superG(3.4, 12, 8), { p: [sx * 0.158, -0.035, 0.0], s: [0.028, 0.085, 0.092], r: [0, 0, sx * 0.1] });
-        put("hips", "red", () => box(), { p: [sx * 0.184, -0.035, 0.0], s: [0.006, 0.07, 0.06], r: [0, 0, sx * 0.1] });
+        pc("hips", C.helmP, () => superG(3.4, 12, 8), { p: [sx * 0.158, -0.035, 0.0], s: [0.028, 0.085, 0.092], r: [0, 0, sx * 0.1] });
+        pn("hips", C.red, () => box(), { p: [sx * 0.184, -0.035, 0.0], s: [0.006, 0.07, 0.06], r: [0, 0, sx * 0.1] });
       }
-      /* chest armour: red ring emblem + plate lines on the suit */
-      const TS = TORSO;
-      put("chest", "redO", () => decal(TS, 0.2, 0.09, 20, 3, ringShape(0.06, 0.074, 0.034, 0.048, 0.3), 0.004), null);
-      put("chest", "helmP", () => superG(3.2, 14, 8), { p: [0, 0.12, 0.062], s: [0.1, 0.06, 0.04] });
-      put("chest", "red", () => box(), { p: [0, 0.135, 0.1], s: [0.1, 0.008, 0.004] });
-      /* shoulder pauldrons, both arms */
       for (const [S, sx] of [["L", 1], ["R", -1]]) {
-        put("arm" + S + ".sh", "helmP", () => superG(3, 16, 10), { p: [sx * 0.025, 0.045, 0.0], s: [0.105, 0.075, 0.115], r: [0, 0, sx * 0.25] });
-        put("arm" + S + ".sh", "helmD", () => g.torus(0.1, 0.014, TAU, 6, 20), { p: [sx * 0.015, 0.0, 0], r: [PI / 2, 0, sx * 0.2], s: [1.0, 1.0, 0.7] });
-        put("arm" + S + ".sh", "red", () => g.circle(), { p: [sx * 0.098, 0.06, 0.0], r: [0, sx * PI / 2, 0], s: 0.03 });
-        put("arm" + S + ".sh", "suit", () => tube([[0, 0.02, 0], [0, -0.14, 0.004], [0, -0.28, 0]], [[0.052, 0.054], [0.046, 0.048], [0.042, 0.044]], 10, 5), null);
-        put("arm" + S + ".sh", "red", () => g.torus(0.05, 0.01, TAU, 5, 14), { p: [0, -0.13, 0], r: [PI / 2, 0, 0] });
-      }
-      /* torn sleeve remnants hanging from the pauldrons */
-      for (const [S, sx] of [["L", 1], ["R", -1]]) {
-        bone("rag" + S, "arm" + S + ".sh", [sx * 0.04, 0.05, -0.04], [0.25, 0, sx * 0.1], { sway: 0.07, phase: sx > 0 ? 0.4 : 1.9 });
+        const sh = "arm" + S + ".sh";
+        pc(sh, C.helmP, () => superG(3, 16, 10), { p: [sx * 0.025, 0.045, 0.0], s: [0.105, 0.075, 0.115], r: [0, 0, sx * 0.25] });
+        pc(sh, C.helmD, () => g.torus(0.1, 0.014, TAU, 6, 20), { p: [sx * 0.015, 0.0, 0], r: [PI / 2, 0, sx * 0.2], s: [1.0, 1.0, 0.7] });
+        pn(sh, C.red, () => g.circle(), { p: [sx * 0.098, 0.06, 0.0], r: [0, sx * PI / 2, 0], s: 0.03 });
+        pc(sh, C.suitD, () => tube([[0, 0.02, 0], [0, -0.14, 0.004], [0, -0.28, 0]], [[0.052, 0.054], [0.046, 0.048], [0.042, 0.044]], 10, 5));
+        pc(sh, C.red, () => g.torus(0.05, 0.01, TAU, 5, 14), { p: [0, -0.13, 0], r: [PI / 2, 0, 0] });
+        bone("rag" + S, sh, [sx * 0.04, 0.05, -0.04], [0.25, 0, sx * 0.1], { sway: 0.07, phase: sx > 0 ? 0.4 : 1.9 });
         bone("rag" + S + "1", "rag" + S, [0, -0.2, 0], [0.12, 0, 0], { sway: 0.1, phase: sx > 0 ? 1.4 : 2.9 });
-        put("rag" + S, "coat", () => g.tatter(0.17, 0.2, 0.0, 0.016, 3, 1.1), { r: [0, 0, 0] });
-        put("rag" + S + "1", "coat", () => g.tatter(0.19, 0.22, 0.08, 0.014, 5, 1.12), null);
+        put("rag" + S, "coatN", () => g.tatter(0.17, 0.2, 0.0, 0.016, 3, 1.1));
+        put("rag" + S + "1", "coatN", () => g.tatter(0.19, 0.22, 0.08, 0.014, 5, 1.12));
+        pd(sh, C.poppyH, () => tube([[0, 0, 0], [sx * 0.03, 0.06, 0.0], [sx * 0.05, 0.13, -0.02], [sx * 0.07, 0.19, -0.04]], 0.008, 5, 8), { p: [sx * 0.07, 0.09, -0.04] });
+        poppyAt(sh, [sx * 0.14, 0.27, -0.07], [sx * 0.4, 0.8, -0.15], 0.115);
+        poppyAt(sh, [sx * 0.05, 0.15, -0.115], [sx * 0.2, 0.55, -0.8], 0.075);
+        poppyAt(sh, [sx * 0.12, 0.14, 0.07], [sx * 0.7, 0.6, 0.3], 0.06);
       }
-      /* shredded coat tails hanging from the back (cloak.n on shoulder blades and belt) */
       for (let i = 0; i < 5; i++) {
         const x = (i - 2) * 0.095, topY = i % 2 ? 0.18 : 0.2;
         bone("cloakBase." + i, "chest", [x, topY, -0.115 - 0.01 * Math.abs(i - 2)], [0.15 + 0.03 * Math.abs(i - 2), (i - 2) * 0.12, 0]);
         bone("cloak." + i, "cloakBase." + i, null, null, { sway: 0.07 + i * 0.01, phase: i * 1.2 });
         bone("cloakTip." + i, "cloak." + i, [0, -0.28, 0], [0.08, 0, 0], { sway: 0.11, phase: i * 1.2 + 0.7 });
-        bone("cloakTip2." + i, "cloakTip." + i, [0, -0.28, 0], [0.08, 0, 0], { sway: 0.14, phase: i * 1.2 + 1.5 });
-        put("cloak." + i, "coat", () => g.tatter(0.15 + (i % 2) * 0.02, 0.29, 0.0, 0.018, 3, 1.05), null);
-        put("cloakTip." + i, "coat", () => g.tatter(0.16, 0.29, 0.04, 0.016, 4, 1.05), null);
-        put("cloakTip2." + i, "coat", () => g.tatter(0.15, 0.3, 0.1 + (i % 2) * 0.04, 0.014, 5, 1.0), null);
-      }
-      /* shoulder poppy blossoms sprouting from the pauldrons */
-      for (const [S, sx] of [["L", 1], ["R", -1]]) {
-        put("arm" + S + ".sh", "poppyH", () => tube([[0, 0, 0], [sx * 0.03, 0.06, 0.0], [sx * 0.05, 0.13, -0.02], [sx * 0.07, 0.19, -0.04]], 0.008, 5, 8), { p: [sx * 0.07, 0.09, -0.04] });
-        poppyAt("arm" + S + ".sh", [sx * 0.14, 0.27, -0.07], [sx * 0.4, 0.8, -0.15], 0.115);
-        poppyAt("arm" + S + ".sh", [sx * 0.05, 0.15, -0.115], [sx * 0.2, 0.55, -0.8], 0.075);
-        poppyAt("arm" + S + ".sh", [sx * 0.12, 0.14, 0.07], [sx * 0.7, 0.6, 0.3], 0.06);
+        put("cloak." + i, "coatN", () => g.tatter(0.15 + (i % 2) * 0.02, 0.29, 0.0, 0.018, 3, 1.05));
+        put("cloakTip." + i, "coatN", () => g.tatter(0.16, 0.34, 0.1 + (i % 2) * 0.04, 0.016, 5, 1.05));
       }
     }
 
@@ -1270,104 +1225,90 @@
        SKIRT (olive pleats + blue lining)
        ====================================================================== */
     if (!F2) {
-      put("hips", "skirt", () => loft(SKIRT, 0.04, -0.40, 12, 48, { hem: (th) => -0.012 * Math.abs(sin(th * 3.2 + 0.5)) }), null);
-      const LIN = loftSurf([{ y: -0.28, rx: 0.292, rz: 0.262 }, { y: -0.40, rx: 0.33, rz: 0.30 }, { y: -0.47, rx: 0.352, rz: 0.322 }],
-        { fold: (th, y) => 1 + 0.06 * sin(th * 11 + y * 4) + 0.03 * sin(th * 4) });
-      put("hips", "lining", () => loft(LIN, -0.29, -0.47, 5, 40, { hem: (th) => -0.045 * Math.abs(sin(th * 4.2 + 1.2)) - 0.02 * Math.abs(sin(th * 9.3)) }), null);
+      put("hips", "skirt", () => loft(SKIRT, 0.04, -0.40, 12, 48, { hem: waveHem(0.02, 3.2, 0.5) }));
+      const LIN = loftSurf([{ y: -0.28, rx: 0.25, rz: 0.225 }, { y: -0.40, rx: 0.30, rz: 0.272 }, { y: -0.46, rx: 0.345, rz: 0.316 }],
+        { fold: (th, y) => 1 + 0.05 * sin(th * 11 + y * 4) + 0.03 * sin(th * 4) });
+      put("hips", "lining", () => loft(LIN, -0.29, -0.46, 5, 40, { hem: waveHem(0.045, 4.2, 1.2) }));
     } else {
       const SK2 = loftSurf([{ y: 0.04, rx: 0.18, rz: 0.16 }, { y: -0.10, rx: 0.238, rz: 0.21 }, { y: -0.26, rx: 0.285, rz: 0.256 }],
         { fold: (th, y) => 1 + 0.05 * sin(th * 22 + y * 2.0) * sstep(0.0, -0.2, y) });
-      put("hips", "skirt", () => loft(SK2, 0.04, -0.26, 8, 44, { hem: (th) => -0.05 * Math.abs(sin(th * 5.3 + 0.5)) - 0.025 * Math.abs(sin(th * 11.3)) }), null);
-      const LI2 = loftSurf([{ y: -0.17, rx: 0.262, rz: 0.236 }, { y: -0.32, rx: 0.3, rz: 0.275 }]);
-      put("hips", "lining", () => loft(LI2, -0.17, -0.32, 3, 36, { hem: (th) => -0.06 * Math.abs(sin(th * 6.1 + 1.2)) - 0.03 * Math.abs(sin(th * 12.3)) }), null);
-      /* the lining becomes red-hot in war form */
+      put("hips", "skirt", () => loft(SK2, 0.04, -0.26, 8, 44, { hem: (th) => -0.05 * (0.5 + 0.5 * sin(th * 5.3 + 0.5)) - 0.025 * (0.5 + 0.5 * sin(th * 11.3)) }));
+      const LI2 = loftSurf([{ y: -0.17, rx: 0.225, rz: 0.2 }, { y: -0.26, rx: 0.268, rz: 0.245 }, { y: -0.32, rx: 0.31, rz: 0.285 }]);
+      put("hips", "lining", () => loft(LI2, -0.17, -0.32, 3, 36, { hem: (th) => -0.06 * (0.5 + 0.5 * sin(th * 6.1 + 1.2)) - 0.03 * (0.5 + 0.5 * sin(th * 12.3)) }));
     }
 
     /* ======================================================================
        ARMS: mech forearms, hands, katana, saya
        ====================================================================== */
-    function mechForearm(S, sx, full) {
+    function mechForearm(S, sx) {
       const el = "arm" + S + ".el";
-      put(el, "metal", () => tube([[0, -0.02, 0], [0, -0.13, 0.004], [0, -0.255, 0.0]], [[0.052, 0.056], [0.044, 0.05], [0.036, 0.04]], 12, 5), null);
-      put(el, "metalD", () => g.torus(0.05, 0.012, TAU, 6, 16), { p: [0, -0.04, 0], r: [PI / 2, 0, 0] });
-      put(el, "metalD", () => g.torus(0.04, 0.011, TAU, 6, 16), { p: [0, -0.19, 0], r: [PI / 2, 0, 0] });
-      put(el, "metalD", () => box(), { p: [sx * 0.02, -0.1, 0.045], s: [0.034, 0.1, 0.022] });
-      put(el, "metalD", () => g.cyl(0.036, 0.036, 0.012, 18), { p: [0, -0.125, 0.048], r: [PI / 2, 0, 0] });
-      put(el, "redO", () => g.cyl(0.028, 0.028, 0.012, 18), { p: [0, -0.125, 0.052], r: [PI / 2, 0, 0] });
-      put(el, "red", () => g.torus(0.041, 0.0085, TAU, 6, 16), { p: [0, -0.222, 0], r: [PI / 2, 0, 0] });
-      put(el, "red", () => box(), { p: [0, -0.222, 0.045], s: [0.032, 0.016, 0.014] });
-      /* exposed pistons */
-      put(el, "metalD", () => g.cyl(0.007, 0.007, 0.15, 6), { p: [-sx * 0.036, -0.12, 0.012], r: [0.0, 0, 0] });
-    }
-    function glove(S, sx, holding) {
-      const h = "arm" + S + ".hand";
-      if (holding) return;
-      put(h, "glove", () => superG(3, 12, 8), { p: [0, -0.04, 0.004], s: [0.034, 0.04, 0.022] });
-      for (let k = 0; k < 4; k++) {
-        put(h, "glove", () => tube([[0, 0, 0], [0, -0.03, 0.004], [0, -0.058, -0.004]], [0.0085 - k * 0.0005, 0.0085 - k * 0.0005], 5, 3),
-          { p: [-0.0225 + k * 0.015 * 1.0 + 0.0, -0.075, 0.0], r: [0.12 + k * 0.02, 0, 0] });
-      }
-      put(h, "glove", () => tube([[0, 0, 0], [0.012 * sx, -0.022, 0.012], [0.018 * sx, -0.042, 0.03]], 0.01, 5, 3), { p: [-0.026 * sx, -0.03, 0.01] });
-      put(h, "red", () => box(), { p: [0, -0.052, 0.021], s: [0.05, 0.006, 0.006] });
+      pc(el, C.metal, () => tube([[0, -0.02, 0], [0, -0.13, 0.004], [0, -0.255, 0.0]], [[0.052, 0.056], [0.044, 0.05], [0.036, 0.04]], 12, 5));
+      pc(el, C.metalD, () => g.torus(0.05, 0.012, TAU, 6, 16), { p: [0, -0.04, 0], r: [PI / 2, 0, 0] });
+      pc(el, C.metalD, () => g.torus(0.04, 0.011, TAU, 6, 16), { p: [0, -0.19, 0], r: [PI / 2, 0, 0] });
+      pc(el, C.metalD, () => box(), { p: [sx * 0.02, -0.1, 0.045], s: [0.034, 0.1, 0.022] });
+      pc(el, C.metalD, () => g.cyl(0.036, 0.036, 0.012, 18), { p: [0, -0.125, 0.048], r: [PI / 2, 0, 0] });
+      pc(el, C.red, () => g.cyl(0.028, 0.028, 0.012, 18), { p: [0, -0.125, 0.052], r: [PI / 2, 0, 0] });
+      pc(el, C.red, () => g.torus(0.041, 0.0085, TAU, 6, 16), { p: [0, -0.222, 0], r: [PI / 2, 0, 0] });
+      pc(el, C.red, () => box(), { p: [0, -0.222, 0.045], s: [0.032, 0.016, 0.014] });
+      pc(el, C.metalD, () => g.cyl(0.007, 0.007, 0.15, 6), { p: [-sx * 0.036, -0.12, 0.012] });
     }
     function fist(S, sx) {
-      /* fist wrapped around the hilt, built in prop space (+Y along handle) */
       const p = "prop" + S;
-      put(p, "glove", () => superG(3, 12, 8), { p: [0, 0.0, -0.032], s: [0.036, 0.048, 0.024] });
+      pc(p, C.glove, () => superG(3, 12, 8), { p: [0, 0.0, -0.032], s: [0.036, 0.048, 0.024] });
       for (let k = 0; k < 4; k++) {
-        put(p, "glove", () => g.torus(0.0205, 0.0095, PI * 1.55, 6, 12), { p: [0, -0.052 + k * 0.0205, 0.0], r: [PI / 2, 0, PI * 0.28 + PI * 0.5], s: [1, 1, 1] });
+        pc(p, C.glove, () => g.torus(0.0205, 0.0095, PI * 1.55, 6, 12), { p: [0, -0.052 + k * 0.0205, 0.0], r: [PI / 2, 0, PI * 0.28 + PI * 0.5] });
       }
-      put(p, "glove", () => tube([[0, 0, 0], [0.0, 0.02, 0.02], [0.0, 0.052, 0.022]], [0.011, 0.011], 6, 3), { p: [sx * 0.026, -0.02, -0.02], r: [0, 0, 0] });
-      put(p, "red", () => box(), { p: [0, 0.0, 0.034], s: [0.03, 0.058, 0.007] });
-      put(p, "metalD", () => box(), { p: [0, 0.0, -0.05], s: [0.034, 0.05, 0.008] });
+      pc(p, C.glove, () => tube([[0, 0, 0], [0.0, 0.02, 0.02], [0.0, 0.052, 0.022]], [0.011, 0.011], 6, 3), { p: [sx * 0.026, -0.02, -0.02] });
+      pc(p, C.red, () => box(), { p: [0, 0.0, 0.034], s: [0.03, 0.058, 0.007] });
+      pc(p, C.metalD, () => box(), { p: [0, 0.0, -0.05], s: [0.034, 0.05, 0.008] });
     }
-
-    /* right arm: mech forearm always (the blade arm) */
-    mechForearm("R", -1, true);
+    mechForearm("R", -1);
     fist("R", -1);
-    if (F2) { mechForearm("L", 1, true); fist("L", 1); }
+    if (F2) { mechForearm("L", 1); fist("L", 1); }
     else {
-      /* left arm: coat sleeve covers; black glove + mech wrist peeks out */
-      put("armL.el", "glove", () => tube([[0, -0.02, 0], [0, -0.13, 0.004], [0, -0.255, 0.0]], [[0.04, 0.042], [0.034, 0.036], [0.03, 0.032]], 10, 4), null);
-      put("armL.el", "metalD", () => g.torus(0.034, 0.011, TAU, 6, 14), { p: [0, -0.2, 0], r: [PI / 2, 0, 0] });
-      put("armL.el", "red", () => g.torus(0.035, 0.008, TAU, 6, 14), { p: [0, -0.235, 0], r: [PI / 2, 0, 0] });
-      glove("L", 1, false);
+      pc("armL.el", C.glove, () => tube([[0, -0.02, 0], [0, -0.13, 0.004], [0, -0.255, 0.0]], [[0.04, 0.042], [0.034, 0.036], [0.03, 0.032]], 10, 4));
+      pc("armL.el", C.metalD, () => g.torus(0.034, 0.011, TAU, 6, 14), { p: [0, -0.2, 0], r: [PI / 2, 0, 0] });
+      pc("armL.el", C.red, () => g.torus(0.035, 0.008, TAU, 6, 14), { p: [0, -0.235, 0], r: [PI / 2, 0, 0] });
+      const h = "armL.hand";
+      pc(h, C.glove, () => superG(3, 12, 8), { p: [0, -0.04, 0.004], s: [0.034, 0.04, 0.022] });
+      for (let k = 0; k < 4; k++) {
+        pc(h, C.glove, () => tube([[0, 0, 0], [0, -0.03, 0.004], [0, -0.058, -0.004]], 0.0085 - k * 0.0005, 5, 3), { p: [-0.0225 + k * 0.015, -0.075, 0.0], r: [0.12 + k * 0.02, 0, 0] });
+      }
+      pc(h, C.glove, () => tube([[0, 0, 0], [0.012, -0.022, 0.012], [0.018, -0.042, 0.03]], 0.01, 5, 3), { p: [-0.026, -0.03, 0.01] });
+      pn(h, C.red, () => box(), { p: [0, -0.052, 0.021], s: [0.05, 0.006, 0.006] });
     }
 
-    /* --- katana (propR / propL in form 2) -------------------------------- */
+    /* katana (propR; propL in form 2) */
     function katana(S) {
       const p = "prop" + S;
       put(p, "handle", () => tube([[0, -0.15, 0], [0, 0.0, 0], [0, 0.165, 0]], [[0.0165, 0.0135], [0.0195, 0.0158], [0.0165, 0.0135]], 12, 6), { uv: [0, 0, 2.5, 4] });
-      put(p, "metal", () => superG(3.4, 12, 8), { p: [0, -0.155, 0], s: [0.0215, 0.015, 0.0175] });
-      put(p, "tsuba", () => superG(3.2, 18, 8), { p: [0, 0.172, 0], s: [0.046, 0.007, 0.039] });
-      put(p, "red", () => g.torus(0.04, 0.0035, TAU, 5, 18), { p: [0, 0.18, 0], r: [PI / 2, 0, 0], s: [1, 0.85, 1] });
-      put(p, "metal", () => superG(3, 10, 6), { p: [0, 0.196, -0.004], s: [0.019, 0.016, 0.0145] });
-      put(p, "blade", () => bladeGeo(0, 0), null);
-      put(p, "bladeEdge", () => bladeGeo(1, 0), null);
-      put(p, "bladeHalo", () => bladeGeo(0, 0.05), null);
+      pc(p, C.metal, () => superG(3.4, 12, 8), { p: [0, -0.155, 0], s: [0.0215, 0.015, 0.0175] });
+      pc(p, C.tsuba, () => superG(3.2, 18, 8), { p: [0, 0.172, 0], s: [0.046, 0.007, 0.039] });
+      pc(p, C.red, () => g.torus(0.04, 0.0035, TAU, 5, 18), { p: [0, 0.18, 0], r: [PI / 2, 0, 0], s: [1, 0.85, 1] });
+      pc(p, C.metal, () => superG(3, 10, 6), { p: [0, 0.196, -0.004], s: [0.019, 0.016, 0.0145] });
+      put(p, "blade", () => bladeGeo(0, 0));
+      put(p, "bladeEdge", () => bladeGeo(1, 0));
+      put(p, "bladeHalo", () => bladeGeo(0, 0.05));
     }
     katana("R");
     if (F2) katana("L");
 
-    /* --- saya (form 1) on the right hip, tip up and back ----------------- */
+    /* saya (form 1) on the right hip, tip up and back */
     if (!F2) {
       const sayaPath = [[0, 0, 0], [0, 0.3, -0.006], [0, 0.62, -0.025], [0, 0.95, -0.058]];
       put("propL", "saya", () => tube(sayaPath, [[0.026, 0.0185], [0.0235, 0.0172], [0.0215, 0.016], [0.02, 0.0148]], 14, 14), { uv: [0, 0, 2, 1] });
-      put("propL", "metal", () => g.torus(0.0275, 0.0075, TAU, 6, 16), { p: [0, 0.002, 0], r: [PI / 2, 0, 0], s: [1, 0.72, 1] });
-      put("propL", "red", () => g.torus(0.0245, 0.0045, TAU, 5, 14), { p: [0, 0.26, -0.005], r: [PI / 2, 0, 0], s: [1, 0.72, 1] });
-      put("propL", "sayaTip", () => superG(2.6, 10, 8), { p: [0, 0.968, -0.062], s: [0.0235, 0.036, 0.021], r: [0.12, 0, 0] });
-      put("propL", "metalD", () => g.torus(0.0225, 0.005, TAU, 5, 14), { p: [0, 0.925, -0.052], r: [PI / 2 - 0.05, 0, 0], s: [1, 0.72, 1] });
-      /* sageo cord + red tail */
-      put("propL", "red", () => tube([[0.0, 0.1, 0.02], [0.03, 0.06, 0.07], [0.05, 0.0, 0.1], [0.05, -0.07, 0.1]], 0.0055, 5, 8), null);
-      chain("sageo", "propL", [0.05, -0.07, 0.1], [0.0, 0, 0], 3, 0.1, 0.022, 0.02, 0.06, 0.5, "tape", "tape");
+      pc("propL", C.metal, () => g.torus(0.0275, 0.0075, TAU, 6, 16), { p: [0, 0.002, 0], r: [PI / 2, 0, 0], s: [1, 0.72, 1] });
+      pc("propL", C.red, () => g.torus(0.0245, 0.0045, TAU, 5, 14), { p: [0, 0.26, -0.005], r: [PI / 2, 0, 0], s: [1, 0.72, 1] });
+      pc("propL", C.sayaTip, () => superG(2.6, 10, 8), { p: [0, 0.968, -0.062], s: [0.0235, 0.036, 0.021], r: [0.12, 0, 0] });
+      pc("propL", C.metalD, () => g.torus(0.0225, 0.005, TAU, 5, 14), { p: [0, 0.925, -0.052], r: [PI / 2 - 0.05, 0, 0], s: [1, 0.72, 1] });
+      pd("propL", C.red, () => tube([[0.0, 0.1, 0.02], [0.03, 0.06, 0.07], [0.05, 0.0, 0.1], [0.05, -0.07, 0.1]], 0.0055, 5, 8));
+      chain("sageo", "propL", [0.05, -0.07, 0.1], [0.0, 0, 0], 3, 0.1, 0.022, 0.02, 0.06, 0.5, C.tape, C.tape);
     }
 
-    /* ======================================================================
-       POPPIES (form 1: pinned on the costume)
-       ====================================================================== */
+    /* poppies */
     if (!F2) {
       poppyAt("chest", [-0.095, 0.255, 0.15], [-0.4, 0.55, 0.75], 0.052);
-      poppyAt("chest", [0.1, 0.31, -0.19], [0.3, 0.6, -0.75], 0.058);
+      poppyAt("chest", [0.1, 0.29, -0.2], [0.3, 0.6, -0.75], 0.058);
       poppyAt("hips", [0.255, 0.0, 0.14], [0.8, 0.3, 0.5], 0.05);
       poppyAt("helmet", [0.18, 0.1, -0.06], [0.45, 0.8, -0.35], 0.055);
       poppyAt("hips", [-0.2, -0.38, 0.17], [-0.4, -0.1, 0.9], 0.046);
@@ -1376,18 +1317,14 @@
       poppyAt("hips", [0.17, -0.02, -0.1], [0.5, 0.2, -0.8], 0.06);
     }
 
-    /* ======================================================================
-       RIBBONS (form 2 streaming tapes; form 1 small hanging tape ends)
-       ====================================================================== */
+    /* ribbons (form 2 streaming tapes) */
     if (F2) {
-      chain("tapeA", "hips", [0.05, 0.03, -0.125], [0.62, 0.22, 0.0], 4, 0.2, 0.05, 0.04, 0.06, 0.2, "tape", "tape");
-      chain("tapeB", "hips", [-0.05, 0.03, -0.125], [0.62, -0.22, 0.0], 4, 0.2, 0.05, 0.04, 0.06, 1.3, "tape", "tape");
-      chain("tapeC", "hips", [0.15, 0.02, 0.0], [0.5, 0.9, 0.2], 4, 0.18, 0.04, 0.03, 0.07, 2.1, "tape", "tape");
-      chain("tapeD", "hips", [-0.15, 0.02, 0.0], [0.5, -0.9, -0.2], 4, 0.18, 0.04, 0.03, 0.07, 3.0, "tape", "tape");
-      chain("tapeE", "chest", [0.17, 0.2, -0.06], [0.9, 0.5, 0.3], 4, 0.19, 0.036, 0.028, 0.07, 0.8, "tape", "tape");
-      chain("tapeF", "chest", [-0.17, 0.2, -0.06], [0.9, -0.5, -0.3], 4, 0.19, 0.036, 0.028, 0.07, 1.9, "tape", "tape");
-      chain("tapeG", "hips", [0.09, 0.0, 0.12], [0.1, 0.4, 0.15], 3, 0.17, 0.032, 0.026, 0.05, 2.5, "tape", "tapeTip");
-      chain("tapeH", "hips", [-0.09, 0.0, 0.12], [0.1, -0.4, -0.15], 3, 0.17, 0.032, 0.026, 0.05, 0.4, "tape", "tapeTip");
+      chain("tapeA", "hips", [0.05, 0.03, -0.125], [0.62, 0.22, 0.0], 3, 0.26, 0.05, 0.04, 0.06, 0.2, C.tape, C.tape);
+      chain("tapeB", "hips", [-0.05, 0.03, -0.125], [0.62, -0.22, 0.0], 3, 0.26, 0.05, 0.04, 0.06, 1.3, C.tape, C.tape);
+      chain("tapeC", "hips", [0.15, 0.02, 0.0], [0.5, 0.9, 0.2], 3, 0.24, 0.04, 0.03, 0.07, 2.1, C.tape, C.tape);
+      chain("tapeD", "hips", [-0.15, 0.02, 0.0], [0.5, -0.9, -0.2], 3, 0.24, 0.04, 0.03, 0.07, 3.0, C.tape, C.tape);
+      chain("tapeE", "chest", [0.17, 0.2, -0.06], [0.9, 0.5, 0.3], 3, 0.25, 0.036, 0.028, 0.07, 0.8, C.tape, C.tape);
+      chain("tapeF", "chest", [-0.17, 0.2, -0.06], [0.9, -0.5, -0.3], 3, 0.25, 0.036, 0.028, 0.07, 1.9, C.tape, C.tape);
     }
 
     flush();
@@ -1400,7 +1337,6 @@
       const hq = new TH.Quaternion(); hand.getWorldQuaternion(hq);
       const d = new TH.Vector3(dir[0], dir[1], dir[2]).normalize();
       const q = new TH.Quaternion().setFromUnitVectors(new TH.Vector3(0, 1, 0), d);
-      /* roll so that the blade edge (+Z local) faces edgeDir */
       const e = new TH.Vector3(0, 0, 1).applyQuaternion(q);
       const w = new TH.Vector3(edgeDir[0], edgeDir[1], edgeDir[2]);
       w.sub(d.clone().multiplyScalar(w.dot(d))).normalize();
@@ -1409,7 +1345,7 @@
       prop.quaternion.copy(hq.invert().multiply(q));
       prop.rotation.setFromQuaternion(prop.quaternion, "XYZ");
     }
-    aimProp("propR", "armR.hand", F2 ? [-0.5, -0.5, 0.7] : [0.42, -0.55, 0.72], [0, -1, 0.2]);
+    aimProp("propR", "armR.hand", F2 ? [-0.5, -0.5, 0.7] : [0.6, -0.62, 0.5], [0, -1, 0.2]);
     if (F2) aimProp("propL", "armL.hand", [0.5, -0.5, 0.7], [0, -1, 0.2]);
     else {
       const sq = new TH.Quaternion().setFromUnitVectors(new TH.Vector3(0, 1, 0), new TH.Vector3(-0.36, 0.60, -0.71).normalize());

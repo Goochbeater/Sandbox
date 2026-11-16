@@ -27,11 +27,11 @@
      SECTION 0 — palette
      ========================================================================== */
   const COL = {
-    bone: 0x969bc4, boneLt: 0xb6bade, boneDk: 0x757aa6, boneSh: 0x555a84,
+    bone: 0x9a97c6, boneLt: 0xbab6e0, boneDk: 0x7b78a8, boneSh: 0x595783,
     metal: 0x5a5f80, metalDk: 0x2e3248, pit: 0x252a40,
     red: 0xe2405a, redDk: 0xa42a40, redHot: 0xff5d70,
-    navy: 0x0f1832, navyDk: 0x070b1a, navyLt: 0x1f2f58,
-    skin: 0xeee6f4, hair: 0xcddcf2, hairDk: 0x93abd0,
+    navy: 0x0f1832, navyDk: 0x070b1a, navyLt: 0x2c4274,
+    skin: 0xd6d2ea, hair: 0xcddcf2, hairDk: 0x93abd0,
     lacquer: 0x1d2030, gold: 0xc9b27a
   };
 
@@ -307,7 +307,7 @@
   function skullTex() {
     return paintTex("skull", 1024, 256, (ctx, w, h) => {
       const R = rng(11);
-      ctx.fillStyle = "#8d92bd"; ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = "#938dc2"; ctx.fillRect(0, 0, w, h);
       /* broad tonal drift: lighter dorsal, cooler near the beak */
       const g1 = ctx.createLinearGradient(0, 0, w, 0);
       g1.addColorStop(0, "rgba(232,230,250,0.25)"); g1.addColorStop(0.55, "rgba(190,196,230,0.0)"); g1.addColorStop(1, "rgba(120,140,190,0.22)");
@@ -342,7 +342,7 @@
       /* plate seams: dark lines across the cranium, with a lighter lip */
       for (const sx of [0.10, 0.205, 0.29, 0.40, 0.50, 0.60]) {
         const x = sx * w + (R() - 0.5) * 8;
-        ctx.strokeStyle = "rgba(46,50,84,0.55)"; ctx.lineWidth = 2.4;
+        ctx.strokeStyle = "rgba(30,34,66,0.78)"; ctx.lineWidth = 3.4;
         ctx.beginPath(); ctx.moveTo(x, 0);
         for (let y = 0; y <= h; y += 16) ctx.lineTo(x + Math.sin(y * 0.09 + sx * 40) * 3.5, y);
         ctx.stroke();
@@ -444,7 +444,7 @@
       ctx.closePath(); ctx.clip();
       ctx.fillStyle = "#6a1226"; ctx.fillRect(0, 0, w, h);
       const g = ctx.createRadialGradient(cx, cy, 2, cx, cy, w * 0.46);
-      g.addColorStop(0, "#fff7c8"); g.addColorStop(0.18, "#ffd25a"); g.addColorStop(0.45, "#ff7a2e"); g.addColorStop(0.8, "#e02a3c"); g.addColorStop(1, "#7a1030");
+      g.addColorStop(0, "#fff0d0"); g.addColorStop(0.16, "#ffb070"); g.addColorStop(0.42, "#ff4a36"); g.addColorStop(0.78, "#d0203a"); g.addColorStop(1, "#6a0f2a");
       ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(cx, cy, w * 0.47, h * 0.40, 0, 0, TAU); ctx.fill();
       ctx.fillStyle = "rgba(255,255,255,0.95)"; ctx.beginPath(); ctx.arc(cx - 11, cy - 8, 5, 0, TAU); ctx.fill();
       ctx.restore();
@@ -490,14 +490,14 @@
      SECTION 5 — shape functions (skull, cloak)
      ========================================================================== */
   const SK = {
-    z: [-0.30, -0.285, -0.24, -0.15, -0.03, 0.09, 0.20, 0.32, 0.50, 0.68, 0.82, 0.90],
-    rx: [0.015, 0.100, 0.190, 0.255, 0.270, 0.240, 0.160, 0.102, 0.070, 0.046, 0.022, 0.004],
-    ry: [0.012, 0.085, 0.140, 0.180, 0.180, 0.160, 0.130, 0.108, 0.088, 0.066, 0.036, 0.006],
-    cy: [0.000, 0.000, 0.004, 0.010, 0.010, 0.000, -0.006, -0.016, -0.032, -0.048, -0.062, -0.070]
+    z: [-0.32, -0.30, -0.25, -0.15, -0.03, 0.10, 0.25, 0.42, 0.60, 0.78, 0.92, 0.98],
+    rx: [0.020, 0.120, 0.200, 0.262, 0.278, 0.238, 0.168, 0.120, 0.082, 0.050, 0.022, 0.003],
+    ry: [0.020, 0.090, 0.140, 0.172, 0.172, 0.142, 0.096, 0.068, 0.050, 0.036, 0.020, 0.004],
+    cy: [0.000, 0.000, 0.004, 0.010, 0.010, 0.000, -0.010, -0.020, -0.030, -0.040, -0.050, -0.055]
   };
   let skRX, skRY, skCY;
   function skInit() { skRX = spline(SK.z, SK.rx); skRY = spline(SK.z, SK.ry); skCY = spline(SK.z, SK.cy); }
-  const SK_Z0 = -0.30, SK_Z1 = 0.90;
+  const SK_Z0 = -0.32, SK_Z1 = 0.98;
 
   /* skull cross-section point at (z, angle a): a = 0 is +X, π/2 is dorsal */
   function skPoint(z, a, out, bump) {
@@ -543,7 +543,7 @@
   /* ---- cloak surface (rest-pose world coordinates) ---- */
   const CL = {
     y: [0.04, 0.22, 0.42, 0.60, 0.80, 1.00, 1.15, 1.30, 1.38, 1.46],
-    rx: [0.66, 0.62, 0.56, 0.49, 0.41, 0.355, 0.340, 0.330, 0.30, 0.205],
+    rx: [0.66, 0.62, 0.56, 0.49, 0.42, 0.375, 0.365, 0.370, 0.345, 0.22],
     rz: [0.62, 0.58, 0.53, 0.45, 0.35, 0.28, 0.252, 0.232, 0.205, 0.165]
   };
   let clRX, clRZ;
@@ -570,8 +570,8 @@
     const v = clamp((CL_TOP - y) / (CL_TOP - CL_HEM), 0, 1);
     const amp = 0.010 + 0.060 * sst(0.10, 1.0, v);
     const t = clamp(f / (amp * 1.2 + 1e-4) * 0.5 + 0.5, 0, 1);
-    let c = mixHex(COL.navyDk, COL.navyLt, t * 0.85);
-    c = mixHex(c, COL.navy, 0.35);
+    let c = mixHex(COL.navyDk, COL.navyLt, Math.pow(t, 1.25) * 0.95);
+    c = mixHex(c, COL.navy, 0.22);
     c = shadeHex(c, 1.0 - 0.28 * sst(0.55, 1.0, v));
     const streak = noise3(Math.sin(a) * 6, y * 1.3, Math.cos(a) * 6);
     c = mixHex(c, COL.navyLt, sst(0.62, 0.9, streak) * 0.28);
@@ -635,8 +635,10 @@
   }
   function poreCol(x, y, z, nx, ny) {
     let c = boneCol(x, y, z, nx, ny);
-    if (noise3(x * 30 + 3, y * 30, z * 30 + 9) > 0.70) c = mixHex(c, COL.pit, 0.88);
-    return c;
+    const pn = noise3(x * 30 + 3, y * 30, z * 30 + 9);
+    if (pn > 0.62) c = mixHex(c, COL.pit, 0.92);
+    else if (pn > 0.56) c = mixHex(c, COL.boneSh, 0.6);
+    return shadeHex(c, 0.88);
   }
   function metalCol(x, y, z, nx, ny) {
     return mixHex(COL.metalDk, COL.metal, 0.35 + 0.5 * fbm(x * 21, y * 21, z * 21) + 0.1 * ny);
@@ -689,6 +691,35 @@
     }, { noAuto: true, uv: (j, i) => [lerp(u0, u1, i / cols), 1 - j / rows * (o.vk || 1)] });
   }
 
+  /* lumpy bone mass: displaced sphere */
+  function lumpGeo(seed, amp) {
+    const T = G.THREE;
+    const g = new T.SphereGeometry(1, 12, 9);
+    const pa = g.attributes.position;
+    for (let i = 0; i < pa.count; i++) {
+      const x = pa.getX(i), y = pa.getY(i), z = pa.getZ(i);
+      const d = 1 + amp * (fbm(x * 1.7 + seed * 3.1, y * 1.7 + seed, z * 1.7 - seed * 2.3) - 0.5) * 2;
+      pa.setXYZ(i, x * d, y * d, z * d);
+    }
+    g.computeVertexNormals();
+    return g;
+  }
+
+  /* torso wrap band hugging the cloak: world y range, radial lift, ragged lower edge */
+  function bandGeo(yTop, yBot, boneY, lift, seed) {
+    const rows = 4, cols = 60, R = rng(seed);
+    const jit = []; for (let i = 0; i <= cols; i++) jit.push(R());
+    return gridGeo(rows, cols, (j, i, out) => {
+      const a = (i / cols) * TAU;
+      const y = yTop + (yBot - yTop) * (j / rows) - (j === rows ? 0.04 * jit[i] * jit[(i + 7) % cols] : 0);
+      const f = cloakSurf(a, y, out);
+      out[0] *= 1 + lift; out[2] *= 1 + lift; out[1] -= boneY; out[3] = f;
+    }, {
+      wrap: true, axisY: true,
+      col: (j, i, x, y, z, f) => mixHex(mixHex(COL.redDk, COL.red, 0.5 + 0.5 * noise3(i * 0.3, j * 0.8, seed)), 0x2a0a18, sst(0.7, 1, noise3(i * 0.9, j * 1.7, seed + 4)) * 0.6)
+    });
+  }
+
   /* ==========================================================================
      SECTION 7 — the builder
      ========================================================================== */
@@ -702,13 +733,13 @@
     skInit(); clInit();
 
     /* ---- shared materials ---- */
-    const vc = vcMat(), vcDS = vcMat(DS);
+    const vc = vcMat(undefined, 0.55), vcDS = vcMat(DS, 0.55);
     const vcCloak = vcMat(undefined, 0.25), vcCloakDS = vcMat(DS, 0.25);
     const redM = M.toon(COL.red), redDkM = M.toon(COL.redDk);
     const skinM = M.toon(COL.skin), hairM = M.toon(COL.hair);
     const orbMat = orbMaterial();
     const glowRed = M.glow(0xff4a3a, 2.3);
-    const sashM = M.mapToon(0xffffff, sashTex(), { side: DS, transparent: false });
+    const sashM = M.mapToon(0xffffff, sashTex(), { side: DS, transparent: false, emissive: 0xc02a40, emissiveIntensity: 0.30 });
     sashM.alphaTest = 0.5;
 
     /* ---- skeleton ---- */
@@ -719,8 +750,8 @@
     rig.bone("head", "neck", [0, 0.09, 0], [0.10, -0.20, 0.04]);
     rig.bone("hairBack", "head", [0, 0.10, -0.09], [0.12, 0, 0], { sway: 0.03, phase: 0.9 });
     rig.bone("skull", "head", [0, 0.29, -0.03], [0.50, -0.36, -0.10], { sway: 0.006, phase: 0.4 });
-    rig.bone("crown", "skull", [0, 0.27, -0.14]);
-    rig.bone("muzzle", "skull", [0, -0.07, 0.86]);
+    rig.bone("crown", "skull", [0, 0.36, -0.12]);
+    rig.bone("muzzle", "skull", [0, -0.06, 0.93]);
     for (const s of ["L", "R"]) {
       const sg = s === "L" ? 1 : -1;
       rig.bone("arm" + s + ".sh", "chest", [sg * 0.30, 0.10, 0], [0, 0, sg * 0.14]);
@@ -748,7 +779,8 @@
     /* ======================================================================
        SKULL — painted loft + conforming plates + baked machinery
        ====================================================================== */
-    const skullMat = M.mapToon(0xffffff, skullTex(), { transparent: false });
+    const skullMat = A.mat.toon(0xffffff, { noCache: true, map: skullTex(), rim: 0.45 });
+    skullMat.transparent = false; skullMat.needsUpdate = true;
     rig.attach("skull", K.mk(skullGeo(), skullMat, { o: 0.05 }));
 
     const hw = new Baker();
@@ -783,9 +815,9 @@
 
     /* ---- the skull orbs (z, angle°, lift, radius) ---- */
     const SO = [
-      [-0.20, 90, 0.160, 0.105], [-0.12, 66, 0.140, 0.090], [-0.12, 114, 0.140, 0.090], [-0.02, 92, 0.140, 0.085],
-      [0.06, 118, 0.115, 0.070], [-0.03, 52, 0.125, 0.075], [-0.07, 135, 0.120, 0.075], [-0.27, 70, 0.100, 0.078],
-      [-0.265, 110, 0.105, 0.075], [0.12, 66, 0.090, 0.058]
+      [-0.24, 88, 0.115, 0.102], [-0.19, 54, 0.100, 0.090], [-0.18, 124, 0.100, 0.086], [-0.07, 78, 0.100, 0.088],
+      [-0.05, 34, 0.088, 0.080], [-0.04, 112, 0.095, 0.076], [0.06, 62, 0.085, 0.072], [0.06, 136, 0.085, 0.066],
+      [0.18, 88, 0.070, 0.058], [-0.30, 68, 0.060, 0.070], [-0.12, 16, 0.085, 0.070]
     ];
     SO.forEach((q, k) => {
       const s = surf(q[0], q[1], q[2]), s0 = surf(q[0], q[1], -0.01);
@@ -796,7 +828,7 @@
       hw.add(P.cyl(0.018, 0.022, L, 7), { p: [s0.p[0] + n[0] * (0.01 + L / 2), s0.p[1] + n[1] * (0.01 + L / 2), q[0]], up: n, c: boneCol });
       hw.add(P.cyl(r * 0.62, r * 0.45, 0.02, 10), { p: [s.p[0] - n[0] * (r * 0.78), s.p[1] - n[1] * (r * 0.78), q[0]], up: n, c: metalCol });
       hw.add(P.tor(r * 0.52, 0.0065, 5, 16), { p: [s.p[0] - n[0] * (r * 0.70), s.p[1] - n[1] * (r * 0.70), q[0]], up: n, r: [PI / 2, 0, 0], c: COL.red });
-      mkOrb("skull", s.p, r, { size: 4.6, op: k < 6 ? 0.55 : 0.45 }, k * 0.9 + 0.3);
+      mkOrb("skull", s.p, r, { size: 4.0, op: k < 6 ? 0.42 : 0.34 }, k * 0.9 + 0.3);
     });
     /* conduits + red wires between stalks */
     const route = (pts, rad, col, lift) => {
@@ -825,6 +857,31 @@
         const h2 = surf(zz, a + (sg > 0 ? 10 : -10), 0.004);
         hw.add(P.cyl(0.018, 0.018, 0.016, 6), { p: h2.p, up: h2.n, c: metalCol });
         hw.add(P.cyl(0.010, 0.010, 0.028, 6), { p: [h2.p[0] + h2.n[0] * 0.012, h2.p[1] + h2.n[1] * 0.012, h2.p[2]], up: h2.n, c: COL.redDk });
+      }
+    }
+    /* occipital machinery on the rear of the cranium + vertebra teeth along the ridge */
+    for (const zr of [-0.255, -0.285]) {
+      hw.add(P.tor(1, 0.017, 7, 30), { p: [0, skCY(zr) + 0.004, zr], s: [skRX(zr) * 1.03 + 0.01, skRY(zr) * 1.02 + 0.012, 1], c: metalCol });
+    }
+    hw.add(P.cyl(0.075, 0.085, 0.030, 14), { p: [0, 0.012, -0.325], r: [PI / 2, 0, 0], c: metalCol });
+    hw.add(P.cyl(0.050, 0.050, 0.040, 12), { p: [0, 0.012, -0.345], r: [PI / 2, 0, 0], c: COL.metalDk });
+    hw.add(P.cyl(0.026, 0.026, 0.050, 8), { p: [0, 0.012, -0.36], r: [PI / 2, 0, 0], c: COL.redDk });
+    for (let t = 0; t < 12; t++) {
+      const th = (t / 12) * TAU;
+      hw.add(P.box(0.020, 0.020, 0.022), { p: [Math.cos(th) * 0.082, 0.012 + Math.sin(th) * 0.082, -0.322], r: [0, 0, th], c: metalCol });
+    }
+    for (let t = -2; t <= 2; t++) {
+      hw.add(P.box(0.022, 0.012, 0.075), { p: [t * 0.040, 0.075 - Math.abs(t) * 0.012, -0.285 + Math.abs(t) * 0.01], r: [0.15, t * 0.1, 0], c: COL.pit });
+    }
+    for (let t = 0; t < 10; t++) {
+      const zt = -0.27 + t * 0.062, s = surf(zt, 90, 0.012);
+      hw.add(P.cone(0.014 - t * 0.0006, 0.04 - t * 0.0015, 6), { p: s.p, up: [0, 1, 0.12], c: boneCol });
+    }
+    for (const sg of [1, -1]) {
+      for (let t = 0; t < 3; t++) {
+        const s2 = surf(-0.22 + t * 0.075, sg > 0 ? 18 : 162, 0.012);
+        hw.add(P.cyl(0.020, 0.024, 0.04, 8), { p: s2.p, up: s2.n, c: t % 2 ? COL.metalDk : metalCol });
+        hw.add(P.tor(0.018, 0.0055, 5, 12), { p: [s2.p[0] + s2.n[0] * 0.02, s2.p[1] + s2.n[1] * 0.02, s2.p[2]], up: s2.n, r: [PI / 2, 0, 0], c: COL.red });
       }
     }
     const hwGeo = hw.build();
@@ -876,7 +933,8 @@
     const collar = gridGeo(6, 44, (j, i, out) => {
       const a = (i / 44) * TAU, v = j / 6;
       const hh = 0.035 + 0.33 * Math.pow((1 - Math.cos(a)) / 2, 1.4) + 0.05 * Math.abs(Math.sin(a));
-      const rx = lerp(0.19, 0.245, Math.pow(v, 1.3)), rz = lerp(0.165, 0.215, Math.pow(v, 1.3));
+      const fold = 1 + 0.07 * v * (Math.sin(a * 9 + 0.5) * 0.6 + Math.sin(a * 5 + 2) * 0.4);
+      const rx = lerp(0.19, 0.245, Math.pow(v, 1.3)) * fold, rz = lerp(0.165, 0.215, Math.pow(v, 1.3)) * fold;
       const jag = (j === 6 ? (noise3(a * 3, 1.5, 0) - 0.5) * 0.035 : 0);
       out[0] = Math.sin(a) * rx; out[1] = -0.06 + (hh + jag) * v; out[2] = Math.cos(a) * rz + 0.0;
       out[3] = noise3(a * 4, v * 3, 2);
@@ -941,6 +999,25 @@
     mt.add(P.sph(18), { p: [-0.245, 0.14, 0.0], r: [0, 0, 0.27], s: [0.150, 0.074, 0.145], c: poreCol });
     mt.add(P.sph(14), { p: [0.21, 0.205, 0.005], r: [0, 0, -0.22], s: [0.105, 0.050, 0.098], c: poreCol });
     mt.add(P.sph(14), { p: [-0.20, 0.195, 0.0], r: [0, 0, 0.2], s: [0.090, 0.044, 0.088], c: poreCol });
+    /* heavy lumpy bone masses: shoulder collar, pectorals, back hump */
+    const lump = (p, sc, seed, c) => mt.add(lumpGeo(seed, 0.30), { p: p, s: sc, r: [seed * 0.7, seed * 1.3, seed * 0.4], c: c || poreCol });
+    for (let k = 0; k < 18; k++) {
+      const a = (k / 18) * TAU, f = 0.8 + 0.45 * h3(k, 1, 2);
+      const bias = 1 + 0.25 * Math.max(0, Math.sin(a));        // fuller on the +X shoulder
+      lump([Math.sin(a) * 0.36 * bias, 0.115 + 0.03 * Math.sin(a * 3 + 1), Math.cos(a) * 0.245 - 0.01], [0.052 * f * bias, 0.040 * f, 0.050 * f], k + 3);
+    }
+    lump([0.15, 0.04, 0.212], [0.10, 0.060, 0.048], 41);
+    lump([-0.12, 0.05, 0.212], [0.085, 0.052, 0.044], 42);
+    lump([0.0, -0.045, 0.232], [0.060, 0.045, 0.034], 43);
+    lump([0.36, 0.18, -0.06], [0.11, 0.055, 0.10], 44);
+    lump([-0.30, 0.15, -0.06], [0.085, 0.045, 0.08], 45);
+    lump([0.0, 0.17, -0.23], [0.17, 0.05, 0.05], 46);
+    lump([0.43, 0.10, 0.04], [0.055, 0.045, 0.065], 47);
+    lump([-0.40, 0.09, 0.04], [0.048, 0.04, 0.058], 48);
+    /* dark under-structure so the bone reads against negative space */
+    mt.add(P.sph(14), { p: [0.0, 0.10, 0.0], s: [0.37, 0.07, 0.255], c: COL.pit });
+    mt.add(P.sph(12), { p: [0.30, 0.13, 0.0], s: [0.18, 0.05, 0.17], c: COL.metalDk });
+    mt.add(P.sph(12), { p: [-0.28, 0.12, 0.0], s: [0.16, 0.045, 0.15], c: COL.metalDk });
     /* overlapping pauldron lames */
     for (const sg of [1, -1]) {
       for (let k = 0; k < 3; k++) {
@@ -963,7 +1040,7 @@
       mt.add(P.tor(0.030, 0.0085, 5, 12), { p: [bx, by + L * 0.45, bz], r: [PI / 2, 0, 0], c: k % 2 ? COL.red : metalCol });
       mt.add(P.cyl(q[3] * 0.62, q[3] * 0.44, 0.022, 10), { p: [bx, top - 0.004, bz], c: metalCol });
       mt.add(P.tor(q[3] * 0.52, 0.007, 5, 14), { p: [bx, top + 0.012, bz], r: [PI / 2, 0, 0], c: COL.red });
-      mkOrb("chest", [q[0], q[1], q[2]], q[3], { size: 4.6, op: 0.5 }, 5 + k * 0.77);
+      mkOrb("chest", [q[0], q[1], q[2]], q[3], { size: 4.0, op: 0.40 }, 5 + k * 0.77);
     });
     /* red cap + yellow tag like the painting's small red lantern */
     mt.add(P.cyl(0.026, 0.03, 0.05, 8), { p: [0.355, 0.30, 0.09], c: COL.red });
@@ -998,20 +1075,6 @@
       mt.add(P.sph(10), { p: [0, y, zb], s: [0.036 - k * 0.002, 0.026, 0.030], c: boneCol });
       mt.add(P.cone(0.014, 0.05, 6), { p: [0, y + 0.004, zb - 0.034], r: [-PI / 2 - 0.25, 0, 0], c: boneCol });
       mt.add(P.cyl(0.0085, 0.0085, 0.050, 5), { p: [0.0, y - 0.031, zb + 0.002], c: COL.red });
-    }
-    for (let k = 1; k < 4; k++) {
-      const y = 0.115 - k * 0.062;
-      for (const sg of [1, -1]) {
-        const path = [];
-        for (let t = 0; t <= 4; t++) {
-          const a = PI + sg * (0.10 + t * 0.20);
-          const yy = y - 0.012 * t * t * 0.3;
-          cloakSurf(a, 1.28 + yy, _cs);
-          path.push([_cs[0] * 1.045, yy, _cs[2] * 1.045]);
-        }
-        mt.add(tubeGeo(path, (u) => lerp(0.014, 0.0065, u), { rows: 12, seg: 6 }), { c: boneCol });
-        mt.add(P.sph(6), { p: path[4], s: 0.011, c: COL.red });
-      }
     }
     const mtGeo = mt.build();
     rig.attach("chest", K.mk(mtGeo, vc, { o: 0.032 }));
@@ -1071,27 +1134,28 @@
     /* ======================================================================
        RED SASH, CHARMS, SHOULDER CABLES, DRIPS, KATANAS
        ====================================================================== */
-    /* sash strips hugging the cloak front (baked drape), each on its own sway bone */
-    const sashSpec = [
-      { x: -0.045, w: 0.17, len: 0.86, u0: 0.0, u1: 0.62, zo: 0.020 },
-      { x: 0.060, w: 0.125, len: 1.00, u0: 0.38, u1: 1.0, zo: 0.034 },
-      { x: -0.135, w: 0.095, len: 0.60, u0: 0.1, u1: 0.45, zo: 0.012 },
-      { x: 0.140, w: 0.085, len: 0.72, u0: 0.55, u1: 0.9, zo: 0.008 },
-      { x: 0.005, w: 0.075, len: 0.50, u0: 0.2, u1: 0.4, zo: 0.048 }
-    ];
+    /* torn cloth strips draped over the cloak (front sash + back ribbons), each on its own sway bone */
     const SY = 0.15;  // pivot height (chest-local)
-    sashSpec.forEach((s, k) => {
-      const zf = (u, x, y) => {
-        const yw = 1.28 + SY + y, rx = clRX(yw), rz = clRZ(yw);
-        const xx = s.x + x;
-        const fz = rz * Math.sqrt(Math.max(0.0, 1 - (xx / rx) * (xx / rx)));
-        const piv = clRZ(1.28 + SY) * Math.sqrt(Math.max(0, 1 - (s.x / clRX(1.28 + SY)) * (s.x / clRX(1.28 + SY))));
-        return fz - piv + s.zo + 0.07 * Math.pow(u, 1.2) + 0.012 * Math.sin(y * 9 + k * 2);
+    const drape = (name, x, w, len, u0, u1, zo, side, phase, sway) => {
+      const rxp = clRX(1.28 + SY), rzp = clRZ(1.28 + SY);
+      const pz = rzp * Math.sqrt(Math.max(0, 1 - (x / rxp) * (x / rxp))) * side;
+      const zf = (u, xl, y) => {
+        const yw = 1.28 + SY + y, rx = clRX(yw), rz = clRZ(yw), xx = x + xl;
+        const fz = rz * Math.sqrt(Math.max(0.0, 1 - (xx / rx) * (xx / rx))) * side;
+        return fz - pz + side * (zo + 0.075 * Math.pow(u, 1.2) + 0.012 * Math.sin(y * 9 + phase * 2));
       };
-      const pz = clRZ(1.28 + SY) * Math.sqrt(Math.max(0, 1 - (s.x / clRX(1.28 + SY)) * (s.x / clRX(1.28 + SY))));
-      const b = rig.bone("sash." + k, "chest", [s.x, SY, pz], [0, 0, 0], { sway: 0.05 + k * 0.004, phase: 2 + k * 1.1 });
-      b.add(K.mk(stripGeo(s.w, s.len, { rows: 14, cols: 4, u0: s.u0, u1: s.u1, zf: zf }), sashM, { shadow: false }));
-    });
+      const b = rig.bone(name, "chest", [x, SY, pz], [0, 0, 0], { sway: sway, phase: phase });
+      b.add(K.mk(stripGeo(w, len, { rows: 14, cols: 4, u0: u0, u1: u1, zf: zf, shear: (phase % 2 - 1) * 0.03 }), sashM, { shadow: false }));
+    };
+    const sashSpec = [
+      [-0.075, 0.21, 0.92, 0.0, 0.5, 0.016], [0.075, 0.18, 1.06, 0.45, 0.95, 0.030], [-0.185, 0.115, 0.66, 0.1, 0.4, 0.010],
+      [0.185, 0.10, 0.80, 0.55, 0.85, 0.006], [0.0, 0.09, 0.56, 0.2, 0.4, 0.046], [-0.03, 0.13, 0.74, 0.6, 1.0, 0.040], [0.13, 0.085, 0.46, 0.0, 0.3, 0.052]
+    ];
+    sashSpec.forEach((q, k) => drape("sash." + k, q[0], q[1], q[2], q[3], q[4], q[5], 1, 2 + k * 1.1, 0.05 + k * 0.004));
+    const ribSpec = [[-0.16, 0.12, 0.86, 0.0, 0.3, 0.020], [0.17, 0.14, 1.0, 0.5, 0.8, 0.026], [0.0, 0.10, 0.70, 0.3, 0.5, 0.06], [-0.30, 0.09, 0.62, 0.6, 0.9, 0.012], [0.31, 0.09, 0.70, 0.1, 0.4, 0.012]];
+    ribSpec.forEach((q, k) => drape("ribbon." + k, q[0], q[1], q[2], q[3], q[4], q[5], -1, 0.7 + k * 1.3, 0.05));
+    /* red wrap band around the ribs (torn, uneven) */
+    rig.attach("chest", K.mk(bandGeo(1.245, 1.145, 1.28, 0.075, 5), vc, {}));
     /* sash knot at the chest */
     {
       const kb = new Baker();
@@ -1244,7 +1308,7 @@
       trk(t.a, [[0, [0, 0, t.sg * -0.95]], [0.28, [0, 0, t.sg * 0.34], "outBack"], [0.60, Z3, null, null, "inOutQuad"]]);
       trk(t.b, [[0, [0, 0, t.sg * -0.7]], [0.32, [0, 0, t.sg * 0.30], "outBack"], [0.60, Z3, null, null, "inOutQuad"]]);
     });
-    for (let k = 0; k < 5; k++) trk("sash." + k, [[0, [0.5, 0, 0]], [0.30, [-0.25, 0, 0], "outCubic"], [0.60, Z3]]);
+    for (let k = 0; k < 7; k++) trk("sash." + k, [[0, [0.5, 0, 0]], [0.30, [-0.25, 0, 0], "outCubic"], [0.60, Z3]]);
     flush("summon", 0.6, false);
 
     /* ---- fire (0.8s): coil, snap back with the skull thrown skyward, arms + tentacles flare, hold, settle ---- */
@@ -1264,7 +1328,7 @@
       trk(t.a, [[0, Z3], [0.15, [0, 0, t.sg * -0.45], "outQuad"], [0.27, [0, 0, t.sg * 1.05], "outBack"], [0.40, [0, 0, t.sg * (0.92 + 0.08 * Math.sin(i))]], [0.56, [0, 0, t.sg * 1.0]], [0.80, Z3, null, null, "inOutQuad"]]);
       trk(t.b, [[0, Z3], [0.15, [0, 0, t.sg * -0.4]], [0.27, [0, 0, t.sg * 0.85], "outBack"], [0.45, [0, 0, t.sg * 0.70]], [0.56, [0, 0, t.sg * 0.8]], [0.80, Z3, null, null, "inOutQuad"]]);
     });
-    for (let k = 0; k < 5; k++) trk("sash." + k, [[0, Z3], [0.15, [0.20, 0, 0]], [0.27, [-0.45, 0, 0], "outCubic"], [0.56, [-0.30, 0, 0]], [0.80, Z3]]);
+    for (let k = 0; k < 7; k++) trk("sash." + k, [[0, Z3], [0.15, [0.20, 0, 0]], [0.27, [-0.45, 0, 0], "outCubic"], [0.56, [-0.30, 0, 0]], [0.80, Z3]]);
     flush("fire", 0.8, false);
 
     /* ---- salute (0.8s): stately bow, right hand to the chest, then stillness (held) ---- */
@@ -1309,7 +1373,7 @@
         trk(t.a, keysOf((i) => [[0, 0, t.sg * 0.10 * sinS(i, idx * 1.3 + 0.5)], null, null, "linear"]));
         trk(t.b, keysOf((i) => [[0, 0, t.sg * 0.16 * sinS(i, idx * 1.3 + 1.7)], null, null, "linear"]));
       });
-      for (let k = 0; k < 5; k++) trk("sash." + k, keysOf((i) => [[0.12 * sinS(i, k * 0.9 + 2) - 0.1, 0, 0.06 * sinS(i, k)], null, null, "linear"]));
+      for (let k = 0; k < 7; k++) trk("sash." + k, keysOf((i) => [[0.12 * sinS(i, k * 0.9 + 2) - 0.1, 0, 0.06 * sinS(i, k)], null, null, "linear"]));
       flush("walk", T, true);
     }
 

@@ -55,13 +55,13 @@
      1. PALETTE (sampled from refs/codex2.jpg, lifted a touch for the toon ramp)
      ========================================================================== */
   const C = {
-    skin: 0xf8e2dc, skinSh: 0xe9c9cc, earIn: 0xe8706c, lip: 0xb85a62,
+    skin: 0xf8e2dc, skinSh: 0xe9c9cc, ear: 0xf6d2d0, earIn: 0xe65a58, lip: 0xb85a62,
     hair: 0xbdeadb, hairLt: 0xdcf7ee, hairDk: 0x86c4b1, braidTie: 0xe6f4f1,
     horn: 0xf6862f, hornDk: 0x8a4a1a, hornIn: 0x2b1409, hornWhite: 0xf3ecec,
     collar: 0x0f6150, collarDk: 0x0a4639, brass: 0xd9a443, brassDk: 0x9a6f26,
     coat: 0x1b7a66, coatDk: 0x0f5848,
     lime: 0xb7c83a, limeDk: 0x8aa22c, glyph: 0xf4e27a,
-    strap: 0xff7f30, strapDk: 0xd8581c, buckle: 0xf4f1e8, steel: 0xaab3b6,
+    strap: 0xff9648, strapDk: 0xe56a2c, buckle: 0xf4f1e8, steel: 0xaab3b6,
     leather: 0x7a5d3a, leatherDk: 0x4a3827, leatherLt: 0x9a7a4e, olive: 0x7f8e55, oliveDk: 0x5a6a3c,
     pants: 0x86b2d2, pantsDk: 0x6c97ba, patch: 0x5f95bd, stitch: 0xeee4c8,
     boot: 0x5a4533, bootLt: 0x7a6248, sole: 0x2c2219,
@@ -419,7 +419,7 @@
       c.strokeStyle = "rgba(176,92,108,0.85)"; c.lineWidth = 4;
       c.beginPath(); c.moveTo(X(-0.035), Y(-0.355)); c.lineTo(X(0.0), Y(-0.40)); c.lineTo(X(0.035), Y(-0.37)); c.stroke();
       c.strokeStyle = "rgba(120,52,66,0.95)"; c.lineWidth = 5; c.lineJoin = "round";
-      c.beginPath(); c.moveTo(X(-0.085), Y(-0.625)); c.lineTo(X(-0.045), Y(-0.665)); c.lineTo(X(0.05), Y(-0.665)); c.lineTo(X(0.09), Y(-0.63)); c.stroke();
+      c.beginPath(); c.moveTo(X(-0.088), Y(-0.675)); c.lineTo(X(-0.050), Y(-0.645)); c.lineTo(X(0.050), Y(-0.645)); c.lineTo(X(0.090), Y(-0.675)); c.stroke();
       /* tiny chin shade */
       g = c.createRadialGradient(X(0), Y(-0.86), 2, X(0), Y(-0.86), 60);
       g.addColorStop(0, "rgba(200,160,190,0.28)"); g.addColorStop(1, "rgba(200,160,190,0)");
@@ -509,21 +509,31 @@
     return paintTex("poncho", 1024, 512, (c, w, h) => {
       const R = rngMaker(1234);
       let g = c.createLinearGradient(0, 0, 0, h);
-      g.addColorStop(0, "#86a028"); g.addColorStop(0.5, "#93aa2e"); g.addColorStop(1, "#9cb234");
+      g.addColorStop(0, "#7d9138"); g.addColorStop(0.5, "#869a3e"); g.addColorStop(1, "#8fa244");
       c.fillStyle = g; c.fillRect(0, 0, w, h);
-      /* painterly mottling (wraps horizontally) */
-      for (let i = 0; i < 230; i++) {
-        const x = R() * w, y = R() * h, rw = 24 + R() * 80, rh = 10 + R() * 34, a = R() * PI;
-        const tone = R();
-        c.fillStyle = tone > 0.62 ? "rgba(224,226,96," + (0.22 + R() * 0.3) + ")" : tone > 0.28 ? "rgba(140,170,44," + (0.22 + R() * 0.28) + ")" : "rgba(98,128,36," + (0.18 + R() * 0.22) + ")";
-        for (const ox of [-w, 0, w]) { c.beginPath(); c.ellipse(x + ox, y, rw, rh, a, 0, TAU); c.fill(); }
+      /* painterly mottling: angular paint patches (wrap horizontally) */
+      const blot = (x, y, bw, bh, col) => {
+        const pts = [];
+        const n = 5 + Math.floor(R() * 3), rot = (R() - 0.5) * 1.2;
+        for (let q = 0; q < n; q++) {
+          const a = q / n * TAU + R() * 0.5, rr = 0.6 + R() * 0.5;
+          const px = Math.cos(a) * bw * rr, py = Math.sin(a) * bh * rr;
+          pts.push([px * Math.cos(rot) - py * Math.sin(rot), px * Math.sin(rot) + py * Math.cos(rot)]);
+        }
+        for (const ox of [-w, 0, w]) {
+          c.beginPath();
+          pts.forEach((p, i) => (i ? c.lineTo(x + ox + p[0], y + p[1]) : c.moveTo(x + ox + p[0], y + p[1])));
+          c.closePath(); c.fillStyle = col; c.fill();
+        }
+      };
+      for (let i = 0; i < 150; i++) {
+        const tone = R(), x = R() * w, y = R() * h;
+        if (tone > 0.60) blot(x, y, 22 + R() * 60, 8 + R() * 22, "rgba(206,208,96," + (0.16 + R() * 0.22) + ")");
+        else if (tone > 0.25) blot(x, y, 22 + R() * 60, 8 + R() * 22, "rgba(112,138,48," + (0.18 + R() * 0.25) + ")");
+        else blot(x, y, 20 + R() * 50, 8 + R() * 20, "rgba(78,104,36," + (0.16 + R() * 0.2) + ")");
       }
-      /* big pale paint patches in the mid area */
-      for (let i = 0; i < 26; i++) {
-        const x = R() * w, y = h * (0.12 + R() * 0.55), rw = 18 + R() * 40, rh = 8 + R() * 18;
-        c.fillStyle = "rgba(236,226,110,0.30)";
-        for (const ox of [-w, 0, w]) { c.beginPath(); c.ellipse(x + ox, y, rw, rh, R() * PI, 0, TAU); c.fill(); }
-      }
+      /* pale paint patches in the mid area */
+      for (let i = 0; i < 24; i++) blot(R() * w, h * (0.15 + R() * 0.55), 18 + R() * 40, 7 + R() * 14, "rgba(226,214,112,0.26)");
       /* dry-brush streaks */
       c.lineCap = "round";
       for (let i = 0; i < 160; i++) {
@@ -790,8 +800,8 @@
     bone("armL.sh", "chest", [0.140, 0.185, 0], [0.0, 0, 0.12]);
     bone("armL.el", "armL.sh", [0, -0.19, 0], [-0.08, 0, 0]);
     bone("armL.hand", "armL.el", [0, -0.165, 0]);
-    bone("armR.sh", "chest", [-0.140, 0.185, 0], [-0.22, 0, -0.14]);
-    bone("armR.el", "armR.sh", [0, -0.19, 0], [-0.32, 0, 0]);
+    bone("armR.sh", "chest", [-0.140, 0.185, 0], [-0.28, 0, -0.03]);
+    bone("armR.el", "armR.sh", [0, -0.19, 0], [-0.26, 0, 0]);
     bone("armR.hand", "armR.el", [0, -0.165, 0]);
     bone("legL.hip", "hips", [0.078, -0.03, 0]);
     bone("legL.knee", "legL.hip", [0, -0.25, 0]);
@@ -816,7 +826,7 @@
     bone("hobEyes", "hobHead", [0, 0, 0]);
     bone("hobMouth", "hobHead", [0, 0.030, 0.066], [0.0, 0, 0]);
     bone("vial", "propL", [0, -0.05, 0.03], [0, 0, 0]);
-    bone("stick", "propR", [0, 0, 0], [0.46, 0, 0.16]);
+    bone("stick", "propR", [0, 0, 0], [0.54, 0, 0.05]);
 
     /* ======================================================================
        HEAD — skull, ears, decals, eyes
@@ -828,9 +838,9 @@
         b.add(skullGeo, C.skin);
         for (const sg of [-1, 1]) {
           /* big leaf ears poking out of the hair */
-          b.add(sph, C.skin, { p: [sg * 0.141, -0.022, -0.014], s: [0.020, 0.052, 0.037], r: [0, sg * 0.35, sg * 0.22] });
-          b.add(sph, C.earIn, { p: [sg * 0.1535, -0.020, -0.004], s: [0.007, 0.036, 0.024], r: [0, sg * 0.35, sg * 0.22] });
-          b.add(sph, C.skin, { p: [sg * 0.157, -0.003, 0.002], s: [0.006, 0.014, 0.012], r: [0, sg * 0.35, sg * 0.22] });
+          b.add(sph, C.ear, { p: [sg * 0.143, -0.020, -0.012], s: [0.022, 0.062, 0.042], r: [0, sg * 0.40, sg * 0.20] });
+          b.add(sph, C.earIn, { p: [sg * 0.1585, -0.018, 0.000], s: [0.008, 0.044, 0.028], r: [0, sg * 0.40, sg * 0.20] });
+          b.add(sph, C.ear, { p: [sg * 0.161, -0.010, 0.004], s: [0.007, 0.020, 0.014], r: [0, sg * 0.40, sg * 0.20] });
         }
       });
       put("head", headSkin, { parent: hg, o: 0.05, name: "skin" });
@@ -894,7 +904,7 @@
     /* ---------- braids ---------- */
     for (const s of ["L", "R"]) {
       const sg = s === "L" ? 1 : -1;
-      const lumpC = [C.hair, C.hairLt, C.hair, C.hairDk, C.hair, C.hairLt];
+      const lumpC = [0xc9eee4, 0xd9f6ef, 0xc4ebe0, 0xb2e2d4, 0xc9eee4, 0xd9f6ef];
       for (let k = 0; k < 3; k++) {
         const geo = baked("braid" + k, (b) => {
           const L = brLen[k];
@@ -905,7 +915,7 @@
               shade: (x, yy, z, nx, ny, nz) => 0.9 + 0.14 * ny });
           }
           b.add(g.torus(0.017, 0.0045, TAU, 6, 12), C.hairDk, { p: [0, -L * 0.50, 0], r: [PI / 2, 0, 0], s: [1.0, 1.0, 1.3] });
-          b.add(g.torus(0.019, 0.0055, TAU, 6, 12), C.braidTie, { p: [0, -L * 0.995, 0], r: [PI / 2, 0, 0], s: [1.0, 1.0, 1.3] });
+          b.add(g.torus(0.018, 0.0050, TAU, 6, 12), C.hairDk, { p: [0, -L * 0.995, 0], r: [PI / 2, 0, 0], s: [1.0, 1.0, 1.3] });
         });
         put("braid" + s + "." + k, geo, { o: 0.035, name: "braid" });
       }
@@ -942,18 +952,18 @@
     {
       const collarGeo = memo("collar", () => surf(40, 5, (u, v, out) => {
         const az = (u - 0.5) * TAU, c = Math.cos(az), sn = Math.sin(az);
-        const hgt = 0.085 + 0.030 * Math.max(0, c) - 0.020 * Math.max(0, -c);
-        const r = 0.090 + 0.020 * v + 0.006 * Math.sin(az * 5);
+        const hgt = 0.098 + 0.045 * Math.max(0, c) - 0.026 * Math.max(0, -c);
+        const r = 0.088 + 0.032 * v * v + 0.010 * v + 0.006 * Math.sin(az * 5);
         out[0] = sn * r * 1.05; out[1] = 0.005 + hgt * v; out[2] = c * r * 0.96;
       }, { wrapU: true, center: [0, 0.05, 0] }));
       const colB = baked("collarB", (b) => {
         b.add(collarGeo, C.collar, { grad: [C.collarDk, 0.0, 0.16], shade: (x, y, z, nx, ny, nz) => 0.92 + 0.1 * ny });
-        b.add(g.torus(0.100, 0.010, TAU, 6, 24), C.collarDk, { p: [0, 0.110, 0.004], r: [PI / 2 - 0.12, 0, 0], s: [1.07, 0.95, 1.0] });
+        b.add(g.torus(0.1065, 0.010, TAU, 6, 24), C.collarDk, { p: [0, 0.140, 0.004], r: [PI / 2 - 0.12, 0, 0], s: [1.16, 1.0, 1.0] });
         /* overlapping front placket + brass button + hairline crack */
-        b.add(rbox(0.056, 0.085, 0.014, 0.006, 2), C.collar, { p: [-0.028, 0.062, 0.0885], r: [0.1, -0.18, 0.02] });
-        b.add(cyl(0.0125, 0.0125, 0.007, 12), C.brass, { p: [-0.034, 0.072, 0.0985], r: [PI / 2 + 0.1, 0, 0] });
-        b.add(rbox(0.014, 0.0025, 0.002, 0.001, 1), C.brassDk, { p: [-0.034, 0.072, 0.1025], r: [0, 0, 0.7] });
-        b.add(rbox(0.014, 0.0025, 0.002, 0.001, 1), C.brassDk, { p: [-0.034, 0.072, 0.1025], r: [0, 0, -0.7] });
+        b.add(rbox(0.056, 0.100, 0.014, 0.006, 2), C.collar, { p: [-0.028, 0.072, 0.0895], r: [0.14, -0.18, 0.02] });
+        b.add(cyl(0.0125, 0.0125, 0.007, 12), C.brass, { p: [-0.034, 0.082, 0.1005], r: [PI / 2 + 0.14, 0, 0] });
+        b.add(rbox(0.014, 0.0025, 0.002, 0.001, 1), C.brassDk, { p: [-0.034, 0.082, 0.1045], r: [0.14, 0, 0.7] });
+        b.add(rbox(0.014, 0.0025, 0.002, 0.001, 1), C.brassDk, { p: [-0.034, 0.082, 0.1045], r: [0.14, 0, -0.7] });
       });
       put("neck", colB, { o: 0.035, ds: true, name: "collar" });
       /* pale hood fold draped over the +X shoulder */
@@ -1197,7 +1207,7 @@
       rig.attach(boneName, jar);
       const core = K.mk(sphL, K.mat.glow(0xffd36a, 2.2), { p: [0, -0.205, 0], s: [0.014, 0.020, 0.014], shadow: false, noOutline: true });
       rig.attach(boneName, core);
-      const glow = A().glowSprite(0xff6a28, withCord ? 0.34 : 0.26, withCord ? 0.5 : 0.45);
+      const glow = A().glowSprite(0xff6a28, withCord ? 0.26 : 0.22, withCord ? 0.42 : 0.40);
       glow.position.set(0, -0.2, 0);
       rig.attach(boneName, glow);
       return { cap: m1, jar, core, glow };
@@ -1216,11 +1226,11 @@
        WALKING STICK (propR) + potion vial (propL, shown during cast)
        ====================================================================== */
     {
-      const sp = [[0, -0.56, 0, 0.0155], [0.006, -0.38, 0.004, 0.0185], [-0.004, -0.18, -0.006, 0.0200], [0.004, 0.0, 0.004, 0.0215], [-0.003, 0.20, -0.004, 0.0185], [0.005, 0.42, 0.006, 0.0205], [-0.004, 0.62, -0.004, 0.0180], [0.014, 0.74, -0.012, 0.0155]];
+      const sp = [[0, -0.55, 0, 0.0140], [0.005, -0.38, 0.003, 0.0160], [-0.003, -0.18, -0.005, 0.0172], [0.003, 0.0, 0.003, 0.0185], [-0.002, 0.10, -0.002, 0.0165], [0.012, 0.20, -0.006, 0.0150], [0.030, 0.255, -0.010, 0.0130]];
       put("stick", baked("stick", (b) => {
         b.add(sweep(sp.map((c) => [c[0], c[1], c[2], c[3], c[3] * 0.92]), { seg: 8, sub: 5, capS: 1, capE: 1, up: [0, 0, 1] }), C.wood, {
           shade: (x, y, z, nx, ny, nz) => (0.8 + 0.3 * vnoise(Math.atan2(nz, nx) * 2 + 3, y * 16)) * (0.9 + 0.12 * ny) });
-        for (const k of [[0.001, -0.20, 0.0, 0.026], [-0.002, 0.30, 0.004, 0.024], [0.0, 0.58, -0.004, 0.022]]) b.add(sph, C.woodDk, { p: [k[0], k[1], k[2]], s: [k[3], k[3] * 0.8, k[3]], r: [0.3, 0.2, 0.2] });
+        for (const k of [[0.001, -0.22, 0.0, 0.024], [-0.002, 0.12, 0.004, 0.021]]) b.add(sph, C.woodDk, { p: [k[0], k[1], k[2]], s: [k[3], k[3] * 0.8, k[3]], r: [0.3, 0.2, 0.2] });
         b.add(g.torus(0.021, 0.0075, TAU, 6, 12), C.leatherDk, { p: [0, 0.05, 0], r: [PI / 2, 0, 0], s: [1, 1, 1.4] });
         b.add(cyl(0.018, 0.016, 0.03, 8), C.leatherDk, { p: [0, -0.545, 0] });
       }), { o: 0.045, name: "stick" });
@@ -1299,7 +1309,7 @@
       }), { o: 0.04, name: "hoodTipMesh" });
 
       /* three yellow-ringed eyes; pupils are bones so they can dart; the eye bone scales to blink */
-      const eyeSpec = [[-0.02, 0.36, 0.0225], [0.64, -0.08, 0.0230], [-0.62, 0.02, 0.0220]];
+      const eyeSpec = [[-0.02, 0.38, 0.0275], [0.66, -0.10, 0.0280], [-0.64, 0.02, 0.0268]];
       const dgeo = (r) => memo("hobDisc" + r, () => capDisc(0.07, r, r, 18));
       const flatM = (hex, po) => { const m = A().mat.flat(hex, { side: THREE.DoubleSide, fog: false }); m.polygonOffset = true; m.polygonOffsetFactor = po; m.polygonOffsetUnits = po; return m; };
       const mBlack = flatM(C.hobPupil, -1), mYel = flatM(C.hobRing, -2), mPup = flatM(C.hobPupil, -3), mHi = flatM(0xffffff, -4);
@@ -1309,7 +1319,7 @@
         const m0 = new THREE.Mesh(dgeo(R_ * 1.16), mBlack); m0.userData.noOutline = true; m0.castShadow = false; eb.add(m0);
         const m1 = new THREE.Mesh(dgeo(R_), mYel); m1.userData.noOutline = true; m1.position.z = 0.0004; m1.castShadow = false; eb.add(m1);
         const pb = bone("hobPupil" + i, "hobEye" + i, [0, 0, 0.0009]);
-        const m2 = new THREE.Mesh(dgeo(R_ * 0.60), mPup); m2.userData.noOutline = true; m2.castShadow = false; pb.add(m2);
+        const m2 = new THREE.Mesh(dgeo(R_ * 0.58), mPup); m2.userData.noOutline = true; m2.castShadow = false; pb.add(m2);
         const m3 = new THREE.Mesh(dgeo(R_ * 0.17), mHi); m3.userData.noOutline = true; m3.position.set(-R_ * 0.22, R_ * 0.26, 0.0006); m3.castShadow = false; pb.add(m3);
       }
       {
@@ -1330,15 +1340,313 @@
       }
     }
 
-    return finish(rig);
+    rig.bones["hob"].scale.setScalar(1.22);
+    return finish(rig, ponchoGeo);
   }
 
-  function finish(rig) {
+  /* ==========================================================================
+     6. ANIMATION — keyframe clips (additive offsets) + procedural layers
+     ========================================================================== */
+  function animate(rig, ponchoGeo) {
+    const anim = K.anim(rig);
+    const bn = rig.bones;
+
+    /* ---- clip authoring helper: tr(bone, [[t, rot, pos, scl, ease], ...]) ---- */
+    function mk(name, dur, loop, fill) {
+      const kf = [];
+      const tr = (bone, frames) => { for (const f of frames) kf.push({ t: f[0], bone, rot: f[1] || undefined, pos: f[2] || undefined, scl: f[3] || undefined, ease: f[4] }); };
+      fill(tr);
+      anim.addClip(name, kf, { loop: loop, dur: dur });
+    }
+
+    /* ---------------- idle (2.4 s) ---------------- */
+    mk("idle", 2.4, true, (tr) => {
+      tr("hips", [[0, [0, 0, 0], [0, 0, 0]], [0.6, [0, 0.025, 0.015], [0.005, -0.004, 0]], [1.2, [0, 0, 0], [0, 0, 0]], [1.8, [0, -0.025, -0.015], [-0.005, -0.004, 0]], [2.4, [0, 0, 0], [0, 0, 0]]]);
+      tr("chest", [[0, [0, 0, 0]], [0.6, [0.012, -0.03, -0.012]], [1.2, [0.004, 0, 0]], [1.8, [0.012, 0.03, 0.012]], [2.4, [0, 0, 0]]]);
+      tr("head", [[0, [0, 0, 0]], [0.45, [0.03, 0.12, 0.03]], [0.95, [0.0, 0.10, 0.02]], [1.45, [-0.03, -0.07, -0.03]], [1.95, [0.0, -0.12, -0.025]], [2.4, [0, 0, 0]]]);
+      tr("armL.sh", [[0, [0, 0, 0]], [1.2, [0.04, 0, 0.025]], [2.4, [0, 0, 0]]]);
+      tr("armL.el", [[0, [0, 0, 0]], [1.2, [-0.05, 0, 0]], [2.4, [0, 0, 0]]]);
+      tr("armR.sh", [[0, [0, 0, 0]], [1.2, [0.025, 0, -0.012]], [2.4, [0, 0, 0]]]);
+      tr("hob", [[0, [0, 0, 0], [0, 0, 0]], [0.6, [0.02, 0.10, 0.07], [0.003, 0.004, 0]], [1.2, [0, 0, 0], [0, 0, 0]], [1.8, [0.03, -0.14, -0.06], [-0.003, 0.005, 0]], [2.4, [0, 0, 0], [0, 0, 0]]]);
+      tr("hobBody", [[0, null, null, [1, 1, 1]], [0.3, null, null, [1.03, 0.96, 1.03]], [0.6, null, null, [1, 1.02, 1]], [0.9, null, null, [1.03, 0.96, 1.03]], [1.2, null, null, [1, 1.02, 1]], [1.5, null, null, [1.03, 0.96, 1.03]], [1.8, null, null, [1, 1.02, 1]], [2.1, null, null, [1.03, 0.96, 1.03]], [2.4, null, null, [1, 1, 1]]]);
+      tr("hobHead", [[0, [0, 0, 0]], [0.5, [0, 0.45, 0.05]], [0.9, [0.05, 0.55, 0]], [1.3, [0, -0.10, -0.04]], [1.7, [-0.03, -0.5, -0.05]], [2.1, [0.04, -0.3, 0.03]], [2.4, [0, 0, 0]]]);
+      tr("hobArmL", [[0, [0, 0, 0]], [0.8, [0, 0, 0.18]], [1.6, [0, 0, -0.05]], [2.4, [0, 0, 0]]]);
+      tr("hobArmR", [[0, [0, 0, 0]], [0.8, [0, 0, -0.04]], [1.6, [0, 0, -0.2]], [2.4, [0, 0, 0]]]);
+      tr("lantern", [[0, [0, 0, 0]], [1.2, [0.03, 0, 0.10]], [2.4, [0, 0, 0]]]);
+    });
+
+    /* ---------------- summon (0.5 s hop-in) ---------------- */
+    mk("summon", 0.5, false, (tr) => {
+      tr("base", [[0, null, [0, 0.38, 0], [0.25, 0.25, 0.25], "outQuad"], [0.17, null, [0, 0.07, 0], [0.92, 1.18, 0.92], "inQuad"], [0.30, null, [0, 0, 0], [1.16, 0.80, 1.16], "outQuad"], [0.40, null, [0, 0, 0], [0.96, 1.07, 0.96]], [0.5, null, [0, 0, 0], [1, 1, 1]]]);
+      tr("hips", [[0, [0, 0, 0], [0, 0, 0]], [0.30, [0.10, 0, 0], [0, -0.05, 0.0], "outQuad"], [0.5, [0, 0, 0], [0, 0, 0]]]);
+      tr("legL.hip", [[0, [0, 0, 0]], [0.17, [-0.35, 0, 0]], [0.30, [-0.55, 0, 0]], [0.5, [0, 0, 0]]]);
+      tr("legL.knee", [[0, [0, 0, 0]], [0.17, [0.5, 0, 0]], [0.30, [0.95, 0, 0]], [0.5, [0, 0, 0]]]);
+      tr("legR.hip", [[0, [0, 0, 0]], [0.17, [-0.2, 0, 0]], [0.30, [-0.55, 0, 0]], [0.5, [0, 0, 0]]]);
+      tr("legR.knee", [[0, [0, 0, 0]], [0.17, [0.7, 0, 0]], [0.30, [0.95, 0, 0]], [0.5, [0, 0, 0]]]);
+      tr("armL.sh", [[0, [-2.3, 0, 0.6]], [0.17, [-2.5, 0, 0.7]], [0.30, [-0.4, 0, 0.5]], [0.5, [0, 0, 0]]]);
+      tr("armR.sh", [[0, [-1.6, 0, -0.7]], [0.17, [-1.9, 0, -0.8]], [0.30, [0.1, 0, -0.4]], [0.5, [0, 0, 0]]]);
+      tr("head", [[0, [-0.2, 0, 0]], [0.17, [-0.25, 0, 0]], [0.30, [0.12, 0, 0]], [0.5, [0, 0, 0]]]);
+      tr("hob", [[0, null, [0, 0.10, 0], [0.2, 0.2, 0.2], "outQuad"], [0.22, null, [0, 0.03, 0], [1.2, 0.84, 1.2]], [0.34, null, [0, 0, 0], [0.9, 1.16, 0.9]], [0.5, null, [0, 0, 0], [1, 1, 1]]]);
+      tr("hobArmL", [[0, [0, 0, 1.4]], [0.30, [0, 0, 1.0]], [0.5, [0, 0, 0]]]);
+      tr("hobArmR", [[0, [0, 0, -1.4]], [0.30, [0, 0, -1.0]], [0.5, [0, 0, 0]]]);
+      tr("lantern", [[0, [0.4, 0, 0.5]], [0.3, [-0.3, 0, -0.4]], [0.5, [0, 0, 0]]]);
+    });
+
+    /* ---------------- cast (0.6 s: swing the arm, lob the potion) ---------------- */
+    mk("cast", 0.6, false, (tr) => {
+      tr("chest", [[0, [0, 0, 0]], [0.16, [-0.04, -0.40, 0.04], "inQuad"], [0.21, [-0.05, -0.42, 0.05]], [0.31, [0.14, 0.34, -0.03], "outCubic"], [0.44, [0.10, 0.22, 0]], [0.6, [0, 0, 0]]]);
+      tr("hips", [[0, [0, 0, 0], [0, 0, 0]], [0.16, [0, -0.14, 0], [0, -0.012, -0.012]], [0.31, [0.04, 0.16, 0], [0, -0.02, 0.05], "outCubic"], [0.6, [0, 0, 0], [0, 0, 0]]]);
+      tr("armL.sh", [[0, [0, 0, 0]], [0.09, [0.55, 0, 0.55]], [0.17, [1.15, 0, 0.55], "inQuad"], [0.22, [1.2, 0, 0.5]], [0.31, [-2.15, 0, 0.12], "outCubic"], [0.44, [-2.35, 0, 0.1]], [0.6, [0, 0, 0]]]);
+      tr("armL.el", [[0, [0, 0, 0]], [0.17, [-0.85, 0, 0]], [0.22, [-0.85, 0, 0]], [0.31, [-0.15, 0, 0], "outCubic"], [0.44, [-0.2, 0, 0]], [0.6, [0, 0, 0]]]);
+      tr("armR.sh", [[0, [0, 0, 0]], [0.16, [0.10, 0, -0.05]], [0.31, [0.18, 0, -0.08]], [0.6, [0, 0, 0]]]);
+      tr("head", [[0, [0, 0, 0]], [0.16, [0.02, -0.18, 0.04]], [0.31, [-0.14, 0.14, -0.03]], [0.6, [0, 0, 0]]]);
+      tr("legL.hip", [[0, [0, 0, 0]], [0.16, [0.10, 0, 0]], [0.31, [-0.34, 0, 0], "outCubic"], [0.6, [0, 0, 0]]]);
+      tr("legL.knee", [[0, [0, 0, 0]], [0.16, [0.12, 0, 0]], [0.31, [0.32, 0, 0]], [0.6, [0, 0, 0]]]);
+      tr("legR.hip", [[0, [0, 0, 0]], [0.16, [0.22, 0, 0]], [0.31, [0.28, 0, 0]], [0.6, [0, 0, 0]]]);
+      tr("legR.knee", [[0, [0, 0, 0]], [0.16, [0.3, 0, 0]], [0.31, [0.1, 0, 0]], [0.6, [0, 0, 0]]]);
+      tr("hob", [[0, [0, 0, 0], [0, 0, 0]], [0.16, [-0.12, 0, 0], [0, -0.012, 0]], [0.32, [0.10, 0, 0], [0, 0.05, 0.02], "outBack"], [0.6, [0, 0, 0], [0, 0, 0]]]);
+      tr("hobArmL", [[0, [0, 0, 0]], [0.32, [0, 0, 1.6]], [0.6, [0, 0, 0]]]);
+      tr("hobArmR", [[0, [0, 0, 0]], [0.32, [0, 0, -1.6]], [0.6, [0, 0, 0]]]);
+      tr("lantern", [[0, [0, 0, 0]], [0.16, [0.2, 0, -0.35]], [0.34, [-0.25, 0, 0.45]], [0.6, [0, 0, 0]]]);
+    });
+
+    /* ---------------- fire (0.4 s: Hob lunges and spits; Thistle steadies) ---------------- */
+    mk("fire", 0.4, false, (tr) => {
+      tr("hob", [[0, [0, 0, 0], [0, 0, 0]], [0.07, [-0.30, 0, 0.12], [0.006, -0.018, -0.03], "inQuad"], [0.15, [0.40, -0.18, -0.18], [0.12, 0.07, 0.25], "outCubic"], [0.24, [0.30, -0.14, -0.12], [0.12, 0.05, 0.25]], [0.32, [-0.05, 0, 0], [0.07, 0.02, 0.10], "inOutQuad"], [0.4, [0, 0, 0], [0, 0, 0]]]);
+      tr("hobBody", [[0, null, null, [1, 1, 1]], [0.07, null, null, [1.08, 0.86, 1.08]], [0.15, null, null, [0.9, 1.22, 0.9]], [0.24, null, null, [0.95, 1.12, 0.95]], [0.4, null, null, [1, 1, 1]]]);
+      tr("hobHead", [[0, [0, 0, 0]], [0.07, [-0.30, 0, 0]], [0.15, [0.45, 0, 0], "outCubic"], [0.22, [-0.28, 0, 0], "outQuad"], [0.30, [0.05, 0, 0]], [0.4, [0, 0, 0]]]);
+      tr("hoodTip", [[0, [0, 0, 0]], [0.15, [0.7, 0, 0]], [0.26, [-0.4, 0, 0]], [0.4, [0, 0, 0]]]);
+      tr("hobArmL", [[0, [0, 0, 0]], [0.15, [0, 0, 1.1]], [0.4, [0, 0, 0]]]);
+      tr("hobArmR", [[0, [0, 0, 0]], [0.15, [0, 0, -1.1]], [0.4, [0, 0, 0]]]);
+      tr("chest", [[0, [0, 0, 0]], [0.07, [-0.05, 0.0, 0]], [0.18, [-0.02, 0.06, 0]], [0.4, [0, 0, 0]]]);
+      tr("head", [[0, [0, 0, 0]], [0.12, [0.02, 0.22, 0.03]], [0.30, [0.0, 0.18, 0.02]], [0.4, [0, 0, 0]]]);
+      tr("hips", [[0, [0, 0, 0], [0, 0, 0]], [0.14, [0, 0, 0], [0, -0.022, -0.012]], [0.4, [0, 0, 0], [0, 0, 0]]]);
+      tr("legL.hip", [[0, [0, 0, 0]], [0.14, [-0.20, 0, 0]], [0.4, [0, 0, 0]]]);
+      tr("legL.knee", [[0, [0, 0, 0]], [0.14, [0.26, 0, 0]], [0.4, [0, 0, 0]]]);
+      tr("legR.hip", [[0, [0, 0, 0]], [0.14, [0.20, 0, 0]], [0.4, [0, 0, 0]]]);
+      tr("legR.knee", [[0, [0, 0, 0]], [0.14, [0.30, 0, 0]], [0.4, [0, 0, 0]]]);
+      tr("armR.sh", [[0, [0, 0, 0]], [0.14, [0.20, 0, -0.05]], [0.4, [0, 0, 0]]]);
+      tr("armL.sh", [[0, [0, 0, 0]], [0.14, [-0.30, 0, 0.12]], [0.4, [0, 0, 0]]]);
+      tr("lantern", [[0, [0, 0, 0]], [0.12, [-0.15, 0, 0.25]], [0.30, [0.15, 0, -0.3]], [0.4, [0, 0, 0]]]);
+    });
+
+    /* ---------------- salute (0.7 s: tips her hand, Hob waves) ---------------- */
+    mk("salute", 0.7, false, (tr) => {
+      tr("armL.sh", [[0, [0, 0, 0]], [0.20, [-1.55, 0.55, 0.75], "outCubic"], [0.34, [-1.62, 0.55, 0.85]], [0.46, [-1.45, 0.55, 0.62], "outBack"], [0.7, [0, 0, 0]]]);
+      tr("armL.el", [[0, [0, 0, 0]], [0.20, [-1.75, 0, 0], "outCubic"], [0.34, [-1.85, 0, 0]], [0.46, [-1.55, 0, 0]], [0.7, [0, 0, 0]]]);
+      tr("armL.hand", [[0, [0, 0, 0]], [0.2, [0, -0.2, -0.5]], [0.34, [0, -0.2, -0.65]], [0.46, [0, -0.2, -0.3]], [0.7, [0, 0, 0]]]);
+      tr("head", [[0, [0, 0, 0]], [0.20, [-0.04, -0.10, -0.12]], [0.34, [-0.05, -0.12, -0.14]], [0.7, [0, 0, 0]]]);
+      tr("chest", [[0, [0, 0, 0]], [0.20, [-0.03, -0.08, 0]], [0.34, [-0.04, -0.10, 0]], [0.7, [0, 0, 0]]]);
+      tr("hob", [[0, [0, 0, 0], [0, 0, 0]], [0.16, [0, 0.14, 0], [0, 0.02, 0]], [0.5, [0, 0.14, 0], [0, 0.012, 0]], [0.7, [0, 0, 0], [0, 0, 0]]]);
+      tr("hobArmL", [[0, [0, 0, 0]], [0.14, [0, 0, 2.55], "outBack"], [0.24, [0, 0, 2.05]], [0.34, [0, 0, 2.65]], [0.44, [0, 0, 2.05]], [0.54, [0, 0, 2.6]], [0.7, [0, 0, 0]]]);
+      tr("hobHead", [[0, [0, 0, 0]], [0.2, [0.05, 0.25, 0.14]], [0.5, [0.0, 0.25, -0.14]], [0.7, [0, 0, 0]]]);
+      tr("lantern", [[0, [0, 0, 0]], [0.3, [0.15, 0, -0.2]], [0.7, [0, 0, 0]]]);
+    });
+
+    /* ---------------- walk / run ---------------- */
+    function walkClip(name, dur, k) {
+      mk(name, dur, true, (tr) => {
+        const q = dur / 4, F = [0, q, 2 * q, 3 * q, 4 * q];
+        const swing = (bone, vals, sc) => tr(bone, F.map((t, i) => [t, [vals[i % 4][0] * (sc || k), vals[i % 4][1] || 0, vals[i % 4][2] || 0]]));
+        swing("legL.hip", [[-0.40], [0.0], [0.38], [-0.12]]);
+        swing("legL.knee", [[0.06], [0.22], [0.40], [0.92]]);
+        swing("legR.hip", [[0.38], [-0.12], [-0.40], [0.0]]);
+        swing("legR.knee", [[0.40], [0.92], [0.06], [0.22]]);
+        swing("legL.foot", [[0.10], [0.0], [-0.25], [0.10]]);
+        swing("legR.foot", [[-0.25], [0.10], [0.10], [0.0]]);
+        tr("hips", F.map((t, i) => [t, [0, [0.08, 0, -0.08, 0][i % 4] * k, [0.03, 0, -0.03, 0][i % 4] * k], [0, [-0.014, 0.010, -0.014, 0.010][i % 4] * k, 0]]));
+        tr("chest", F.map((t, i) => [t, [-0.02 * k, [-0.10, 0, 0.10, 0][i % 4] * k, [-0.02, 0, 0.02, 0][i % 4] * k]]));
+        tr("head", F.map((t, i) => [t, [0.01, [0.08, 0, -0.08, 0][i % 4] * k, 0]]));
+        tr("armL.sh", F.map((t, i) => [t, [[0.36, 0.0, -0.36, 0.0][i % 4] * k, 0, 0.02]]));
+        tr("armL.el", F.map((t, i) => [t, [[-0.10, -0.2, -0.45, -0.25][i % 4] * k, 0, 0]]));
+        tr("armR.sh", F.map((t, i) => [t, [[-0.12, 0.0, 0.14, 0.0][i % 4] * k, 0, -0.02]]));
+        tr("hob", F.map((t, i) => [t, [[-0.05, 0.03, -0.05, 0.03][i % 4] * k, 0, 0], [0, [-0.010, 0.016, -0.010, 0.016][i % 4] * k, 0]]));
+        tr("hobBody", F.map((t, i) => [t, null, null, [[1.05, 0.93, 1.05], [0.97, 1.06, 0.97], [1.05, 0.93, 1.05], [0.97, 1.06, 0.97]][i % 4]]));
+        tr("hobHead", F.map((t, i) => [t, [[0.06, 0.1, 0.04, 0.1][i % 4] * k, [0.12, 0, -0.12, 0][i % 4], 0]]));
+        tr("hobArmL", F.map((t, i) => [t, [0, 0, [0.35, -0.1, 0.35, -0.1][i % 4] * k]]));
+        tr("hobArmR", F.map((t, i) => [t, [0, 0, [-0.35, 0.1, -0.35, 0.1][i % 4] * k]]));
+        tr("lantern", F.map((t, i) => [t, [[0.18, -0.1, 0.18, -0.1][i % 4] * k, 0, [0.14, 0, -0.14, 0][i % 4] * k]]));
+      });
+    }
+    walkClip("walk", 0.7, 1.0);
+    walkClip("run", 0.46, 1.55);
+
+    /* ---------------- hit (flinch) ---------------- */
+    mk("hit", 0.3, false, (tr) => {
+      tr("chest", [[0, [0, 0, 0]], [0.06, [-0.28, 0.1, 0.08], "outQuad"], [0.3, [0, 0, 0]]]);
+      tr("head", [[0, [0, 0, 0]], [0.06, [-0.30, -0.1, 0.1], "outQuad"], [0.3, [0, 0, 0]]]);
+      tr("hips", [[0, [0, 0, 0], [0, 0, 0]], [0.06, [-0.1, 0, 0], [0, -0.02, 0.03]], [0.3, [0, 0, 0], [0, 0, 0]]]);
+      tr("armL.sh", [[0, [0, 0, 0]], [0.06, [0.5, 0, 0.5]], [0.3, [0, 0, 0]]]);
+      tr("armR.sh", [[0, [0, 0, 0]], [0.06, [0.4, 0, -0.4]], [0.3, [0, 0, 0]]]);
+      tr("hob", [[0, [0, 0, 0], [0, 0, 0]], [0.06, [-0.4, 0, 0.2], [0, 0.03, -0.04]], [0.3, [0, 0, 0], [0, 0, 0]]]);
+      tr("hobHead", [[0, [0, 0, 0]], [0.06, [-0.5, 0, 0.2]], [0.3, [0, 0, 0]]]);
+    });
+
+    /* ---------------- procedural layer: blinks, Hob's eyes, mouth, lantern, braids, poncho ---------------- */
+    const eL = () => anim.off("eyeL"), eR = () => anim.off("eyeR");
+    const pos = ponchoGeo.attributes.position, nrm = ponchoGeo.attributes.normal;
+    const baseP = Float32Array.from(pos.array);
+    const NU = PN.nu, NV = PN.nv, WW = NU + 1;
+    const wRow = new Float32Array(NV + 1);
+    for (let j = 0; j <= NV; j++) { const s = j / NV; wRow[j] = s < 0.12 ? 0 : Math.pow((s - 0.12) / 0.88, 1.8); }
+    /* cross-product sign so recomputed normals keep the original orientation */
+    let nSign = 1;
+    {
+      const i = NU >> 2, j = NV >> 1, k = j * WW + i;
+      const du = [baseP[(k + 1) * 3] - baseP[k * 3], baseP[(k + 1) * 3 + 1] - baseP[k * 3 + 1], baseP[(k + 1) * 3 + 2] - baseP[k * 3 + 2]];
+      const dv = [baseP[(k + WW) * 3] - baseP[k * 3], baseP[(k + WW) * 3 + 1] - baseP[k * 3 + 1], baseP[(k + WW) * 3 + 2] - baseP[k * 3 + 2]];
+      const cx = du[1] * dv[2] - du[2] * dv[1], cy = du[2] * dv[0] - du[0] * dv[2], cz = du[0] * dv[1] - du[1] * dv[0];
+      nSign = (cx * nrm.array[k * 3] + cy * nrm.array[k * 3 + 1] + cz * nrm.array[k * 3 + 2]) < 0 ? -1 : 1;
+    }
+    const pa = pos.array, na = nrm.array;
+    function updatePoncho(t, amp, lift) {
+      for (let j = 0; j <= NV; j++) {
+        const w = wRow[j];
+        for (let i = 0; i <= NU; i++) {
+          const k = (j * WW + i) * 3;
+          const bx = baseP[k], by = baseP[k + 1], bz = baseP[k + 2];
+          if (w === 0) { pa[k] = bx; pa[k + 1] = by; pa[k + 2] = bz; continue; }
+          const th = (i / NU - 0.5) * TAU;
+          const r = Math.sqrt(bx * bx + bz * bz) || 1, dx = bx / r, dz = bz / r;
+          const wave = Math.sin(th * 3 + t * 2.1) * 0.5 + Math.sin(th * 5 - t * 2.9 + 1.3) * 0.3 + Math.sin(th * 8 + t * 3.7) * 0.2;
+          const d = w * (amp * 0.016 * wave + lift * 0.030);
+          pa[k] = bx + dx * d; pa[k + 2] = bz + dz * d;
+          pa[k + 1] = by + w * amp * 0.009 * Math.sin(th * 4 + t * 2.5 + j * 0.3) - w * lift * 0.018;
+        }
+      }
+      /* normals from the grid */
+      for (let j = 0; j <= NV; j++) {
+        const j0 = j > 0 ? j - 1 : j, j1 = j < NV ? j + 1 : j;
+        for (let i = 0; i <= NU; i++) {
+          const i0 = i > 0 ? i - 1 : NU - 1, i1 = i < NU ? i + 1 : 1;
+          const a = (j * WW + i1) * 3, b = (j * WW + i0) * 3, c = (j1 * WW + i) * 3, d = (j0 * WW + i) * 3;
+          const ux = pa[a] - pa[b], uy = pa[a + 1] - pa[b + 1], uz = pa[a + 2] - pa[b + 2];
+          const vx = pa[c] - pa[d], vy = pa[c + 1] - pa[d + 1], vz = pa[c + 2] - pa[d + 2];
+          let nx = (uy * vz - uz * vy) * nSign, ny = (uz * vx - ux * vz) * nSign, nz = (ux * vy - uy * vx) * nSign;
+          const l = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
+          const k = (j * WW + i) * 3;
+          if (j === 0) { na[k] = baseNormal0(i, 0); na[k + 1] = baseNormal0(i, 1); na[k + 2] = baseNormal0(i, 2); }
+          else { na[k] = nx / l; na[k + 1] = ny / l; na[k + 2] = nz / l; }
+        }
+      }
+      /* seam: copy column 0 normals to column NU */
+      for (let j = 0; j <= NV; j++) { const a = j * WW * 3, b = (j * WW + NU) * 3; na[b] = na[a]; na[b + 1] = na[a + 1]; na[b + 2] = na[a + 2]; }
+      pos.needsUpdate = true; nrm.needsUpdate = true;
+    }
+    const baseN = Float32Array.from(nrm.array);
+    function baseNormal0(i, c) { return baseN[i * 3 + c]; }
+
+    const S = { gx: 0, gy: 0, tgx: 0, tgy: 0, seg: -1, sp: 0, wx: 0, wz: 0, init: false, jx: 0, jy: 0 };
+    const clamp01 = U.clamp01;
+    const vialBone = bn["vial"], glowSpr = rig.parts.lanternGlow, vialGlow = rig.parts.vialGlow;
+    anim.layer(function (t, dt, a) {
+      const cn = a.name, ct = a.time;
+      /* ---- activity from world motion (in-game) or from the walking clips ---- */
+      const me = rig.root.matrixWorld.elements;
+      if (dt > 0) {
+        if (S.init) { const dx = me[12] - S.wx, dz = me[14] - S.wz; const sp = Math.min(12, Math.sqrt(dx * dx + dz * dz) / dt); S.sp += (sp - S.sp) * Math.min(1, dt * 6); }
+        S.wx = me[12]; S.wz = me[14]; S.init = true;
+      }
+      const walking = (cn === "walk" || cn === "run") ? 1 : 0;
+      const act = Math.max(clamp01(S.sp / 5), walking * (cn === "run" ? 1.4 : 0.8));
+      const boost = (cn === "cast" || cn === "summon") ? 1.6 : 1.0;
+
+      /* ---- Thistle blinks ---- */
+      let bl = 0;
+      const b1 = t % 4.1; if (b1 < 0.16) bl = Math.sin(b1 / 0.16 * PI);
+      const b2 = (t + 1.9) % 9.3; if (b2 < 0.15) bl = Math.max(bl, Math.sin(b2 / 0.15 * PI));
+      if (cn === "hit") bl = 1;
+      const o1 = eL(), o2 = eR();
+      o1.sy = o2.sy = -0.92 * bl;
+
+      /* ---- Hob: gaze, blink, pupils ---- */
+      const seg = Math.floor(t / 0.8);
+      if (seg !== S.seg) {
+        S.seg = seg;
+        const h1 = hash2(seg, 7), h2 = hash2(seg, 13), h3 = hash2(seg, 29);
+        S.tgx = (h1 - 0.5) * 2.0; S.tgy = (h2 - 0.5) * 1.4;
+        if (h3 > 0.8) { S.tgx = Math.sign(S.tgx || 1) * 1.2; }
+      }
+      let tgx = S.tgx, tgy = S.tgy;
+      if (cn === "fire") { tgx = 0.0; tgy = -0.1; }
+      if (cn === "cast" || cn === "salute") { tgx = -0.4; tgy = 0.3; }
+      const k = dt > 0 ? Math.min(1, dt * 18) : 1;
+      S.gx += (tgx - S.gx) * k; S.gy += (tgy - S.gy) * k;
+      for (let i = 0; i < 3; i++) {
+        const pb = anim.off("hobPupil" + i);
+        pb.px = S.gx * 0.0072 + (i - 1) * 0.0010 * Math.sin(t * 0.7); pb.py = S.gy * 0.0050;
+        let hb = 0;
+        const bp = (t + i * 0.09) % (3.3 + i * 0.35); if (bp < 0.13) hb = Math.sin(bp / 0.13 * PI);
+        if (cn === "hit") hb = 1;
+        anim.off("hobEye" + i).sy = -0.9 * hb;
+      }
+      const hh = anim.off("hobHead"); hh.ry = S.gx * 0.10; hh.rx = S.gy * 0.06;
+
+      /* ---- Hob's mouth: grumble chatter + spit ---- */
+      let open = 0;
+      const gseg = Math.floor(t / 2.1), gp = (t - gseg * 2.1) / 2.1;
+      if (hash2(gseg, 3) > 0.35 && gp < 0.28) open = Math.sin(gp / 0.28 * PI) * (0.18 + 0.20 * Math.abs(Math.sin(t * 34)));
+      if (cn === "fire") {
+        if (ct > 0.10 && ct < 0.22) open = Math.max(open, sstep(0.10, 0.15, ct));
+        else if (ct >= 0.22 && ct < 0.30) open = Math.max(open, 1 - sstep(0.22, 0.30, ct));
+      } else if (cn === "cast" && ct > 0.28 && ct < 0.48) open = Math.max(open, 0.7 * Math.sin((ct - 0.28) / 0.2 * PI));
+      else if (cn === "salute" && ct > 0.1 && ct < 0.6) open = Math.max(open, 0.25 + 0.2 * Math.sin(t * 24));
+      else if (cn === "hit") open = 0.8;
+      const mo = anim.off("hobMouth"); mo.sy = Math.max(open, 0.001) - 1; mo.sx = (0.55 + 0.45 * open) - 1;
+      /* chatter jiggle on the whole head while grumbling */
+      hh.pz = open * 0.004; hh.rz = open * 0.05 * Math.sin(t * 28);
+
+      /* ---- lantern + jar glow ---- */
+      const lo = anim.off("lantern");
+      lo.rz = Math.sin(t * 2.4 + 0.7) * 0.10 * (1 + act);
+      lo.rx = Math.sin(t * 1.7) * 0.07 * (1 + act) - act * 0.18;
+      let gl = 1 + 0.10 * Math.sin(t * 3.1) + 0.05 * Math.sin(t * 7.3);
+      if (cn === "cast" && ct > 0.28) gl += 0.8 * Math.max(0, 1 - (ct - 0.28) / 0.25);
+      glowSpr.scale.set(0.26 * gl, 0.26 * gl, 1);
+      /* hand-held vial only exists while she is about to throw */
+      const showVial = cn === "cast" && ct > 0.07 && ct < 0.305;
+      vialBone.visible = showVial;
+      if (showVial) { const vg = 0.22 * (1 + 0.1 * Math.sin(t * 20)); vialGlow.scale.set(vg, vg, 1); }
+
+      /* ---- braids / tassels / hair / horns: extra lag + whip ---- */
+      const ba = 1 + 2.5 * act;
+      for (let q = 0; q < 2; q++) {
+        const sd = q ? "R" : "L", ph = q ? 1.7 : 0;
+        for (let n = 0; n < 3; n++) {
+          const o = anim.off("braid" + sd + "." + n);
+          o.rx = Math.sin(t * 2.6 + n * 0.9 + ph) * 0.035 * ba - act * 0.12;
+          o.rz = Math.sin(t * 2.0 + n * 1.2 + ph) * 0.03 * ba * (q ? -1 : 1);
+        }
+        const o = anim.off("tassel" + sd);
+        o.rx = Math.sin(t * 3.4 + ph) * 0.07 * ba - act * 0.2;
+        o.rz = Math.sin(t * 2.8 + ph + 1.0) * 0.08 * ba;
+        const h = anim.off("horn" + sd); h.rz = Math.sin(t * 3.0 + ph) * 0.03 * (1 + act); h.rx = Math.sin(t * 2.3 + ph) * 0.03;
+      }
+      const hbk = anim.off("hairBack"); hbk.rx = Math.sin(t * 2.2) * 0.05 * ba - act * 0.15;
+      const sc = anim.off("scarf"); sc.rx = Math.sin(t * 2.7 + 0.5) * 0.06 * ba - act * 0.25;
+
+      /* ---- Hob bounce / hood tip flutter ---- */
+      const ho = anim.off("hob"); ho.py = Math.abs(Math.sin(t * 3.7)) * 0.0025 * (1 + act * 3);
+      const ht = anim.off("hoodTip"); ht.rx = Math.sin(t * 3.3) * 0.08 * (1 + act) - act * 0.35; ht.rz = Math.sin(t * 2.5 + 1.0) * 0.07;
+
+      /* ---- poncho hem ---- */
+      let lift = act * 0.4;
+      if (cn === "summon") lift = 0.9 * (1 - sstep(0.1, 0.5, ct));
+      if (cn === "cast") lift = 0.5 * Math.sin(clamp01(ct / 0.5) * PI);
+      updatePoncho(t, (0.7 + 1.6 * act) * boost, lift);
+    });
+
+    anim.setBase("idle");
+    anim.play("idle", { fade: 0 });
+    anim.update(0);
+    return anim;
+  }
+
+  function finish(rig, ponchoGeo) {
     K.mergeRig(rig);
     rig.parts.root = rig.root; rig.parts.body = rig.body;
-    const anim = K.anim(rig);
-    anim.addClip("idle", [{ t: 0, bone: "chest", rot: [0, 0, 0] }, { t: 2.4, bone: "chest", rot: [0, 0, 0] }], { loop: true });
-    anim.setBase("idle"); anim.play("idle", { fade: 0 }); anim.update(0);
+    rig.parts.potionHand = rig.bones["armL.hand"];
+    const anim = animate(rig, ponchoGeo);
     const meshCount = rig.countMeshes();
     return { id: "thistle", root: rig.root, parts: rig.parts, anim, height: DEF.height, radius: DEF.radius, team: DEF.team, rig, meshes: meshCount };
   }

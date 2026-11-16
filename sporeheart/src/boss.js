@@ -93,14 +93,9 @@
     let b = null;
     try { if (G.chars.has(id)) b = G.chars.build(id); } catch (e) { console.warn("[boss] build failed", id, e); }
     if (!b) {
-      try {
-        const v = form < 3 ? G.villains.buildAssassin() : G.villains.buildBoss(3);
-        b = { root: v.root, parts: v.parts, anim: null, height: v.height, radius: v.radius };
-      } catch (e) {
-        const THREE = T(); const g = new THREE.Group();
-        const m = new THREE.Mesh(new THREE.CapsuleGeometry(form < 3 ? 0.4 : 2, form < 3 ? 1.2 : 4, 4, 8), new THREE.MeshToonMaterial({ color: 0xaa2030 }));
-        m.position.y = form < 3 ? 1 : 3.5; g.add(m); b = { root: g, parts: {}, anim: null };
-      }
+      const THREE = T(); const g = new THREE.Group();     // placeholder if a character module failed to load
+      const m = new THREE.Mesh(new THREE.CapsuleGeometry(form < 3 ? 0.4 : 2, form < 3 ? 1.2 : 4, 4, 8), new THREE.MeshToonMaterial({ color: 0xaa2030 }));
+      m.position.y = form < 3 ? 1 : 3.5; g.add(m); b = { root: g, parts: {}, anim: null };
     }
     return b;
   }
@@ -134,6 +129,8 @@
     sceneRef.add(this.root);
     if (this.anim && this.anim.has("idle")) { this.anim.setBase("idle"); this.anim.play("idle", { fade: 0 }); }
     this.form = form;
+    /* hit-flash glow, parented to the model so it follows every animation */
+    this.flashSpr = G.assets.glowSprite(0xffd2a8, d.h * 0.85, 0); this.flashSpr.position.set(0, d.h * 0.55, 0); this.flashSpr.material.depthTest = false; this.flashSpr.renderOrder = 9; this.root.add(this.flashSpr);
     if (this.ent) { this.ent.object3D = this.root; this.ent.radius = d.r; this.ent.height = d.h; }
     this.flash = null;
   };
@@ -756,6 +753,7 @@
     if (this.dead) return;
     const e = this.ent;
     if (e.flashT > 0) e.flashT = Math.max(0, e.flashT - dt * 5);
+    if (this.flashSpr) this.flashSpr.material.opacity = (e.flashT || 0) * 0.5;
     /* glow flicker via root userData for the renderer */
     if (this.transforming) {
       if (this.form === 3 && this.rise !== undefined) { this.rise = Math.min(1, this.rise + dt / 3); const k = this.rise; this.root.scale.setScalar(0.35 + 0.65 * (1 - Math.pow(1 - k, 3))); G.vfx.shake(0.3 * (1 - k)); }

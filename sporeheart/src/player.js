@@ -45,7 +45,7 @@
   P.lockTarget = null; P.dmgBuff = 0; P.surge = 0; P.hookReady = false;
   P.scene = null; P.camera = null;
   P.cam = { yaw: 0, pitch: 0.34, dist: 5.4, x: 0, y: 0, z: 0, lx: 0, ly: 0, lz: 0, init: false, targetFov: 58, idle: 0 };
-  P.x = 0; P.y = 0; P.z = 9; P.vx = 0; P.vy = 0; P.vz = 0; P.facing = 0;
+  P.cine = null; P.x = 0; P.y = 0; P.z = 9; P.vx = 0; P.vy = 0; P.vz = 0; P.facing = 0;
   P.grounded = true; P.jumps = 0; P.coyote = COYOTE; P.airDash = 0;
   P.action = null; P.comboIndex = 0; P.chainT = 0; P.comboCount = 0; P.comboT = 0;
   P.moveX = 0; P.moveZ = 1; P.hasInput = false; P.gliding = false; P.sprinting = false; P.boost = 0;
@@ -272,6 +272,8 @@
     }
   }
 
+  const CINE = { px: 0, py: 0, pz: 0, lx: 0, ly: 0, lz: 0 };
+  P.cinema = function (dur, fn) { P.cine = { t: 0, dur: dur, fn: fn }; };
   function pushCamera(dt, snap) {
     const cam = P.cam, co = P.camera; if (!co) return;
     const k = snap ? 1 : 1 - Math.exp(-15 * (dt || 0.016)), kl = snap ? 1 : 1 - Math.exp(-22 * (dt || 0.016));
@@ -279,12 +281,25 @@
     cam.lx += (P._camLX - cam.lx) * kl; cam.ly += (P._camLY - cam.ly) * kl; cam.lz += (P._camLZ - cam.lz) * kl;
     let sx = 0, sy = 0, sz = 0;
     if (G.vfx && G.vfx.getShakeOffset) { G.vfx.getShakeOffset(dt || 0, P._shakeVec); sx = P._shakeVec.x; sy = P._shakeVec.y; sz = P._shakeVec.z; }
-    co.position.set(cam.x + sx, cam.y + sy, cam.z + sz);
-    co.lookAt(cam.lx + sx * 0.35, cam.ly + sy * 0.35, cam.lz + sz * 0.35);
+    let px = cam.x + sx, py = cam.y + sy, pz = cam.z + sz, lx = cam.lx + sx * 0.35, ly = cam.ly + sy * 0.35, lz = cam.lz + sz * 0.35;
+    const cn = P.cine;
+    if (cn) {                                       // scripted shot: fn(k, out) fills out.{px,py,pz,lx,ly,lz,fov}; eases back to gameplay over its last 0.6 s
+      cn.t += dt || 0.016;
+      const k = Math.min(1, cn.t / cn.dur); cn.fn(k, CINE);
+      const back = cn.t > cn.dur - 0.6 ? Math.min(1, (cn.t - (cn.dur - 0.6)) / 0.6) : 0, e = back * back * (3 - 2 * back);
+      px += (CINE.px + sx - px) * (1 - e); py += (CINE.py + sy - py) * (1 - e); pz += (CINE.pz + sz - pz) * (1 - e);
+      lx += (CINE.lx - lx) * (1 - e); ly += (CINE.ly - ly) * (1 - e); lz += (CINE.lz - lz) * (1 - e);
+      if (cn.t >= cn.dur) P.cine = null;
+    }
+    co.position.set(px, py, pz);
+    co.lookAt(lx, ly, lz);
     const speed = Math.hypot(P.vx, P.vz);
     const baseFov = cam.baseFov || 58;
     cam.targetFov = damp(cam.targetFov, baseFov + (P.sprinting ? 5 : 0) + Math.min(6, speed * 0.2), 6, dt || 0.016);
-    co.fov = damp(co.fov, cam.targetFov, 12, dt || 0.016);
+    /* narrow / square screens (Fold cover in portrait, inner screen) get a wider vertical FOV so the horizontal view never tunnels */
+    const asp = co.aspect || 1.6, wide = asp < 1.3 ? Math.min(1.9, Math.sqrt(1.3 / asp)) : 1;
+    const fovGoal = wide === 1 ? cam.targetFov : 2 * Math.atan(Math.tan(cam.targetFov * Math.PI / 360) * wide) * 180 / Math.PI;
+    co.fov = damp(co.fov, fovGoal, 12, dt || 0.016);
     co.updateProjectionMatrix();
   }
 
@@ -799,10 +814,10 @@
         P.bufAttack = 0; P.action = null; if (P.grounded) startLunge(); else startAirAttack();
       }
     }
-    /* hold strike on the ground without a swing in flight → charge */
-    if (I.down("attack") && I.heldFor("attack") > 0.28 && P.grounded && (!P.action || (P.action.type === "combo" && P.action.t / P.action.dur > 0.4)) && P.action !== null) {
-      /* held past the first swing — enter charge */
-      P.action = null; startCharge();
+    /* holding STRIKE past the first swing winds up a charged slam (once per press) */
+    if (!I.down("attack")) P.holdUsed = false;
+    else if (!P.holdUsed && I.heldFor("attack") > 0.3 && P.grounded && (!P.action || P.action.type === "combo")) {
+      P.holdUsed = true; P.action = null; P.chainT = 0; startCharge();
     }
 
     /* allies */

@@ -728,11 +728,11 @@
        ====================================================================== */
     let HY = 3.0;
     const hips = rig.bone("hips", null, [0, HY, 0]);
-    rig.bone("chest", "hips", [0, 0.50, 0.10], [0.56, 0, 0]);
-    rig.bone("neck", "chest", [0, 1.90, 0.05], [-0.42, 0, 0]);
-    rig.bone("head", "neck", [0, 0.82, 0.25], [-0.14, 0, 0]);
-    rig.bone("jaw", "head", [0, -0.46, 0.20]);
-    rig.bone("mouth", "jaw", [0, 0.06, 1.78]);
+    rig.bone("chest", "hips", [0, 0.50, 0.10], [0.74, 0, 0]);
+    rig.bone("neck", "chest", [0, 1.90, 0.05], [-0.56, 0, 0]);
+    rig.bone("head", "neck", [0, 0.82, 0.25], [-0.18, 0, 0]);
+    rig.bone("jaw", "head", [0, -0.46, 0.20], [0.12, 0, 0]);
+    rig.bone("mouth", "jaw", [0, 0.06, 1.62]);
     rig.bone("core", "chest", [0, 1.02, 0.92]);
 
     for (const s of [1, -1]) {
@@ -741,9 +741,9 @@
       rig.bone("arm" + n + ".el", "arm" + n + ".sh", [0, -1.75, 0], [-0.42, 0, 0]);
       rig.bone("arm" + n + ".hand", "arm" + n + ".el", [0, -1.80, 0], [-0.10, s > 0 ? 0 : -0.42, 0]);
       rig.bone("leg" + n + ".hip", "hips", [s * 0.92, -0.12, 0.05], [-0.78, 0, s * 0.03]);
-      rig.bone("leg" + n + ".knee", "leg" + n + ".hip", [0, -1.3, 0], [1.62, 0, 0]);
-      rig.bone("leg" + n + ".foot", "leg" + n + ".knee", [0, -1.4, 0], [-1.40, 0, 0]);
-      rig.bone("leg" + n + ".toe", "leg" + n + ".foot", [0, -1.2, 0], [0.56, 0, 0]);
+      rig.bone("leg" + n + ".knee", "leg" + n + ".hip", [0, -1.45, 0], [1.62, 0, 0]);
+      rig.bone("leg" + n + ".foot", "leg" + n + ".knee", [0, -1.6, 0], [-1.40, 0, 0]);
+      rig.bone("leg" + n + ".toe", "leg" + n + ".foot", [0, -1.4, 0], [0.56, 0, 0]);
       rig.bone("sole" + n, "leg" + n + ".toe", [0, -0.27, 0.35]);
     }
     rig.bone("propR", "armR.hand", [0, -0.46, 0.14], [1.72, 0, 0]);
@@ -769,7 +769,7 @@
       capeTh.push(th);
       capeLen.push(3.6 - Math.abs(th) * 0.9);
       const x = Math.sin(th) * 1.75, z = -Math.cos(th) * 2.15 + Math.abs(th) * 0.5, y = 2.0 - Math.abs(th) * 0.4;
-      rig.bone("cape." + i, "chest", [x, y, z], [-0.42, PI - th, th * 0.26], { sway: 0.045, phase: i * 0.8 });
+      rig.bone("cape." + i, "chest", [x, y, z], [-0.62, PI - th, th * 0.26], { sway: 0.045, phase: i * 0.8 });
       rig.bone("capeTip." + i, "cape." + i, [0, 0, 0], [0.06, 0, 0], { sway: 0.07, phase: i * 0.8 + 0.7 });
     }
     /* red tape straps hanging off the shoulders / chest */
@@ -782,11 +782,11 @@
       let x, y, z, ry, rz, len, rx;
       if (i < NBACK) {
         const t = i / (NBACK - 1), ph = (t - 0.5) * 2.0;      // -1..1 across the back of the helm
-        x = ph * 1.0; y = 0.72 - Math.abs(ph) * 0.22; z = -0.95 + Math.abs(ph) * 0.3;
-        ry = ph * -0.28; rz = -ph * 0.32; rx = 0.46 + (1 - Math.abs(ph)) * 0.14; len = 4.0 + 1.9 * (1 - Math.abs(ph) * 0.8) + 0.6 * L.hash(i * 3.1);
+        x = ph * 1.05; y = 0.72 - Math.abs(ph) * 0.22; z = -0.95 + Math.abs(ph) * 0.3;
+        ry = ph * -0.34; rz = -ph * 0.42; rx = 0.58 + (1 - Math.abs(ph)) * 0.12; len = 3.4 + 1.5 * Math.pow(Math.abs(ph), 0.8) + 0.5 * L.hash(i * 3.1);
       } else {
         const s = i === NBACK ? 1 : -1;
-        x = s * 0.98; y = 0.15; z = 0.3; ry = 0; rz = -s * 0.10; rx = -0.08; len = 2.7;
+        x = s * 1.25; y = 0.1; z = 0.15; ry = 0; rz = -s * 0.24; rx = 0.02; len = 2.6;
       }
       maneSpec.push({ x, y, z, ry, rz, rx, len, i });
       rig.bone("mane." + i, "head", [x, y, z], [rx, ry, rz], { sway: 0.05, phase: i * 0.55 });
@@ -842,30 +842,30 @@
       const n = s > 0 ? "L" : "R";
       const HIP = "leg" + n + ".hip", KNEE = "leg" + n + ".knee", FOOT = "leg" + n + ".foot", TOE = "leg" + n + ".toe";
       /* thigh haunch */
-      tube(HIP, [[0, 0.2, -0.05], [0, -0.4, 0.02], [0, -0.95, 0.06], [0, -1.3, 0.04]],
-        [[0.74, 0.80], [0.82, 0.88], [0.62, 0.66], [0.50, 0.52]], PELT, { seg: 12, n: 2.4, ns: 6, cap0: "dome" }, { ol: 0.05 });
+      tube(HIP, [[0, 0.2, -0.05], [0, -0.45, 0.02], [0, -1.05, 0.06], [0, -1.45, 0.04]],
+        [[0.78, 0.84], [0.88, 0.94], [0.68, 0.72], [0.52, 0.54]], PELT, { seg: 12, n: 2.4, ns: 6, cap0: "dome" }, { ol: 0.05 });
       for (let k = 0; k < 4; k++) {
         spike(HIP, [s * (0.55 + 0.04 * k), -0.2 - k * 0.28, -0.1], [s * 0.7, -1, -0.4], 0.6 - k * 0.05, 0.15, PELT2, { ol: 0.03 });
       }
-      slab(HIP, [s * 0.58, -0.55, 0.22], [0.1, 0.42, 0.36], GREY, { ol: 0.03, r: [0, 0, s * -0.1] });
+      slab(HIP, [s * 0.62, -0.6, 0.22], [0.1, 0.46, 0.38], GREY, { ol: 0.03, r: [0, 0, s * -0.1] });
       /* knee: ball + kneecap armour with a spike */
       blob(KNEE, [0, 0, 0.05], [0.56, 0.56, 0.56], PELT, { ol: 0.05 });
       slab(KNEE, [0, 0.02, 0.5], [0.46, 0.5, 0.26], GREY, { ol: 0.04, r: [-0.2, 0, 0] });
       spike(KNEE, [0, 0.35, 0.62], [0, 1, 0.6], 0.55, 0.16, BONE, { ol: 0.03 });
       ring(KNEE, [0, 0.0, 0.0], 0.58, 0.07, RED, null, [0, PI / 2, 0]);
       /* shin: back-sloping, calf bulge behind, greave plate in front */
-      tube(KNEE, [[0, 0.0, 0], [0, -0.58, -0.05], [0, -1.05, -0.14], [0, -1.4, -0.02]],
-        [[0.5, 0.52], [0.58, 0.64], [0.42, 0.5], [0.32, 0.34]], PELT, { seg: 12, n: 2.4, ns: 6 }, { ol: 0.05 });
-      tube(KNEE, [[0, -0.2, 0.46], [0, -0.75, 0.44], [0, -1.25, 0.3]], [[0.32, 0.1], [0.34, 0.1], [0.24, 0.08]], GREY,
+      tube(KNEE, [[0, 0.0, 0], [0, -0.65, -0.06], [0, -1.2, -0.16], [0, -1.6, -0.02]],
+        [[0.52, 0.54], [0.6, 0.66], [0.44, 0.52], [0.32, 0.34]], PELT, { seg: 12, n: 2.4, ns: 6 }, { ol: 0.05 });
+      tube(KNEE, [[0, -0.2, 0.46], [0, -0.85, 0.44], [0, -1.4, 0.3]], [[0.32, 0.1], [0.34, 0.1], [0.24, 0.08]], GREY,
         { seg: 8, n: 3.5, ns: 4, ref: [0, 0, 1] }, { ol: 0.03 });
-      tube(KNEE, [[0, -0.25, 0.54], [0, -0.75, 0.52], [0, -1.2, 0.38]], [[0.08, 0.04], [0.08, 0.04], [0.06, 0.04]], RED, { seg: 6, ns: 4 });
+      tube(KNEE, [[0, -0.25, 0.54], [0, -0.85, 0.52], [0, -1.35, 0.38]], [[0.08, 0.04], [0.08, 0.04], [0.06, 0.04]], RED, { seg: 6, ns: 4 });
       /* hock: mechanical joint with the roundel + heel spike */
       blob(FOOT, [0, 0, 0], [0.42, 0.42, 0.42], GREYD, { ol: 0.04 });
       emblem(FOOT, [s * 0.4, 0, 0], 0.27, [s, 0, 0], { ol: 0 });
       spike(FOOT, [0, 0.1, -0.32], [0, 0.55, -1], 0.85, 0.17, BONE, { ol: 0.03 });
-      tube(FOOT, [[0, 0, 0], [0, -0.6, 0.05], [0, -1.2, 0.0]], [[0.34, 0.36], [0.27, 0.3], [0.34, 0.38]], PELT, { seg: 10, n: 2.4, ns: 5 }, { ol: 0.05 });
-      tube(FOOT, [[0, -0.18, 0.3], [0, -0.75, 0.28], [0, -1.1, 0.25]], [[0.2, 0.08], [0.18, 0.08], [0.2, 0.08]], GREY, { seg: 8, n: 3.5, ns: 4 }, { ol: 0.03 });
-      ring(FOOT, [0, -0.45, 0.0], 0.3, 0.055, RED, null, [PI / 2, 0, 0]);
+      tube(FOOT, [[0, 0, 0], [0, -0.7, 0.05], [0, -1.4, 0.0]], [[0.36, 0.38], [0.28, 0.32], [0.36, 0.4]], PELT, { seg: 10, n: 2.4, ns: 5 }, { ol: 0.05 });
+      tube(FOOT, [[0, -0.18, 0.3], [0, -0.85, 0.28], [0, -1.25, 0.25]], [[0.2, 0.08], [0.18, 0.08], [0.2, 0.08]], GREY, { seg: 8, n: 3.5, ns: 4 }, { ol: 0.03 });
+      ring(FOOT, [0, -0.55, 0.0], 0.3, 0.055, RED, null, [PI / 2, 0, 0]);
       /* paw: pad, three clawed toes, dew claw */
       blob(TOE, [0, -0.1, 0.12], [0.52, 0.3, 0.6], PELT, { ol: 0.05 });
       blob(TOE, [0, -0.1, -0.2], [0.34, 0.28, 0.34], PELT, { ol: 0.04 });
@@ -994,46 +994,55 @@
         rig.attach("core", m); return m;
       };
       mkHalo(HM.core, 0.62); mkHalo(HM.core2, 1.0);
-      const sp = A.glowSprite(0xff5a3a, 3.4, 0.55); rig.attach("core", sp);
+      const sp = A.glowSprite(0xff5a3a, 2.6, 0.5); rig.attach("core", sp);
     }
-    ring("core", [0, 0, 0], 0.54, 0.075, GREYD, { ol: 0.03 }, [0, 0, 0]);
-    ring("core", [0, 0, 0], 0.56, 0.06, GREY, { ol: 0.03 }, [PI / 2, 0, 0.5]);
-    ring("core", [0, 0, 0], 0.56, 0.06, GREYD, { ol: 0.03 }, [0.6, 0.9, 0]);
-    ring("core", [0, 0, 0.02], 0.7, 0.14, GREY, { ol: 0.035 }, [0, 0, 0]);
-    for (let k = 0; k < 5; k++) { // wire windings + cables
-      const a = k * 1.3;
-      tube("core", L.arcPts(0, 0, 0, 0.5, 0.5, 0.2 + a, 2.3 + a, 8, (t) => Math.sin(t * PI) * 0.18 * (k % 2 ? 1 : -1)).map((p) => [p[0], p[2] * 0.2 + p[1], p[2]]),
-        [[0.035, 0.035], [0.035, 0.035]], RED, { seg: 5, ns: 8 });
+    ring("core", [0, 0, 0], 0.52, 0.07, GREYD, { ol: 0.03 }, [0, 0, 0]);
+    ring("core", [0, 0, 0], 0.54, 0.055, GREY, { ol: 0.03 }, [PI / 2, 0, 0.0]);
+    ring("core", [0, 0, 0], 0.54, 0.055, GREYD, { ol: 0.03 }, [0.0, PI / 2, 0]);
+    ring("core", [0, 0, 0.0], 0.72, 0.15, GREY, { ol: 0.04 }, [0, 0, 0]);
+    for (let k = 0; k < 8; k++) {   // bolts on the socket ring
+      const a = k * TAU / 8 + 0.2;
+      put("core", L.sph(), GREYD, { p: [Math.cos(a) * 0.72, Math.sin(a) * 0.72, 0.13], s: [0.06, 0.06, 0.05] });
     }
+    /* red wire wound round the cage + neat cables swept to the collarbones / ribs */
+    ring("core", [0, 0, 0.0], 0.585, 0.035, RED, null, [0.5, 0.4, 0]);
+    ring("core", [0, 0, 0.0], 0.585, 0.035, RED, null, [-0.5, 0.5, 0.9]);
+    ring("core", [0, 0, 0.0], 0.8, 0.04, RED, null, [0, 0, 0]);
     for (const s of [1, -1]) {
-      tube("chest", [[s * 0.55, 1.05, 1.0], [s * 0.9, 1.6, 1.08], [s * 1.5, 1.85, 0.85], [s * 2.0, 2.0, 0.5]], [[0.05, 0.05], [0.05, 0.05], [0.05, 0.05], [0.04, 0.04]], RED, { seg: 5, ns: 10 });
-      tube("chest", [[s * 0.5, 0.95, 1.0], [s * 1.0, 0.55, 1.05], [s * 1.35, 0.1, 0.95]], [[0.05, 0.05], [0.05, 0.05], [0.04, 0.04]], RED, { seg: 5, ns: 8 });
+      tube("chest", [[s * 0.6, 1.2, 1.0], [s * 0.95, 1.55, 1.0], [s * 1.25, 1.85, 0.8], [s * 1.55, 2.0, 0.55]], [[0.05, 0.05], [0.05, 0.05], [0.05, 0.05], [0.04, 0.04]], RED, { seg: 5, ns: 10 });
+      tube("chest", [[s * 0.55, 1.0, 1.02], [s * 1.0, 0.8, 1.04], [s * 1.28, 0.45, 0.95], [s * 1.2, 0.0, 0.85]], [[0.05, 0.05], [0.05, 0.05], [0.04, 0.04], [0.04, 0.04]], RED, { seg: 5, ns: 10 });
+      slab("chest", [s * 0.82, 1.32, 1.02], [0.1, 0.1, 0.07], GREYD, { ol: 0.02 });
+      slab("chest", [s * 1.0, 0.8, 1.04], [0.1, 0.1, 0.07], GREYD, { ol: 0.02 });
     }
 
     /* ======================================================================
        NECK + HEAD
        ====================================================================== */
     tube("neck", [[0, -0.45, -0.15], [0, 0.25, 0.08], [0, 0.65, 0.3]], [[0.8, 0.74], [0.68, 0.64], [0.64, 0.6]], PELT, { seg: 12, n: 2.4, ns: 5 }, { ol: 0.05 });
-    /* cranium + muzzle */
-    blob("head", [0, 0.02, -0.05], [1.0, 0.86, 1.05], PELT, { ol: 0.05 });
-    tube("head", [[0, -0.05, 0.4], [0, -0.22, 1.1], [0, -0.38, 1.85]], [[0.66, 0.54], [0.54, 0.46], [0.48, 0.4]], PELT,
-      { seg: 12, n: 2.6, ns: 5, ref: [0, 1, 0], cap1: "dome" }, { ol: 0.05 });
-    blob("head", [0, -0.32, 2.0], [0.46, 0.34, 0.3], INK, { ol: 0.03 });
-    for (const s of [1, -1]) blob("head", [s * 0.17, -0.27, 2.2], [0.09, 0.11, 0.06], C.redDD, {});
+    /* cranium + boar muzzle */
+    blob("head", [0, 0.0, -0.1], [0.92, 0.8, 0.96], PELT, { ol: 0.05 });
+    {
+      const under = (t, a) => { const k = Math.max(0, Math.min(1, (-Math.cos(a) - 0.1) / 0.5)); return L.mix([1, 1, 1], [0.3, 0.34, 0.44], k); };
+      tube("head", [[0, -0.02, 0.4], [0, -0.16, 1.05], [0, -0.3, 1.72]], [[0.66, 0.52], [0.56, 0.44], [0.5, 0.38]], GREY2,
+        { seg: 12, n: 2.6, ns: 5, ref: [0, 1, 0], cap1: "dome", colA: under }, { ol: 0.05 });
+    }
+    blob("head", [0, -0.27, 1.84], [0.44, 0.32, 0.28], INK, { ol: 0.03 });
+    for (const s of [1, -1]) blob("head", [s * 0.16, -0.22, 2.04], [0.085, 0.1, 0.05], C.redDD, {});
     /* nose-bridge armour + red stripe */
-    tube("head", [[0, 0.36, 0.35], [0, 0.2, 1.2], [0, 0.0, 1.95]], [[0.36, 0.1], [0.3, 0.09], [0.22, 0.08]], GREY, { seg: 8, n: 3, ns: 5, ref: [0, 1, 0], cap1: "dome" }, { ol: 0.03 });
-    tube("head", [[0, 0.46, 0.4], [0, 0.29, 1.2], [0, 0.09, 1.98]], [[0.08, 0.04], [0.07, 0.04], [0.06, 0.04]], RED, { seg: 5, ns: 5, ref: [0, 1, 0] });
+    tube("head", [[0, 0.34, 0.3], [0, 0.22, 1.1], [0, 0.04, 1.8]], [[0.34, 0.1], [0.28, 0.09], [0.22, 0.08]], GREY, { seg: 8, n: 3, ns: 5, ref: [0, 1, 0], cap1: "dome" }, { ol: 0.03 });
+    tube("head", [[0, 0.44, 0.34], [0, 0.31, 1.1], [0, 0.13, 1.82]], [[0.08, 0.04], [0.07, 0.04], [0.06, 0.04]], RED, { seg: 5, ns: 5, ref: [0, 1, 0] });
     for (const s of [1, -1]) {
-      slab("head", [s * 0.66, -0.2, 1.0], [0.1, 0.3, 0.7], GREY, { ol: 0.03, r: [0, s * 0.12, 0] });
-      slab("head", [s * 0.72, -0.12, 1.2], [0.05, 0.1, 0.3], RED, { r: [0, s * 0.12, 0] });
-      /* brow ridge + glowing slit eyes under the hammer */
-      slab("head", [s * 0.5, 0.2, 0.92], [0.42, 0.14, 0.34], INK, { r: [0.1, 0, s * 0.25] });
-      put("head", L.sph(), null, { cls: "g_slit", p: [s * 0.5, 0.05, 1.06], r: [0, s * 0.2, s * 0.38], s: [0.3, 0.075, 0.07] });
-      put("head", L.sph(), null, { cls: "g_slit", p: [s * 0.5, 0.05, 1.04], r: [0, s * 0.2, s * 0.38], s: [0.2, 0.05, 0.05] });
+      slab("head", [s * 0.62, -0.16, 0.95], [0.09, 0.28, 0.62], GREY, { ol: 0.03, r: [0, s * 0.12, 0] });
+      slab("head", [s * 0.68, -0.1, 1.1], [0.05, 0.09, 0.26], RED, { r: [0, s * 0.12, 0] });
+      /* deep eye sockets under the hammer + angry glowing slit eyes */
+      blob("head", [s * 0.5, 0.1, 0.86], [0.34, 0.2, 0.2], INK, { r: [0, s * 0.25, s * 0.3] });
+      put("head", L.sph(), null, { cls: "g_slit", p: [s * 0.5, 0.1, 1.0], r: [0, s * 0.25, s * 0.42], s: [0.3, 0.075, 0.06] });
+      put("head", L.sph(), null, { cls: "g_slit", p: [s * 0.5, 0.1, 1.02], r: [0, s * 0.25, s * 0.42], s: [0.18, 0.04, 0.04] });
+      slab("head", [s * 0.5, 0.3, 0.9], [0.4, 0.07, 0.24], GREYD, { ol: 0.03, r: [0.2, s * 0.25, s * 0.3] });
     }
     for (let i = -3; i <= 3; i++) {
       const big = Math.abs(i) === 3;
-      spike("head", [i * 0.15, -0.58 + Math.abs(i) * 0.01, 1.8 - Math.abs(i) * 0.1], [0, -1, 0.2], big ? 0.55 : 0.33, big ? 0.1 : 0.075, BONE, { ol: 0.02 });
+      spike("head", [i * 0.14, -0.5 + Math.abs(i) * 0.01, 1.62 - Math.abs(i) * 0.1], [0, -1, 0.2], big ? 0.5 : 0.28, big ? 0.095 : 0.07, BONE, { ol: 0.02 });
     }
     /* ---- the hammerhead helm ---- */
     {
@@ -1044,7 +1053,6 @@
         [[0.2, 0.46], [0.34, 0.9], [0.42, 1.12], [0.34, 0.9], [0.2, 0.46]], GREY,
         { seg: 16, n: 3.0, ns: 10, ref: [0, 0, 1], cap0: "dome", cap1: "dome", colA: dark }, { ol: 0.05 });
       /* brow visor dropping over the face + domed crown */
-      slab("head", [0, 0.28, 1.28], [0.78, 0.2, 0.34], GREY2, { ol: 0.04, r: [0.35, 0, 0] });
       blob("head", [0, 0.98, 0.1], [0.95, 0.42, 0.95], GREY, { ol: 0.04 });
       emblem("head", [0, 1.38, 0.14], 0.34, [0, 1, -0.14], { ol: 0 });
       for (const s of [1, -1]) {
@@ -1081,23 +1089,23 @@
       }
     }
     /* ---- lower jaw with tusks and a furnace mouth ---- */
-    tube("jaw", [[0, -0.02, 0.0], [0, -0.14, 0.75], [0, -0.05, 1.45], [0, 0.1, 1.78]], [[0.62, 0.3], [0.56, 0.26], [0.46, 0.22], [0.36, 0.2]], PELT,
+    tube("jaw", [[0, -0.02, 0.0], [0, -0.12, 0.7], [0, -0.04, 1.3], [0, 0.1, 1.6]], [[0.6, 0.3], [0.54, 0.26], [0.45, 0.22], [0.35, 0.2]], PELT,
       { seg: 12, n: 2.6, ns: 6, ref: [0, 1, 0], cap1: "dome" }, { ol: 0.05 });
-    slab("jaw", [0, -0.22, 1.5], [0.4, 0.14, 0.36], GREY, { ol: 0.03 });
+    slab("jaw", [0, -0.22, 1.36], [0.38, 0.14, 0.34], GREY, { ol: 0.03 });
     for (const s of [1, -1]) {
       for (let k = 0; k < 6; k++) {
-        const z = 0.55 + k * 0.22, x = s * (0.5 - k * 0.025);
-        spike("jaw", [x, 0.14, z], [0, 1, 0.1], 0.2 + 0.16 * ((k * 7) % 3) / 2, 0.075, BONE, { ol: 0.02 });
+        const z = 0.45 + k * 0.2, x = s * (0.47 - k * 0.025);
+        spike("jaw", [x, 0.12, z], [0, 1, 0.1], 0.2 + 0.15 * ((k * 7) % 3) / 2, 0.07, BONE, { ol: 0.02 });
       }
-      tube("jaw", [[s * 0.48, 0.1, 1.45], [s * 0.66, 0.5, 1.72], [s * 0.78, 1.0, 1.72], [s * 0.66, 1.55, 1.45]],
-        [[0.16, 0.16], [0.13, 0.13], [0.08, 0.08], [0.02, 0.02]], BONE, { seg: 8, ns: 10, cap1: "dome" }, { ol: 0.035 });
-      ring("jaw", [s * 0.5, 0.18, 1.5], 0.17, 0.05, RED, null, [PI / 2, 0, 0]);
+      tube("jaw", [[s * 0.44, 0.1, 1.28], [s * 0.66, 0.35, 1.6], [s * 0.82, 0.72, 1.82], [s * 0.78, 1.08, 2.0]],
+        [[0.15, 0.15], [0.12, 0.12], [0.075, 0.075], [0.02, 0.02]], BONE, { seg: 8, ns: 10, cap1: "dome" }, { ol: 0.035 });
+      ring("jaw", [s * 0.47, 0.18, 1.34], 0.16, 0.05, RED, null, [PI / 2, 0, 0]);
     }
-    put("jaw", L.sph(), null, { cls: "g_mouth", p: [0, 0.07, 0.95], s: [0.44, 0.09, 0.8] });
-    put("head", L.sph(), null, { cls: "g_mouth", p: [0, -0.58, 1.1], s: [0.42, 0.06, 0.7] });
+    put("jaw", L.sph(), null, { cls: "g_mouth", p: [0, 0.06, 0.85], s: [0.42, 0.09, 0.7] });
+    put("head", L.sph(), null, { cls: "g_mouth", p: [0, -0.52, 1.0], s: [0.4, 0.06, 0.62] });
     {
       const m = new THREE.Mesh(L.sph(), HM.mouth);
-      m.scale.set(0.42, 0.3, 0.55); m.userData.noOutline = true; m.castShadow = false; m.receiveShadow = false; m.renderOrder = 6;
+      m.scale.set(0.5, 0.36, 0.7); m.userData.noOutline = true; m.castShadow = false; m.receiveShadow = false; m.renderOrder = 6;
       rig.attach("mouth", m);
     }
 
@@ -1170,7 +1178,7 @@
         const rz = [0.26, 0.27, 0.27, 0.265, 0.26, 0.25, 0.24, 0.225, 0.2, 0.17, 0.12, 0.06, 0.012];
         const rx = [0.075, 0.075, 0.074, 0.07, 0.066, 0.062, 0.058, 0.052, 0.045, 0.036, 0.026, 0.016, 0.006];
         const R = rz.map((z, i) => [rx[i], z]);
-        const spine = [1.5, 0.10, 0.04], mid = [2.4, 0.52, 0.12], edge = [3.4, 2.1, 0.7];
+        const spine = [1.4, 0.07, 0.03], mid = [2.2, 0.34, 0.07], edge = [3.0, 1.15, 0.28];
         const g = L.loft({ pts: BP, r: R, ns: 22, sec: [[-1, -1], [1, -1], [1, 0.25], [0, 1], [-1, 0.25]], secCol: [spine, spine, mid, edge, mid], cap1: "flat", tileV: 0.1 });
         const mesh = K.mk(g, GM.blade, { shadow: false }); mesh.userData.noOutline = true; mesh.userData.keep = true;
         rig.attach("blade", mesh);
@@ -1287,11 +1295,445 @@
     });
 
     /*@@ANIM@@*/
-
-    /*@@ANIM@@*/
+    /* ======================================================================
+       ANIMATION — keyframed clips baked with a small digitigrade leg IK so
+       feet stay planted through steps, crouches and stomps.
+       ====================================================================== */
     const anim = K.anim(rig);
-    anim.addClip("idle", [{ t: 0, bone: "chest", rot: [0, 0, 0] }, { t: 3, bone: "chest", rot: [0, 0, 0] }], { dur: 3 });
-    anim.setBase("idle"); anim.play("idle", { fade: 0 }); anim.update(0);
+    const clamp = U.clamp, TAU2 = TAU;
+    const L1 = 1.45, L2 = 1.6, L3 = 1.4, REST_A = [-0.78, 0.84, -0.56], REST_REL = [-0.78, 1.62, -1.40, 0.56], SOLE = 0.27;
+    const fkToe = (a1, a2, a3) => [-L1 * Math.sin(a1) - L2 * Math.sin(a2) - L3 * Math.sin(a3), -L1 * Math.cos(a1) - L2 * Math.cos(a2) - L3 * Math.cos(a3)];
+    const REST_TOE = fkToe(REST_A[0], REST_A[1], REST_A[2]);     // [z, y] of the toe joint rel. hip joint
+    const REST_Z = REST_TOE[0], GROUND = REST_TOE[1];
+    /* solve thigh/shin for a toe-joint target (z fwd, y up, rel. hip), metatarsus net angle a3, paw net angle a4 */
+    function legIK(z, y, a3, a4, hp) {
+      const Az = z + L3 * Math.sin(a3), Ay = y + L3 * Math.cos(a3);
+      let d = Math.hypot(Az, Ay);
+      d = clamp(d, Math.abs(L1 - L2) + 0.03, L1 + L2 - 0.02);
+      const th = Math.atan2(-Az, -Ay);
+      const g = Math.acos(clamp((L1 * L1 + d * d - L2 * L2) / (2 * L1 * d), -1, 1));
+      const a1 = th - g;
+      const kz = -L1 * Math.sin(a1), ky = -L1 * Math.cos(a1);
+      const tz = -Math.sin(th) * d, ty = -Math.cos(th) * d;      // reachable ankle
+      const a2 = Math.atan2(-(tz - kz), -(ty - ky));
+      return [(a1 - hp) - REST_A[0], (a2 - a1) - REST_REL[1], (a3 - a2) - REST_REL[2], (a4 - a3) - REST_REL[3]];
+    }
+    const legObj = (n, z, y, a3, a4, hp) => {
+      const q = legIK(z, y, a3 === undefined ? REST_A[2] : a3, a4 === undefined ? 0 : a4, hp || 0);
+      const o = {};
+      o["leg" + n + ".hip"] = [q[0], 0, 0]; o["leg" + n + ".knee"] = [q[1], 0, 0]; o["leg" + n + ".foot"] = [q[2], 0, 0]; o["leg" + n + ".toe"] = [q[3], 0, 0];
+      return o;
+    };
+    /* both feet planted at rest spots while the hips drop dy / shift dz / pitch hp; o = per-foot overrides {L:{z,y,a3,a4}} (hip-frame) */
+    function stance(dy, dz, hp, o) {
+      const pose = { "hips@p": [0, dy, dz] };
+      for (const n of ["L", "R"]) {
+        const ov = (o && o[n]) || {};
+        const z = ov.z !== undefined ? ov.z : REST_Z - dz, y = ov.y !== undefined ? ov.y : GROUND - dy;
+        Object.assign(pose, legObj(n, z, y, ov.a3, ov.a4, hp || 0));
+      }
+      return pose;
+    }
+    const mixp = function () { return Object.assign.apply(null, [{}].concat(Array.prototype.slice.call(arguments))); };
+    function clip(name, dur, frames, opts) {
+      const kfs = [];
+      for (let i = 0; i < frames.length; i++) {
+        const fr = frames[i], t = fr[0], ease = fr[1] || "inOutQuad", pose = fr[2];
+        for (const key in pose) {
+          const v = pose[key];
+          if (key.slice(-2) === "@p") kfs.push({ t, bone: key.slice(0, -2), pos: v, ease });
+          else if (key.slice(-2) === "@s") kfs.push({ t, bone: key.slice(0, -2), scl: v, ease });
+          else kfs.push({ t, bone: key, rot: v, ease });
+        }
+      }
+      anim.addClip(name, kfs, Object.assign({ dur, loop: false }, opts || {}));
+    }
+    const S2 = Math.sin, C2 = Math.cos;
+
+    /* ---- IDLE (3 s loop): heaving breath, weight shift, mane/cape/tail sway, core pulse ---- */
+    {
+      const fr = [];
+      const N = 12;
+      for (let k = 0; k <= N; k++) {
+        const u = k / N, ph = u * TAU;
+        const br = S2(ph - 0.6) * 0.5 + 0.5;     // inhale 0..1
+        fr.push([u * 3, "linear", {
+          "hips@p": [S2(ph) * 0.07, -0.04 - br * 0.05, 0], hips: [0.0, S2(ph) * 0.03, S2(ph) * 0.018],
+          chest: [-br * 0.07 + 0.01, S2(ph + 0.8) * 0.03, S2(ph) * 0.012], "chest@s": [1 + br * 0.018, 1 + br * 0.03, 1 + br * 0.016],
+          neck: [br * 0.03 - 0.01, S2(ph * 1 + 1.2) * 0.04, 0], head: [-br * 0.03 + S2(ph * 2) * 0.012, S2(ph + 2.0) * 0.07, S2(ph + 0.4) * 0.02],
+          jaw: [0.02 + br * 0.045, 0, 0],
+          "armL.sh": [-br * 0.05 + S2(ph + 1) * 0.02, 0, br * 0.04], "armL.el": [br * 0.04, 0, 0], "armL.hand": [S2(ph + 1.5) * 0.05, 0, 0],
+          "armR.sh": [br * 0.02 + S2(ph + 2) * 0.015, 0, -br * 0.03], "armR.el": [S2(ph + 0.5) * 0.03, 0, 0], propR: [S2(ph + 1.0) * 0.02, 0, 0],
+          "tail.0": [S2(ph + 0.3) * 0.03, S2(ph) * 0.10, 0], "tail.1": [S2(ph - 0.4) * 0.03, S2(ph - 0.7) * 0.16, 0],
+          "tail.2": [S2(ph - 0.9) * 0.04, S2(ph - 1.4) * 0.2, 0], "tail.3": [S2(ph - 1.4) * 0.05, S2(ph - 2.1) * 0.26, 0],
+          core: [0, 0, 0]
+        }]);
+      }
+      clip("idle", 3.0, fr, { loop: true });
+    }
+
+    /* ---- WALK / RUN: IK-baked gait with torso counter-twist, arm swing, tail wave ---- */
+    function gait(name, dur, N, o) {
+      const fr = [];
+      for (let k = 0; k <= N; k++) {
+        const u = (k % N) / N, up = k / N, ph = up * TAU;
+        const pose = {};
+        const py = o.bob * (C2(4 * PI * (up - o.bobPh)) - 1);
+        pose["hips@p"] = [S2(ph) * o.sway, py + (o.base || 0), o.fwd || 0];
+        for (const [n, off] of [["L", 0], ["R", 0.5]]) {
+          const pph = (up + off) % 1;
+          let z, y, a3, a4;
+          if (pph < o.duty) {
+            const f = pph / o.duty;
+            z = REST_Z + o.S * (1 - 2 * f) - (o.fwd || 0); y = GROUND - (py + (o.base || 0));
+            a3 = REST_A[2] - 0.22 * (1 - 2 * f); a4 = -0.12 * (1 - f) * (1 - f) + (f > 0.8 ? (f - 0.8) * 1.2 : 0);
+          } else {
+            const f = (pph - o.duty) / (1 - o.duty), e = f * f * (3 - 2 * f);
+            z = REST_Z - o.S + 2 * o.S * e - (o.fwd || 0);
+            y = GROUND - (py + (o.base || 0)) + o.lift * Math.pow(S2(PI * Math.min(1, f * 1.0)), 0.8);
+            a3 = REST_A[2] + 0.1 + 0.5 * S2(PI * f) * 0.0 - 0.3 * f; a4 = 0.55 * S2(PI * f) - 0.1 * f;
+          }
+          Object.assign(pose, legObj(n, z, y, a3, a4, o.hp || 0));
+        }
+        pose.hips = [o.hp || 0, -S2(ph) * o.twist, S2(ph + 0.4) * 0.03];
+        pose.chest = [o.lean + S2(2 * ph + 0.7) * 0.025, S2(ph) * o.twist * 1.2, -S2(ph) * 0.03];
+        pose.neck = [o.neckX + S2(2 * ph) * 0.03, -S2(ph) * o.twist * 0.6, 0];
+        pose.head = [o.headX + S2(2 * ph + 0.5) * 0.03, -S2(ph) * o.twist * 0.4, 0];
+        pose.jaw = [o.jaw + 0.03 * S2(2 * ph), 0, 0];
+        pose["armL.sh"] = [o.armL * C2(ph) + (o.armLb || 0), 0, 0.04];
+        pose["armL.el"] = [-0.2 - 0.25 * (0.5 + 0.5 * C2(ph + PI)), 0, 0];
+        pose["armR.sh"] = [-o.armR * C2(ph) + (o.armRb || 0), 0, 0];
+        pose["armR.el"] = [-0.1 + (o.elR || 0), 0, 0];
+        pose.propR = [(o.propX || 0) + S2(2 * ph) * 0.05, 0, 0];
+        for (let i = 0; i < 4; i++) pose["tail." + i] = [S2(2 * ph - i * 0.6) * 0.05 + (o.tailX || 0) * (i === 0 ? 1 : 0.4), S2(ph - i * 0.9) * (0.18 + i * 0.05) * o.tailK, 0];
+        pose["capeShift"] = undefined; delete pose["capeShift"];
+        fr.push([up * dur, "linear", pose]);
+      }
+      clip(name, dur, fr, { loop: true });
+    }
+    gait("walk", 1.2, 12, { S: 0.95, duty: 0.62, lift: 0.7, bob: 0.07, bobPh: 0.3, sway: 0.1, twist: 0.1, lean: 0.03, neckX: 0.03, headX: 0.03, jaw: 0.04, armL: 0.38, armR: 0.12, armLb: 0.0, armRb: 0.0, propX: 0, tailK: 1.0 });
+    gait("run", 0.8, 10, { S: 1.5, duty: 0.4, lift: 1.1, bob: 0.3, bobPh: 0.05, sway: 0.06, twist: 0.14, lean: 0.34, hp: 0.12, base: -0.28, fwd: 0.35, neckX: -0.22, headX: -0.1, jaw: 0.2, armL: 0.9, armR: 0.2, armLb: 0.35, armRb: 0.75, elR: -0.3, propX: -0.4, tailX: 0.35, tailK: 1.4 });
+
+    /* ---- shared body-pose building blocks ---- */
+    const coil = (c, h, a) => ({ chest: [a || 0, c, 0], hips: [0, h, 0] });
+    const roarPose = (jaw, up) => ({ jaw: [jaw, 0, 0], head: [-up, 0, 0], neck: [-up * 0.6, 0, 0] });
+
+    /* ---- RISE (3.0 s): uncurls from a crouch and ROARS (the transformation entrance) ---- */
+    {
+      const crouchLo = stance(-1.9, -0.3, 0.0, { L: { z: REST_Z + 0.2 }, R: { z: REST_Z + 0.2 } });
+      const crouchMid = stance(-1.0, -0.1, 0.0);
+      const up1 = stance(-0.3, 0.1, 0.0);
+      const tallA = stance(0.12, 0.0, 0.0);
+      clip("rise", 3.0, [
+        [0.0, "outCubic", mixp(crouchLo, { hips: [0.3, 0, 0], chest: [0.7, 0, 0], neck: [0.7, 0, 0], head: [0.6, 0, 0], jaw: [0, 0, 0],
+          "armL.sh": [-0.7, 0, 0.5], "armL.el": [-1.2, 0, 0], "armR.sh": [-0.7, 0, -0.5], "armR.el": [-1.3, 0, 0], propR: [-0.6, 0, 0],
+          "tail.0": [-0.3, 0, 0], "tail.1": [-0.3, 0, 0], "tail.2": [-0.2, 0, 0], "tail.3": [0, 0, 0] })],
+        [0.55, "inOutQuad", mixp(crouchLo, { hips: [0.3, 0, 0], chest: [0.75, 0, 0], neck: [0.75, 0, 0], head: [0.7, 0, 0],
+          "armL.sh": [-0.7, 0, 0.5], "armL.el": [-1.2, 0, 0], "armR.sh": [-0.7, 0, -0.5], "armR.el": [-1.3, 0, 0], propR: [-0.6, 0, 0] })],
+        [1.25, "inOutQuad", mixp(crouchMid, { hips: [0.15, 0, 0], chest: [0.4, 0, 0], neck: [0.2, 0, 0], head: [0.1, 0, 0], jaw: [0.1, 0, 0],
+          "armL.sh": [-0.3, 0, 0.4], "armL.el": [-0.6, 0, 0], "armR.sh": [-0.3, 0, -0.5], "armR.el": [-0.7, 0, 0], propR: [-0.2, 0, 0] })],
+        [1.75, "outCubic", mixp(up1, { hips: [-0.05, 0, 0], chest: [-0.3, 0, 0], neck: [-0.35, 0, 0], head: [-0.45, 0, 0], jaw: [0.35, 0, 0],
+          "armL.sh": [-0.2, 0, 0.9], "armL.el": [-0.2, 0, 0], "armR.sh": [-0.2, 0, -0.9], "armR.el": [-0.2, 0, 0], propR: [0, 0, 0],
+          "tail.0": [0.2, 0, 0], "tail.1": [0.1, 0, 0] })],
+        [2.0, "outBack", mixp(tallA, { hips: [-0.12, 0, 0], chest: [-0.55, 0, 0], neck: [-0.4, 0, 0], head: [-0.6, 0, 0], jaw: [0.95, 0, 0],
+          "armL.sh": [-0.3, 0, 1.1], "armL.el": [-0.35, 0, 0], "armR.sh": [-0.3, 0, -1.1], "armR.el": [-0.35, 0, 0], propR: [0.1, 0, 0],
+          "tail.0": [0.25, 0.3, 0], "tail.1": [0.2, 0.3, 0], "tail.2": [0.2, 0.2, 0] })],
+        [2.12, "inOutQuad", mixp(tallA, { hips: [-0.12, 0.03, 0], chest: [-0.5, -0.03, 0], neck: [-0.4, 0, 0], head: [-0.55, 0.03, 0], jaw: [0.9, 0, 0],
+          "armL.sh": [-0.3, 0, 1.1], "armL.el": [-0.35, 0, 0], "armR.sh": [-0.3, 0, -1.1], "armR.el": [-0.35, 0, 0], propR: [0.1, 0, 0] })],
+        [2.24, "inOutQuad", mixp(tallA, { hips: [-0.12, -0.03, 0], chest: [-0.52, 0.03, 0], neck: [-0.4, 0, 0], head: [-0.58, -0.03, 0], jaw: [0.95, 0, 0],
+          "armL.sh": [-0.3, 0, 1.15], "armL.el": [-0.35, 0, 0], "armR.sh": [-0.3, 0, -1.15], "armR.el": [-0.35, 0, 0] })],
+        [2.4, "inOutQuad", mixp(tallA, { hips: [-0.1, 0.02, 0], chest: [-0.45, -0.02, 0], neck: [-0.35, 0, 0], head: [-0.5, 0.02, 0], jaw: [0.85, 0, 0],
+          "armL.sh": [-0.3, 0, 1.1], "armL.el": [-0.35, 0, 0], "armR.sh": [-0.3, 0, -1.1], "armR.el": [-0.35, 0, 0] })],
+        [3.0, "inOutQuad", mixp(stance(0, 0, 0), { hips: [0, 0, 0], chest: [0, 0, 0], neck: [0, 0, 0], head: [0, 0, 0], jaw: [0.02, 0, 0],
+          "armL.sh": [0, 0, 0], "armL.el": [0, 0, 0], "armR.sh": [0, 0, 0], "armR.el": [0, 0, 0], propR: [0, 0, 0],
+          "tail.0": [0, 0, 0], "tail.1": [0, 0, 0], "tail.2": [0, 0, 0], "tail.3": [0, 0, 0] })]
+      ]);
+    }
+
+    /* ---- ROAR (2.0 s): inhale, snap forward, trembling hold ---- */
+    {
+      const base = stance(-0.12, 0, 0);
+      const inh = mixp(stance(0.08, -0.15, -0.06), { hips: [-0.06, 0, 0], chest: [-0.4, 0, 0], neck: [-0.3, 0, 0], head: [-0.5, 0, 0], jaw: [0.15, 0, 0],
+        "armL.sh": [0.2, 0, 0.55], "armR.sh": [0.2, 0, -0.55], "armL.el": [-0.1, 0, 0], "armR.el": [-0.1, 0, 0], "chest@s": [1.06, 1.05, 1.05] });
+      const out = (j, ch, tw) => mixp(stance(-0.25, 0.25, 0.1), { hips: [0.1, 0, 0], chest: [0.25 + ch, tw, 0], neck: [-0.1, 0, 0], head: [-0.45, tw * 2, 0], jaw: [j, 0, 0],
+        "armL.sh": [-0.5, 0, 1.0], "armR.sh": [-0.5, 0, -1.0], "armL.el": [-0.6, 0, 0], "armR.el": [-0.6, 0, 0], "chest@s": [1.0, 1.0, 1.0] });
+      clip("roar", 2.0, [
+        [0.0, "outCubic", mixp(stance(0, 0, 0), { hips: [0, 0, 0], chest: [0, 0, 0], neck: [0, 0, 0], head: [0, 0, 0], jaw: [0.02, 0, 0], "armL.sh": [0, 0, 0], "armR.sh": [0, 0, 0], "armL.el": [0, 0, 0], "armR.el": [0, 0, 0], "chest@s": [1, 1, 1] })],
+        [0.5, "inCubic", inh],
+        [0.62, "outBack", out(1.0, 0, 0)],
+        [0.82, "linear", out(0.9, 0.02, 0.03)],
+        [0.97, "linear", out(1.0, 0.0, -0.03)],
+        [1.12, "linear", out(0.92, 0.02, 0.03)],
+        [1.27, "linear", out(1.0, 0.0, -0.03)],
+        [1.45, "inOutQuad", out(0.7, 0.0, 0.0)],
+        [2.0, "inOutQuad", mixp(stance(0, 0, 0), { hips: [0, 0, 0], chest: [0, 0, 0], neck: [0, 0, 0], head: [0, 0, 0], jaw: [0.02, 0, 0], "armL.sh": [0, 0, 0], "armR.sh": [0, 0, 0], "armL.el": [0, 0, 0], "armR.el": [0, 0, 0], "chest@s": [1, 1, 1] })]
+      ]);
+    }
+
+    /* ---- sword-arm poses (offsets on the rest pose) ---- */
+    const ARMS_REST = { "armR.sh": [0, 0, 0], "armR.el": [0, 0, 0], "armR.hand": [0, 0, 0], propR: [0, 0, 0], "armL.sh": [0, 0, 0], "armL.el": [0, 0, 0], "armL.hand": [0, 0, 0] };
+    const ZERO = mixp(stance(0, 0, 0), ARMS_REST, { hips: [0, 0, 0], chest: [0, 0, 0], neck: [0, 0, 0], head: [0, 0, 0], jaw: [0.02, 0, 0] });
+
+    /* ---- SLASH 1 (1.0 s): long wind-up, wide right-to-left horizontal sweep ---- */
+    {
+      const wind = mixp(stance(-0.4, -0.2, 0.05, { L: { z: REST_Z + 0.25 }, R: { z: REST_Z - 0.25 } }), {
+        hips: [0.05, -0.35, 0], chest: [-0.05, -1.0, 0], neck: [0.0, 0.35, 0], head: [-0.05, 0.55, 0],
+        "armR.sh": [0.55, 0.0, -1.1], "armR.el": [0.15, 0, 0], "armR.hand": [0, 0, 0], propR: [-0.2, PI, 0],
+        "armL.sh": [-0.9, 0, 0.7], "armL.el": [-0.5, 0, 0], jaw: [0.15, 0, 0], "tail.0": [0, -0.4, 0], "tail.1": [0, -0.5, 0], "tail.2": [0, -0.5, 0] });
+      const hit = mixp(stance(-0.5, 0.45, 0.12, { L: { z: REST_Z + 0.7 }, R: { z: REST_Z - 0.55 } }), {
+        hips: [0.12, 0.4, 0], chest: [0.2, 0.95, 0], neck: [0.05, -0.4, 0], head: [0.0, -0.6, 0],
+        "armR.sh": [-0.95, 0.0, -1.15], "armR.el": [0.1, 0, 0], propR: [-0.2, PI, 0],
+        "armL.sh": [0.5, 0, 0.4], "armL.el": [-0.6, 0, 0], jaw: [0.4, 0, 0], "tail.0": [0, 0.5, 0], "tail.1": [0, 0.6, 0], "tail.2": [0, 0.6, 0] });
+      const over = mixp(hit, { chest: [0.18, 1.1, 0], hips: [0.1, 0.5, 0], head: [0, -0.7, 0], "armR.sh": [-1.0, 0.0, -1.15] });
+      clip("slash1", 1.0, [
+        [0.0, "outCubic", ZERO],
+        [0.45, "inQuad", wind],
+        [0.52, "outExpo", wind],
+        [0.64, "outCubic", hit],
+        [0.78, "inOutQuad", over],
+        [1.0, "inOutQuad", ZERO]
+      ]);
+    }
+    /* ---- SLASH 2 (1.0 s): backhand left-to-right ---- */
+    {
+      const wind = mixp(stance(-0.35, -0.1, 0.05, { L: { z: REST_Z - 0.2 }, R: { z: REST_Z + 0.3 } }), {
+        hips: [0.05, 0.4, 0], chest: [0.05, 0.9, 0], neck: [0, -0.3, 0], head: [0, -0.5, 0],
+        "armR.sh": [-0.7, 0.0, 0.1], "armR.el": [-0.5, 0, 0], propR: [-0.3, 0, 0],
+        "armL.sh": [0.2, 0, 0.5], "armL.el": [-0.4, 0, 0], jaw: [0.15, 0, 0], "tail.0": [0, 0.4, 0], "tail.1": [0, 0.5, 0], "tail.2": [0, 0.5, 0] });
+      const hit = mixp(stance(-0.5, 0.4, 0.1, { L: { z: REST_Z - 0.5 }, R: { z: REST_Z + 0.65 } }), {
+        hips: [0.1, -0.45, 0], chest: [0.2, -1.1, 0], neck: [0.05, 0.4, 0], head: [0, 0.6, 0],
+        "armR.sh": [-0.65, 0.0, -1.2], "armR.el": [-0.05, 0, 0], propR: [-0.2, 0, 0],
+        "armL.sh": [-0.6, 0, 0.9], "armL.el": [-0.6, 0, 0], jaw: [0.4, 0, 0], "tail.0": [0, -0.5, 0], "tail.1": [0, -0.6, 0], "tail.2": [0, -0.6, 0] });
+      const over = mixp(hit, { chest: [0.15, -1.25, 0], hips: [0.1, -0.55, 0], head: [0, 0.7, 0] });
+      clip("slash2", 1.0, [
+        [0.0, "outCubic", ZERO],
+        [0.4, "inQuad", wind],
+        [0.47, "outExpo", wind],
+        [0.6, "outCubic", hit],
+        [0.75, "inOutQuad", over],
+        [1.0, "inOutQuad", ZERO]
+      ]);
+    }
+    /* ---- OVERHEAD (1.5 s): hoist the sword high (0.9 s), then a crushing slam ---- */
+    {
+      const raise = (k) => mixp(stance(-0.25 * k, -0.2 * k, -0.08 * k, { L: { z: REST_Z + 0.15 * k }, R: { z: REST_Z + 0.15 * k } }), {
+        hips: [-0.08 * k, 0, 0], chest: [-0.7 * k, 0.1 * k, 0], neck: [-0.35 * k, 0, 0], head: [-0.45 * k, 0, 0], jaw: [0.1 + 0.2 * k, 0, 0],
+        "armR.sh": [-2.6 * k, 0, -0.35 * k], "armR.el": [-0.9 * k, 0, 0], propR: [1.25 * k, 0, 0],
+        "armL.sh": [-2.0 * k, 0, 0.5 * k], "armL.el": [-0.5 * k, 0, 0], "tail.0": [-0.3 * k, 0, 0], "tail.1": [-0.3 * k, 0, 0], "tail.2": [-0.3 * k, 0, 0] });
+      const slam = mixp(stance(-0.85, 0.7, 0.3, { L: { z: REST_Z + 0.9 }, R: { z: REST_Z - 0.2 } }), {
+        hips: [0.3, 0, 0], chest: [0.55, 0, 0], neck: [0.35, 0, 0], head: [0.2, 0, 0], jaw: [0.5, 0, 0],
+        "armR.sh": [-1.5, 0, -0.1], "armR.el": [-0.1, 0, 0], propR: [-0.2, 0, 0],
+        "armL.sh": [-1.2, 0, 0.45], "armL.el": [-0.3, 0, 0], "tail.0": [0.35, 0, 0], "tail.1": [0.3, 0, 0], "tail.2": [0.3, 0, 0] });
+      clip("overhead", 1.5, [
+        [0.0, "outCubic", ZERO],
+        [0.45, "inOutQuad", raise(0.55)],
+        [0.9, "inQuad", raise(1.0)],
+        [1.0, "outExpo", raise(1.0)],
+        [1.13, "outBack", slam],
+        [1.3, "inOutQuad", mixp(slam, { chest: [0.45, 0, 0] })],
+        [1.5, "inOutQuad", ZERO]
+      ]);
+    }
+    /* ---- THRUST (1.0 s): coil back, lunge forward ---- */
+    {
+      const wind = mixp(stance(-0.5, -0.35, 0.0, { L: { z: REST_Z + 0.3 }, R: { z: REST_Z - 0.35 } }), {
+        hips: [-0.05, -0.35, 0], chest: [0.1, -0.7, 0], neck: [0, 0.3, 0], head: [0, 0.4, 0],
+        "armR.sh": [0.3, 0.0, -0.4], "armR.el": [-1.35, 0, 0], propR: [-0.35, 0, 0],
+        "armL.sh": [-0.6, 0, 0.7], "armL.el": [-0.5, 0, 0], jaw: [0.15, 0, 0], "tail.0": [-0.1, 0.3, 0], "tail.1": [0, 0.4, 0] });
+      const hit = mixp(stance(-0.85, 1.0, 0.25, { L: { z: REST_Z + 1.5, y: GROUND - 0.55 }, R: { z: REST_Z - 0.7 } }), {
+        hips: [0.25, 0.2, 0], chest: [0.4, 0.25, 0], neck: [0.2, -0.1, 0], head: [0.0, -0.15, 0],
+        "armR.sh": [-1.3, 0.0, -0.3], "armR.el": [0.1, 0, 0], propR: [-0.3, 0, 0],
+        "armL.sh": [0.5, 0, 0.9], "armL.el": [-0.4, 0, 0], jaw: [0.6, 0, 0], "tail.0": [0.2, -0.2, 0], "tail.1": [0.3, 0, 0] });
+      clip("thrust", 1.0, [
+        [0.0, "outCubic", ZERO],
+        [0.4, "inQuad", wind],
+        [0.46, "outExpo", wind],
+        [0.58, "outCubic", hit],
+        [0.7, "inOutQuad", hit],
+        [1.0, "inOutQuad", ZERO]
+      ]);
+    }
+    /* ---- SPIN (1.4 s): crouch-coil then a full 360° sweep (angle-wrap hidden by a tiny step) ---- */
+    {
+      const coilP = mixp(stance(-0.55, -0.1, 0.05), {
+        hips: [0.05, -0.8, 0], chest: [0.1, -0.9, 0], neck: [0, 0.4, 0], head: [0, 0.6, 0],
+        "armR.sh": [0.3, 0.0, -1.2], "armR.el": [0.2, 0, 0], propR: [-0.2, PI, 0],
+        "armL.sh": [-0.3, 0, 1.2], "armL.el": [-0.3, 0, 0], jaw: [0.2, 0, 0] });
+      const spinP = mixp(stance(-0.35, 0.0, 0.1), {
+        hips: [0.1, 0, 0], chest: [0.12, 0, 0], neck: [0, 0, 0], head: [0, -0.4, 0],
+        "armR.sh": [-0.5, 0.0, -1.3], "armR.el": [0.1, 0, 0], propR: [-0.2, PI, 0],
+        "armL.sh": [-0.3, 0, 1.3], "armL.el": [-0.2, 0, 0], jaw: [0.5, 0, 0], "tail.0": [0, 0.6, 0], "tail.1": [0, 0.8, 0], "tail.2": [0, 1.0, 0], "tail.3": [0, 1.2, 0] });
+      const E = 1e-3;
+      const yaw = (a) => ({ hips: [0.1, a, 0], chest: [0.12, a * 0.4, 0] });
+      clip("spin", 1.4, [
+        [0.0, "outCubic", ZERO],
+        [0.38, "inQuad", coilP],
+        [0.44, "linear", mixp(coilP, yaw(-0.8))],
+        [1.02, "linear", mixp(spinP, yaw(TAU - 0.8 + 0.45))],
+        [1.02 + E, "linear", mixp(spinP, yaw(0.45))],
+        [1.4, "inOutQuad", ZERO]
+      ]);
+    }
+    /* ---- STOMP (1.0 s): lift a foot high, slam it down ---- */
+    {
+      const liftP = mixp(stance(0.05, -0.1, -0.12, { L: { z: REST_Z + 0.9, y: GROUND + 1.55, a3: -0.2, a4: 0.5 } }), {
+        hips: [-0.12, 0.0, 0.0], chest: [-0.35, 0.05, 0], neck: [-0.15, 0, 0], head: [-0.25, 0, 0], jaw: [0.2, 0, 0],
+        "armL.sh": [0.4, 0, 0.8], "armR.sh": [0.4, 0, -0.5], "armL.el": [-0.3, 0, 0], "armR.el": [-0.4, 0, 0],
+        "tail.0": [-0.2, 0, 0], "tail.1": [-0.2, 0, 0] });
+      const slamP = mixp(stance(-0.45, 0.2, 0.15, { L: { z: REST_Z + 1.0, y: GROUND - 0.45 + 0.0, a3: -0.5, a4: 0 } }), {
+        hips: [0.12, 0, 0], chest: [0.3, 0, 0], neck: [0.2, 0, 0], head: [0.15, 0, 0], jaw: [0.5, 0, 0],
+        "armL.sh": [-0.5, 0, 0.9], "armR.sh": [-0.5, 0, -0.9], "armL.el": [-0.4, 0, 0], "armR.el": [-0.4, 0, 0],
+        "tail.0": [0.3, 0, 0], "tail.1": [0.25, 0, 0] });
+      clip("stomp", 1.0, [
+        [0.0, "outCubic", ZERO],
+        [0.45, "outCubic", liftP],
+        [0.55, "inCubic", liftP],
+        [0.64, "outBack", slamP],
+        [0.8, "inOutQuad", mixp(slamP, { hips: [0.08, 0, 0] })],
+        [1.0, "inOutQuad", ZERO]
+      ]);
+    }
+    /* ---- LEAP (0.8 s) crouch + launch pose  /  LAND (0.5 s) heavy impact ---- */
+    {
+      const crouch = mixp(stance(-1.15, -0.2, 0.15), {
+        hips: [0.15, 0, 0], chest: [0.35, 0, 0], neck: [0.25, 0, 0], head: [0.1, 0, 0], jaw: [0.1, 0, 0],
+        "armL.sh": [0.9, 0, 0.3], "armR.sh": [0.9, 0, -0.3], "armL.el": [-0.4, 0, 0], "armR.el": [-0.4, 0, 0], propR: [-0.2, 0, 0],
+        "tail.0": [-0.2, 0, 0], "tail.1": [-0.2, 0, 0], "tail.2": [-0.2, 0, 0] });
+      const launch = mixp(stance(0.45, 0.35, -0.1, { L: { z: REST_Z - 0.6, y: GROUND + 0.1, a3: 0.2, a4: 0.7 }, R: { z: REST_Z - 0.75, y: GROUND + 0.2, a3: 0.2, a4: 0.7 } }), {
+        hips: [-0.15, 0, 0], chest: [-0.35, 0, 0], neck: [-0.25, 0, 0], head: [-0.35, 0, 0], jaw: [0.6, 0, 0],
+        "armL.sh": [-2.3, 0, 0.5], "armR.sh": [-2.5, 0, -0.4], "armL.el": [-0.4, 0, 0], "armR.el": [-0.5, 0, 0], propR: [0.8, 0, 0],
+        "tail.0": [-0.3, 0, 0], "tail.1": [-0.4, 0, 0], "tail.2": [-0.5, 0, 0], "tail.3": [-0.6, 0, 0] });
+      clip("leap", 0.8, [
+        [0.0, "outCubic", ZERO],
+        [0.32, "inOutQuad", crouch],
+        [0.4, "inCubic", crouch],
+        [0.58, "outCubic", launch],
+        [0.8, "inOutQuad", launch]
+      ]);
+      const land = mixp(stance(-1.2, 0.1, 0.18), {
+        hips: [0.18, 0, 0], chest: [0.4, 0, 0], neck: [0.3, 0, 0], head: [0.15, 0, 0], jaw: [0.3, 0, 0],
+        "armL.sh": [-0.6, 0, 0.8], "armR.sh": [-0.6, 0, -0.8], "armL.el": [-0.5, 0, 0], "armR.el": [-0.5, 0, 0], propR: [-0.2, 0, 0],
+        "tail.0": [0.35, 0, 0], "tail.1": [0.3, 0, 0], "tail.2": [0.3, 0, 0] });
+      clip("land", 0.5, [
+        [0.0, "outExpo", launch],
+        [0.12, "outCubic", land],
+        [0.22, "inOutQuad", land],
+        [0.5, "inOutQuad", ZERO]
+      ]);
+    }
+    /* ---- CAST (1.5 s): gather at the mouth/core, head back, then fire forward ---- */
+    {
+      const gather = mixp(stance(0.05, -0.1, -0.1), {
+        hips: [-0.1, 0, 0], chest: [-0.5, 0, 0], neck: [-0.4, 0, 0], head: [-0.55, 0, 0], jaw: [0.55, 0, 0],
+        "armL.sh": [-1.3, 0, 0.9], "armL.el": [-0.9, 0, 0], "armR.sh": [-0.4, 0, -1.0], "armR.el": [-0.4, 0, 0], propR: [0.5, 0, 0],
+        "chest@s": [1.04, 1.04, 1.04], "tail.0": [-0.2, 0, 0], "tail.1": [-0.3, 0, 0] });
+      const fire = mixp(stance(-0.45, 0.35, 0.12), {
+        hips: [0.15, 0, 0], chest: [0.35, 0, 0], neck: [0.0, 0, 0], head: [0.1, 0, 0], jaw: [1.05, 0, 0],
+        "armL.sh": [-0.8, 0, 1.2], "armL.el": [-0.2, 0, 0], "armR.sh": [-0.6, 0, -1.2], "armR.el": [-0.2, 0, 0], propR: [0.1, 0, 0],
+        "chest@s": [1, 1, 1], "tail.0": [0.3, 0, 0], "tail.1": [0.2, 0, 0] });
+      clip("cast", 1.5, [
+        [0.0, "outCubic", ZERO],
+        [0.85, "inOutQuad", gather],
+        [0.95, "outExpo", gather],
+        [1.05, "outCubic", fire],
+        [1.25, "inOutQuad", fire],
+        [1.5, "inOutQuad", ZERO]
+      ]);
+    }
+    /* ---- HURT (0.4 s) flinch ---- */
+    {
+      const hurt = mixp(stance(-0.2, -0.3, -0.1), {
+        hips: [-0.12, 0.05, 0.04], chest: [-0.45, -0.1, 0.06], neck: [-0.2, 0.1, 0], head: [-0.4, 0.15, 0.1], jaw: [0.7, 0, 0],
+        "armL.sh": [0.5, 0, 0.7], "armR.sh": [0.3, 0, -0.6], "armL.el": [-0.3, 0, 0], "armR.el": [-0.3, 0, 0],
+        "tail.0": [-0.3, 0.2, 0], "tail.1": [-0.3, 0.3, 0], "tail.2": [-0.3, 0.4, 0] });
+      clip("hurt", 0.4, [[0.0, "outExpo", ZERO], [0.1, "outCubic", hurt], [0.4, "inOutQuad", ZERO]]);
+    }
+    /* ---- STAGGER (loop): down on one knee, head bowed, core exposed ---- */
+    {
+      const kneel = (b) => mixp(stance(-1.55 + b * 0.04, 0.55, 0.3, {
+        R: { z: REST_Z + 1.3, y: GROUND + 1.55 - 1.55 + 0.0 + 0, a3: -0.5, a4: 0 },
+        L: { z: REST_Z - 0.2, y: GROUND + 1.1, a3: 1.45, a4: 1.3 } }), {
+        hips: [0.3, -0.1, 0], chest: [0.4 - b * 0.04, 0.0, 0], neck: [0.5, 0, 0], head: [0.45, 0.1 * b, 0], jaw: [0.3 + b * 0.08, 0, 0],
+        "armR.sh": [-0.6, 0, -0.6 + 0], "armR.el": [-0.6, 0, 0], propR: [-0.35, 0, 0],
+        "armL.sh": [-0.45, 0, 0.3], "armL.el": [-0.6, 0, 0], "armL.hand": [0, 0, 0],
+        "tail.0": [-0.3, 0.1, 0], "tail.1": [-0.3, 0.2, 0], "tail.2": [-0.3, 0.2, 0] });
+      const k0 = kneel(0), k1 = kneel(1);
+      clip("stagger", 2.0, [[0, "inOutQuad", k0], [0.5, "inOutQuad", mixp(k1, { "chest@s": [1.02, 1.03, 1.02] })], [1.0, "inOutQuad", k0], [1.5, "inOutQuad", mixp(k1, { "chest@s": [1.02, 1.03, 1.02] })], [2.0, "inOutQuad", k0]], { loop: true });
+    }
+    /* ---- DEATH (3.0 s): reels, drops the sword, collapses, glow dies ---- */
+    {
+      const reel = mixp(stance(-0.3, -0.35, -0.12), {
+        hips: [-0.15, 0.1, 0.05], chest: [-0.55, -0.15, 0.1], neck: [-0.3, 0.1, 0], head: [-0.55, 0.2, 0.1], jaw: [0.9, 0, 0],
+        "armL.sh": [0.6, 0, 0.9], "armR.sh": [0.4, 0, -0.9], "armL.el": [-0.3, 0, 0], "armR.el": [-0.2, 0, 0],
+        "tail.0": [-0.4, 0.2, 0], "tail.1": [-0.4, 0.3, 0], "tail.2": [-0.4, 0.4, 0] });
+      const kneel1 = mixp(stance(-1.5, 0.35, 0.3, { R: { z: REST_Z + 1.2, y: GROUND + 0.0, a3: -0.4, a4: 0 }, L: { z: REST_Z - 0.2, y: GROUND + 1.1, a3: 1.45, a4: 1.3 } }), {
+        hips: [0.3, 0.05, 0], chest: [0.35, 0, 0], neck: [0.4, 0, 0], head: [0.5, 0, 0], jaw: [0.4, 0, 0],
+        "armL.sh": [-0.3, 0, 0.6], "armR.sh": [-0.2, 0, -0.7], "armL.el": [-0.4, 0, 0], "armR.el": [-0.3, 0, 0], propR: [0.0, 0, 0],
+        "tail.0": [-0.2, 0.1, 0], "tail.1": [-0.2, 0.2, 0], "tail.2": [-0.2, 0.2, 0] });
+      const down = mixp(stance(-2.0, 0.9, 0.8, { R: { z: REST_Z + 1.1, y: GROUND + 0.2, a3: -0.2, a4: 0 }, L: { z: REST_Z - 0.3, y: GROUND + 1.0, a3: 1.45, a4: 1.3 } }), {
+        hips: [0.8, 0.0, 0.0], chest: [0.65, 0.1, 0.08], neck: [0.3, 0, 0], head: [0.5, -0.2, 0.15], jaw: [0.15, 0, 0],
+        "armL.sh": [-0.6, 0, 1.1], "armR.sh": [-0.5, 0, -1.1], "armL.el": [-0.1, 0, 0], "armR.el": [-0.1, 0, 0], propR: [0.0, 0, 0],
+        "tail.0": [-0.15, 0.2, 0], "tail.1": [-0.1, 0.3, 0], "tail.2": [0, 0.3, 0], "tail.3": [0, 0.3, 0] });
+      clip("death", 3.0, [
+        [0.0, "outExpo", ZERO],
+        [0.35, "outCubic", reel],
+        [0.7, "inOutQuad", reel],
+        [1.35, "inQuad", kneel1],
+        [1.6, "outCubic", kneel1],
+        [2.4, "inCubic", down],
+        [2.7, "outBack", down],
+        [3.0, "inOutQuad", down]
+      ]);
+    }
+
+    /* ======================================================================
+       LAYERS — glow state machine (core pulse / eyes / mouth / blade), jaw
+       micro-motion, and cloth/hair extra sway. No allocations per frame.
+       ====================================================================== */
+    const glowK = { core: 1, eye: 1, blade: 1, mouth: 0, flare: 0 };
+    const tgt = { core: 1, eye: 1, blade: 1, mouth: 0 };
+    const clock0 = { v: 0 };
+    anim.layer(function (t, dt, an) {
+      const name = an.name || "idle", ct = an.time, cd = an.duration || 1;
+      const u = cd > 0 ? Math.min(1, ct / cd) : 0;
+      let core = 1, eye = 1, blade = 1, mouth = 0;
+      const pulse = 0.5 + 0.5 * S2(t * 2.4);
+      core = 0.85 + pulse * 0.45;
+      switch (name) {
+        case "rise": { const r = Math.min(1, Math.max(0, (ct - 0.3) / 1.6)); core *= 0.35 + 1.4 * r; eye *= 0.2 + 1.2 * r + (ct > 1.9 ? 0.4 : 0); blade *= 0.4 + 0.8 * r; mouth = ct > 1.6 && ct < 2.8 ? 1 : 0.1; break; }
+        case "roar": mouth = ct > 0.55 && ct < 1.6 ? 1 : 0.15; eye *= 1.5; core *= 1.5; break;
+        case "cast": { const g = Math.min(1, ct / 0.9); core *= 1 + g * 1.4; eye *= 1 + g * 0.6; mouth = 0.3 + g * 0.7; blade *= 1 + g * 0.3; break; }
+        case "stagger": core *= 1.8 + 0.8 * S2(t * 7); eye *= 0.55; blade *= 0.5; break;
+        case "hurt": core *= 1.6; eye *= 1.6; break;
+        case "death": { const f = Math.max(0, 1 - ct / 2.4); core *= f * f; eye *= f; blade *= Math.max(0, 1 - ct / 1.6); mouth = ct < 1.0 ? 0.6 : 0; break; }
+        case "slash1": case "slash2": case "overhead": case "thrust": case "spin": blade *= 1.3; eye *= 1.15; mouth = 0.15; break;
+        case "run": case "leap": blade *= 1.15; eye *= 1.2; break;
+        default: break;
+      }
+      tgt.core = core; tgt.eye = eye; tgt.blade = blade; tgt.mouth = mouth;
+      const k = Math.min(1, dt * 12);
+      glowK.core += (tgt.core - glowK.core) * k; glowK.eye += (tgt.eye - glowK.eye) * k;
+      glowK.blade += (tgt.blade - glowK.blade) * k; glowK.mouth += (tgt.mouth - glowK.mouth) * Math.min(1, dt * 9);
+      const flick = 1 + 0.06 * S2(t * 31) + 0.04 * S2(t * 17.3);
+      const set = (m, kk) => { m.color.copy(m.userData.base).multiplyScalar(kk); };
+      set(GM.core, glowK.core); set(GM.coreHot, glowK.core * 1.05); set(GM.eye, glowK.eye * flick); set(GM.orb, glowK.eye * flick);
+      set(GM.orbIn, 0.4 + glowK.eye * 0.6); set(GM.slit, glowK.eye * flick); set(GM.rune, glowK.blade);
+      GM.blade.color.copy(GM.blade.userData.base).multiplyScalar(glowK.blade * (1 + 0.04 * S2(t * 23)));
+      const jawOpen = rig.bones.jaw.rotation.x;
+      const mo = Math.min(1, Math.max(glowK.mouth, (jawOpen - 0.2) * 1.4));
+      set(GM.mouth, 0.5 + mo * 1.2);
+      HM.core.opacity = HM.core.userData.base * glowK.core * 0.8; HM.core2.opacity = HM.core2.userData.base * glowK.core * 0.8;
+      HM.blade.opacity = HM.blade.userData.base * glowK.blade; HM.blade2.opacity = HM.blade2.userData.base * glowK.blade;
+      HM.mouth.opacity = HM.mouth.userData.base * mo * 1.6;
+      HM.eye.opacity = HM.eye.userData.base * glowK.eye;
+      const c = anim.off("core");
+      if (c) { const sc = 0.07 * S2(t * 2.4) + (name === "stagger" ? 0.22 + 0.1 * S2(t * 7) : 0) + (name === "cast" ? 0.2 * Math.min(1, ct / 0.9) : 0); c.sx = c.sy = c.sz = sc; }
+    });
+
+    anim.setBase("idle");
+    anim.play("idle", { fade: 0 });
+    anim.update(0);
+
     const P = rig.parts;
     P.root = rig.root; P.body = rig.body; P.eyes = eyes;
     P.footL = rig.bones.soleL; P.footR = rig.bones.soleR; P.handL = rig.bones["armL.hand"]; P.handR = rig.bones["armR.hand"];

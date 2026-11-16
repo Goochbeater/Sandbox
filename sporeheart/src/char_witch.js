@@ -467,7 +467,7 @@
     ctx.translate(w * 0.572, h * 0.60); ctx.scale(PXC, PYC);
     ctx.lineJoin = "miter"; ctx.lineCap = "butt"; ctx.miterLimit = 6;
     const zz = [[-11.5, -0.5], [-6.5, 3.4], [-1.5, -2.0], [3.5, 3.6], [9.0, -2.4]];
-    ctx.strokeStyle = css(orange); ctx.lineWidth = 3.6;
+    ctx.strokeStyle = css(orange); ctx.lineWidth = 4.4;
     ctx.beginPath(); zz.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.stroke();
     ctx.strokeStyle = css(shade(orange, 0.3), 0.75); ctx.lineWidth = 0.9;
     ctx.beginPath(); zz.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1] - 0.9) : ctx.moveTo(p[0], p[1] - 0.9))); ctx.stroke();
@@ -550,7 +550,7 @@
   function texWood() {
     if (TX.wood) return TX.wood;
     const w = 256, h = 512, c = cv(w, h), ctx = c.getContext("2d");
-    const base = [122, 110, 100];
+    const base = [100, 90, 82];
     ctx.fillStyle = css(base); ctx.fillRect(0, 0, w, h);
     vbands(ctx, w, h, base, 14, 0.4, 0.55, 7, true);
     strokes(ctx, w, h, base, { n: 900, len: 100, wid: 5, ang: PI / 2, spread: 0.22, k: 0.38, alpha: 0.4, seed: 7, wrap: true });
@@ -844,7 +844,7 @@
      ========================================================================== */
   const C = {
     skin: 0xf4d0c4, skinIn: 0xe59a92, hair: 0x161d2c, hairHi: 0x34506e,
-    beige: 0xa89a74, beigeD: 0x786d52, boot: 0x3a2a26, sole: 0x2b201c,
+    beige: 0x9f997f, beigeD: 0x726c58, boot: 0x4a3830, sole: 0x2b201c,
     leather: 0x8a5834, leatherD: 0x54351f, brass: 0xd8ac52, silver: 0xd2d9de, red: 0xe0402c,
     teal: 0x62998f, white: 0xf3efe2,
     khaki: 0x7c7440, khakiD: 0x5a542c, tan: 0xa89868, tanL: 0xbcae80,
@@ -939,7 +939,7 @@
     rig.bone("scarfF", "neck", [0.085, -0.045, 0.19], [0.18, 0.0, 0.10], { sway: 0.07, phase: 2.2 });
     rig.bone("scarfB", "neck", [-0.03, -0.045, -0.205], [-0.15, PI, 0], { sway: 0.06, phase: 0.9 });
     rig.bone("pack", "chest", [-0.03, 0.02, -0.31], null, { sway: 0.012, phase: 2.9 });
-    rig.bone("skull", "pack", [-0.31, 0.30, 0.02], [0.0, -2.0, 0.0], { sway: 0.03, phase: 1.3 });
+    rig.bone("skull", "pack", [-0.33, 0.20, 0.03], [0.0, -2.0, 0.0], { sway: 0.03, phase: 1.3 });
     rig.bones.skull.scale.setScalar(1.4);
     rig.bone("satchel", "chest", [0.285, -0.145, 0.185], [0.0, 0.18, -0.02], { sway: 0.03, phase: 3.3 });
     rig.bone("propR", "armR.hand", [0, -0.11, 0.01]);
@@ -1048,11 +1048,11 @@
       }
       const hb = new Bake();
       hb.add(capG, null, { p: [0, HEAD.cy, 0] });
-      /* temple locks in front of the ears + a couple of loose strands */
-      for (const s of [-1, 1]) {
-        const lockC = (x, y, z) => hairCol(y - HEAD.cy, 1.2, y * 40 + s);
-        hb.add(flap(0.036, 0.15, 0.012, 0.004, 2, 4, -0.2, 5 + s), lockC, { p: [s * 0.168, HEAD.cy + 0.09, 0.062], r: [0.1, s * 1.18, s * 0.05] });
-        hb.add(flap(0.026, 0.11, 0.010, 0.003, 2, 3, -0.1, 8 + s), lockC, { p: [s * 0.158, HEAD.cy + 0.07, 0.092], r: [0.08, s * 1.0, s * -0.04] });
+      /* thin strands in front of the ears */
+      for (const sd of [-1, 1]) {
+        const lockC = (x, y, z) => hairCol(y - HEAD.cy, 1.2, y * 40 + sd);
+        const q = headPt(Math.cos(0.20) * Math.sin(sd * 1.22), Math.sin(0.20), Math.cos(0.20) * Math.cos(sd * 1.22), 0.014);
+        hb.add(flap(0.022, 0.20, 0.008, 0.0, 1, 4, -0.5, 5 + sd), lockC, { p: [q[0], HEAD.cy + q[1], q[2]], r: [0.05, sd * 1.22, sd * 0.04] });
       }
       putVC("head", hb, { o: 0.035 }, true);
       /* bob skirt */
@@ -1148,10 +1148,10 @@
           return d;
         }
       });
-      put(rig.bones.neck, g, mScarf, { o: 0.03 });
+      put(rig.bones.neck, g, mScarf, { o: 0.03, recv: false });
       /* swaying flaps of the cowl */
-      put(rig.bones.scarfF, flap(0.13, 0.15, 0.03, 0.012, 5, 5, 0.25, 4), mScarf, { o: 0.025 });
-      put(rig.bones.scarfB, flap(0.14, 0.12, 0.028, 0.010, 5, 4, 0.2, 6), mScarf, { o: 0.025 });
+      put(rig.bones.scarfF, flap(0.13, 0.15, 0.03, 0.012, 5, 5, 0.25, 4), mScarf, { o: 0.025, recv: false });
+      put(rig.bones.scarfB, flap(0.14, 0.12, 0.028, 0.010, 5, 4, 0.2, 6), mScarf, { o: 0.025, recv: false });
     }
 
     /* ------------------------------------------------------------ PONCHO (+ hinged frayed tails) */
@@ -1162,7 +1162,7 @@
       const secs = PON.map((s) => ({ c: [0, s[0], 0], rx: s[1], rz: s[2] }));
       const shellFn = (a, t) => 1 + 0.020 * Math.sin(a * 5 + 0.8) * t + 0.016 * Math.sin(a * 9 + 2.0) * t + 0.012 * Math.sin(a * 3) * t;
       const shell = loft(secs, 44, { sq: PON_SQ, fn: shellFn, v0: 0, v1: 0.86 });
-      put(rig.bones.chest, shell, mPoncho, { o: 0.035 });
+      put(rig.bones.chest, shell, mPoncho, { o: 0.035, recv: false });
       /* shoulder yoke fold at the collar */
       /* hinged tails */
       const hem = PON[PON.length - 1];
@@ -1187,7 +1187,7 @@
         const hg = new THREE.Group();
         hg.name = "cloakHinge" + idx;
         bn.add(hg);
-        put(hg, g, mPoncho, { o: 0.03 });
+        put(hg, g, mPoncho, { o: 0.03, recv: false });
         hinges.push(hg);
       });
     }
@@ -1199,7 +1199,7 @@
       const secs = COAT.map((s) => ({ c: [0, s[0], 0], rx: s[1], rz: s[2] }));
       const fold = (a, t) => 1 + 0.050 * Math.sin(a * 6 + 0.3) * (0.4 + t) + 0.030 * Math.sin(a * 11 + 1.2) * t;
       const g = loft(secs, 40, { sq: COAT_SQ, a0: CA0, a1: CA1, fn: fold, v0: 0, v1: 0.5, u0: 0, u1: 1 });
-      put(rig.bones.hips, g, mCoat, { o: 0.035 });
+      put(rig.bones.hips, g, mCoat, { o: 0.035, recv: false });
       const hem = COAT[COAT.length - 1], L = 0.30;
       const edges = [CA0, 1.9, PI, 4.38, CA1];
       for (let idx = 0; idx < 4; idx++) {
@@ -1223,7 +1223,7 @@
         const hg = new THREE.Group();
         hg.name = "cloakHinge" + (4 + idx);
         bn.add(hg);
-        put(hg, tg, mCoat, { o: 0.035 });
+        put(hg, tg, mCoat, { o: 0.035, recv: false });
         hinges.push(hg);
       }
     }
@@ -1286,16 +1286,16 @@
       const bootC = (x, y, z) => mix3(lin(C.boot), lin(0x6a5144), clamp((y + 0.02) / 0.1, 0, 1) * 0.0 + 0.25 * clamp(z * 4, 0, 1));
       b.add(loft([{ c: [0, 0.075, 0], rx: 0.088, rz: 0.084 }, { c: [0, 0.01, 0], rx: 0.080, rz: 0.080 }, { c: [0, -0.04, 0], rx: 0.078, rz: 0.078 }], 14, {}), bootC, {});
       const foot = loft([
-        { c: [0, -0.058, -0.075], rx: 0.058, rz: 0.040 },
-        { c: [0, -0.060, -0.02], rx: 0.070, rz: 0.046 },
-        { c: [0, -0.064, 0.05], rx: 0.074, rz: 0.043 },
-        { c: [0, -0.068, 0.115], rx: 0.062, rz: 0.034 },
-        { c: [0, -0.072, 0.158], rx: 0.036, rz: 0.020 }
+        { c: [0, -0.058, -0.085], rx: 0.062, rz: 0.044 },
+        { c: [0, -0.060, -0.02], rx: 0.078, rz: 0.050 },
+        { c: [0, -0.064, 0.06], rx: 0.082, rz: 0.047 },
+        { c: [0, -0.068, 0.135], rx: 0.070, rz: 0.038 },
+        { c: [0, -0.072, 0.185], rx: 0.040, rz: 0.022 }
       ], 14, { ref: [0, 1, 0] });
       b.add(foot, bootC, {});
-      b.add(box, C.sole, { p: [0, -0.098, 0.04], s: [0.150, 0.026, 0.265] });
+      b.add(box, C.sole, { p: [0, -0.098, 0.05], s: [0.166, 0.026, 0.300] });
       b.add(box, C.sole, { p: [0, -0.085, -0.052], s: [0.130, 0.05, 0.065] });
-      b.add(sph, C.sole, { p: [0, -0.098, 0.172], s: [0.062, 0.016, 0.040] });
+      b.add(sph, C.sole, { p: [0, -0.098, 0.20], s: [0.070, 0.016, 0.046] });
       for (let i = 0; i < 4; i++) b.add(sphLo, C.brass, { p: [0.0, 0.005 + i * 0.0, 0.0], s: 0.0 });
       putVC("leg" + s + ".foot", b, { o: 0.028 });
     }
@@ -1305,7 +1305,7 @@
       const sx = s === "L" ? 1 : -1;
       const up = loft([{ c: [0, 0.05, 0], rx: 0.076, rz: 0.074 }, { c: [0, -0.10, 0], rx: 0.071, rz: 0.069 }, { c: [0, -0.255, 0], rx: 0.069, rz: 0.067 }], 16,
         { v0: 0.0, v1: 0.45, fn: (a, t) => 1 + 0.03 * Math.sin(a * 3 + sx + t * 5) });
-      put(rig.bones["arm" + s + ".sh"], up, mSleeve, { o: 0.032 });
+      put(rig.bones["arm" + s + ".sh"], up, mSleeve, { o: 0.032, recv: false });
       const cuff = loft([
         { c: [0, 0.025, 0], rx: 0.069, rz: 0.067, v: 0.43 },
         { c: [0, -0.09, 0], rx: 0.068, rz: 0.066, v: 0.50 },
@@ -1318,7 +1318,7 @@
         { c: [0, -0.310, 0], rx: 0.088, rz: 0.084, v: 0.94 },
         { c: [0, -0.312, 0], rx: 0.070, rz: 0.066, v: 1.0 }
       ], 24, { fn: (a, t, i) => 1 + (i > 3 ? 0.03 * Math.sin(a * 5 + sx * 1.3 + i) + 0.015 * Math.sin(a * 9) : 0.02 * Math.sin(a * 3 + sx)) });
-      put(rig.bones["arm" + s + ".el"], cuff, mSleeve, { o: 0.04 });
+      put(rig.bones["arm" + s + ".el"], cuff, mSleeve, { o: 0.04, recv: false });
       /* hand: pale fist + teal inner sleeve peeking out of the cuff */
       const b = new Bake();
       b.add(loft([{ c: [0, 0.01, 0], rx: 0.052, rz: 0.050 }, { c: [0, -0.04, 0], rx: 0.050, rz: 0.048 }, { c: [0, -0.075, 0], rx: 0.048, rz: 0.046 }], 12, {}), (x, y, z) => mix3(lin(0x65a090), lin(0x47786c), clamp(-y / 0.08, 0, 1) * 0.5), {});
@@ -1385,22 +1385,23 @@
       const b = new Bake();
       const gc = (x, y, z) => mix3(lin(C.pack), lin(C.packD), clamp(0.5 - y / 0.45, 0, 0.75) * (0.7 + 0.6 * hash(Math.floor(x * 30) + Math.floor(y * 22))));
       const sack = loft([
-        { c: [0, -0.255, 0], rx: 0.175, rz: 0.085 }, { c: [0, -0.20, 0], rx: 0.195, rz: 0.110 },
-        { c: [0, -0.05, 0], rx: 0.205, rz: 0.118 }, { c: [0, 0.10, 0], rx: 0.200, rz: 0.108 },
-        { c: [0, 0.19, 0], rx: 0.170, rz: 0.086 }, { c: [0, 0.225, 0], rx: 0.120, rz: 0.060 }
+        { c: [0, -0.20, 0], rx: 0.165, rz: 0.080 }, { c: [0, -0.15, 0], rx: 0.190, rz: 0.105 },
+        { c: [0, -0.03, 0], rx: 0.202, rz: 0.115 }, { c: [0, 0.08, 0], rx: 0.196, rz: 0.106 },
+        { c: [0, 0.135, 0], rx: 0.168, rz: 0.086 }, { c: [0, 0.16, 0], rx: 0.120, rz: 0.060 }
       ], 24, { sq: 2.8, fn: (a, t) => 1 + 0.045 * Math.sin(a * 4 + t * 7) });
-      b.add(sack, gc, { p: [-0.02, 0.025, 0] });
+      b.add(sack, gc, { p: [-0.02, 0.0, 0] });
       /* flap + buckles + straps */
-      b.add(box, C.packD, { p: [-0.02, 0.165, -0.098], s: [0.30, 0.15, 0.030], r: [-0.12, 0, 0] });
-      for (const x of [-0.1, 0.06]) b.add(box, C.leatherD, { p: [x, 0.115, -0.110], s: [0.034, 0.30, 0.012], r: [-0.08, 0, 0] });
-      for (const x of [-0.1, 0.06]) b.add(box, C.brass, { p: [x, 0.025, -0.118], s: [0.030, 0.026, 0.010] });
+      b.add(box, C.packD, { p: [-0.02, 0.095, -0.098], s: [0.30, 0.13, 0.030], r: [-0.12, 0, 0] });
+      for (const x of [-0.1, 0.06]) b.add(box, C.leatherD, { p: [x, 0.04, -0.110], s: [0.034, 0.30, 0.012], r: [-0.08, 0, 0] });
+      for (const x of [-0.1, 0.06]) b.add(box, C.brass, { p: [x, -0.07, -0.118], s: [0.030, 0.026, 0.010] });
       /* painted black scribbles on the green */
-      for (let i = 0; i < 5; i++) b.add(box, 0x14210f, { p: [-0.13 + i * 0.03, -0.055 + 0.025 * Math.sin(i * 2.3), -0.108], s: [0.006, 0.05, 0.006], r: [0, 0, 0.5 + i * 0.7] });
+      for (let i = 0; i < 5; i++) b.add(box, 0x14210f, { p: [-0.13 + i * 0.03, -0.11 + 0.025 * Math.sin(i * 2.3), -0.108], s: [0.006, 0.05, 0.006], r: [0, 0, 0.5 + i * 0.7] });
       /* bedroll across the top, tied */
-      const roll = loft([{ c: [-0.30, 0.27, 0.0], rx: 0.066, rz: 0.066 }, { c: [-0.25, 0.27, 0], rx: 0.080, rz: 0.080 }, { c: [-0.05, 0.27, 0], rx: 0.084, rz: 0.082 }, { c: [0.15, 0.27, 0], rx: 0.080, rz: 0.078 }, { c: [0.18, 0.27, 0.0], rx: 0.064, rz: 0.062 }], 16,
+      const RY = 0.185;
+      const roll = loft([{ c: [-0.30, RY, 0.0], rx: 0.066, rz: 0.066 }, { c: [-0.25, RY, 0], rx: 0.080, rz: 0.080 }, { c: [-0.05, RY, 0], rx: 0.084, rz: 0.082 }, { c: [0.15, RY, 0], rx: 0.080, rz: 0.078 }, { c: [0.18, RY, 0.0], rx: 0.064, rz: 0.062 }], 16,
         { ref: [0, 1, 0], fn: (a, t) => 1 + 0.04 * Math.sin(a * 3 + t * 6) });
-      b.add(roll, (x, y, z) => mix3(lin(C.roll), lin(0x738370), clamp(0.5 - (y - 0.30) / 0.2, 0, 0.8)), { p: [0, 0, -0.01] });
-      for (const x of [-0.19, 0.08]) b.add(prim("tor", 0.082, 0.008, 6, 16), C.leatherD, { p: [x, 0.27, -0.01], r: [0, PI / 2, 0], s: [1, 1.0, 1] });
+      b.add(roll, (x, y, z) => mix3(lin(C.roll), lin(0x738370), clamp(0.5 - (y - RY) / 0.2, 0, 0.8)), { p: [0, 0, -0.01] });
+      for (const x of [-0.19, 0.08]) b.add(prim("tor", 0.082, 0.008, 6, 16), C.leatherD, { p: [x, RY, -0.01], r: [0, PI / 2, 0], s: [1, 1.0, 1] });
       putVC("pack", b, { o: 0.03 }, false);
       /* skull */
       const sb = new Bake();
@@ -1476,7 +1477,275 @@
 
     /* ------------------------------------------------------------ rig finish + animation */
     const anim = K.anim(rig);
-    K.idleClip(anim, { dur: 2.6, breath: 0.018, headTurn: 0.055 });
+        /* ======================================================================
+       ANIMATION  (all keys are additive offsets from the rest pose)
+       sign guide:  chest/hips/head rx>0 = lean/nod FORWARD, ry>0 = turn toward +X (her left)
+                    arm.sh rx<0 = raise forward, armL rz>0 / armR rz<0 = raise sideways
+                    elbow rx<0 = flex, hip rx<0 = leg forward, knee rx>0 = flex
+       ====================================================================== */
+    const Z3 = [0, 0, 0];
+    function clip(name, frames, o) {
+      o = o || {};
+      const first = {}, lastT = {};
+      let dur = 0;
+      for (const f of frames) {
+        dur = Math.max(dur, f[0]);
+        for (const b in f[1]) { if (first[b] === undefined) first[b] = f[0]; lastT[b] = f[0]; }
+      }
+      if (o.dur) dur = o.dur;
+      const kfs = [];
+      for (const f of frames) {
+        const t = f[0], spec = f[1], ease = f[2];
+        for (const bone in spec) {
+          const v = spec[bone];
+          if (Array.isArray(v)) kfs.push({ t, bone, rot: v, ease });
+          else kfs.push({ t, bone, rot: v.r, pos: v.p, scl: v.s, ease });
+        }
+      }
+      for (const b in first) {
+        if (first[b] > 0) kfs.push({ t: 0, bone: b, rot: Z3, pos: Z3, scl: [1, 1, 1], ease: "outQuad" });
+        if (o.neutralEnd && lastT[b] < dur) kfs.push({ t: dur, bone: b, rot: Z3, pos: Z3, scl: [1, 1, 1], ease: "inOutQuad" });
+      }
+      anim.addClip(name, kfs, { loop: !!o.loop, dur: dur });
+    }
+    const arr = (a, k) => a.map((v) => v * k);
+
+    /* ---------------- IDLE: breathing (engine) + weight shift, look-around, hat bob, scarf drift ---------------- */
+    clip("idle", [
+      [0.0, { chest: [0, 0, 0], head: [0, 0, 0], hips: { r: [0, 0, 0], p: [0, 0, 0] }, hat: [0, 0, 0], hatTip: [0, 0, 0], "armL.sh": [0, 0, 0], "armR.sh": [0, 0, 0], "armR.el": [0, 0, 0], scarfF: [0, 0, 0], scarfB: [0, 0, 0], "legL.hip": [0, 0, 0], "legR.hip": [0, 0, 0], "legR.knee": [0, 0, 0], "legL.knee": [0, 0, 0], "armL.el": [0, 0, 0], staff: [0, 0, 0] }],
+      [0.65, { chest: [0.010, 0.030, 0.012], head: [-0.015, 0.075, 0.025], hips: { r: [0, -0.02, 0.014], p: [0.007, 0, 0] }, hat: [-0.012, 0.01, -0.012], hatTip: [-0.03, 0, 0.04], "armL.sh": [-0.012, 0, 0.012], "armR.sh": [0.03, 0, 0.012], "armR.el": [-0.05, 0, 0], scarfF: [0.05, 0, 0.04], scarfB: [-0.04, 0, 0], "legL.hip": [0, 0, -0.008], "legR.hip": [0, 0, -0.008], staff: [0, 0, 0.006] }],
+      [1.30, { chest: [0.016, 0, 0], head: [0.01, 0.0, -0.01], hips: { r: [0, 0, 0.0], p: [0.008, 0.002, 0] }, hat: [0.01, 0, 0.01], hatTip: [0.03, 0, -0.03], "armL.sh": [0.0, 0, 0.0], "armR.sh": [0.02, 0, 0], "armR.el": [-0.02, 0, 0], scarfF: [-0.03, 0, -0.03], scarfB: [0.03, 0, 0.03], staff: [0, 0, 0] }],
+      [1.95, { chest: [0.008, -0.034, -0.012], head: [0.012, -0.07, -0.025], hips: { r: [0, 0.02, -0.014], p: [-0.006, 0, 0] }, hat: [-0.006, -0.01, 0.012], hatTip: [-0.02, 0, -0.04], "armL.sh": [-0.012, 0, -0.01], "armR.sh": [-0.02, 0, -0.01], "armR.el": [-0.05, 0, 0], scarfF: [0.04, 0, -0.04], scarfB: [-0.03, 0, 0], "legL.hip": [0, 0, 0.008], "legR.hip": [0, 0, 0.008], staff: [0, 0, -0.006] }],
+      [2.6, { chest: [0, 0, 0], head: [0, 0, 0], hips: { r: [0, 0, 0], p: [0, 0, 0] }, hat: [0, 0, 0], hatTip: [0, 0, 0], "armL.sh": [0, 0, 0], "armR.sh": [0, 0, 0], "armR.el": [0, 0, 0], scarfF: [0, 0, 0], scarfB: [0, 0, 0], "legL.hip": [0, 0, 0], "legR.hip": [0, 0, 0], "legR.knee": [0, 0, 0], "legL.knee": [0, 0, 0], "armL.el": [0, 0, 0], staff: [0, 0, 0] }]
+    ], { loop: true });
+
+    /* ---------------- RUN / SPRINT: generated gait cycles ---------------- */
+    function gait(name, dur, g) {
+      const n = 12, frames = [];
+      for (let i = 0; i <= n; i++) {
+        const ph = (i / n) * TAU, s = Math.sin(ph), c = Math.cos(ph);
+        const bump = (p) => Math.max(0, Math.cos(p + 0.35));
+        const flexL = g.knee0 + g.knee * Math.pow(bump(ph), 1.2), flexR = g.knee0 + g.knee * Math.pow(bump(ph + PI), 1.2);
+        frames.push([dur * i / n, {
+          hips: { r: [g.hipLean, g.hipTwist * s, 0.035 * s], p: [0, -g.bob * c * c * 0 - g.bob * Math.cos(2 * ph) - 0.004, g.fwd] },
+          chest: [g.lean, -g.twist * s, -0.03 * s],
+          head: [g.headUp, g.twist * 0.7 * s, 0.02 * s],
+          "legL.hip": [-g.hip0 - g.hipF * s + (s < 0 ? -g.hipB * s * 0.0 : 0), 0, 0],
+          "legL.knee": [flexL, 0, 0],
+          "legL.foot": [0.25 * Math.max(0, -s) - 0.2 * Math.max(0, s) * 0.0 + 0.2 * bump(ph) * 0, 0, 0],
+          "legR.hip": [-g.hip0 + g.hipF * s, 0, 0],
+          "legR.knee": [flexR, 0, 0],
+          "legR.foot": [0.25 * Math.max(0, s), 0, 0],
+          "armR.sh": [-g.arm * s + 0.1, 0, -0.10],
+          "armR.el": [-g.elbow - 0.3 * Math.max(0, -s), 0, 0],
+          "armL.sh": [g.staffArm + 0.16 * -s, 0, 0.05],
+          "armL.el": [g.staffEl - 0.10 * s, 0, 0],
+          staff: [g.staffRx + 0.05 * s, 0, g.staffRz],
+          hat: [g.hat + 0.025 * Math.cos(2 * ph), 0, -0.02 * s],
+          hatTip: [g.tip, 0, 0],
+          scarfF: [g.scarf, 0, 0], scarfB: [g.scarf * 0.6, 0, 0],
+          satchel: [0.10 * Math.cos(2 * ph + 1), 0, 0.05 * s]
+        }, "linear"]);
+      }
+      clip(name, frames, { loop: true });
+    }
+    gait("run", 0.62, { knee0: 0.22, knee: 0.95, hip0: 0.10, hipF: 0.66, hipLean: 0.04, hipTwist: 0.10, bob: 0.028, fwd: 0.0, lean: 0.17, twist: 0.13, headUp: -0.10, arm: 0.80, elbow: 1.0, staffArm: -0.30, staffEl: -0.55, staffRx: 0.35, staffRz: 0.05, hat: -0.07, tip: -0.10, scarf: 0.35 });
+    gait("sprint", 0.46, { knee0: 0.30, knee: 1.20, hip0: 0.12, hipF: 0.84, hipLean: 0.10, hipTwist: 0.14, bob: 0.036, fwd: 0.02, lean: 0.36, twist: 0.17, headUp: -0.28, arm: 1.05, elbow: 1.25, staffArm: 0.30, staffEl: -0.40, staffRx: 1.20, staffRz: 0.05, hat: -0.20, tip: -0.42, scarf: 0.85 });
+
+    /* ---------------- AIR / GLIDE ---------------- */
+    clip("air", [
+      [0.0, { hips: { r: [-0.05, 0, 0], p: [0, 0.02, 0] }, chest: [-0.05, 0, 0], head: [-0.12, 0, 0], "armR.sh": [-0.6, 0, -0.75], "armR.el": [-0.45, 0, 0], "armL.sh": [-0.35, 0, 0.55], "armL.el": [-0.4, 0, 0], staff: [0.1, 0, -0.1], "legL.hip": [-0.45, 0, 0.04], "legL.knee": [0.7, 0, 0], "legR.hip": [0.28, 0, -0.04], "legR.knee": [0.55, 0, 0], hat: [-0.12, 0, 0], hatTip: [-0.18, 0, 0.1], scarfF: [-0.65, 0, 0.1], scarfB: [-0.55, 0, 0], satchel: [-0.35, 0, 0] }],
+      [0.5, { hips: { r: [-0.05, 0, 0], p: [0, 0.035, 0] }, chest: [-0.07, 0, 0.02], head: [-0.15, 0.04, 0], "armR.sh": [-0.72, 0, -0.9], "armR.el": [-0.55, 0, 0], "armL.sh": [-0.45, 0, 0.7], "armL.el": [-0.5, 0, 0], staff: [0.14, 0, -0.14], "legL.hip": [-0.36, 0, 0.04], "legL.knee": [0.85, 0, 0], "legR.hip": [0.36, 0, -0.04], "legR.knee": [0.7, 0, 0], hat: [-0.16, 0, 0], hatTip: [-0.26, 0, -0.1], scarfF: [-0.8, 0, -0.1], scarfB: [-0.7, 0, 0], satchel: [-0.45, 0, 0] }],
+      [1.0, { hips: { r: [-0.05, 0, 0], p: [0, 0.02, 0] }, chest: [-0.05, 0, 0], head: [-0.12, 0, 0], "armR.sh": [-0.6, 0, -0.75], "armR.el": [-0.45, 0, 0], "armL.sh": [-0.35, 0, 0.55], "armL.el": [-0.4, 0, 0], staff: [0.1, 0, -0.1], "legL.hip": [-0.45, 0, 0.04], "legL.knee": [0.7, 0, 0], "legR.hip": [0.28, 0, -0.04], "legR.knee": [0.55, 0, 0], hat: [-0.12, 0, 0], hatTip: [-0.18, 0, 0.1], scarfF: [-0.65, 0, 0.1], scarfB: [-0.55, 0, 0], satchel: [-0.35, 0, 0] }]
+    ], { loop: true });
+
+    clip("glide", [
+      [0.0, { hips: { r: [0.10, 0, 0], p: [0, 0, 0] }, chest: [0.12, 0, 0.03], head: [-0.62, 0, 0], "armL.sh": [-0.25, 0, 1.38], "armL.el": [-0.12, 0, 0.1], "armR.sh": [-0.25, 0, -1.38], "armR.el": [-0.12, 0, -0.1], staff: [1.0, 0, -1.2], "legL.hip": [0.42, 0, 0.12], "legL.knee": [0.35, 0, 0], "legR.hip": [0.30, 0, -0.12], "legR.knee": [0.5, 0, 0], "legL.foot": [0.5, 0, 0], "legR.foot": [0.5, 0, 0], hat: [-0.35, 0, 0.04], hatTip: [-0.55, 0, 0], scarfF: [0.9, 0, 0.25], scarfB: [0.8, 0, -0.1], satchel: [0.5, 0, 0], pack: [0.1, 0, 0] }],
+      [0.8, { hips: { r: [0.12, 0, 0.03], p: [0, 0, 0] }, chest: [0.14, 0, -0.03], head: [-0.64, 0.03, 0], "armL.sh": [-0.32, 0, 1.46], "armL.el": [-0.16, 0, 0.1], "armR.sh": [-0.32, 0, -1.46], "armR.el": [-0.16, 0, -0.1], staff: [1.1, 0, -1.28], "legL.hip": [0.5, 0, 0.14], "legL.knee": [0.45, 0, 0], "legR.hip": [0.26, 0, -0.14], "legR.knee": [0.4, 0, 0], hat: [-0.4, 0, -0.04], hatTip: [-0.62, 0, 0.1], scarfF: [1.05, 0, -0.2], scarfB: [0.95, 0, 0.1], satchel: [0.62, 0, 0] }],
+      [1.6, { hips: { r: [0.10, 0, 0], p: [0, 0, 0] }, chest: [0.12, 0, 0.03], head: [-0.62, 0, 0], "armL.sh": [-0.25, 0, 1.38], "armL.el": [-0.12, 0, 0.1], "armR.sh": [-0.25, 0, -1.38], "armR.el": [-0.12, 0, -0.1], staff: [1.0, 0, -1.2], "legL.hip": [0.42, 0, 0.12], "legL.knee": [0.35, 0, 0], "legR.hip": [0.30, 0, -0.12], "legR.knee": [0.5, 0, 0], hat: [-0.35, 0, 0.04], hatTip: [-0.55, 0, 0], scarfF: [0.9, 0, 0.25], scarfB: [0.8, 0, -0.1], satchel: [0.5, 0, 0], pack: [0.1, 0, 0] }]
+    ], { loop: true });
+
+    /* ---------------- JUMP / DOUBLE JUMP / LAND ---------------- */
+    clip("jump", [
+      [0.00, { hips: { r: [0.05, 0, 0], p: [0, 0, 0] }, chest: [0.12, 0, 0], "legL.hip": [-0.3, 0, 0], "legL.knee": [0.5, 0, 0], "legR.hip": [-0.3, 0, 0], "legR.knee": [0.5, 0, 0], "armL.sh": [0.4, 0, 0.1], "armR.sh": [0.5, 0, -0.1], head: [0.1, 0, 0], hat: [0.1, 0, 0], hatTip: [0.2, 0, 0], scarfF: [-0.1, 0, 0] }, "outQuad"],
+      [0.07, { hips: { r: [0.22, 0, 0], p: [0, -0.12, 0] }, chest: [0.3, 0, 0], "legL.hip": [-1.05, 0, 0.05], "legL.knee": [1.55, 0, 0], "legR.hip": [-1.0, 0, -0.05], "legR.knee": [1.5, 0, 0], "legL.foot": [0.3, 0, 0], "legR.foot": [0.3, 0, 0], "armL.sh": [0.9, 0, 0.3], "armR.sh": [0.9, 0, -0.3], head: [0.12, 0, 0], hat: [0.18, 0, 0], hatTip: [0.4, 0, 0], scarfF: [-0.3, 0, 0] }, "outCubic"],
+      [0.16, { hips: { r: [-0.1, 0, 0], p: [0, 0.07, 0] }, chest: [-0.15, 0, 0], "legL.hip": [-0.05, 0, 0], "legL.knee": [0.1, 0, 0], "legR.hip": [0.12, 0, 0], "legR.knee": [0.25, 0, 0], "legL.foot": [-0.5, 0, 0], "legR.foot": [-0.5, 0, 0], "armL.sh": [-1.5, 0, 0.55], "armL.el": [-0.3, 0, 0], "armR.sh": [-1.8, 0, -0.8], "armR.el": [-0.3, 0, 0], head: [-0.18, 0, 0], hat: [-0.18, 0, 0], hatTip: [-0.4, 0, 0], scarfF: [-0.6, 0, 0], staff: [0.1, 0, -0.1] }, "outQuad"],
+      [0.30, { hips: { r: [-0.05, 0, 0], p: [0, 0.03, 0] }, chest: [-0.06, 0, 0], "legL.hip": [-0.4, 0, 0.04], "legL.knee": [0.7, 0, 0], "legR.hip": [0.28, 0, -0.04], "legR.knee": [0.55, 0, 0], "legL.foot": [0, 0, 0], "legR.foot": [0, 0, 0], "armL.sh": [-0.35, 0, 0.55], "armL.el": [-0.4, 0, 0], "armR.sh": [-0.6, 0, -0.75], "armR.el": [-0.45, 0, 0], head: [-0.12, 0, 0], hat: [-0.12, 0, 0], hatTip: [-0.18, 0, 0.1], scarfF: [-0.65, 0, 0.1] }, "inOutQuad"]
+    ]);
+
+    clip("doubleJump", [
+      [0.00, { hips: { r: [0, 0, 0], p: [0, -0.06, 0] }, chest: [0.15, 0, 0], "legL.hip": [-0.4, 0, 0], "legL.knee": [0.8, 0, 0], "legR.hip": [-0.3, 0, 0], "legR.knee": [0.7, 0, 0], "armL.sh": [0.5, 0, 0.2], "armR.sh": [0.5, 0, -0.2], head: [0.1, 0, 0], hat: [0.1, 0, 0], hatTip: [0.2, 0, 0] }, "outQuad"],
+      [0.08, { hips: { r: [0.9, 0, 0], p: [0, 0.10, 0.0] }, chest: [0.55, 0, 0], "legL.hip": [-1.4, 0, 0.1], "legL.knee": [1.9, 0, 0], "legR.hip": [-1.35, 0, -0.1], "legR.knee": [1.9, 0, 0], "armL.sh": [-0.6, 0, 0.7], "armL.el": [-1.3, 0, 0], "armR.sh": [-0.8, 0, -0.5], "armR.el": [-1.4, 0, 0], head: [0.5, 0, 0], hat: [0.3, 0, 0], hatTip: [0.6, 0, 0], staff: [0.5, 0, 0] }, "linear"],
+      [0.24, { hips: { r: [3.5, 0, 0], p: [0, 0.18, 0.0] }, chest: [0.55, 0, 0], "legL.hip": [-1.5, 0, 0.1], "legL.knee": [2.0, 0, 0], "legR.hip": [-1.45, 0, -0.1], "legR.knee": [2.0, 0, 0], "armL.sh": [-0.6, 0, 0.7], "armL.el": [-1.3, 0, 0], "armR.sh": [-0.8, 0, -0.5], "armR.el": [-1.4, 0, 0], head: [0.5, 0, 0], hat: [0.3, 0, 0], hatTip: [0.6, 0, 0], staff: [0.5, 0, 0] }, "linear"],
+      [0.38, { hips: { r: [TAU - 0.12, 0, 0], p: [0, 0.10, 0.0] }, chest: [0.0, 0, 0], "legL.hip": [-0.4, 0, 0.1], "legL.knee": [0.8, 0, 0], "legR.hip": [0.3, 0, -0.1], "legR.knee": [0.6, 0, 0], "armL.sh": [-1.2, 0, 0.9], "armL.el": [-0.2, 0, 0], "armR.sh": [-1.4, 0, -1.0], "armR.el": [-0.2, 0, 0], head: [-0.2, 0, 0], hat: [-0.1, 0, 0], hatTip: [-0.3, 0, 0], staff: [0.1, 0, -0.1] }, "outQuad"],
+      [0.50, { hips: { r: [TAU, 0, 0], p: [0, 0.03, 0.0] }, chest: [-0.06, 0, 0], "legL.hip": [-0.4, 0, 0.04], "legL.knee": [0.7, 0, 0], "legR.hip": [0.28, 0, -0.04], "legR.knee": [0.55, 0, 0], "armL.sh": [-0.35, 0, 0.55], "armL.el": [-0.4, 0, 0], "armR.sh": [-0.6, 0, -0.75], "armR.el": [-0.45, 0, 0], head: [-0.12, 0, 0], hat: [-0.12, 0, 0], hatTip: [-0.18, 0, 0.1], staff: [0.1, 0, -0.1] }, "inOutQuad"]
+    ]);
+
+    clip("land", [
+      [0.00, { hips: { r: [0.06, 0, 0], p: [0, -0.06, 0] }, chest: [0.12, 0, 0], "legL.hip": [-0.5, 0, 0], "legL.knee": [0.8, 0, 0], "legR.hip": [-0.5, 0, 0], "legR.knee": [0.8, 0, 0], "armL.sh": [0.1, 0, 0.5], "armR.sh": [0.1, 0, -0.5], head: [0.1, 0, 0], hat: [0.12, 0, 0], hatTip: [0.3, 0, 0], scarfF: [-0.5, 0, 0], satchel: [-0.3, 0, 0] }, "outQuad"],
+      [0.07, { hips: { r: [0.22, 0, 0], p: [0, -0.15, 0.02] }, chest: [0.26, 0, 0], "legL.hip": [-1.1, 0, 0.06], "legL.knee": [1.7, 0, 0], "legR.hip": [-1.0, 0, -0.06], "legR.knee": [1.6, 0, 0], "legL.foot": [0.25, 0, 0], "legR.foot": [0.25, 0, 0], "armL.sh": [0.3, 0, 0.75], "armR.sh": [0.3, 0, -0.75], head: [0.14, 0, 0], hat: [0.25, 0, 0], hatTip: [0.55, 0, 0], scarfF: [0.2, 0, 0], satchel: [0.2, 0, 0] }, "outQuad"],
+      [0.20, { hips: { r: [0, 0, 0], p: [0, 0, 0] }, chest: [0, 0, 0], "legL.hip": [0, 0, 0], "legL.knee": [0, 0, 0], "legR.hip": [0, 0, 0], "legR.knee": [0, 0, 0], "legL.foot": [0, 0, 0], "legR.foot": [0, 0, 0], "armL.sh": [0, 0, 0], "armR.sh": [0, 0, 0], head: [0, 0, 0], hat: [0, 0, 0], hatTip: [-0.06, 0, 0], scarfF: [0, 0, 0], satchel: [0, 0, 0] }, "inOutQuad"]
+    ]);
+
+    /* ---------------- DASH / WARP : horizontal streaks ---------------- */
+    const streak = (o) => ({
+      hips: { r: [o.lean, 0, 0], p: [0, o.y, o.z] }, chest: [o.chest, 0, 0], head: [o.head, 0, 0],
+      "legL.hip": [o.leg, 0, 0.05], "legL.knee": [0.35, 0, 0], "legL.foot": [0.5, 0, 0],
+      "legR.hip": [o.leg + 0.25, 0, -0.05], "legR.knee": [0.7, 0, 0], "legR.foot": [0.5, 0, 0],
+      "armR.sh": [o.arm, 0, -0.2], "armR.el": [-0.2, 0, 0], "armL.sh": [o.arm - 0.1, 0, 0.25], "armL.el": [-0.12, 0, 0],
+      staff: [o.stf, 0, 0], hat: [o.hat, 0, 0], hatTip: [o.tip, 0, 0], scarfF: [o.scarf, 0, 0.1], scarfB: [o.scarf, 0, 0], satchel: [0.6, 0, 0], pack: [0.1, 0, 0]
+    });
+    clip("dash", [
+      [0.00, { hips: { r: [0.35, 0, 0], p: [0, -0.10, 0] }, chest: [0.3, 0, 0], head: [-0.1, 0, 0], "legL.hip": [-0.5, 0, 0], "legL.knee": [0.9, 0, 0], "legR.hip": [0.5, 0, 0], "legR.knee": [0.5, 0, 0], "armR.sh": [0.5, 0, -0.3], "armL.sh": [0.4, 0, 0.3], hat: [0.1, 0, 0], hatTip: [0.1, 0, 0], scarfF: [-0.2, 0, 0] }, "outCubic"],
+      [0.05, streak({ lean: 1.28, y: -0.24, z: 0.18, chest: 0.2, head: -1.0, leg: 0.55, arm: 1.25, stf: 1.15, hat: -0.55, tip: -0.7, scarf: 1.25 }), "linear"],
+      [0.14, streak({ lean: 1.32, y: -0.26, z: 0.22, chest: 0.22, head: -1.05, leg: 0.6, arm: 1.3, stf: 1.2, hat: -0.6, tip: -0.8, scarf: 1.4 }), "inOutQuad"],
+      [0.20, streak({ lean: 1.05, y: -0.18, z: 0.15, chest: 0.2, head: -0.8, leg: 0.4, arm: 1.0, stf: 0.9, hat: -0.4, tip: -0.5, scarf: 1.0 }), "inOutQuad"]
+    ]);
+    clip("warp", [
+      [0.00, streak({ lean: 0.6, y: -0.1, z: 0.0, chest: 0.2, head: -0.5, leg: 0.2, arm: 0.5, stf: 0.5, hat: -0.2, tip: -0.3, scarf: 0.5 }), "outQuad"],
+      [0.05, streak({ lean: 1.45, y: -0.26, z: 0.25, chest: 0.1, head: -1.2, leg: 0.75, arm: 1.5, stf: 1.35, hat: -0.7, tip: -0.9, scarf: 1.5 }), "linear"],
+      [0.20, streak({ lean: 1.5, y: -0.28, z: 0.3, chest: 0.1, head: -1.25, leg: 0.8, arm: 1.55, stf: 1.4, hat: -0.75, tip: -1.0, scarf: 1.6 }), "inOutQuad"]
+    ]);
+
+    /* ---------------- MELEE: wide staff sweeps (staff lives in the LEFT hand) ---------------- */
+    clip("attack1", [   // 0.32 s  R -> L sweep
+      [0.00, { chest: [0, 0, 0], hips: { r: [0, 0, 0], p: [0, 0, 0] }, head: [0, 0, 0], "armL.sh": [0, 0, 0], "armL.el": [0, 0, 0], staff: [0, 0, 0], "legL.hip": [0, 0, 0], "legR.hip": [0, 0, 0], hat: [0, 0, 0] }, "outQuad"],
+      [0.09, { chest: [0.10, -0.75, -0.05], hips: { r: [0.04, -0.45, 0], p: [0, -0.04, -0.02] }, head: [0.0, -0.3, 0], "armL.sh": [-1.05, 0, -0.55], "armL.el": [-1.05, 0, 0], staff: [-1.1, 0, 0.5], "legL.hip": [-0.15, 0, 0], "legR.hip": [0.25, 0, 0], hat: [0.04, -0.1, 0], hatTip: [0.1, 0, 0.1] }, "inQuad"],
+      [0.17, { chest: [0.05, 0.85, 0.02], hips: { r: [0, 0.55, 0], p: [0, -0.03, 0.06] }, head: [0, 0.4, 0], "armL.sh": [-1.25, 0, 0.95], "armL.el": [-0.2, 0, 0], staff: [-1.1, 0, -0.4], "legL.hip": [-0.55, 0, 0.1], "legR.hip": [0.3, 0, 0], hat: [-0.05, 0.1, 0], hatTip: [-0.15, 0, -0.1] }, "outCubic"],
+      [0.23, { chest: [0.0, 0.95, 0.0], hips: { r: [0, 0.62, 0], p: [0, -0.02, 0.07] }, head: [0, 0.45, 0], "armL.sh": [-1.2, 0, 1.05], "armL.el": [-0.15, 0, 0], staff: [-1.1, 0, -0.45], "legL.hip": [-0.58, 0, 0.1], "legR.hip": [0.3, 0, 0] }, "inOutQuad"],
+      [0.32, { chest: [0, 0, 0], hips: { r: [0, 0, 0], p: [0, 0, 0] }, head: [0, 0, 0], "armL.sh": [0, 0, 0], "armL.el": [0, 0, 0], staff: [0, 0, 0], "legL.hip": [0, 0, 0], "legR.hip": [0, 0, 0], hat: [0, 0, 0], hatTip: [0, 0, 0] }, "inOutQuad"]
+    ]);
+    clip("attack2", [   // 0.34 s  L -> R reverse sweep with a hop-step
+      [0.00, { chest: [0, 0, 0], hips: { r: [0, 0, 0], p: [0, 0, 0] }, head: [0, 0, 0], "armL.sh": [0, 0, 0], "armL.el": [0, 0, 0], staff: [0, 0, 0], "legL.hip": [0, 0, 0], "legR.hip": [0, 0, 0] }, "outQuad"],
+      [0.09, { chest: [0.08, 0.80, 0.0], hips: { r: [0.03, 0.5, 0], p: [0, -0.03, 0] }, head: [0, 0.35, 0], "armL.sh": [-0.8, 0, 1.25], "armL.el": [-0.4, 0, 0], staff: [-0.9, 0, -0.6], "legL.hip": [-0.4, 0, 0.1], "legL.knee": [0.4, 0, 0], "legR.hip": [0.15, 0, 0], hat: [0.04, 0.1, 0], hatTip: [0.1, 0, -0.1] }, "inQuad"],
+      [0.19, { chest: [0.03, -0.95, 0.0], hips: { r: [0, -0.65, 0], p: [0, 0.03, 0.08] }, head: [0, -0.5, 0], "armL.sh": [-1.2, 0, -0.35], "armL.el": [-0.5, 0, 0], staff: [-1.0, 0, 0.5], "legR.hip": [-0.7, 0, -0.05], "legR.knee": [0.4, 0, 0], "legL.hip": [0.35, 0, 0], "legL.knee": [0.6, 0, 0], hat: [-0.05, -0.1, 0], hatTip: [-0.2, 0, 0.12] }, "outCubic"],
+      [0.26, { chest: [0.0, -1.05, 0.0], hips: { r: [0, -0.7, 0], p: [0, 0, 0.08] }, head: [0, -0.55, 0], "armL.sh": [-1.2, 0, -0.45], "armL.el": [-0.45, 0, 0], staff: [-1.0, 0, 0.55], "legR.hip": [-0.7, 0, -0.05], "legR.knee": [0.3, 0, 0], "legL.hip": [0.3, 0, 0], "legL.knee": [0.4, 0, 0] }, "inOutQuad"],
+      [0.34, { chest: [0, 0, 0], hips: { r: [0, 0, 0], p: [0, 0, 0] }, head: [0, 0, 0], "armL.sh": [0, 0, 0], "armL.el": [0, 0, 0], staff: [0, 0, 0], "legL.hip": [0, 0, 0], "legL.knee": [0, 0, 0], "legR.hip": [0, 0, 0], "legR.knee": [0, 0, 0], hat: [0, 0, 0], hatTip: [0, 0, 0] }, "inOutQuad"]
+    ]);
+    clip("attack3", [   // 0.40 s  spinning staff swing
+      [0.00, { hips: { r: [0, 0, 0], p: [0, 0, 0] }, chest: [0, 0, 0], head: [0, 0, 0], "armL.sh": [0, 0, 0], "armL.el": [0, 0, 0], staff: [0, 0, 0], "armR.sh": [0, 0, 0], "legL.knee": [0, 0, 0], "legR.knee": [0, 0, 0] }, "inQuad"],
+      [0.08, { hips: { r: [0.05, -0.6, 0], p: [0, -0.07, 0] }, chest: [0.12, -0.35, 0], head: [0, -0.3, 0], "armL.sh": [-0.9, 0, 0.55], "armL.el": [-0.9, 0, 0], staff: [-1.2, 0, 0.6], "armR.sh": [-0.4, 0, -1.0], "legL.knee": [0.55, 0, 0], "legR.knee": [0.55, 0, 0], hat: [0.1, 0, 0] }, "outCubic"],
+      [0.28, { hips: { r: [0.0, 3.7, 0], p: [0, 0.07, 0] }, chest: [0.0, 0.4, 0.1], head: [0, 0.5, 0], "armL.sh": [-1.45, 0, 1.2], "armL.el": [-0.1, 0, 0], staff: [-1.5, 0, 0], "armR.sh": [-0.5, 0, -1.2], "legL.knee": [0.65, 0, 0], "legR.knee": [0.4, 0, 0], hat: [-0.12, 0, 0.12], hatTip: [-0.35, 0, 0] }, "linear"],
+      [0.34, { hips: { r: [0.0, 5.7, 0], p: [0, 0.02, 0] }, chest: [0, 0.2, 0], head: [0, 0.3, 0], "armL.sh": [-1.3, 0, 1.0], "armL.el": [-0.2, 0, 0], staff: [-1.3, 0, 0.0], "armR.sh": [-0.4, 0, -1.0], "legL.knee": [0.4, 0, 0], "legR.knee": [0.3, 0, 0] }, "outQuad"],
+      [0.40, { hips: { r: [0, TAU, 0], p: [0, 0, 0] }, chest: [0, 0, 0], head: [0, 0, 0], "armL.sh": [0, 0, 0], "armL.el": [0, 0, 0], staff: [0, 0, 0], "armR.sh": [0, 0, 0], "legL.knee": [0, 0, 0], "legR.knee": [0, 0, 0], hat: [0, 0, 0], hatTip: [0, 0, 0] }, "inOutQuad"]
+    ]);
+    clip("attack4", [   // 0.58 s  launcher: low wind-up, big upward strike
+      [0.00, { hips: { r: [0, 0, 0], p: [0, 0, 0] }, chest: [0, 0, 0], head: [0, 0, 0], "armL.sh": [0, 0, 0], "armL.el": [0, 0, 0], staff: [0, 0, 0], "armR.sh": [0, 0, 0], "legL.hip": [0, 0, 0], "legL.knee": [0, 0, 0], "legR.hip": [0, 0, 0], "legR.knee": [0, 0, 0] }, "outQuad"],
+      [0.20, { hips: { r: [0.2, -0.25, 0], p: [0, -0.20, -0.04] }, chest: [0.35, -0.4, 0], head: [0.1, -0.2, 0], "armL.sh": [0.85, 0, 0.35], "armL.el": [-0.2, 0, 0], staff: [-0.8, 0, 0.1], "armR.sh": [-0.5, 0, -0.5], "legL.hip": [-0.75, 0, 0.06], "legL.knee": [1.3, 0, 0], "legR.hip": [0.35, 0, 0], "legR.knee": [0.9, 0, 0], hat: [0.1, 0, 0], hatTip: [0.2, 0, 0] }, "inOutQuad"],
+      [0.25, { hips: { r: [0.2, -0.3, 0], p: [0, -0.21, -0.05] }, chest: [0.38, -0.45, 0], head: [0.1, -0.2, 0], "armL.sh": [0.9, 0, 0.35], "armL.el": [-0.2, 0, 0], staff: [-0.85, 0, 0.1], "armR.sh": [-0.5, 0, -0.5], "legL.hip": [-0.8, 0, 0.06], "legL.knee": [1.35, 0, 0], "legR.hip": [0.35, 0, 0], "legR.knee": [0.9, 0, 0] }, "inQuad"],
+      [0.34, { hips: { r: [-0.15, 0.25, 0], p: [0, 0.12, 0.06] }, chest: [-0.28, 0.45, 0], head: [-0.2, 0.2, 0], "armL.sh": [-2.55, 0, 0.3], "armL.el": [-0.15, 0, 0], staff: [0.2, 0, -0.1], "armR.sh": [-1.6, 0, -0.9], "legL.hip": [-0.3, 0, 0.06], "legL.knee": [0.5, 0, 0], "legR.hip": [0.5, 0, 0], "legR.knee": [0.1, 0, 0], "legL.foot": [-0.4, 0, 0], "legR.foot": [-0.6, 0, 0], hat: [-0.2, 0, 0], hatTip: [-0.5, 0, 0] }, "outCubic"],
+      [0.42, { hips: { r: [-0.1, 0.2, 0], p: [0, 0.08, 0.05] }, chest: [-0.22, 0.4, 0], head: [-0.2, 0.15, 0], "armL.sh": [-2.7, 0, 0.35], "armL.el": [-0.1, 0, 0], staff: [0.25, 0, -0.1], "armR.sh": [-1.5, 0, -0.9], "legL.hip": [-0.25, 0, 0.06], "legL.knee": [0.45, 0, 0], "legR.hip": [0.5, 0, 0], "legR.knee": [0.15, 0, 0] }, "inOutQuad"],
+      [0.58, { hips: { r: [0, 0, 0], p: [0, 0, 0] }, chest: [0, 0, 0], head: [0, 0, 0], "armL.sh": [0, 0, 0], "armL.el": [0, 0, 0], staff: [0, 0, 0], "armR.sh": [0, 0, 0], "legL.hip": [0, 0, 0], "legL.knee": [0, 0, 0], "legR.hip": [0, 0, 0], "legR.knee": [0, 0, 0], "legL.foot": [0, 0, 0], "legR.foot": [0, 0, 0], hat: [0, 0, 0], hatTip: [0, 0, 0] }, "inOutQuad"]
+    ]);
+
+    /* ---------------- AERIAL ---------------- */
+    const tuck = { "legL.hip": [-0.7, 0, 0.05], "legL.knee": [1.0, 0, 0], "legR.hip": [0.2, 0, -0.05], "legR.knee": [1.1, 0, 0] };
+    clip("air1", [   // 0.30 s  diagonal overhead slash
+      [0.00, { hips: { r: [-0.05, 0, 0], p: [0, 0, 0] }, chest: [-0.05, 0, 0], head: [-0.1, 0, 0], "armL.sh": [-0.35, 0, 0.55], "armL.el": [-0.4, 0, 0], staff: [0.1, 0, -0.1], "armR.sh": [-0.6, 0, -0.75], "legL.hip": [-0.45, 0, 0.04], "legL.knee": [0.7, 0, 0], "legR.hip": [0.28, 0, -0.04], "legR.knee": [0.55, 0, 0] }, "outQuad"],
+      [0.08, { hips: { r: [-0.2, -0.35, 0], p: [0, 0.03, -0.03] }, chest: [-0.25, -0.5, 0], head: [-0.15, -0.35, 0], "armL.sh": [-2.4, 0, 0.35], "armL.el": [-0.6, 0, 0], staff: [-0.2, 0, 0.3], "armR.sh": [-1.3, 0, -0.8], ...tuck, hat: [-0.12, 0, 0], hatTip: [-0.3, 0, 0] }, "inQuad"],
+      [0.16, { hips: { r: [0.3, 0.45, 0], p: [0, 0.0, 0.07] }, chest: [0.35, 0.6, 0], head: [0.1, 0.4, 0], "armL.sh": [-1.0, 0, 0.55], "armL.el": [-0.1, 0, 0], staff: [-1.6, 0, 0.0], "armR.sh": [0.4, 0, -0.9], "legL.hip": [-0.9, 0, 0.05], "legL.knee": [1.0, 0, 0], "legR.hip": [0.4, 0, -0.05], "legR.knee": [0.9, 0, 0], hat: [0.1, 0, 0], hatTip: [0.2, 0, 0] }, "outCubic"],
+      [0.22, { hips: { r: [0.28, 0.5, 0], p: [0, 0.0, 0.07] }, chest: [0.32, 0.65, 0], head: [0.1, 0.45, 0], "armL.sh": [-0.95, 0, 0.55], "armL.el": [-0.1, 0, 0], staff: [-1.65, 0, 0.0], "armR.sh": [0.4, 0, -0.9], ...tuck }, "inOutQuad"],
+      [0.30, { hips: { r: [-0.05, 0, 0], p: [0, 0, 0] }, chest: [-0.05, 0, 0], head: [-0.1, 0, 0], "armL.sh": [-0.35, 0, 0.55], "armL.el": [-0.4, 0, 0], staff: [0.1, 0, -0.1], "armR.sh": [-0.6, 0, -0.75], "legL.hip": [-0.45, 0, 0.04], "legL.knee": [0.7, 0, 0], "legR.hip": [0.28, 0, -0.04], "legR.knee": [0.55, 0, 0], hat: [0, 0, 0], hatTip: [0, 0, 0] }, "inOutQuad"]
+    ]);
+    clip("air2", [   // 0.32 s  horizontal reverse slash with a twist
+      [0.00, { hips: { r: [-0.05, 0, 0], p: [0, 0, 0] }, chest: [-0.05, 0, 0], head: [-0.1, 0, 0], "armL.sh": [-0.35, 0, 0.55], "armL.el": [-0.4, 0, 0], staff: [0.1, 0, -0.1], "armR.sh": [-0.6, 0, -0.75], "legL.hip": [-0.45, 0, 0.04], "legL.knee": [0.7, 0, 0], "legR.hip": [0.28, 0, -0.04], "legR.knee": [0.55, 0, 0] }, "outQuad"],
+      [0.08, { hips: { r: [0.0, 0.8, 0.15], p: [0, 0.02, 0] }, chest: [0.0, 0.9, 0.1], head: [0, 0.5, 0], "armL.sh": [-0.7, 0, 1.4], "armL.el": [-0.4, 0, 0], staff: [-1.0, 0, -0.6], "armR.sh": [-0.5, 0, -1.2], ...tuck, hat: [0, 0.1, 0.1], hatTip: [0, 0, -0.2] }, "inQuad"],
+      [0.18, { hips: { r: [0.0, -1.1, -0.1], p: [0, 0.03, 0.05] }, chest: [0.0, -1.0, -0.1], head: [0, -0.6, 0], "armL.sh": [-1.25, 0, -0.35], "armL.el": [-0.4, 0, 0], staff: [-1.0, 0, 0.6], "armR.sh": [-0.2, 0, -1.4], "legL.hip": [0.2, 0, 0.1], "legL.knee": [0.9, 0, 0], "legR.hip": [-0.8, 0, -0.05], "legR.knee": [0.9, 0, 0], hat: [0, -0.1, -0.1], hatTip: [0, 0, 0.25] }, "outCubic"],
+      [0.25, { hips: { r: [0.0, -1.2, -0.1], p: [0, 0.02, 0.05] }, chest: [0.0, -1.05, -0.1], head: [0, -0.6, 0], "armL.sh": [-1.2, 0, -0.4], "armL.el": [-0.4, 0, 0], staff: [-1.0, 0, 0.6], "armR.sh": [-0.2, 0, -1.4], "legL.hip": [0.2, 0, 0.1], "legL.knee": [0.9, 0, 0], "legR.hip": [-0.8, 0, -0.05], "legR.knee": [0.9, 0, 0] }, "inOutQuad"],
+      [0.32, { hips: { r: [-0.05, 0, 0], p: [0, 0, 0] }, chest: [-0.05, 0, 0], head: [-0.1, 0, 0], "armL.sh": [-0.35, 0, 0.55], "armL.el": [-0.4, 0, 0], staff: [0.1, 0, -0.1], "armR.sh": [-0.6, 0, -0.75], "legL.hip": [-0.45, 0, 0.04], "legL.knee": [0.7, 0, 0], "legR.hip": [0.28, 0, -0.04], "legR.knee": [0.55, 0, 0], hat: [0, 0, 0], hatTip: [0, 0, 0] }, "inOutQuad"]
+    ]);
+
+    /* ---------------- PLUNGE / CHARGE / SLAM ---------------- */
+    const divePose = (k) => ({
+      hips: { r: [0.15 * k, 0, 0], p: [0, 0, 0] }, chest: [0.28 * k, 0, 0], head: [0.55 * k, 0, 0],
+      "armL.sh": [-2.95, 0, 0.12], "armL.el": [-0.12, 0, 0], staff: [3.1 * k, 0, 0.0], "armR.sh": [-2.8, 0, -0.18], "armR.el": [-0.2, 0, 0],
+      "legL.hip": [0.06, 0, 0.02], "legL.knee": [0.12, 0, 0], "legR.hip": [0.1, 0, -0.02], "legR.knee": [0.2, 0, 0], "legL.foot": [0.7, 0, 0], "legR.foot": [0.7, 0, 0],
+      hat: [-0.3 * k, 0, 0], hatTip: [-0.1, 0, 0.05], scarfF: [-1.9 * k, 0, 0], scarfB: [-1.8 * k, 0, 0], satchel: [-0.7, 0, 0], pack: [-0.1, 0, 0]
+    });
+    clip("plunge", [
+      [0.00, divePose(0.0), "outQuad"],
+      [0.10, divePose(1.0), "outCubic"],
+      [0.22, divePose(1.0), "inOutQuad"]
+    ]);
+    const chargePose = (a, b) => ({
+      hips: { r: [0.12, 0, 0], p: [0, -0.15 + a * 0.01, 0] }, chest: [0.12 + a * 0.02, 0.05 * b, 0], head: [-0.18, 0, 0],
+      "armL.sh": [-2.85, 0, 0.18], "armL.el": [-0.18, 0, 0], staff: [0.05, 0, -0.18 + 0.03 * b], "armR.sh": [-2.2, 0, -0.55], "armR.el": [-0.9, 0, 0],
+      "legL.hip": [-0.85, 0, 0.14], "legL.knee": [1.45, 0, 0], "legR.hip": [-0.6, 0, -0.14], "legR.knee": [1.3, 0, 0],
+      hat: [0.05 * b, 0, 0], hatTip: [-0.25 + 0.15 * b, 0, 0.1 * a], scarfF: [-0.5 + 0.15 * a, 0, 0], scarfB: [-0.4 + 0.1 * b, 0, 0], satchel: [0.2 * a, 0, 0]
+    });
+    clip("charge", [
+      [0.00, chargePose(0, 0), "inOutQuad"],
+      [0.20, chargePose(1, 1), "inOutQuad"],
+      [0.40, chargePose(0, -1), "inOutQuad"],
+      [0.60, chargePose(-1, 1), "inOutQuad"],
+      [0.80, chargePose(0, 0)]
+    ], { loop: true });
+    clip("slam", [   // 0.4 s  leap wind-up then bring the staff down hard
+      [0.00, { hips: { r: [0.1, 0, 0], p: [0, -0.10, 0] }, chest: [0.2, 0, 0], "armL.sh": [0.3, 0, 0.2], staff: [0, 0, 0], "legL.hip": [-0.6, 0, 0], "legL.knee": [1.0, 0, 0], "legR.hip": [-0.6, 0, 0], "legR.knee": [1.0, 0, 0], head: [0.1, 0, 0] }, "outQuad"],
+      [0.12, { hips: { r: [-0.18, 0, 0], p: [0, 0.18, -0.04] }, chest: [-0.3, 0, 0], head: [-0.25, 0, 0], "armL.sh": [-2.9, 0, 0.2], "armL.el": [-0.2, 0, 0], staff: [0.1, 0, -0.1], "armR.sh": [-2.5, 0, -0.5], "armR.el": [-0.7, 0, 0], "legL.hip": [-0.5, 0, 0.05], "legL.knee": [0.9, 0, 0], "legR.hip": [0.1, 0, -0.05], "legR.knee": [0.8, 0, 0], hat: [-0.25, 0, 0], hatTip: [-0.5, 0, 0], scarfF: [-0.7, 0, 0] }, "outCubic"],
+      [0.19, { hips: { r: [0.35, 0, 0], p: [0, -0.04, 0.08] }, chest: [0.55, 0, 0], head: [0.3, 0, 0], "armL.sh": [-1.2, 0, 0.1], "armL.el": [-0.2, 0, 0], staff: [1.55, 0, 0.0], "armR.sh": [-1.2, 0, -0.4], "armR.el": [-0.5, 0, 0], "legL.hip": [-0.8, 0, 0.05], "legL.knee": [1.2, 0, 0], "legR.hip": [-0.5, 0, -0.05], "legR.knee": [1.0, 0, 0], hat: [0.35, 0, 0], hatTip: [0.7, 0, 0], scarfF: [0.6, 0, 0] }, "inQuad"],
+      [0.26, { hips: { r: [0.42, 0, 0], p: [0, -0.20, 0.10] }, chest: [0.62, 0, 0], head: [0.25, 0, 0], "armL.sh": [-1.05, 0, 0.1], "armL.el": [-0.1, 0, 0], staff: [1.7, 0, 0.0], "armR.sh": [-1.1, 0, -0.35], "armR.el": [-0.4, 0, 0], "legL.hip": [-1.15, 0, 0.1], "legL.knee": [1.7, 0, 0], "legR.hip": [-0.9, 0, -0.1], "legR.knee": [1.5, 0, 0], hat: [0.3, 0, 0], hatTip: [0.6, 0, 0] }, "outQuad"],
+      [0.40, { hips: { r: [0.3, 0, 0], p: [0, -0.16, 0.08] }, chest: [0.45, 0, 0], head: [0.2, 0, 0], "armL.sh": [-1.0, 0, 0.1], "armL.el": [-0.1, 0, 0], staff: [1.7, 0, 0.0], "armR.sh": [-1.0, 0, -0.35], "armR.el": [-0.4, 0, 0], "legL.hip": [-1.1, 0, 0.1], "legL.knee": [1.6, 0, 0], "legR.hip": [-0.85, 0, -0.1], "legR.knee": [1.4, 0, 0], hat: [0.2, 0, 0], hatTip: [0.3, 0, 0] }, "inOutQuad"]
+    ]);
+
+    /* ---------------- LUNGE / CAST / NOVA ---------------- */
+    clip("lunge", [   // 0.3 s  stinger thrust
+      [0.00, { hips: { r: [0, 0, 0], p: [0, 0, 0] }, chest: [0, 0, 0], head: [0, 0, 0], "armL.sh": [0, 0, 0], "armL.el": [0, 0, 0], staff: [0, 0, 0], "legL.hip": [0, 0, 0], "legL.knee": [0, 0, 0], "legR.hip": [0, 0, 0], "legR.knee": [0, 0, 0] }, "outQuad"],
+      [0.10, { hips: { r: [0.1, -0.35, 0], p: [0, -0.10, -0.05] }, chest: [0.16, -0.5, 0], head: [0, -0.3, 0], "armL.sh": [-0.5, 0, -0.1], "armL.el": [-1.5, 0, 0], staff: [0.7, 0, 0.0], "armR.sh": [-0.2, 0, -0.5], "legL.hip": [-0.35, 0, 0.05], "legL.knee": [0.7, 0, 0], "legR.hip": [0.55, 0, 0], "legR.knee": [0.5, 0, 0], hat: [0.05, 0, 0], hatTip: [0.15, 0, 0] }, "inQuad"],
+      [0.18, { hips: { r: [0.5, 0.15, 0], p: [0, -0.15, 0.22] }, chest: [0.45, 0.35, 0], head: [-0.15, 0.2, 0], "armL.sh": [-1.5, 0, 0.1], "armL.el": [-0.05, 0, 0], staff: [1.45, 0, 0.0], "armR.sh": [0.9, 0, -0.5], "legL.hip": [-1.15, 0, 0.05], "legL.knee": [1.15, 0, 0], "legR.hip": [0.7, 0, -0.05], "legR.knee": [0.2, 0, 0], "legR.foot": [-0.5, 0, 0], hat: [-0.12, 0, 0], hatTip: [-0.4, 0, 0], scarfF: [0.8, 0, 0] }, "outCubic"],
+      [0.24, { hips: { r: [0.5, 0.15, 0], p: [0, -0.15, 0.24] }, chest: [0.45, 0.35, 0], head: [-0.15, 0.2, 0], "armL.sh": [-1.52, 0, 0.1], "armL.el": [-0.05, 0, 0], staff: [1.45, 0, 0.0], "armR.sh": [0.9, 0, -0.5], "legL.hip": [-1.15, 0, 0.05], "legL.knee": [1.15, 0, 0], "legR.hip": [0.7, 0, -0.05], "legR.knee": [0.2, 0, 0], "legR.foot": [-0.5, 0, 0] }, "inOutQuad"],
+      [0.30, { hips: { r: [0, 0, 0], p: [0, 0, 0] }, chest: [0, 0, 0], head: [0, 0, 0], "armL.sh": [0, 0, 0], "armL.el": [0, 0, 0], staff: [0, 0, 0], "armR.sh": [0, 0, 0], "legL.hip": [0, 0, 0], "legL.knee": [0, 0, 0], "legR.hip": [0, 0, 0], "legR.knee": [0, 0, 0], "legR.foot": [0, 0, 0], hat: [0, 0, 0], hatTip: [0, 0, 0], scarfF: [0, 0, 0] }, "inOutQuad"]
+    ]);
+    clip("cast", [   // 0.28 s  one-handed staff thrust, eye = muzzle
+      [0.00, { chest: [0, 0, 0], head: [0, 0, 0], "armL.sh": [0, 0, 0], "armL.el": [0, 0, 0], staff: [0, 0, 0], hips: { r: [0, 0, 0], p: [0, 0, 0] }, "armR.sh": [0, 0, 0] }, "outQuad"],
+      [0.08, { chest: [-0.12, -0.2, 0], head: [-0.1, -0.1, 0], "armL.sh": [-0.7, 0, 0.2], "armL.el": [-1.3, 0, 0], staff: [0.5, 0, 0], hips: { r: [-0.04, 0, 0], p: [0, -0.02, -0.04] }, "armR.sh": [0.2, 0, -0.5], hat: [-0.06, 0, 0], hatTip: [-0.15, 0, 0] }, "inQuad"],
+      [0.15, { chest: [0.1, 0.2, 0], head: [-0.05, 0.1, 0], "armL.sh": [-1.45, 0, 0.12], "armL.el": [-0.12, 0, 0], staff: [0.95, 0, 0], hips: { r: [0.05, 0, 0], p: [0, -0.03, 0.05] }, "armR.sh": [0.3, 0, -0.7], "legL.hip": [-0.3, 0, 0], "legR.hip": [0.2, 0, 0], hat: [0.06, 0, 0], hatTip: [0.2, 0, 0] }, "outCubic"],
+      [0.20, { chest: [0.12, 0.2, 0], head: [-0.05, 0.1, 0], "armL.sh": [-1.5, 0, 0.12], "armL.el": [-0.1, 0, 0], staff: [0.95, 0, 0], hips: { r: [0.05, 0, 0], p: [0, -0.03, 0.05] }, "armR.sh": [0.3, 0, -0.7], "legL.hip": [-0.3, 0, 0], "legR.hip": [0.2, 0, 0] }, "inOutQuad"],
+      [0.28, { chest: [0, 0, 0], head: [0, 0, 0], "armL.sh": [0, 0, 0], "armL.el": [0, 0, 0], staff: [0, 0, 0], hips: { r: [0, 0, 0], p: [0, 0, 0] }, "armR.sh": [0, 0, 0], "legL.hip": [0, 0, 0], "legR.hip": [0, 0, 0], hat: [0, 0, 0], hatTip: [0, 0, 0] }, "inOutQuad"]
+    ]);
+    clip("nova", [   // 0.6 s  gather inward then burst outward
+      [0.00, { hips: { r: [0, 0, 0], p: [0, 0, 0] }, chest: [0, 0, 0], head: [0, 0, 0], "armL.sh": [0, 0, 0], "armL.el": [0, 0, 0], "armR.sh": [0, 0, 0], "armR.el": [0, 0, 0], staff: [0, 0, 0], "legL.knee": [0, 0, 0], "legR.knee": [0, 0, 0], "legL.hip": [0, 0, 0], "legR.hip": [0, 0, 0] }, "outQuad"],
+      [0.24, { hips: { r: [0.15, 0, 0], p: [0, -0.15, 0] }, chest: [0.3, 0, 0], head: [0.15, 0, 0], "armL.sh": [-0.9, 0, -0.45], "armL.el": [-1.5, 0, 0], "armR.sh": [-0.9, 0, 0.45], "armR.el": [-1.5, 0, 0], staff: [0.2, 0, 0.5], "legL.hip": [-0.6, 0, 0.1], "legL.knee": [1.2, 0, 0], "legR.hip": [-0.6, 0, -0.1], "legR.knee": [1.2, 0, 0], hat: [0.18, 0, 0], hatTip: [0.4, 0, 0], scarfF: [-0.2, 0, 0] }, "inQuad"],
+      [0.34, { hips: { r: [-0.12, 0, 0], p: [0, 0.10, 0] }, chest: [-0.3, 0, 0], head: [-0.4, 0, 0], "armL.sh": [-0.3, 0, 1.55], "armL.el": [-0.1, 0, 0], "armR.sh": [-0.3, 0, -1.55], "armR.el": [-0.1, 0, 0], staff: [0.0, 0, -1.3], "legL.hip": [-0.2, 0, 0.12], "legL.knee": [0.3, 0, 0], "legR.hip": [0.1, 0, -0.12], "legR.knee": [0.4, 0, 0], hat: [-0.3, 0, 0], hatTip: [-0.8, 0, 0], scarfF: [-1.3, 0, 0.3], scarfB: [-1.2, 0, 0] }, "outCubic"],
+      [0.46, { hips: { r: [-0.08, 0, 0], p: [0, 0.07, 0] }, chest: [-0.24, 0, 0], head: [-0.34, 0, 0], "armL.sh": [-0.35, 0, 1.45], "armL.el": [-0.12, 0, 0], "armR.sh": [-0.35, 0, -1.45], "armR.el": [-0.12, 0, 0], staff: [0.0, 0, -1.25], "legL.hip": [-0.2, 0, 0.12], "legL.knee": [0.3, 0, 0], "legR.hip": [0.1, 0, -0.12], "legR.knee": [0.4, 0, 0], hatTip: [-0.6, 0, 0], scarfF: [-1.0, 0, 0.2] }, "inOutQuad"],
+      [0.60, { hips: { r: [0, 0, 0], p: [0, 0, 0] }, chest: [0, 0, 0], head: [0, 0, 0], "armL.sh": [0, 0, 0], "armL.el": [0, 0, 0], "armR.sh": [0, 0, 0], "armR.el": [0, 0, 0], staff: [0, 0, 0], "legL.knee": [0, 0, 0], "legR.knee": [0, 0, 0], "legL.hip": [0, 0, 0], "legR.hip": [0, 0, 0], hat: [0, 0, 0], hatTip: [0, 0, 0], scarfF: [0, 0, 0], scarfB: [0, 0, 0] }, "inOutQuad"]
+    ]);
+
+    /* ---------------- HURT / DEAD / WALLKICK ---------------- */
+    clip("hurt", [   // 0.38 s recoil
+      [0.00, { chest: [-0.2, 0, 0], head: [-0.15, 0, 0], hips: { r: [-0.08, 0, 0], p: [0, -0.02, -0.04] }, "armL.sh": [0.2, 0, 0.5], "armR.sh": [0.2, 0, -0.5], "legL.knee": [0.2, 0, 0], "legR.knee": [0.2, 0, 0], hat: [-0.1, 0, 0], hatTip: [-0.2, 0, 0] }, "outQuad"],
+      [0.06, { chest: [-0.45, 0.15, 0.05], head: [-0.4, 0.2, 0.1], hips: { r: [-0.15, 0.1, 0], p: [0, -0.04, -0.09] }, "armL.sh": [-0.2, 0, 0.9], "armL.el": [-0.5, 0, 0], "armR.sh": [-0.4, 0, -1.1], "armR.el": [-0.4, 0, 0], staff: [0.1, 0, -0.2], "legL.hip": [0.2, 0, 0.05], "legL.knee": [0.5, 0, 0], "legR.hip": [-0.2, 0, -0.05], "legR.knee": [0.5, 0, 0], hat: [-0.3, 0, 0.1], hatTip: [-0.7, 0, 0.2], scarfF: [0.6, 0, 0] }, "outCubic"],
+      [0.16, { chest: [-0.3, 0.1, 0.03], head: [-0.25, 0.15, 0.05], hips: { r: [-0.1, 0.05, 0], p: [0, -0.05, -0.07] }, "armL.sh": [-0.1, 0, 0.7], "armL.el": [-0.35, 0, 0], "armR.sh": [-0.2, 0, -0.9], "armR.el": [-0.3, 0, 0], "legL.knee": [0.45, 0, 0], "legR.knee": [0.45, 0, 0], hat: [-0.2, 0, 0.05], hatTip: [-0.4, 0, -0.1] }, "inOutQuad"],
+      [0.38, { chest: [0, 0, 0], head: [0, 0, 0], hips: { r: [0, 0, 0], p: [0, 0, 0] }, "armL.sh": [0, 0, 0], "armL.el": [0, 0, 0], "armR.sh": [0, 0, 0], "armR.el": [0, 0, 0], staff: [0, 0, 0], "legL.hip": [0, 0, 0], "legL.knee": [0, 0, 0], "legR.hip": [0, 0, 0], "legR.knee": [0, 0, 0], hat: [0, 0, 0], hatTip: [0, 0, 0], scarfF: [0, 0, 0] }, "inOutQuad"]
+    ]);
+    clip("dead", [
+      [0.00, { chest: [-0.2, 0, 0], head: [-0.2, 0, 0], hips: { r: [-0.08, 0, 0], p: [0, -0.02, -0.04] }, "armL.sh": [-0.2, 0, 0.9], "armR.sh": [-0.3, 0, -1.0], hat: [-0.2, 0, 0], hatTip: [-0.5, 0, 0] }, "outQuad"],
+      [0.22, { chest: [0.25, 0.1, 0], head: [0.4, 0.15, 0], hips: { r: [0.1, 0.1, 0], p: [0, -0.13, -0.06] }, "armL.sh": [0.2, 0, 0.55], "armL.el": [-0.4, 0, 0], "armR.sh": [0.2, 0, -0.55], "armR.el": [-0.4, 0, 0], "legL.hip": [-0.55, 0, 0.1], "legL.knee": [1.0, 0, 0], "legR.hip": [-0.3, 0, -0.1], "legR.knee": [0.8, 0, 0], hat: [0.2, 0, 0.1], hatTip: [0.4, 0, 0] }, "outQuad"],
+      [0.5, { chest: [0.3, 0.1, 0], head: [0.55, 0.2, 0.1], hips: { r: [0.1, 0.1, 0], p: [0, -0.25, -0.1] }, "armL.sh": [0.1, 0, 0.5], "armL.el": [-0.5, 0, 0], "armR.sh": [0.1, 0, -0.5], "armR.el": [-0.5, 0, 0], "legL.hip": [-0.9, 0, 0.12], "legL.knee": [1.8, 0, 0], "legR.hip": [-0.5, 0, -0.12], "legR.knee": [1.6, 0, 0], "legL.foot": [0.5, 0, 0], "legR.foot": [0.5, 0, 0], hat: [0.3, 0, 0.1], hatTip: [0.5, 0, 0.1] }, "inQuad"],
+      [0.95, { chest: [-0.3, 0, 0], head: [-0.25, 0.3, 0.2], hips: { r: [-1.38, 0.1, 0.1], p: [0, -0.38, -0.34] }, "armL.sh": [0.4, 0, 1.0], "armL.el": [-0.2, 0, 0], "armR.sh": [0.6, 0, -1.2], "armR.el": [-0.1, 0, 0], "legL.hip": [-0.2, 0, 0.3], "legL.knee": [0.5, 0, 0], "legR.hip": [0.1, 0, -0.2], "legR.knee": [0.3, 0, 0], "legL.foot": [0.0, 0, 0], "legR.foot": [0.0, 0, 0], staff: [0.4, 0, -0.3], hat: [-0.3, 0, 0.4], hatTip: [-0.2, 0, 0.3], scarfF: [0.3, 0, 0.5] }, "outQuad"],
+      [1.5, { chest: [-0.3, 0, 0], head: [-0.25, 0.3, 0.2], hips: { r: [-1.42, 0.1, 0.1], p: [0, -0.40, -0.35] }, "armL.sh": [0.4, 0, 1.0], "armL.el": [-0.2, 0, 0], "armR.sh": [0.6, 0, -1.2], "armR.el": [-0.1, 0, 0], "legL.hip": [-0.2, 0, 0.3], "legL.knee": [0.5, 0, 0], "legR.hip": [0.1, 0, -0.2], "legR.knee": [0.3, 0, 0], staff: [0.4, 0, -0.3], hat: [-0.3, 0, 0.4], hatTip: [-0.2, 0, 0.3], scarfF: [0.3, 0, 0.5] }, "inOutQuad"]
+    ]);
+    clip("wallkick", [   // 0.3 s push-off
+      [0.00, { hips: { r: [0.05, 0.5, 0], p: [0, -0.04, 0.0] }, chest: [0.1, 0.3, 0], head: [0, -0.3, 0], "legL.hip": [-1.1, 0, 0.1], "legL.knee": [1.5, 0, 0], "legR.hip": [-0.6, 0, -0.1], "legR.knee": [1.0, 0, 0], "armL.sh": [-0.8, 0, 0.9], "armR.sh": [-1.0, 0, -0.7], hat: [0.05, 0, 0], hatTip: [0.1, 0, 0] }, "outQuad"],
+      [0.08, { hips: { r: [-0.1, 0.35, 0], p: [0, 0.08, 0.04] }, chest: [-0.12, 0.2, 0], head: [-0.1, -0.2, 0], "legL.hip": [-0.4, 0, 0.1], "legL.knee": [0.8, 0, 0], "legR.hip": [0.55, 0, -0.1], "legR.knee": [0.1, 0, 0], "legR.foot": [-0.6, 0, 0], "armL.sh": [-1.7, 0, 0.7], "armR.sh": [-1.3, 0, -1.1], hat: [-0.15, 0, 0], hatTip: [-0.4, 0, 0], scarfF: [-0.6, 0, 0.2] }, "outCubic"],
+      [0.30, { hips: { r: [-0.05, 0.1, 0], p: [0, 0.04, 0] }, chest: [-0.06, 0, 0], head: [-0.12, 0, 0], "legL.hip": [-0.45, 0, 0.04], "legL.knee": [0.7, 0, 0], "legR.hip": [0.28, 0, -0.04], "legR.knee": [0.55, 0, 0], "legR.foot": [0, 0, 0], "armL.sh": [-0.35, 0, 0.55], "armL.el": [-0.4, 0, 0], "armR.sh": [-0.6, 0, -0.75], "armR.el": [-0.45, 0, 0], hat: [-0.12, 0, 0], hatTip: [-0.18, 0, 0.1], scarfF: [-0.65, 0, 0.1] }, "inOutQuad"]
+    ]);
+
+    /* ---------------- procedural layer: blinking, wandering staff eye, charm flutter ---------------- */
+    const _eye = { L: null, R: null, eye: null, charm: null };
+    anim.layer(function (t) {
+      const ph = t % 3.9;
+      let b = 0;
+      if (ph > 3.62) b = Math.sin(((ph - 3.62) / 0.28) * PI);
+      else if (ph > 1.20 && ph < 1.42) b = Math.sin(((ph - 1.20) / 0.22) * PI) * (t % 11 > 8 ? 1 : 0);
+      const l = anim.off("eyeL"), r = anim.off("eyeR");
+      if (l) l.sy = -0.92 * b;
+      if (r) r.sy = -0.92 * b;
+      const eye = anim.off("staffEye");
+      if (eye) { eye.ry = Math.sin(t * 0.55) * 0.5 + Math.sin(t * 1.7) * 0.08; eye.rx = Math.sin(t * 0.83 + 1.0) * 0.18; }
+      const ch = anim.off("charm");
+      if (ch) { ch.rz = Math.sin(t * 2.4) * 0.12; ch.rx = Math.sin(t * 1.7) * 0.08; }
+    });
     anim.setBase("idle");
     anim.play("idle", { fade: 0 });
     anim.update(0);

@@ -93,6 +93,7 @@
   function loop(ts) {
     if (!running) return;
     raf = requestAnimationFrame(loop);
+    if (ts - last < 15.2) return;       // 120 Hz panels (Fold 4): cap at ~60 fps, halves GPU/battery load
     const dtRaw = clamp(((ts || 0) - last) / 1000, 0, 0.05);
     last = ts;
     tick(dtRaw);
@@ -178,6 +179,14 @@
     const p = boss.pos();
     try { G.vfx.petals({ x: p.x, y: 1.4, z: p.z }); G.vfx.burst({ x: p.x, y: 1.2, z: p.z }, { count: 40, color: 0xe8333a, speed: 6, size: 0.45, life: 1.2, gravity: -1, spread: 1, tex: "petal" }); } catch (e) { /* ignore */ }
     boss.faceSnap();
+    {
+      const bp = boss.pos(), by = boss.root.rotation.y;
+      G.player.cinema(3.1, function (k, o) {            // orbit from the Veil's face out to a wide establishing shot
+        const a = by + 0.5 + k * 1.9, r = 3.6 + k * 7.5, h = 1.0 + k * 3.2;
+        o.px = bp.x + Math.sin(a) * r; o.pz = bp.z + Math.cos(a) * r; o.py = bp.y + h;
+        o.lx = bp.x; o.ly = bp.y + 1.3 - k * 0.2; o.lz = bp.z;
+      });
+    }
     if (G.world.setArena) G.world.setArena("boss");
     G.player.cam.distGoal = 5.8; G.player.cam.baseFov = 58;
     after(3.1, function () {
@@ -196,8 +205,13 @@
     if (G.player.ent) G.combat.iframe(G.player.ent, d.n === 3 ? 4.5 : 2.5);
     G.ui.letterbox(true);
     G.input.setEnabled(false);
-    if (d.n === 2) G.ui.banner("UNVEILED", "the coat falls — two blades now", 2.4);
-    else G.ui.banner("THE POPPIED BEAST", "she becomes the field", 3.2);
+    if (d.n === 2) {
+      G.ui.banner("UNVEILED", "the coat falls — two blades now", 2.4);
+      if (boss) { const bp = boss.pos(); G.player.cinema(2.6, function (k, o) { const a = boss.root.rotation.y + 0.4 - k * 0.8, r = 4.4 - k * 1.2; o.px = bp.x + Math.sin(a) * r; o.pz = bp.z + Math.cos(a) * r; o.py = bp.y + 1.5 + k * 0.4; o.lx = bp.x; o.ly = bp.y + 1.3; o.lz = bp.z; }); }
+    } else {
+      G.ui.banner("THE POPPIED BEAST", "she becomes the field", 3.2);
+      if (boss) { const bp = boss.pos(); const pp = G.player; const ya = Math.atan2(pp.x - bp.x, pp.z - bp.z); G.player.cinema(4.9, function (k, o) { const r = 15 + k * 5, a = ya + 0.35 - k * 0.5; o.px = bp.x + Math.sin(a) * r; o.pz = bp.z + Math.cos(a) * r; o.py = bp.y + 1.1 + k * 3.5; o.lx = bp.x; o.ly = bp.y + 2.2 + k * 3.2; o.lz = bp.z; }); }
+    }
   }
 
   function onBossPhase(d) {
@@ -214,6 +228,7 @@
     if (state !== "boss") return;
     state = "victory";
     G.input.haptic([60, 40, 120]);
+    if (boss) { const bp = boss.pos(); const big = boss.form === 3; G.player.cinema(5, function (k, o) { const a = 0.6 + k * 1.6, r = (big ? 14 : 5) + k * 3; o.px = bp.x + Math.sin(a) * r; o.pz = bp.z + Math.cos(a) * r; o.py = bp.y + (big ? 3 : 1.4) + k; o.lx = bp.x; o.ly = bp.y + (big ? 3.2 : 1); o.lz = bp.z; }); }
     after(3.4, function () {
       G.ui.showBoss(false); G.ui.setLock(0, 0, false);
       G.sfx.music("victory");

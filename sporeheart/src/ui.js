@@ -459,6 +459,7 @@
       const el = document.documentElement;
       if (!document.fullscreenElement && el.requestFullscreen) el.requestFullscreen({ navigationUI: "hide" }).catch(() => {});
     } catch (e) { /* ignore */ }
+    try { if (navigator.wakeLock) navigator.wakeLock.request("screen").catch(function () {}); } catch (e) { /* ignore */ }
     emit("ui:start", {});
   }
   U.pause = function () {

@@ -1239,6 +1239,7 @@
     /* ======================================================================
        CLOTH — shredded raincoat mantle (7 hinged panels), tape straps, mane
        ====================================================================== */
+    const capeSpec = [], tapeSpec = [];
     for (let i = 0; i < NCAPE; i++) {
       const th = capeTh[i], len = capeLen[i], mid = 1 - Math.abs(th) / 1.3;
       const base = { w0: 1.05 + mid * 0.3, w1: 1.65 + mid * 0.2, len, nx: 6, ny: 4, fold: 0.17, seed: i * 1.9 + 0.5, bow: 0.18, thick: 0.05, jag: 0.5 };
@@ -1247,14 +1248,12 @@
       const J = lo.userData.top;
       lo.translate(-J[0], -J[1], -J[2]);
       rig.bones["capeTip." + i].position.set(J[0], J[1], J[2]);
-      const cls = i === 3 ? "capeEmb" : "cape";
-      put("cape." + i, up, null, { cls, ol: 0.04 });
-      put("capeTip." + i, lo, null, { cls, ol: 0.04 });
+      /* drawn as verlet sheets (see CLOTH SIM below); the panel bones stay for the clip API */
+      capeSpec.push({ th, len, w0: base.w0, w1: base.w1, seed: base.seed, emb: i === 3 });
     }
     for (let i = 0; i < NTAPE; i++) {
       const len = 2.4 + (i % 3) * 0.6;
-      put("tape." + i, L.ribbon(0.2, len, 0.3, 0.07, i * 1.3), RED, { cls: "litds" });
-      put("tape." + i, L.ribbon(0.2, len * 0.9, 0.3, 0.07, i * 1.3), RED, { cls: "litds", p: [0, 0, -0.03] });
+      tapeSpec.push({ p: tapePos[i], len: len });                       /* tape itself = verlet ribbon */
       slab("tape." + i, [0, 0, 0], [0.15, 0.17, 0.08], GREYD, { ol: 0.02 });
       slab("tape." + i, [0, -0.35, 0.02], [0.13, 0.05, 0.04], INK, {});
     }
@@ -1734,10 +1733,51 @@
     anim.play("idle", { fade: 0 });
     anim.update(0);
 
+    /* ======================================================================
+       CLOTH SIM — shredded raincoat mantle (7 verlet sheets) + 6 tape ribbons
+       ====================================================================== */
+    let cloth = null;
+    if (G.cloth) {
+      cloth = G.cloth.create(rig, {
+        follow: 0.42, damp: 2.6, iters: 3,
+        colliders: [
+          { bone: "chest", a: [0, 1.25, -0.35], r: 1.55 }, { bone: "chest", a: [0, 0.2, -0.3], r: 1.45 }, { bone: "hips", a: [0, 0.1, 0], r: 1.3 },
+          { bone: "legL.hip", a: [0, 0, 0], b: [rig.bones["legL.knee"].position.x, rig.bones["legL.knee"].position.y, rig.bones["legL.knee"].position.z], r: 0.6 },
+          { bone: "legR.hip", a: [0, 0, 0], b: [rig.bones["legR.knee"].position.x, rig.bones["legR.knee"].position.y, rig.bones["legR.knee"].position.z], r: 0.6 }
+        ]
+      });
+      const q = new THREE.Quaternion(), e = new THREE.Euler(), dn = new THREE.Vector3(), sd = new THREE.Vector3(), bend = new THREE.Quaternion();
+      capeSpec.forEach((c, i) => {
+        const b = rig.bones["cape." + i], p0 = b.position.clone();
+        e.set(-0.62, PI - c.th, c.th * 0.26, "XYZ"); q.setFromEuler(e);
+        sd.set(1, 0, 0).applyQuaternion(q);
+        const R = 9, spine = [];
+        const qq = q.clone(); bend.setFromEuler(new THREE.Euler(0.07, 0, 0));
+        let pp = p0.clone(); spine.push(pp.clone());
+        for (let r = 1; r < R; r++) { dn.set(0, -c.len / (R - 1), 0).applyQuaternion(qq); pp.add(dn); spine.push(pp.clone()); qq.multiply(bend); }
+        const jag = []; for (let k = 0; k < 6; k++) jag.push(L.hash(c.seed * 13 + k * 1.7));
+        cloth.sheet({
+          bone: "chest", cols: 6, rows: R, mat: c.emb ? MT.capeEmb : MT.cape, outline: 0.05, outlineColor: 0x05060a, thickness: 0.06,
+          rest(u, v, col, row) {
+            const sp = spine[row], w = c.w0 + (c.w1 - c.w0) * v, x = (u - 0.5) * w;
+            const torn = row === R - 1 ? c.len * 0.12 * jag[col] : 0;
+            const bow = 0.18 * (1 - Math.pow((u - 0.5) * 2, 2)) * v;   /* panels belly outward */
+            return [sp.x + sd.x * x, sp.y + sd.y * x + torn, sp.z + sd.z * x - bow * Math.cos(c.th) * 0.6];
+          },
+          lining: 0x07080d, ks: [0.5, 0.025], maxDist: [0.0, 1.6], gs: 0.85, kH: 0.95, kExp: 0.8, radius: 0.12
+        });
+      });
+      tapeSpec.forEach((t, i) => {
+        const pts = []; for (let k = 0; k <= 9; k++) { const v = k / 9; pts.push([t.p[0] + Math.sin(v * 2 + i) * 0.04, t.p[1] - t.len * v, t.p[2] + 0.16 * v]); }
+        cloth.ribbon({ bone: "chest", pts: pts, color: RED, tip: 0x8f1e24, tipExp: 3, ring: 4, side: [1, 0, 0], w: [0.2, 0.14], t: [0.03, 0.02],
+          outline: 0.02, outlineColor: 0x3a0b0c, emissive: 0x4a0c0c, emissiveIntensity: 0.6, ks: [0.5, 0.02], maxDist: [0.0, 1.4], gs: 0.9, tipLen: 0.1, radius: 0.1 });
+      });
+    }
+
     const P = rig.parts;
     P.root = rig.root; P.body = rig.body; P.eyes = eyes;
     P.footL = rig.bones.soleL; P.footR = rig.bones.soleR; P.handL = rig.bones["armL.hand"]; P.handR = rig.bones["armR.hand"];
-    return { id: "beast", root: rig.root, parts: P, anim, rig, height: 7.0, radius: 2.2, team: "enemy" };
+    return { id: "beast", root: rig.root, parts: P, anim, rig, height: 7.0, radius: 2.2, team: "enemy", cloth };
   }
 
   /* ==========================================================================

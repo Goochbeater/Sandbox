@@ -643,6 +643,7 @@
 
   /* poncho. theta from +Z toward +X. chest-local: y=+0.27 neck hole .. hem. */
   const PN = { yTop: 0.265, nu: 88, nv: 22 };
+  const PONCHO_YOKE = 0.36;      /* rigid down to here (straps ride on it), verlet cloth below */
   function ponchoHem(th) {
     /* chest-local hem height (world = +0.73): lowest toward +X front, high on the -X side */
     const base = -0.215 - 0.115 * Math.sin(th) + 0.025 * Math.cos(th);
@@ -1071,10 +1072,18 @@
        ====================================================================== */
     const ponchoGeo = surf(PN.nu, PN.nv, (u, v, out) => ponchoP(u, v, out, true), { wrapU: true, center: [0, 0.05, 0] });
     {
-      const pm = K.mk(ponchoGeo, texMat(texPoncho(), { ds: true }), { o: 0.045, name: "poncho" });
-      pm.userData.keep = true;
+      const pMat = texMat(texPoncho(), { ds: true });
+      const pm = K.mk(ponchoGeo, pMat, { o: 0.045, name: "poncho" });
+      pm.userData.keep = true; pm.visible = false;                 /* full shell kept for the anim layer API; drawn as yoke + verlet skirt */
       rig.attach("chest", pm);
       rig.parts.ponchoMesh = pm;
+      const S0 = PONCHO_YOKE;
+      const yoke = surf(PN.nu, 8, (u, v, out) => ponchoP(u, v * S0, out, true), { wrapU: true, center: [0, 0.05, 0] });
+      { const a = yoke.attributes.uv.array; for (let i = 1; i < a.length; i += 2) a[i] = 1 - (1 - a[i]) * S0; }
+      const ym = K.mk(yoke, pMat, { o: 0.045, name: "ponchoYoke" });
+      ym.userData.keep = true;
+      rig.attach("chest", ym);
+      rig.parts.ponchoMat = pMat;
     }
 
 
@@ -1500,6 +1509,7 @@
     }
     const pa = pos.array, na = nrm.array;
     function updatePoncho(t, amp, lift) {
+      if (!rig.parts.ponchoMesh.visible) return;              /* the verlet skirt does this now */
       for (let j = 0; j <= NV; j++) {
         const w = wRow[j];
         for (let i = 0; i <= NU; i++) {
@@ -1644,11 +1654,23 @@
 
   function finish(rig, ponchoGeo) {
     K.mergeRig(rig);
+    /* verlet poncho skirt below the yoke */
+    let cloth = null;
+    if (G.cloth) {
+      cloth = G.cloth.create(rig, { follow: 0.3, damp: 3.8, colliders: G.cloth.bodyColliders(rig, { hips: 0.15, chest: 0.15, head: 0, thigh: 0.075, shin: 0.06, foot: 0.06 }) });
+      const tmp = [0, 0, 0], S0 = PONCHO_YOKE;
+      cloth.sheet({
+        bone: "chest", cols: 32, rows: 7, loop: true, mat: rig.parts.ponchoMat, outline: 0.045, thickness: 0.012,
+        rest(u, v) { ponchoP(u, S0 + (1 - S0) * v, tmp, true); return [tmp[0], tmp[1], tmp[2]]; },
+        uv: (u, v) => [u, 1 - (S0 + (1 - S0) * v)],
+        ks: [0.6, 0.1], maxDist: [0.0, 0.14], gs: 0.8, kH: 0.9, radius: 0.02
+      });
+    }
     rig.parts.root = rig.root; rig.parts.body = rig.body;
     rig.parts.potionHand = rig.bones["armL.hand"];
     const anim = animate(rig, ponchoGeo);
     const meshCount = rig.countMeshes();
-    return { id: "thistle", root: rig.root, parts: rig.parts, anim, height: DEF.height, radius: DEF.radius, team: DEF.team, rig, meshes: meshCount };
+    return { id: "thistle", root: rig.root, parts: rig.parts, anim, height: DEF.height, radius: DEF.radius, team: DEF.team, rig, meshes: meshCount, cloth };
   }
 
   G.chars.define("thistle", DEF, build);

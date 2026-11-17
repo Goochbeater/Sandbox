@@ -1046,7 +1046,11 @@
   /* new-style characters (src/char_<id>.js) register themselves here and override the legacy builders below */
   C.define = function (id, def, builder) { DEFS[id] = def; REG[id] = builder; C.heights[id] = def.height; C.radii[id] = def.radius; };
   C.build = function (id) {
-    if (REG[id]) return REG[id]();
+    if (REG[id]) {
+      const c = REG[id]();
+      if (c && c.rig && G.kit.skinBake && !(G.settings && G.settings.noSkinBake)) G.kit.skinBake(c.rig, c.anim);
+      return c;
+    }
     switch (id) {
       case "witch": return buildWitch();
       case "crane": return buildCrane();

@@ -1285,7 +1285,7 @@
       const isGlow = b.cls.indexOf("g_") === 0;
       const mesh = K.mk(g, mat, { o: b.ol || 0, oc: b.oc || undefined, shadow: !isGlow && b.cls !== "hair", recv: !isGlow });
       mesh.name = b.bone + ":" + b.cls;
-      mesh.userData.keep = true;
+      mesh.userData.keep = true; mesh.userData.skinOK = true;
       const bone = rig.bones[b.bone];
       if (!bone) console.warn("[beast] missing bone", b.bone);
       (bone || rig.body).add(mesh);

@@ -774,7 +774,7 @@
     function put(boneName, geo, o) {
       o = o || {};
       const m = K.mk(geo, o.ds ? vcD : vc, { p: o.p, r: o.r, s: o.s, o: o.o, oc: o.oc, name: o.name, shadow: o.shadow, noOutline: o.noOutline });
-      m.userData.keep = true;
+      m.userData.keep = true; m.userData.skinOK = true;
       if (o.parent) o.parent.add(m); else rig.attach(boneName, m);
       return m;
     }
@@ -1363,7 +1363,7 @@
     /* ---- clip authoring helper: tr(bone, [[t, rot, pos, scl, ease], ...]) ---- */
     function mk(name, dur, loop, fill) {
       const kf = [];
-      const tr = (bone, frames) => { for (const f of frames) kf.push({ t: f[0], bone, rot: f[1] || undefined, pos: f[2] || undefined, scl: f[3] || undefined, ease: f[4] }); };
+      const tr = (bone, frames) => { for (const f of frames) { const a = f.slice(1), ease = typeof a[a.length - 1] === "string" ? a.pop() : undefined; kf.push({ t: f[0], bone, rot: a[0] || undefined, pos: a[1] || undefined, scl: a[2] || undefined, ease }); } };
       fill(tr);
       anim.addClip(name, kf, { loop: loop, dur: dur });
     }

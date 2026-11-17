@@ -257,10 +257,16 @@
     geo.setAttribute("aOn", new THREE.BufferAttribute(out, 3));
   }
   const OUTLINE_VERT = `
+    #include <common>
+    #include <skinning_pars_vertex>
     attribute vec3 aOn; uniform float uPx; uniform vec2 uRes;
     void main(){
-      vec4 mv = modelViewMatrix * vec4(position, 1.0);
-      vec3 vn = normalize(normalMatrix * aOn);
+      vec3 transformed = position; vec3 objectNormal = aOn;
+      #include <skinbase_vertex>
+      #include <skinnormal_vertex>
+      #include <skinning_vertex>
+      vec4 mv = modelViewMatrix * vec4(transformed, 1.0);
+      vec3 vn = normalize(normalMatrix * objectNormal);
       vec4 clip = projectionMatrix * mv;
       float fade = mix(1.0, 0.45, smoothstep(14.0, 70.0, -mv.z));
       vec2 dir = normalize(vn.xy + vec2(1e-5));

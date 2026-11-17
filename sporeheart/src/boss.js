@@ -130,6 +130,16 @@
     else this.root.position.set(START.x, groundAt(START.x, START.z), START.z);
     sceneRef.add(this.root);
     if (this.anim && this.anim.has("idle")) { this.anim.setBase("idle"); this.anim.play("idle", { fade: 0 }); }
+    /* head tracks Mira (layered over every clip; eased off during big moves) */
+    this.lookYaw = 0; this.lookPitch = 0;
+    if (this.anim && this.anim.layer && !this.anim._lookLayer) {
+      const self = this; this.anim._lookLayer = true;
+      this.anim.layer(function (clock, dt, an) {
+        const h = an.off("head"), n = an.off("neck");
+        if (h) { h.ry += self.lookYaw * 0.6; h.rx += self.lookPitch * 0.6; }
+        if (n) n.ry += self.lookYaw * 0.3;
+      });
+    }
     this.form = form;
     /* hit-flash glow, parented to the model so it follows every animation */
     this.flashSpr = G.assets.glowSprite(0xffd2a8, d.h * 0.85, 0); this.flashSpr.position.set(0, d.h * 0.55, 0); this.flashSpr.material.depthTest = false; this.flashSpr.renderOrder = 9; this.root.add(this.flashSpr);
@@ -776,6 +786,14 @@
       this.rage = true; G.ui && G.ui.banner("THE BEAST ENRAGES", "the poppies bleed light", 2); sfx("roar3", { vol: 1 }); G.vfx.shake(0.8); G.vfx.flash(0xff3a2a, 0.3);
     }
     const p = this.pos();
+    {
+      const P = G.player, dx = P.x - p.x, dz = P.z - p.z;
+      let a = Math.atan2(dx, dz) - this.root.rotation.y; while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2;
+      const busy = this.state === "attack" || this.state === "charge" || this.state === "stagger";
+      const wantY = busy ? 0 : Math.max(-1, Math.min(1, a)), h = this.ent.height * 0.85;
+      const wantP = busy ? 0 : Math.max(-0.5, Math.min(0.4, Math.atan2(h - (P.y - p.y + 1.3), Math.hypot(dx, dz)) * (this.form === 3 ? 0.7 : 0.5)));
+      this.lookYaw = U.damp(this.lookYaw, wantY, 6, dt); this.lookPitch = U.damp(this.lookPitch, wantP, 6, dt);
+    }
     /* knockback drift */
     if (Math.abs(this.knockX) + Math.abs(this.knockZ) > 0.01) { this.move(this.knockX * Math.min(1, dt * 12), this.knockZ * Math.min(1, dt * 12), dt); this.knockX *= Math.exp(-dt * 10); this.knockZ *= Math.exp(-dt * 10); }
 

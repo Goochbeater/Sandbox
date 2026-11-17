@@ -889,7 +889,7 @@
     /* ------------------------------------------------------------ helpers */
     function put(parent, geo, mat, o, keep) {
       const m = mk(geo, mat, o);
-      if (keep) m.userData.keep = true;
+      if (keep) { m.userData.keep = true; m.userData.skinOK = true; }   /* kept out of the per-bone merge (colour attr), fine to skin-bake */
       parent.add(m);
       return m;
     }
@@ -1533,7 +1533,7 @@
           hips: { r: [g.hipLean, g.hipTwist * s, 0.035 * s], p: [0, -g.bob * c * c * 0 - g.bob * Math.cos(2 * ph) - 0.004, g.fwd] },
           chest: [g.lean, -g.twist * s, -0.03 * s],
           head: [g.headUp, g.twist * 0.7 * s, 0.02 * s],
-          "legL.hip": [-g.hip0 - g.hipF * s + (s < 0 ? -g.hipB * s * 0.0 : 0), 0, 0],
+          "legL.hip": [-g.hip0 - g.hipF * s, 0, 0],
           "legL.knee": [flexL, 0, 0],
           "legL.foot": [0.25 * Math.max(0, -s) - 0.2 * Math.max(0, s) * 0.0 + 0.2 * bump(ph) * 0, 0, 0],
           "legR.hip": [-g.hip0 + g.hipF * s, 0, 0],

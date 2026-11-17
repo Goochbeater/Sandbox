@@ -94,7 +94,8 @@
       models.forEach(function (m, i) { m.root.position.set(i * 12, 0, 0); holder.add(m.root); });
       scene.add(holder); holder.updateMatrixWorld(true);
       G.cloth.updateAll(0);                         // attaches the garment meshes so they compile too
-      renderer.compile(scene, camera);
+      if (G.world.glowStash) G.world.glowStash(true);
+      try { renderer.compile(scene, camera); } finally { if (G.world.glowStash) G.world.glowStash(false); }
       scene.remove(holder);
       models.forEach(function (m) { holder.remove(m.root); m.root.position.set(0, 0, 0); });
       G.cloth.updateAll(0);                         // detaches them again (their characters left the scene)
@@ -344,6 +345,7 @@
       if (timers[i].t <= 0) { const fn = timers[i].fn; timers.splice(i, 1); try { fn(); } catch (e) { console.error("[game] timer", e); } }
     }
 
+    const tSim0 = performance.now();
     if (dt > 0) {
       G.world.update(dt, tSec);
       G.debris.update(dt);
@@ -361,7 +363,10 @@
     updateLockUI();
     if (dt > 0) G.input.postUpdate();
 
+    const tSim1 = performance.now();
     G.render.frame(dtRaw);
+    G.stats.simMs = G.stats.simMs * 0.9 + (tSim1 - tSim0) * 0.1;
+    G.stats.renderMs = G.stats.renderMs * 0.9 + (performance.now() - tSim1) * 0.1;
 
     fpsAcc += dtRaw; fpsN++;
     if (fpsAcc >= 0.5) { G.stats.fps = Math.round(fpsN / fpsAcc); G.stats.ms = +(dtRaw * 1000).toFixed(1); fpsAcc = 0; fpsN = 0; }

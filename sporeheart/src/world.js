@@ -77,14 +77,64 @@
     if (shadow !== false) { m.castShadow = true; m.receiveShadow = true; }
     return m;
   }
+  /* glow billboards: lightweight proxies (real Object3Ds so they parent / move like sprites) drawn by ONE instanced
+     mesh each frame — 80+ draw calls become one. API matches what the world uses on sprites: position, scale,
+     visible, material.opacity, material.color. */
+  const GLOW = { list: [], mesh: null, col: null, cap: 0 };
   function glowSprite(color, scale, opacity) {
     const THREE = T();
-    const sp = new THREE.Sprite(new THREE.SpriteMaterial({
-      map: A().tex.glowdot(), color, transparent: true, opacity: opacity === undefined ? 0.85 : opacity,
-      blending: THREE.AdditiveBlending, depthWrite: false, fog: false
-    }));
-    sp.scale.setScalar(scale);
-    return sp;
+    const p = new THREE.Object3D();
+    p.material = { opacity: opacity === undefined ? 0.85 : opacity, color: new THREE.Color(color), fog: false };
+    p.scale.setScalar(scale);
+    p.isGlowProxy = true;
+    GLOW.list.push(p);
+    return p;
+  }
+  /* renderer.compile() would try to build a program for anything carrying .material — park the proxies' during it */
+  W.glowStash = function (on) {
+    for (const p of GLOW.list) { if (on) { p._gm = p.material; p.material = undefined; } else if (p._gm) { p.material = p._gm; p._gm = null; } }
+  };
+  function buildGlowBatch() {
+    const THREE = T(), n = GLOW.list.length;
+    if (!n) return;
+    GLOW.cap = n + 16;
+    const geo = new THREE.PlaneGeometry(1, 1);
+    const mat = new THREE.ShaderMaterial({
+      uniforms: { map: { value: A().tex.glowdot() } },
+      vertexShader: `attribute vec4 aCol; varying vec4 vCol; varying vec2 vUv;
+        void main(){ vUv = uv; vCol = aCol;
+          vec4 mv = modelViewMatrix * vec4(instanceMatrix[3].xyz, 1.0);
+          float sc = length(instanceMatrix[0].xyz);
+          mv.xy += position.xy * sc; gl_Position = projectionMatrix * mv; }`,
+      fragmentShader: `uniform sampler2D map; varying vec4 vCol; varying vec2 vUv;
+        void main(){ vec4 t = texture2D(map, vUv); gl_FragColor = vec4(vCol.rgb * t.rgb * t.a * vCol.a, 1.0); }`,
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+    });
+    const m = new THREE.InstancedMesh(geo, mat, GLOW.cap);
+    m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    GLOW.col = new THREE.InstancedBufferAttribute(new Float32Array(GLOW.cap * 4), 4).setUsage(THREE.DynamicDrawUsage);
+    geo.setAttribute("aCol", GLOW.col);
+    m.frustumCulled = false; m.renderOrder = 7; m.castShadow = false; m.receiveShadow = false; m.name = "glowBatch";
+    GLOW.mesh = m; S.root.add(m);
+  }
+  const _gm = { e: null };
+  function updateGlowBatch() {
+    const m = GLOW.mesh; if (!m) return;
+    const arr = m.instanceMatrix.array, col = GLOW.col.array;
+    let k = 0;
+    for (let i = 0; i < GLOW.list.length && k < GLOW.cap; i++) {
+      const p = GLOW.list[i];
+      let vis = p.visible, top = p;
+      for (let q = p.parent; q && vis; q = q.parent) { if (!q.visible) vis = false; top = q; }
+      if (!vis || !top.isScene || p.material.opacity <= 0.003) continue;
+      p.updateWorldMatrix(true, false);
+      const e = p.matrixWorld.elements, o = k * 16;
+      for (let j = 0; j < 16; j++) arr[o + j] = e[j];
+      const c = p.material.color, a = p.material.opacity;
+      col[k * 4] = c.r; col[k * 4 + 1] = c.g; col[k * 4 + 2] = c.b; col[k * 4 + 3] = a;
+      k++;
+    }
+    m.count = k; m.instanceMatrix.needsUpdate = true; GLOW.col.needsUpdate = true;
   }
 
   /* ---- geometry merge (init-time only) : lets one mesh carry many parts ---- */
@@ -470,6 +520,8 @@
     // (Rotheart cavern removed — the assassin fight happens in the town square)
     buildMotes();
     buildBounds();
+    staticBatch();
+    buildGlowBatch();
 
     S.time = 0;
     applyMood(0);
@@ -1939,6 +1991,110 @@
     }
   }
 
+
+  /* =====================================================================
+     STATIC BATCHING — weld every non-moving world mesh into one mesh per material
+     (and one ink-outline mesh per outline material). Cuts ~600 draw calls to ~60 on the phone.
+     Anything animated, breakable or moved at runtime is left alone.
+     ===================================================================== */
+  function staticBatch() {
+    const THREE = T();
+    const dyn = new Set();
+    const mark = (o) => { if (o) dyn.add(o); };
+    S.sway.forEach((s) => mark(s.obj));
+    S.pulses.forEach((p) => mark(p.obj));
+    S.lanterns.forEach((l) => { mark(l.sprite); mark(l.bulb); });
+    S.smoke.forEach((s) => mark(s.sprite));
+    W.bouncers.forEach((b) => { mark(b.mesh); mark(b.glow); });
+    W.hookPoints.forEach((h) => mark(h.group));
+    mark(S.beacon);
+    if (S.gate) { mark(S.gate.left); mark(S.gate.right); mark(S.gate.seam); mark(S.gate.glowA); mark(S.gate.glowB); }
+    S.root.updateMatrixWorld(true);
+    const isDyn = (o) => { for (let p = o; p && p !== S.root; p = p.parent) if (dyn.has(p)) return true; return false; };
+    const buckets = new Map(), olBuckets = new Map(), victims = [];
+    const sig = (g) => (g.attributes.uv ? "u" : "") + (g.attributes.color ? "c" : "");
+    S.hub.traverse((m) => {
+      if (!m.isMesh || m.isInstancedMesh || m.userData.isOutline || !m.geometry || !m.geometry.attributes.normal) return;
+      if (Array.isArray(m.material) || m.material.isShaderMaterial || m.material.transparent && m.material.blending === THREE.AdditiveBlending) return;
+      if (isDyn(m)) return;
+      const key = m.material.uuid + "|" + sig(m.geometry) + "|" + (m.castShadow ? 1 : 0) + (m.receiveShadow ? 1 : 0);
+      let b = buckets.get(key);
+      if (!b) { b = { mat: m.material, items: [], cast: m.castShadow, recv: m.receiveShadow, uv: !!m.geometry.attributes.uv, col: !!m.geometry.attributes.color, order: m.renderOrder }; buckets.set(key, b); }
+      b.items.push(m);
+      for (const c of m.children) if (c.isMesh && c.userData.isOutline) {
+        const ok = c.material.uuid; let ob = olBuckets.get(ok);
+        if (!ob) { ob = { mat: c.material, items: [] }; olBuckets.set(ok, ob); }
+        ob.items.push({ mesh: m, geo: c.geometry });
+      }
+      victims.push(m);
+    });
+    const nm = new THREE.Matrix3(), v = new THREE.Vector3();
+    const ranges = new Map();          /* source mesh -> [{geo, start, count}] (for collapsing a smashed breakable) */
+    function weld(items, withUV, withCol, outline) {
+      let nv = 0, ni = 0;
+      for (const it of items) { const g = outline ? it.geo : it.geometry; nv += g.attributes.position.count; ni += g.index ? g.index.count : g.attributes.position.count; }
+      const pos = new Float32Array(nv * 3), nor = new Float32Array(nv * 3), uv = withUV ? new Float32Array(nv * 2) : null, col = withCol ? new Float32Array(nv * 3) : null;
+      const idx = nv > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
+      let vo = 0, io = 0;
+      for (const it of items) {
+        const mesh = outline ? it.mesh : it, g = outline ? it.geo : it.geometry, mw = mesh.matrixWorld;
+        nm.getNormalMatrix(mw);
+        const P = g.attributes.position, N = outline ? (g.attributes.aOn || g.attributes.normal) : g.attributes.normal, n = P.count;
+        for (let i = 0; i < n; i++) {
+          v.fromBufferAttribute(P, i).applyMatrix4(mw); pos[(vo + i) * 3] = v.x; pos[(vo + i) * 3 + 1] = v.y; pos[(vo + i) * 3 + 2] = v.z;
+          v.fromBufferAttribute(N, i).applyMatrix3(nm).normalize(); nor[(vo + i) * 3] = v.x; nor[(vo + i) * 3 + 1] = v.y; nor[(vo + i) * 3 + 2] = v.z;
+        }
+        if (uv) { const U = g.attributes.uv; for (let i = 0; i < n; i++) { uv[(vo + i) * 2] = U.getX(i); uv[(vo + i) * 2 + 1] = U.getY(i); } }
+        if (col) { const C = g.attributes.color; for (let i = 0; i < n; i++) { col[(vo + i) * 3] = C.getX(i); col[(vo + i) * 3 + 1] = C.getY(i); col[(vo + i) * 3 + 2] = C.getZ(i); } }
+        (ranges.get(mesh) || ranges.set(mesh, []).get(mesh)).push({ geo: null, start: vo, count: n, _w: weld._id });
+        if (g.index) { const I = g.index.array; for (let i = 0; i < I.length; i++) idx[io + i] = I[i] + vo; io += I.length; }
+        else { for (let i = 0; i < n; i++) idx[io + i] = vo + i; io += n; }
+        vo += n;
+      }
+      const out = new THREE.BufferGeometry();
+      out.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      out.setAttribute(outline ? "aOn" : "normal", new THREE.BufferAttribute(nor, 3));
+      if (outline) out.setAttribute("normal", out.attributes.aOn);
+      if (uv) out.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+      if (col) out.setAttribute("color", new THREE.BufferAttribute(col, 3));
+      out.setIndex(new THREE.BufferAttribute(idx, 1));
+      out.computeBoundingSphere();
+      out.attributes.position.setUsage(THREE.DynamicDrawUsage);
+      ranges.forEach((rs) => { for (const r of rs) if (r._w === weld._id && !r.geo) r.geo = out; });
+      weld._id++;
+      return out;
+    }
+    weld._id = 1;
+    let merged = 0, before = victims.length;
+    buckets.forEach((b) => {
+      if (b.items.length < 2) { const i = victims.indexOf(b.items[0]); if (i >= 0) victims.splice(i, 1); return; }
+      const mesh = new THREE.Mesh(weld(b.items, b.uv, b.col, false), b.mat);
+      mesh.castShadow = b.cast; mesh.receiveShadow = b.recv; mesh.renderOrder = b.order; mesh.matrixAutoUpdate = false;
+      mesh.name = "batch:" + (b.mat.name || b.mat.type); S.root.add(mesh); merged++;
+    });
+    const keep = new Set(victims);
+    olBuckets.forEach((ob) => {
+      const items = ob.items.filter((it) => keep.has(it.mesh));
+      if (!items.length) return;
+      const mesh = new THREE.Mesh(weld(items, false, false, true), ob.mat);
+      mesh.castShadow = false; mesh.receiveShadow = false; mesh.matrixAutoUpdate = false; mesh.userData.isOutline = true; mesh.raycast = () => {};
+      S.root.add(mesh); merged++;
+    });
+    /* breakables remember which batched vertex ranges are theirs */
+    for (const b of W.breakables) {
+      const list = [];
+      b.mesh.traverse((o) => { if (keep.has(o)) { const rs = ranges.get(o); if (rs) for (const r of rs) if (r.geo) list.push(r); } });
+      if (list.length) b.batched = list;
+    }
+    for (const m of victims) {
+      if (!m.parent) continue;
+      for (const c of m.children.slice()) if (!(c.isMesh && c.userData.isOutline) && !keep.has(c)) m.parent.attach(c);   /* keep live children */
+      m.parent.remove(m);
+    }
+    S.batchInfo = { before: before, after: merged };
+    if (G.CONF.debug) console.log("[world] static batch", before, "meshes ->", merged);
+  }
+
   /* =====================================================================
      BREAKABLES
      ===================================================================== */
@@ -1985,6 +2141,14 @@
     if (G.vfx) { try { G.vfx.shake(b.debris === "stall" ? 0.22 : 0.12); G.vfx.hitSpark && G.vfx.hitSpark({ x: b.x, y: y, z: b.z }); } catch (e2) { /* ignore */ } }
     if (G.input) G.input.haptic(b.debris === "stall" ? 30 : 12);
     if (b.mesh) { b.mesh.visible = false; }
+    if (b.batched) {                                   /* collapse its welded vertices out of sight */
+      for (const r of b.batched) {
+        const a = r.geo.attributes.position, arr = a.array;
+        for (let i = r.start; i < r.start + r.count; i++) { arr[i * 3] = 0; arr[i * 3 + 1] = -500; arr[i * 3 + 2] = 0; }
+        a.addUpdateRange(r.start * 3, r.count * 3); a.needsUpdate = true;
+      }
+      b.batched = null;
+    }
     S.shatterCount = (S.shatterCount || 0) + 1;
     if (b.onBreak) b.onBreak(b);
   }
@@ -2048,12 +2212,14 @@
   const _sp = { x: 0, y: 0, z: 0 };
   W.shatterNear = function (x, z, r, dmg) { _sp.x = x; _sp.z = z; return W.hitBreakables(_sp, r, dmg || 30, "enemy"); };
   W.getArenaMood = function () { return S.arenaMix; };
+  W.batchInfo = function () { return S.batchInfo; };
 
   /* =====================================================================
      UPDATE  (no allocations)
      ===================================================================== */
   W.update = function (dt, t) {
     if (!S.built) return;
+    updateGlowBatch();
     dt = (typeof dt === "number" && dt > 0) ? Math.min(dt, 0.05) : 0.016;
     S.time += dt;
     const time = (typeof t === "number" && isFinite(t)) ? t : S.time;

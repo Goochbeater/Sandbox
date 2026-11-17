@@ -240,6 +240,6 @@
   };
 
   /* ---------------- STATS / DEBUG ---------------- */
-  G.stats = { fps: 60, ms: 0, drawCalls: 0, tris: 0, kills: 0, breaks: 0, hits: 0, playTime: 0 };
+  G.stats = { fps: 60, ms: 0, drawCalls: 0, tris: 0, kills: 0, breaks: 0, hits: 0, playTime: 0, simMs: 0, renderMs: 0, bestCombo: 0 };
   if (new URLSearchParams(location.search).has("debug")) G.CONF.debug = true;
 })();

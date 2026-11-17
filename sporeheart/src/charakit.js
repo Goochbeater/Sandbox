@@ -374,18 +374,20 @@
      (No-op on the headless stub, where children is not a real array.) */
   function mergeGeos(geos) {
     const THREE = T();
-    let count = 0;
-    for (let i = 0; i < geos.length; i++) count += geos[i].attributes.position.count;
+    let count = 0, anyCol = false;
+    for (let i = 0; i < geos.length; i++) { count += geos[i].attributes.position.count; if (geos[i].attributes.color) anyCol = true; }
     const pos = new Float32Array(count * 3);
     const nor = new Float32Array(count * 3);
     const uv = new Float32Array(count * 2);
+    const col = anyCol ? new Float32Array(count * 3).fill(1) : null;
     let o = 0;
     for (let i = 0; i < geos.length; i++) {
       const g = geos[i];
-      const p = g.attributes.position, n = g.attributes.normal, u = g.attributes.uv;
+      const p = g.attributes.position, n = g.attributes.normal, u = g.attributes.uv, c = g.attributes.color;
       pos.set(p.array, o * 3);
       if (n) nor.set(n.array, o * 3);
       if (u) uv.set(u.array, o * 2);
+      if (c && col) { if (c.itemSize === 3) col.set(c.array, o * 3); else for (let k = 0; k < p.count; k++) { col[(o + k) * 3] = c.getX(k); col[(o + k) * 3 + 1] = c.getY(k); col[(o + k) * 3 + 2] = c.getZ(k); } }
       o += p.count;
       g.dispose();
     }
@@ -393,6 +395,7 @@
     out.setAttribute("position", new THREE.BufferAttribute(pos, 3));
     out.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
     out.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+    if (col) out.setAttribute("color", new THREE.BufferAttribute(col, 3));
     out.computeBoundingSphere();
     out.computeBoundingBox();
     return out;
@@ -402,10 +405,17 @@
     const buckets = [];
     for (let i = 0; i < children.length; i++) {
       const ch = children[i];
-      if (!ch.isMesh || ch.children.length > 0 || ch.userData.keep) continue;
+      if (!ch.isMesh || ch.userData.keep || ch.userData.isOutline) continue;
+      /* a mesh may carry exactly one ink-outline child: it batches with others sharing BOTH materials */
+      let olMat = null, ok = true;
+      for (let c = 0; c < ch.children.length; c++) {
+        const k = ch.children[c];
+        if (k.isMesh && k.userData.isOutline && !olMat) olMat = k.material; else { ok = false; break; }
+      }
+      if (!ok) continue;
       let bucket = null;
-      for (let b = 0; b < buckets.length; b++) if (buckets[b].mat === ch.material) { bucket = buckets[b]; break; }
-      if (!bucket) { bucket = { mat: ch.material, meshes: [] }; buckets.push(bucket); }
+      for (let b = 0; b < buckets.length; b++) if (buckets[b].mat === ch.material && buckets[b].ol === olMat) { bucket = buckets[b]; break; }
+      if (!bucket) { bucket = { mat: ch.material, ol: olMat, meshes: [] }; buckets.push(bucket); }
       bucket.meshes.push(ch);
     }
     for (let b = 0; b < buckets.length; b++) {
@@ -426,10 +436,108 @@
       mesh.castShadow = cast; mesh.receiveShadow = recv;
       mesh.renderOrder = order;
       mesh.userData.merged = true;
+      if (buckets[b].ol) {
+        A().smoothNormals(mesh.geometry);
+        const o = new THREE.Mesh(mesh.geometry, buckets[b].ol);
+        o.userData.isOutline = true; o.castShadow = false; o.receiveShadow = false; o.raycast = () => {};
+        mesh.add(o);
+      }
       for (let i = 0; i < arr.length; i++) container.remove(arr[i]);
       container.add(mesh);
     }
   }
+
+  /* ---- RIGID SKIN BAKE ----------------------------------------------------------------------------------------
+     Every static mesh hanging directly off a bone is welded into ONE SkinnedMesh per (material, ink outline,
+     shadow flags), each vertex weighted 1.0 to its own bone (vertices stored in that bone's local space, identity
+     inverse-binds, attached bind mode). A 90-part character becomes about a dozen draw calls while bones still drive
+     every vertex — keyframes, verlet follow-through, squash, look layers are all untouched. Meshes flagged
+     userData.keep (blinking eyes, glows, swapped parts), transparent or custom-shader meshes, and anything under a
+     hidden bone are left as they are. */
+  K.skinBake = function (rig, anim) {
+    const THREE = T();
+    if (!rig || !rig.bones || rig.skinned) return rig;
+    if (anim && anim.prepare) anim.prepare();
+    const root = rig.root;
+    root.updateWorldMatrix(true, true);
+    const shown = (o) => { for (let p = o; p; p = p.parent) { if (!p.visible) return false; if (p === root) break; } return true; };
+    const bones = [], bIdx = new Map(), buckets = new Map();
+    for (const path in rig.bones) {
+      const bone = rig.bones[path];
+      if (!shown(bone)) continue;
+      for (const ch of bone.children) {
+        if (!ch.isMesh || ch.isSkinnedMesh || ch.isInstancedMesh || !ch.visible || (ch.userData.keep && !ch.userData.skinOK) || ch.userData.isOutline) continue;
+        const mat = ch.material, g = ch.geometry;
+        if (!mat || Array.isArray(mat) || (mat.isShaderMaterial && !mat.userData.skinnable) || mat.transparent || !g || !g.attributes.normal) continue;
+        if (g.morphAttributes && Object.keys(g.morphAttributes).length) continue;
+        let ol = null, ok = true;
+        for (const k of ch.children) { if (k.isMesh && k.userData.isOutline && !ol && k.visible) ol = k; else { ok = false; break; } }
+        if (!ok) continue;
+        const sig = (g.attributes.uv ? "u" : "") + (g.attributes.color ? "c" : "");
+        const key = mat.uuid + "|" + (ol ? ol.material.uuid : "-") + "|" + sig + "|" + (ch.castShadow ? 1 : 0) + (ch.receiveShadow ? 1 : 0);
+        let b = buckets.get(key);
+        if (!b) buckets.set(key, b = { mat, olMat: ol ? ol.material : null, items: [], cast: ch.castShadow, recv: ch.receiveShadow, uv: !!g.attributes.uv, col: !!g.attributes.color, order: 0 });
+        b.items.push({ mesh: ch, bone, ol });
+        b.order = Math.max(b.order, ch.renderOrder);
+      }
+    }
+    buckets.forEach((b, k) => { if (b.items.length < 2) buckets.delete(k); else for (const it of b.items) if (!bIdx.has(it.bone)) { bIdx.set(it.bone, bones.length); bones.push(it.bone); } });
+    if (!bones.length) return rig;
+    const skel = new THREE.Skeleton(bones, bones.map(() => new THREE.Matrix4()));
+    const nm = new THREE.Matrix3(), v = new THREE.Vector3(), ident = new THREE.Matrix4();
+    let before = 0, after = 0;
+    buckets.forEach((b) => {
+      let nv = 0, ni = 0;
+      for (const it of b.items) { const g = it.mesh.geometry; nv += g.attributes.position.count; ni += g.index ? g.index.count : g.attributes.position.count; }
+      const pos = new Float32Array(nv * 3), nor = new Float32Array(nv * 3), aon = b.olMat ? new Float32Array(nv * 3) : null;
+      const uv = b.uv ? new Float32Array(nv * 2) : null, col = b.col ? new Float32Array(nv * 3) : null;
+      const si = new Uint16Array(nv * 4), sw = new Float32Array(nv * 4);
+      const idx = nv > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
+      let vo = 0, io = 0;
+      for (const it of b.items) {
+        const m = it.mesh, g = m.geometry, n = g.attributes.position.count, bi = bIdx.get(it.bone);
+        m.updateMatrix(); nm.getNormalMatrix(m.matrix);
+        if (aon && !g.attributes.aOn) A().smoothNormals(g);
+        const P = g.attributes.position, N = g.attributes.normal, O = aon ? g.attributes.aOn : null;
+        for (let i = 0, j = vo; i < n; i++, j++) {
+          v.fromBufferAttribute(P, i).applyMatrix4(m.matrix); pos[j * 3] = v.x; pos[j * 3 + 1] = v.y; pos[j * 3 + 2] = v.z;
+          v.fromBufferAttribute(N, i).applyMatrix3(nm).normalize(); nor[j * 3] = v.x; nor[j * 3 + 1] = v.y; nor[j * 3 + 2] = v.z;
+          if (O) { v.fromBufferAttribute(O, i).applyMatrix3(nm).normalize(); aon[j * 3] = v.x; aon[j * 3 + 1] = v.y; aon[j * 3 + 2] = v.z; }
+          si[j * 4] = bi; sw[j * 4] = 1;
+        }
+        if (uv) { const U = g.attributes.uv; for (let i = 0; i < n; i++) { uv[(vo + i) * 2] = U.getX(i); uv[(vo + i) * 2 + 1] = U.getY(i); } }
+        if (col) { const C = g.attributes.color; for (let i = 0; i < n; i++) { col[(vo + i) * 3] = C.getX(i); col[(vo + i) * 3 + 1] = C.getY(i); col[(vo + i) * 3 + 2] = C.getZ(i); } }
+        if (g.index) { const I = g.index.array; for (let i = 0; i < I.length; i++) idx[io + i] = I[i] + vo; io += I.length; }
+        else { for (let i = 0; i < n; i++) idx[io + i] = vo + i; io += n; }
+        vo += n;
+        before += 1 + (it.ol ? 1 : 0);
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      geo.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
+      if (uv) geo.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+      if (col) geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+      if (aon) geo.setAttribute("aOn", new THREE.BufferAttribute(aon, 3));
+      geo.setAttribute("skinIndex", new THREE.Uint16BufferAttribute(si, 4));
+      geo.setAttribute("skinWeight", new THREE.Float32BufferAttribute(sw, 4));
+      geo.setIndex(new THREE.BufferAttribute(idx, 1));
+      geo.computeBoundingSphere();
+      const sm = new THREE.SkinnedMesh(geo, b.mat);
+      sm.castShadow = b.cast; sm.receiveShadow = b.recv; sm.renderOrder = b.order; sm.frustumCulled = false;
+      sm.userData.keep = true; sm.userData.skinBaked = true; sm.name = "skin";
+      rig.body.add(sm); sm.bind(skel, ident);
+      after++;
+      if (b.olMat) {
+        const o = new THREE.SkinnedMesh(geo, b.olMat);
+        o.userData.isOutline = true; o.castShadow = false; o.receiveShadow = false; o.frustumCulled = false; o.raycast = () => {};
+        sm.add(o); o.bind(skel, ident);
+        after++;
+      }
+      for (const it of b.items) if (it.mesh.parent) it.mesh.parent.remove(it.mesh);
+    });
+    rig.skinned = { skeleton: skel, bones: bones.length, before, after };
+    return rig;
+  };
 
   K.mergeStatic = function (group) {
     if (!group || !Array.isArray(group.children)) return group;
@@ -690,10 +798,15 @@
         if (idx === undefined) { warnOnce("clip '" + name + "' references unknown bone '" + kf.bone + "'"); continue; }
         let ch = byBone[idx];
         if (!ch) ch = byBone[idx] = { i: idx, keys: [], path: kf.bone };
+        /* an ease name that slid into a channel slot (short-hand frames) is the ease, never a vector */
+        let ease = kf.ease, rot = kf.rot, pos = kf.pos, scl = kf.scl;
+        if (typeof rot === "string") { ease = ease || rot; rot = null; }
+        if (typeof pos === "string") { ease = ease || pos; pos = null; }
+        if (typeof scl === "string") { ease = ease || scl; scl = null; }
         ch.keys.push({
           t: kf.t,
-          rot: toVec(kf.rot), pos: toVec(kf.pos), scl: toVec(kf.scl),
-          ease: kf.ease || "inOutQuad"
+          rot: toVec(rot), pos: toVec(pos), scl: toVec(scl),
+          ease: ease || "inOutQuad"
         });
         if (kf.t > dur) dur = kf.t;
       }
@@ -939,6 +1052,7 @@
       get paused() { return paused; },
       setSpeed(s) { st.speed = s; },
       setIdle(v) { idleAmp = v; },
+      prepare() { if (!vInit) verletInit(); },     // measure sway bones from their geometry now (before a skin bake moves it)
       setFollow(v) { vGain = v; },                  // 0 = rigid, 1 = full verlet follow-through
       resetFollow() { vHold = 2; },                  // call after a teleport / respawn
       setPaused(v) { paused = !!v; },

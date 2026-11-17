@@ -473,7 +473,7 @@
         uCore: { value: c(0xffd9de, 1.0) }, uMid: { value: c(0xff6a80, 1.0) }, uEdge: { value: c(0xe01c3c, 1.0) },
         uPup: { value: c(0xff8e9c, 1.0) }, uK: { value: 1.45 }
       },
-      vertexShader: "varying vec3 vN; void main(){ vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+      vertexShader: "#include <common>\n#include <skinning_pars_vertex>\nvarying vec3 vN; void main(){ vec3 transformed = position; vec3 objectNormal = normal;\n#include <skinbase_vertex>\n#include <skinnormal_vertex>\n#include <skinning_vertex>\n vN = normalize(normalMatrix * objectNormal); gl_Position = projectionMatrix * modelViewMatrix * vec4(transformed, 1.0); }",
       fragmentShader:
         "uniform vec3 uCore; uniform vec3 uMid; uniform vec3 uEdge; uniform vec3 uPup; uniform float uK; varying vec3 vN;\n" +
         "void main(){ vec3 n = normalize(vN); float rr = length(n.xy);\n" +
@@ -483,6 +483,7 @@
         " c += vec3(1.0, 0.9, 0.9) * (1.0 - smoothstep(0.0, 0.15, length(n.xy - vec2(-0.30, 0.38)))) * 0.45;\n" +
         " gl_FragColor = vec4(c * uK, 1.0); }"
     });
+    m.userData.skinnable = true;
     return m;
   }
 

@@ -202,6 +202,12 @@
     renderer.info.reset();
     if (!enabled) { renderer.setRenderTarget(null); renderer.render(scene, camera); return; }
 
+    /* shadows re-render at half rate (a third on 'low'): a one-frame lag is invisible, half the shadow draws are gone */
+    if (renderer.shadowMap.enabled) {
+      renderer.shadowMap.autoUpdate = false;
+      R.frameN = (R.frameN || 0) + 1;
+      if (R.frameN % (scale <= 0.6 ? 3 : 2) === 0 || R.frameN < 4) renderer.shadowMap.needsUpdate = true;
+    }
     renderer.setRenderTarget(rtScene);
     renderer.clear();
     renderer.render(scene, camera);

@@ -256,6 +256,10 @@
     /* tiny spots glow */
     sprite(cap, 0xffb060, 0.16, 0.3, 0, 0.16, 0.10);
 
+    /* one skinned draw per material instead of ~24 separate meshes + outlines (bones still animate everything) */
+    if (G.kit && G.kit.skinBake) G.kit.skinBake({ root: root, body: root, bones: { hips: hips, chest: chest, head: head, cap: cap,
+      "legL.foot": legL.foot, "legR.foot": legR.foot, "armL.sh": armL.sh, "armR.sh": armR.sh } });
+
     return { root: root, parts: parts, height: 0.7, radius: 0.35, team: "enemy" };
   }
 
@@ -550,7 +554,7 @@
 
     ent.flashSprite = A().glowSprite(0xffc8a0, Math.max(0.6, ent.height * 0.7), 0);
     ent.flashSprite.position.set(0, ent.height * 0.55, 0);
-    ent.flashSprite.material.opacity = 0;
+    ent.flashSprite.material.opacity = 0; ent.flashSprite.visible = false;
     if (o.root && o.root.add) o.root.add(ent.flashSprite);
 
     ent.tick = function (dt) {
@@ -558,6 +562,7 @@
       if (ent.invuln > 0) ent.invuln = Math.max(0, ent.invuln - dt);
       if (ent.flashSprite && ent.flashSprite.material) {
         ent.flashSprite.material.opacity = ent.flash * 0.55;
+        ent.flashSprite.visible = ent.flash > 0.005;
       }
     };
 
@@ -607,7 +612,7 @@
   function makeAura(root, color, scale, y) {
     const s = A().glowSprite(color, scale, 0);
     s.position.set(0, y, 0);
-    s.material.opacity = 0;
+    s.material.opacity = 0; s.visible = false;
     root.add(s);
     return s;
   }
@@ -615,6 +620,7 @@
   function pulseAura(aura, amt) {
     if (!aura || !aura.material) return;
     aura.material.opacity = amt;
+    aura.visible = amt > 0.005;
   }
 
   function shake(ctx, amt, dur) {

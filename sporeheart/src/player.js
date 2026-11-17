@@ -151,6 +151,14 @@
       (P.parts.staffEye || P.parts.propR || P.root).add(gs);
       P.staffGlow = gs;
     }
+    /* procedural look layer: head + chest turn toward the lock target (or where the camera looks when idle) */
+    P.lookYaw = 0; P.lookPitch = 0; P.squash = 0; P.stretch = 0; P.bank = 0; P._lastFacing = 0;
+    if (P.anim && P.anim.layer) P.anim.layer(function (clock, dt, an) {
+      const h = an.off("head"), c = an.off("chest"), n = an.off("neck");
+      if (h) { h.ry += P.lookYaw * 0.5; h.rx += P.lookPitch * 0.55; }
+      if (n) n.ry += P.lookYaw * 0.2;
+      if (c) c.ry += P.lookYaw * 0.3;
+    });
     P.cloakPanels = []; P.cloakBase = [];
     if (Array.isArray(P.parts.cloak)) for (const p of P.parts.cloak) if (p && p.rotation) { P.cloakPanels.push(p); P.cloakBase.push(p.rotation.x); }
     P.root.position.set(P.x, P.y, P.z); scene.add(P.root);
@@ -374,6 +382,7 @@
       if (wasAir && P.vy < -9) {
         G.vfx.burst({ x: P.x, y: gy + 0.12, z: P.z }, { count: 10, color: 0xd8e9d0, speed: 3.2, size: 0.26, life: 0.4, gravity: -3, spread: 1, tex: "glow" });
         sfx("land"); if (P.vy < -17) G.vfx.shake(0.16);
+        P.squash = Math.min(1.2, -P.vy / 16);
         play("land", { fade: 0.04, once: true });
       }
       P.y = gy; P.vy = 0; P.grounded = true; P.jumps = 0; P.coyote = COYOTE; P.airDash = 0; P.airAttacks = 0; P.wallT = 0;
@@ -654,7 +663,7 @@
 
   function tryJump() {
     if (P.grounded || P.coyote > 0) {
-      P.vy = JUMP_V + P.boost * 1.5; P.grounded = false; P.coyote = 0; P.jumps = 1; P.action = null;
+      P.vy = JUMP_V + P.boost * 1.5; P.grounded = false; P.coyote = 0; P.jumps = 1; P.action = null; P.stretch = 1;
       if (P.afterDash > 0) P.boost = Math.max(P.boost, 0.38);        // dash-jump: carry the speed
       G.vfx.burst({ x: P.x, y: P.y + 0.1, z: P.z }, { count: 8, color: 0xd8e9d0, speed: 2.6, size: 0.24, life: 0.35, gravity: -2, spread: 1, tex: "glow" });
       play("jump", { fade: 0.05, once: true }); sfx("jump"); return true;
@@ -669,7 +678,7 @@
       return true;
     }
     if (P.jumps < 2) {
-      P.vy = DJUMP_V; P.jumps = 2; P.action = null;
+      P.vy = DJUMP_V; P.jumps = 2; P.action = null; P.stretch = 0.8;
       G.vfx.ringShockwave({ x: P.x, y: P.y, z: P.z }, 0xbfe3d2, 1.6);
       G.vfx.burst({ x: P.x, y: P.y + 0.5, z: P.z }, { count: 10, color: 0xbfe3d2, speed: 3, size: 0.26, life: 0.35, gravity: -1, spread: 1, tex: "glow" });
       play("doubleJump", { fade: 0.05, once: true }, "jump"); sfx("jump", { rate: 1.12 }); return true;
@@ -1040,13 +1049,33 @@
     P.facing = G.util.angleLerp(P.facing, face, 1 - Math.exp(-(P.grounded ? 18 : 10) * dt));
     P.root.position.set(P.x, P.y, P.z); P.root.rotation.y = P.facing;
 
-    /* body lean into motion */
+    /* body lean into motion, bank into turns, squash on landing, stretch on take-off */
     const body = P.rig && P.rig.body;
     if (body) {
       const sp = Math.hypot(P.vx, P.vz);
       const want = P.grounded ? clamp(sp * 0.018, 0, 0.2) * (P.sprinting ? 1.4 : 1) : (P.gliding ? 0.9 : clamp(sp * 0.012, 0, 0.18));
       body.rotation.x = damp(body.rotation.x, want, 10, dt);
+      let dF = P.facing - P._lastFacing; while (dF > Math.PI) dF -= TAU; while (dF < -Math.PI) dF += TAU;
+      P._lastFacing = P.facing;
+      const bankWant = clamp(-(dF / Math.max(dt, 1e-3)) * sp * 0.012, -0.28, 0.28) * (P.grounded ? 1 : 0.5);
+      P.bank = damp(P.bank, bankWant, 8, dt); body.rotation.z = P.bank;
+      P.squash = Math.max(0, P.squash - dt * 5); P.stretch = Math.max(0, P.stretch - dt * 4);
+      const sq = Math.sin(Math.min(1, P.squash) * Math.PI * 0.5) * 0.16 - P.stretch * 0.1;
+      body.scale.set(1 + sq * 0.5, 1 - sq, 1 + sq * 0.5);
     }
+    /* look target */
+    let lookY = 0, lookP = 0;
+    if (P.lockTarget && isFoe(P.lockTarget)) {
+      const ep = entPos(P.lockTarget), dx = ep.x - P.x, dz = ep.z - P.z;
+      let a = Math.atan2(dx, dz) - P.facing; while (a > Math.PI) a -= TAU; while (a < -Math.PI) a += TAU;
+      lookY = clamp(a, -1.1, 1.1);
+      const th = num(P.lockTarget.height, 1.8) * 0.6;
+      lookP = clamp(-Math.atan2(ep.y + th - (P.y + 1.3), Math.hypot(dx, dz)) * 0.8, -0.5, 0.35);
+    } else if (!P.hasInput && P.grounded && !P.action) {
+      let a = P.cam.yaw - P.facing; while (a > Math.PI) a -= TAU; while (a < -Math.PI) a += TAU;
+      lookY = clamp(a, -0.7, 0.7) * 0.6;                    /* idle: glances the way the camera looks */
+    }
+    P.lookYaw = damp(P.lookYaw, lookY, 7, dt); P.lookPitch = damp(P.lookPitch, lookP, 7, dt);
     if (P.anim) P.anim.update(dt, { speed: Math.hypot(P.vx, P.vz) });
 
     if (!P.action) {

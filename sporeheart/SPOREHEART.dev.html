@@ -269,7 +269,7 @@
   };
 
   /* ---------------- STATS / DEBUG ---------------- */
-  G.stats = { fps: 60, ms: 0, drawCalls: 0, tris: 0, kills: 0, breaks: 0, hits: 0, playTime: 0 };
+  G.stats = { fps: 60, ms: 0, drawCalls: 0, tris: 0, kills: 0, breaks: 0, hits: 0, playTime: 0, simMs: 0, renderMs: 0, bestCombo: 0 };
   if (new URLSearchParams(location.search).has("debug")) G.CONF.debug = true;
 })();
 
@@ -535,10 +535,16 @@
     geo.setAttribute("aOn", new THREE.BufferAttribute(out, 3));
   }
   const OUTLINE_VERT = `
+    #include <common>
+    #include <skinning_pars_vertex>
     attribute vec3 aOn; uniform float uPx; uniform vec2 uRes;
     void main(){
-      vec4 mv = modelViewMatrix * vec4(position, 1.0);
-      vec3 vn = normalize(normalMatrix * aOn);
+      vec3 transformed = position; vec3 objectNormal = aOn;
+      #include <skinbase_vertex>
+      #include <skinnormal_vertex>
+      #include <skinning_vertex>
+      vec4 mv = modelViewMatrix * vec4(transformed, 1.0);
+      vec3 vn = normalize(normalMatrix * objectNormal);
       vec4 clip = projectionMatrix * mv;
       float fade = mix(1.0, 0.45, smoothstep(14.0, 70.0, -mv.z));
       vec2 dir = normalize(vn.xy + vec2(1e-5));
@@ -947,6 +953,12 @@
     renderer.info.reset();
     if (!enabled) { renderer.setRenderTarget(null); renderer.render(scene, camera); return; }
 
+    /* shadows re-render at half rate (a third on 'low'): a one-frame lag is invisible, half the shadow draws are gone */
+    if (renderer.shadowMap.enabled) {
+      renderer.shadowMap.autoUpdate = false;
+      R.frameN = (R.frameN || 0) + 1;
+      if (R.frameN % (scale <= 0.6 ? 3 : 2) === 0 || R.frameN < 4) renderer.shadowMap.needsUpdate = true;
+    }
     renderer.setRenderTarget(rtScene);
     renderer.clear();
     renderer.render(scene, camera);
@@ -1364,18 +1376,20 @@
      (No-op on the headless stub, where children is not a real array.) */
   function mergeGeos(geos) {
     const THREE = T();
-    let count = 0;
-    for (let i = 0; i < geos.length; i++) count += geos[i].attributes.position.count;
+    let count = 0, anyCol = false;
+    for (let i = 0; i < geos.length; i++) { count += geos[i].attributes.position.count; if (geos[i].attributes.color) anyCol = true; }
     const pos = new Float32Array(count * 3);
     const nor = new Float32Array(count * 3);
     const uv = new Float32Array(count * 2);
+    const col = anyCol ? new Float32Array(count * 3).fill(1) : null;
     let o = 0;
     for (let i = 0; i < geos.length; i++) {
       const g = geos[i];
-      const p = g.attributes.position, n = g.attributes.normal, u = g.attributes.uv;
+      const p = g.attributes.position, n = g.attributes.normal, u = g.attributes.uv, c = g.attributes.color;
       pos.set(p.array, o * 3);
       if (n) nor.set(n.array, o * 3);
       if (u) uv.set(u.array, o * 2);
+      if (c && col) { if (c.itemSize === 3) col.set(c.array, o * 3); else for (let k = 0; k < p.count; k++) { col[(o + k) * 3] = c.getX(k); col[(o + k) * 3 + 1] = c.getY(k); col[(o + k) * 3 + 2] = c.getZ(k); } }
       o += p.count;
       g.dispose();
     }
@@ -1383,6 +1397,7 @@
     out.setAttribute("position", new THREE.BufferAttribute(pos, 3));
     out.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
     out.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+    if (col) out.setAttribute("color", new THREE.BufferAttribute(col, 3));
     out.computeBoundingSphere();
     out.computeBoundingBox();
     return out;
@@ -1392,10 +1407,17 @@
     const buckets = [];
     for (let i = 0; i < children.length; i++) {
       const ch = children[i];
-      if (!ch.isMesh || ch.children.length > 0 || ch.userData.keep) continue;
+      if (!ch.isMesh || ch.userData.keep || ch.userData.isOutline) continue;
+      /* a mesh may carry exactly one ink-outline child: it batches with others sharing BOTH materials */
+      let olMat = null, ok = true;
+      for (let c = 0; c < ch.children.length; c++) {
+        const k = ch.children[c];
+        if (k.isMesh && k.userData.isOutline && !olMat) olMat = k.material; else { ok = false; break; }
+      }
+      if (!ok) continue;
       let bucket = null;
-      for (let b = 0; b < buckets.length; b++) if (buckets[b].mat === ch.material) { bucket = buckets[b]; break; }
-      if (!bucket) { bucket = { mat: ch.material, meshes: [] }; buckets.push(bucket); }
+      for (let b = 0; b < buckets.length; b++) if (buckets[b].mat === ch.material && buckets[b].ol === olMat) { bucket = buckets[b]; break; }
+      if (!bucket) { bucket = { mat: ch.material, ol: olMat, meshes: [] }; buckets.push(bucket); }
       bucket.meshes.push(ch);
     }
     for (let b = 0; b < buckets.length; b++) {
@@ -1416,10 +1438,108 @@
       mesh.castShadow = cast; mesh.receiveShadow = recv;
       mesh.renderOrder = order;
       mesh.userData.merged = true;
+      if (buckets[b].ol) {
+        A().smoothNormals(mesh.geometry);
+        const o = new THREE.Mesh(mesh.geometry, buckets[b].ol);
+        o.userData.isOutline = true; o.castShadow = false; o.receiveShadow = false; o.raycast = () => {};
+        mesh.add(o);
+      }
       for (let i = 0; i < arr.length; i++) container.remove(arr[i]);
       container.add(mesh);
     }
   }
+
+  /* ---- RIGID SKIN BAKE ----------------------------------------------------------------------------------------
+     Every static mesh hanging directly off a bone is welded into ONE SkinnedMesh per (material, ink outline,
+     shadow flags), each vertex weighted 1.0 to its own bone (vertices stored in that bone's local space, identity
+     inverse-binds, attached bind mode). A 90-part character becomes about a dozen draw calls while bones still drive
+     every vertex — keyframes, verlet follow-through, squash, look layers are all untouched. Meshes flagged
+     userData.keep (blinking eyes, glows, swapped parts), transparent or custom-shader meshes, and anything under a
+     hidden bone are left as they are. */
+  K.skinBake = function (rig, anim) {
+    const THREE = T();
+    if (!rig || !rig.bones || rig.skinned) return rig;
+    if (anim && anim.prepare) anim.prepare();
+    const root = rig.root;
+    root.updateWorldMatrix(true, true);
+    const shown = (o) => { for (let p = o; p; p = p.parent) { if (!p.visible) return false; if (p === root) break; } return true; };
+    const bones = [], bIdx = new Map(), buckets = new Map();
+    for (const path in rig.bones) {
+      const bone = rig.bones[path];
+      if (!shown(bone)) continue;
+      for (const ch of bone.children) {
+        if (!ch.isMesh || ch.isSkinnedMesh || ch.isInstancedMesh || !ch.visible || (ch.userData.keep && !ch.userData.skinOK) || ch.userData.isOutline) continue;
+        const mat = ch.material, g = ch.geometry;
+        if (!mat || Array.isArray(mat) || (mat.isShaderMaterial && !mat.userData.skinnable) || mat.transparent || !g || !g.attributes.normal) continue;
+        if (g.morphAttributes && Object.keys(g.morphAttributes).length) continue;
+        let ol = null, ok = true;
+        for (const k of ch.children) { if (k.isMesh && k.userData.isOutline && !ol && k.visible) ol = k; else { ok = false; break; } }
+        if (!ok) continue;
+        const sig = (g.attributes.uv ? "u" : "") + (g.attributes.color ? "c" : "");
+        const key = mat.uuid + "|" + (ol ? ol.material.uuid : "-") + "|" + sig + "|" + (ch.castShadow ? 1 : 0) + (ch.receiveShadow ? 1 : 0);
+        let b = buckets.get(key);
+        if (!b) buckets.set(key, b = { mat, olMat: ol ? ol.material : null, items: [], cast: ch.castShadow, recv: ch.receiveShadow, uv: !!g.attributes.uv, col: !!g.attributes.color, order: 0 });
+        b.items.push({ mesh: ch, bone, ol });
+        b.order = Math.max(b.order, ch.renderOrder);
+      }
+    }
+    buckets.forEach((b, k) => { if (b.items.length < 2) buckets.delete(k); else for (const it of b.items) if (!bIdx.has(it.bone)) { bIdx.set(it.bone, bones.length); bones.push(it.bone); } });
+    if (!bones.length) return rig;
+    const skel = new THREE.Skeleton(bones, bones.map(() => new THREE.Matrix4()));
+    const nm = new THREE.Matrix3(), v = new THREE.Vector3(), ident = new THREE.Matrix4();
+    let before = 0, after = 0;
+    buckets.forEach((b) => {
+      let nv = 0, ni = 0;
+      for (const it of b.items) { const g = it.mesh.geometry; nv += g.attributes.position.count; ni += g.index ? g.index.count : g.attributes.position.count; }
+      const pos = new Float32Array(nv * 3), nor = new Float32Array(nv * 3), aon = b.olMat ? new Float32Array(nv * 3) : null;
+      const uv = b.uv ? new Float32Array(nv * 2) : null, col = b.col ? new Float32Array(nv * 3) : null;
+      const si = new Uint16Array(nv * 4), sw = new Float32Array(nv * 4);
+      const idx = nv > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
+      let vo = 0, io = 0;
+      for (const it of b.items) {
+        const m = it.mesh, g = m.geometry, n = g.attributes.position.count, bi = bIdx.get(it.bone);
+        m.updateMatrix(); nm.getNormalMatrix(m.matrix);
+        if (aon && !g.attributes.aOn) A().smoothNormals(g);
+        const P = g.attributes.position, N = g.attributes.normal, O = aon ? g.attributes.aOn : null;
+        for (let i = 0, j = vo; i < n; i++, j++) {
+          v.fromBufferAttribute(P, i).applyMatrix4(m.matrix); pos[j * 3] = v.x; pos[j * 3 + 1] = v.y; pos[j * 3 + 2] = v.z;
+          v.fromBufferAttribute(N, i).applyMatrix3(nm).normalize(); nor[j * 3] = v.x; nor[j * 3 + 1] = v.y; nor[j * 3 + 2] = v.z;
+          if (O) { v.fromBufferAttribute(O, i).applyMatrix3(nm).normalize(); aon[j * 3] = v.x; aon[j * 3 + 1] = v.y; aon[j * 3 + 2] = v.z; }
+          si[j * 4] = bi; sw[j * 4] = 1;
+        }
+        if (uv) { const U = g.attributes.uv; for (let i = 0; i < n; i++) { uv[(vo + i) * 2] = U.getX(i); uv[(vo + i) * 2 + 1] = U.getY(i); } }
+        if (col) { const C = g.attributes.color; for (let i = 0; i < n; i++) { col[(vo + i) * 3] = C.getX(i); col[(vo + i) * 3 + 1] = C.getY(i); col[(vo + i) * 3 + 2] = C.getZ(i); } }
+        if (g.index) { const I = g.index.array; for (let i = 0; i < I.length; i++) idx[io + i] = I[i] + vo; io += I.length; }
+        else { for (let i = 0; i < n; i++) idx[io + i] = vo + i; io += n; }
+        vo += n;
+        before += 1 + (it.ol ? 1 : 0);
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      geo.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
+      if (uv) geo.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+      if (col) geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+      if (aon) geo.setAttribute("aOn", new THREE.BufferAttribute(aon, 3));
+      geo.setAttribute("skinIndex", new THREE.Uint16BufferAttribute(si, 4));
+      geo.setAttribute("skinWeight", new THREE.Float32BufferAttribute(sw, 4));
+      geo.setIndex(new THREE.BufferAttribute(idx, 1));
+      geo.computeBoundingSphere();
+      const sm = new THREE.SkinnedMesh(geo, b.mat);
+      sm.castShadow = b.cast; sm.receiveShadow = b.recv; sm.renderOrder = b.order; sm.frustumCulled = false;
+      sm.userData.keep = true; sm.userData.skinBaked = true; sm.name = "skin";
+      rig.body.add(sm); sm.bind(skel, ident);
+      after++;
+      if (b.olMat) {
+        const o = new THREE.SkinnedMesh(geo, b.olMat);
+        o.userData.isOutline = true; o.castShadow = false; o.receiveShadow = false; o.frustumCulled = false; o.raycast = () => {};
+        sm.add(o); o.bind(skel, ident);
+        after++;
+      }
+      for (const it of b.items) if (it.mesh.parent) it.mesh.parent.remove(it.mesh);
+    });
+    rig.skinned = { skeleton: skel, bones: bones.length, before, after };
+    return rig;
+  };
 
   K.mergeStatic = function (group) {
     if (!group || !Array.isArray(group.children)) return group;
@@ -1680,10 +1800,15 @@
         if (idx === undefined) { warnOnce("clip '" + name + "' references unknown bone '" + kf.bone + "'"); continue; }
         let ch = byBone[idx];
         if (!ch) ch = byBone[idx] = { i: idx, keys: [], path: kf.bone };
+        /* an ease name that slid into a channel slot (short-hand frames) is the ease, never a vector */
+        let ease = kf.ease, rot = kf.rot, pos = kf.pos, scl = kf.scl;
+        if (typeof rot === "string") { ease = ease || rot; rot = null; }
+        if (typeof pos === "string") { ease = ease || pos; pos = null; }
+        if (typeof scl === "string") { ease = ease || scl; scl = null; }
         ch.keys.push({
           t: kf.t,
-          rot: toVec(kf.rot), pos: toVec(kf.pos), scl: toVec(kf.scl),
-          ease: kf.ease || "inOutQuad"
+          rot: toVec(rot), pos: toVec(pos), scl: toVec(scl),
+          ease: ease || "inOutQuad"
         });
         if (kf.t > dur) dur = kf.t;
       }
@@ -1929,6 +2054,7 @@
       get paused() { return paused; },
       setSpeed(s) { st.speed = s; },
       setIdle(v) { idleAmp = v; },
+      prepare() { if (!vInit) verletInit(); },     // measure sway bones from their geometry now (before a skin bake moves it)
       setFollow(v) { vGain = v; },                  // 0 = rigid, 1 = full verlet follow-through
       resetFollow() { vHold = 2; },                  // call after a teleport / respawn
       setPaused(v) { paused = !!v; },
@@ -3637,7 +3763,11 @@
   /* new-style characters (src/char_<id>.js) register themselves here and override the legacy builders below */
   C.define = function (id, def, builder) { DEFS[id] = def; REG[id] = builder; C.heights[id] = def.height; C.radii[id] = def.radius; };
   C.build = function (id) {
-    if (REG[id]) return REG[id]();
+    if (REG[id]) {
+      const c = REG[id]();
+      if (c && c.rig && G.kit.skinBake && !(G.settings && G.settings.noSkinBake)) G.kit.skinBake(c.rig, c.anim);
+      return c;
+    }
     switch (id) {
       case "witch": return buildWitch();
       case "crane": return buildCrane();
@@ -4947,7 +5077,7 @@
       const isGlow = b.cls.indexOf("g_") === 0;
       const mesh = K.mk(g, mat, { o: b.ol || 0, oc: b.oc || undefined, shadow: !isGlow && b.cls !== "hair", recv: !isGlow });
       mesh.name = b.bone + ":" + b.cls;
-      mesh.userData.keep = true;
+      mesh.userData.keep = true; mesh.userData.skinOK = true;
       const bone = rig.bones[b.bone];
       if (!bone) console.warn("[beast] missing bone", b.bone);
       (bone || rig.body).add(mesh);
@@ -5926,7 +6056,7 @@
         uCore: { value: c(0xffd9de, 1.0) }, uMid: { value: c(0xff6a80, 1.0) }, uEdge: { value: c(0xe01c3c, 1.0) },
         uPup: { value: c(0xff8e9c, 1.0) }, uK: { value: 1.45 }
       },
-      vertexShader: "varying vec3 vN; void main(){ vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+      vertexShader: "#include <common>\n#include <skinning_pars_vertex>\nvarying vec3 vN; void main(){ vec3 transformed = position; vec3 objectNormal = normal;\n#include <skinbase_vertex>\n#include <skinnormal_vertex>\n#include <skinning_vertex>\n vN = normalize(normalMatrix * objectNormal); gl_Position = projectionMatrix * modelViewMatrix * vec4(transformed, 1.0); }",
       fragmentShader:
         "uniform vec3 uCore; uniform vec3 uMid; uniform vec3 uEdge; uniform vec3 uPup; uniform float uK; varying vec3 vN;\n" +
         "void main(){ vec3 n = normalize(vN); float rr = length(n.xy);\n" +
@@ -5936,6 +6066,7 @@
         " c += vec3(1.0, 0.9, 0.9) * (1.0 - smoothstep(0.0, 0.15, length(n.xy - vec2(-0.30, 0.38)))) * 0.45;\n" +
         " gl_FragColor = vec4(c * uK, 1.0); }"
     });
+    m.userData.skinnable = true;
     return m;
   }
 
@@ -7685,7 +7816,7 @@
     function put(boneName, geo, o) {
       o = o || {};
       const m = K.mk(geo, o.ds ? vcD : vc, { p: o.p, r: o.r, s: o.s, o: o.o, oc: o.oc, name: o.name, shadow: o.shadow, noOutline: o.noOutline });
-      m.userData.keep = true;
+      m.userData.keep = true; m.userData.skinOK = true;
       if (o.parent) o.parent.add(m); else rig.attach(boneName, m);
       return m;
     }
@@ -8274,7 +8405,7 @@
     /* ---- clip authoring helper: tr(bone, [[t, rot, pos, scl, ease], ...]) ---- */
     function mk(name, dur, loop, fill) {
       const kf = [];
-      const tr = (bone, frames) => { for (const f of frames) kf.push({ t: f[0], bone, rot: f[1] || undefined, pos: f[2] || undefined, scl: f[3] || undefined, ease: f[4] }); };
+      const tr = (bone, frames) => { for (const f of frames) { const a = f.slice(1), ease = typeof a[a.length - 1] === "string" ? a.pop() : undefined; kf.push({ t: f[0], bone, rot: a[0] || undefined, pos: a[1] || undefined, scl: a[2] || undefined, ease }); } };
       fill(tr);
       anim.addClip(name, kf, { loop: loop, dur: dur });
     }
@@ -11506,7 +11637,7 @@
     /* ------------------------------------------------------------ helpers */
     function put(parent, geo, mat, o, keep) {
       const m = mk(geo, mat, o);
-      if (keep) m.userData.keep = true;
+      if (keep) { m.userData.keep = true; m.userData.skinOK = true; }   /* kept out of the per-bone merge (colour attr), fine to skin-bake */
       parent.add(m);
       return m;
     }
@@ -12150,7 +12281,7 @@
           hips: { r: [g.hipLean, g.hipTwist * s, 0.035 * s], p: [0, -g.bob * c * c * 0 - g.bob * Math.cos(2 * ph) - 0.004, g.fwd] },
           chest: [g.lean, -g.twist * s, -0.03 * s],
           head: [g.headUp, g.twist * 0.7 * s, 0.02 * s],
-          "legL.hip": [-g.hip0 - g.hipF * s + (s < 0 ? -g.hipB * s * 0.0 : 0), 0, 0],
+          "legL.hip": [-g.hip0 - g.hipF * s, 0, 0],
           "legL.knee": [flexL, 0, 0],
           "legL.foot": [0.25 * Math.max(0, -s) - 0.2 * Math.max(0, s) * 0.0 + 0.2 * bump(ph) * 0, 0, 0],
           "legR.hip": [-g.hip0 + g.hipF * s, 0, 0],
@@ -12689,6 +12820,10 @@
     /* tiny spots glow */
     sprite(cap, 0xffb060, 0.16, 0.3, 0, 0.16, 0.10);
 
+    /* one skinned draw per material instead of ~24 separate meshes + outlines (bones still animate everything) */
+    if (G.kit && G.kit.skinBake) G.kit.skinBake({ root: root, body: root, bones: { hips: hips, chest: chest, head: head, cap: cap,
+      "legL.foot": legL.foot, "legR.foot": legR.foot, "armL.sh": armL.sh, "armR.sh": armR.sh } });
+
     return { root: root, parts: parts, height: 0.7, radius: 0.35, team: "enemy" };
   }
 
@@ -12983,7 +13118,7 @@
 
     ent.flashSprite = A().glowSprite(0xffc8a0, Math.max(0.6, ent.height * 0.7), 0);
     ent.flashSprite.position.set(0, ent.height * 0.55, 0);
-    ent.flashSprite.material.opacity = 0;
+    ent.flashSprite.material.opacity = 0; ent.flashSprite.visible = false;
     if (o.root && o.root.add) o.root.add(ent.flashSprite);
 
     ent.tick = function (dt) {
@@ -12991,6 +13126,7 @@
       if (ent.invuln > 0) ent.invuln = Math.max(0, ent.invuln - dt);
       if (ent.flashSprite && ent.flashSprite.material) {
         ent.flashSprite.material.opacity = ent.flash * 0.55;
+        ent.flashSprite.visible = ent.flash > 0.005;
       }
     };
 
@@ -13040,7 +13176,7 @@
   function makeAura(root, color, scale, y) {
     const s = A().glowSprite(color, scale, 0);
     s.position.set(0, y, 0);
-    s.material.opacity = 0;
+    s.material.opacity = 0; s.visible = false;
     root.add(s);
     return s;
   }
@@ -13048,6 +13184,7 @@
   function pulseAura(aura, amt) {
     if (!aura || !aura.material) return;
     aura.material.opacity = amt;
+    aura.visible = amt > 0.005;
   }
 
   function shake(ctx, amt, dur) {
@@ -13392,14 +13529,64 @@
     if (shadow !== false) { m.castShadow = true; m.receiveShadow = true; }
     return m;
   }
+  /* glow billboards: lightweight proxies (real Object3Ds so they parent / move like sprites) drawn by ONE instanced
+     mesh each frame — 80+ draw calls become one. API matches what the world uses on sprites: position, scale,
+     visible, material.opacity, material.color. */
+  const GLOW = { list: [], mesh: null, col: null, cap: 0 };
   function glowSprite(color, scale, opacity) {
     const THREE = T();
-    const sp = new THREE.Sprite(new THREE.SpriteMaterial({
-      map: A().tex.glowdot(), color, transparent: true, opacity: opacity === undefined ? 0.85 : opacity,
-      blending: THREE.AdditiveBlending, depthWrite: false, fog: false
-    }));
-    sp.scale.setScalar(scale);
-    return sp;
+    const p = new THREE.Object3D();
+    p.material = { opacity: opacity === undefined ? 0.85 : opacity, color: new THREE.Color(color), fog: false };
+    p.scale.setScalar(scale);
+    p.isGlowProxy = true;
+    GLOW.list.push(p);
+    return p;
+  }
+  /* renderer.compile() would try to build a program for anything carrying .material — park the proxies' during it */
+  W.glowStash = function (on) {
+    for (const p of GLOW.list) { if (on) { p._gm = p.material; p.material = undefined; } else if (p._gm) { p.material = p._gm; p._gm = null; } }
+  };
+  function buildGlowBatch() {
+    const THREE = T(), n = GLOW.list.length;
+    if (!n) return;
+    GLOW.cap = n + 16;
+    const geo = new THREE.PlaneGeometry(1, 1);
+    const mat = new THREE.ShaderMaterial({
+      uniforms: { map: { value: A().tex.glowdot() } },
+      vertexShader: `attribute vec4 aCol; varying vec4 vCol; varying vec2 vUv;
+        void main(){ vUv = uv; vCol = aCol;
+          vec4 mv = modelViewMatrix * vec4(instanceMatrix[3].xyz, 1.0);
+          float sc = length(instanceMatrix[0].xyz);
+          mv.xy += position.xy * sc; gl_Position = projectionMatrix * mv; }`,
+      fragmentShader: `uniform sampler2D map; varying vec4 vCol; varying vec2 vUv;
+        void main(){ vec4 t = texture2D(map, vUv); gl_FragColor = vec4(vCol.rgb * t.rgb * t.a * vCol.a, 1.0); }`,
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+    });
+    const m = new THREE.InstancedMesh(geo, mat, GLOW.cap);
+    m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    GLOW.col = new THREE.InstancedBufferAttribute(new Float32Array(GLOW.cap * 4), 4).setUsage(THREE.DynamicDrawUsage);
+    geo.setAttribute("aCol", GLOW.col);
+    m.frustumCulled = false; m.renderOrder = 7; m.castShadow = false; m.receiveShadow = false; m.name = "glowBatch";
+    GLOW.mesh = m; S.root.add(m);
+  }
+  const _gm = { e: null };
+  function updateGlowBatch() {
+    const m = GLOW.mesh; if (!m) return;
+    const arr = m.instanceMatrix.array, col = GLOW.col.array;
+    let k = 0;
+    for (let i = 0; i < GLOW.list.length && k < GLOW.cap; i++) {
+      const p = GLOW.list[i];
+      let vis = p.visible, top = p;
+      for (let q = p.parent; q && vis; q = q.parent) { if (!q.visible) vis = false; top = q; }
+      if (!vis || !top.isScene || p.material.opacity <= 0.003) continue;
+      p.updateWorldMatrix(true, false);
+      const e = p.matrixWorld.elements, o = k * 16;
+      for (let j = 0; j < 16; j++) arr[o + j] = e[j];
+      const c = p.material.color, a = p.material.opacity;
+      col[k * 4] = c.r; col[k * 4 + 1] = c.g; col[k * 4 + 2] = c.b; col[k * 4 + 3] = a;
+      k++;
+    }
+    m.count = k; m.instanceMatrix.needsUpdate = true; GLOW.col.needsUpdate = true;
   }
 
   /* ---- geometry merge (init-time only) : lets one mesh carry many parts ---- */
@@ -13785,6 +13972,8 @@
     // (Rotheart cavern removed — the assassin fight happens in the town square)
     buildMotes();
     buildBounds();
+    staticBatch();
+    buildGlowBatch();
 
     S.time = 0;
     applyMood(0);
@@ -15254,6 +15443,110 @@
     }
   }
 
+
+  /* =====================================================================
+     STATIC BATCHING — weld every non-moving world mesh into one mesh per material
+     (and one ink-outline mesh per outline material). Cuts ~600 draw calls to ~60 on the phone.
+     Anything animated, breakable or moved at runtime is left alone.
+     ===================================================================== */
+  function staticBatch() {
+    const THREE = T();
+    const dyn = new Set();
+    const mark = (o) => { if (o) dyn.add(o); };
+    S.sway.forEach((s) => mark(s.obj));
+    S.pulses.forEach((p) => mark(p.obj));
+    S.lanterns.forEach((l) => { mark(l.sprite); mark(l.bulb); });
+    S.smoke.forEach((s) => mark(s.sprite));
+    W.bouncers.forEach((b) => { mark(b.mesh); mark(b.glow); });
+    W.hookPoints.forEach((h) => mark(h.group));
+    mark(S.beacon);
+    if (S.gate) { mark(S.gate.left); mark(S.gate.right); mark(S.gate.seam); mark(S.gate.glowA); mark(S.gate.glowB); }
+    S.root.updateMatrixWorld(true);
+    const isDyn = (o) => { for (let p = o; p && p !== S.root; p = p.parent) if (dyn.has(p)) return true; return false; };
+    const buckets = new Map(), olBuckets = new Map(), victims = [];
+    const sig = (g) => (g.attributes.uv ? "u" : "") + (g.attributes.color ? "c" : "");
+    S.hub.traverse((m) => {
+      if (!m.isMesh || m.isInstancedMesh || m.userData.isOutline || !m.geometry || !m.geometry.attributes.normal) return;
+      if (Array.isArray(m.material) || m.material.isShaderMaterial || m.material.transparent && m.material.blending === THREE.AdditiveBlending) return;
+      if (isDyn(m)) return;
+      const key = m.material.uuid + "|" + sig(m.geometry) + "|" + (m.castShadow ? 1 : 0) + (m.receiveShadow ? 1 : 0);
+      let b = buckets.get(key);
+      if (!b) { b = { mat: m.material, items: [], cast: m.castShadow, recv: m.receiveShadow, uv: !!m.geometry.attributes.uv, col: !!m.geometry.attributes.color, order: m.renderOrder }; buckets.set(key, b); }
+      b.items.push(m);
+      for (const c of m.children) if (c.isMesh && c.userData.isOutline) {
+        const ok = c.material.uuid; let ob = olBuckets.get(ok);
+        if (!ob) { ob = { mat: c.material, items: [] }; olBuckets.set(ok, ob); }
+        ob.items.push({ mesh: m, geo: c.geometry });
+      }
+      victims.push(m);
+    });
+    const nm = new THREE.Matrix3(), v = new THREE.Vector3();
+    const ranges = new Map();          /* source mesh -> [{geo, start, count}] (for collapsing a smashed breakable) */
+    function weld(items, withUV, withCol, outline) {
+      let nv = 0, ni = 0;
+      for (const it of items) { const g = outline ? it.geo : it.geometry; nv += g.attributes.position.count; ni += g.index ? g.index.count : g.attributes.position.count; }
+      const pos = new Float32Array(nv * 3), nor = new Float32Array(nv * 3), uv = withUV ? new Float32Array(nv * 2) : null, col = withCol ? new Float32Array(nv * 3) : null;
+      const idx = nv > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
+      let vo = 0, io = 0;
+      for (const it of items) {
+        const mesh = outline ? it.mesh : it, g = outline ? it.geo : it.geometry, mw = mesh.matrixWorld;
+        nm.getNormalMatrix(mw);
+        const P = g.attributes.position, N = outline ? (g.attributes.aOn || g.attributes.normal) : g.attributes.normal, n = P.count;
+        for (let i = 0; i < n; i++) {
+          v.fromBufferAttribute(P, i).applyMatrix4(mw); pos[(vo + i) * 3] = v.x; pos[(vo + i) * 3 + 1] = v.y; pos[(vo + i) * 3 + 2] = v.z;
+          v.fromBufferAttribute(N, i).applyMatrix3(nm).normalize(); nor[(vo + i) * 3] = v.x; nor[(vo + i) * 3 + 1] = v.y; nor[(vo + i) * 3 + 2] = v.z;
+        }
+        if (uv) { const U = g.attributes.uv; for (let i = 0; i < n; i++) { uv[(vo + i) * 2] = U.getX(i); uv[(vo + i) * 2 + 1] = U.getY(i); } }
+        if (col) { const C = g.attributes.color; for (let i = 0; i < n; i++) { col[(vo + i) * 3] = C.getX(i); col[(vo + i) * 3 + 1] = C.getY(i); col[(vo + i) * 3 + 2] = C.getZ(i); } }
+        (ranges.get(mesh) || ranges.set(mesh, []).get(mesh)).push({ geo: null, start: vo, count: n, _w: weld._id });
+        if (g.index) { const I = g.index.array; for (let i = 0; i < I.length; i++) idx[io + i] = I[i] + vo; io += I.length; }
+        else { for (let i = 0; i < n; i++) idx[io + i] = vo + i; io += n; }
+        vo += n;
+      }
+      const out = new THREE.BufferGeometry();
+      out.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      out.setAttribute(outline ? "aOn" : "normal", new THREE.BufferAttribute(nor, 3));
+      if (outline) out.setAttribute("normal", out.attributes.aOn);
+      if (uv) out.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+      if (col) out.setAttribute("color", new THREE.BufferAttribute(col, 3));
+      out.setIndex(new THREE.BufferAttribute(idx, 1));
+      out.computeBoundingSphere();
+      out.attributes.position.setUsage(THREE.DynamicDrawUsage);
+      ranges.forEach((rs) => { for (const r of rs) if (r._w === weld._id && !r.geo) r.geo = out; });
+      weld._id++;
+      return out;
+    }
+    weld._id = 1;
+    let merged = 0, before = victims.length;
+    buckets.forEach((b) => {
+      if (b.items.length < 2) { const i = victims.indexOf(b.items[0]); if (i >= 0) victims.splice(i, 1); return; }
+      const mesh = new THREE.Mesh(weld(b.items, b.uv, b.col, false), b.mat);
+      mesh.castShadow = b.cast; mesh.receiveShadow = b.recv; mesh.renderOrder = b.order; mesh.matrixAutoUpdate = false;
+      mesh.name = "batch:" + (b.mat.name || b.mat.type); S.root.add(mesh); merged++;
+    });
+    const keep = new Set(victims);
+    olBuckets.forEach((ob) => {
+      const items = ob.items.filter((it) => keep.has(it.mesh));
+      if (!items.length) return;
+      const mesh = new THREE.Mesh(weld(items, false, false, true), ob.mat);
+      mesh.castShadow = false; mesh.receiveShadow = false; mesh.matrixAutoUpdate = false; mesh.userData.isOutline = true; mesh.raycast = () => {};
+      S.root.add(mesh); merged++;
+    });
+    /* breakables remember which batched vertex ranges are theirs */
+    for (const b of W.breakables) {
+      const list = [];
+      b.mesh.traverse((o) => { if (keep.has(o)) { const rs = ranges.get(o); if (rs) for (const r of rs) if (r.geo) list.push(r); } });
+      if (list.length) b.batched = list;
+    }
+    for (const m of victims) {
+      if (!m.parent) continue;
+      for (const c of m.children.slice()) if (!(c.isMesh && c.userData.isOutline) && !keep.has(c)) m.parent.attach(c);   /* keep live children */
+      m.parent.remove(m);
+    }
+    S.batchInfo = { before: before, after: merged };
+    if (G.CONF.debug) console.log("[world] static batch", before, "meshes ->", merged);
+  }
+
   /* =====================================================================
      BREAKABLES
      ===================================================================== */
@@ -15300,6 +15593,14 @@
     if (G.vfx) { try { G.vfx.shake(b.debris === "stall" ? 0.22 : 0.12); G.vfx.hitSpark && G.vfx.hitSpark({ x: b.x, y: y, z: b.z }); } catch (e2) { /* ignore */ } }
     if (G.input) G.input.haptic(b.debris === "stall" ? 30 : 12);
     if (b.mesh) { b.mesh.visible = false; }
+    if (b.batched) {                                   /* collapse its welded vertices out of sight */
+      for (const r of b.batched) {
+        const a = r.geo.attributes.position, arr = a.array;
+        for (let i = r.start; i < r.start + r.count; i++) { arr[i * 3] = 0; arr[i * 3 + 1] = -500; arr[i * 3 + 2] = 0; }
+        a.addUpdateRange(r.start * 3, r.count * 3); a.needsUpdate = true;
+      }
+      b.batched = null;
+    }
     S.shatterCount = (S.shatterCount || 0) + 1;
     if (b.onBreak) b.onBreak(b);
   }
@@ -15363,12 +15664,14 @@
   const _sp = { x: 0, y: 0, z: 0 };
   W.shatterNear = function (x, z, r, dmg) { _sp.x = x; _sp.z = z; return W.hitBreakables(_sp, r, dmg || 30, "enemy"); };
   W.getArenaMood = function () { return S.arenaMix; };
+  W.batchInfo = function () { return S.batchInfo; };
 
   /* =====================================================================
      UPDATE  (no allocations)
      ===================================================================== */
   W.update = function (dt, t) {
     if (!S.built) return;
+    updateGlowBatch();
     dt = (typeof dt === "number" && dt > 0) ? Math.min(dt, 0.05) : 0.016;
     S.time += dt;
     const time = (typeof t === "number" && isFinite(t)) ? t : S.time;
@@ -17157,7 +17460,11 @@
       n.vy -= 3.4 * dt;
       n.y += n.vy * dt;
       const pop = k < 0.18 ? 0.7 + 0.3 * (k / 0.18) + 0.25 * Math.sin((k / 0.18) * Math.PI) : 1;
-      const s = (n.crit ? 1.45 : 1.0) * pop;
+      /* keep numbers a sane size on screen: shrink when the camera is close, grow a little when far (beast fight) */
+      const cam = G.game && G.game.camera;
+      let dk = 1;
+      if (cam) { const dx = n.x - cam.position.x, dy = n.y - cam.position.y, dz = n.z - cam.position.z; dk = Math.max(0.3, Math.min(1.7, Math.sqrt(dx * dx + dy * dy + dz * dz) / 7)); }
+      const s = (n.crit ? 1.45 : 1.0) * pop * dk * 0.8;
       n.spr.scale.set(1.15 * s, 0.58 * s, 1);
       n.spr.position.set(n.x, n.y, n.z);
       n.mat.opacity = Math.min(1, n.life * 3.2);
@@ -17372,6 +17679,14 @@
       (P.parts.staffEye || P.parts.propR || P.root).add(gs);
       P.staffGlow = gs;
     }
+    /* procedural look layer: head + chest turn toward the lock target (or where the camera looks when idle) */
+    P.lookYaw = 0; P.lookPitch = 0; P.squash = 0; P.stretch = 0; P.bank = 0; P._lastFacing = 0;
+    if (P.anim && P.anim.layer) P.anim.layer(function (clock, dt, an) {
+      const h = an.off("head"), c = an.off("chest"), n = an.off("neck");
+      if (h) { h.ry += P.lookYaw * 0.5; h.rx += P.lookPitch * 0.55; }
+      if (n) n.ry += P.lookYaw * 0.2;
+      if (c) c.ry += P.lookYaw * 0.3;
+    });
     P.cloakPanels = []; P.cloakBase = [];
     if (Array.isArray(P.parts.cloak)) for (const p of P.parts.cloak) if (p && p.rotation) { P.cloakPanels.push(p); P.cloakBase.push(p.rotation.x); }
     P.root.position.set(P.x, P.y, P.z); scene.add(P.root);
@@ -17595,6 +17910,7 @@
       if (wasAir && P.vy < -9) {
         G.vfx.burst({ x: P.x, y: gy + 0.12, z: P.z }, { count: 10, color: 0xd8e9d0, speed: 3.2, size: 0.26, life: 0.4, gravity: -3, spread: 1, tex: "glow" });
         sfx("land"); if (P.vy < -17) G.vfx.shake(0.16);
+        P.squash = Math.min(1.2, -P.vy / 16);
         play("land", { fade: 0.04, once: true });
       }
       P.y = gy; P.vy = 0; P.grounded = true; P.jumps = 0; P.coyote = COYOTE; P.airDash = 0; P.airAttacks = 0; P.wallT = 0;
@@ -17875,7 +18191,7 @@
 
   function tryJump() {
     if (P.grounded || P.coyote > 0) {
-      P.vy = JUMP_V + P.boost * 1.5; P.grounded = false; P.coyote = 0; P.jumps = 1; P.action = null;
+      P.vy = JUMP_V + P.boost * 1.5; P.grounded = false; P.coyote = 0; P.jumps = 1; P.action = null; P.stretch = 1;
       if (P.afterDash > 0) P.boost = Math.max(P.boost, 0.38);        // dash-jump: carry the speed
       G.vfx.burst({ x: P.x, y: P.y + 0.1, z: P.z }, { count: 8, color: 0xd8e9d0, speed: 2.6, size: 0.24, life: 0.35, gravity: -2, spread: 1, tex: "glow" });
       play("jump", { fade: 0.05, once: true }); sfx("jump"); return true;
@@ -17890,7 +18206,7 @@
       return true;
     }
     if (P.jumps < 2) {
-      P.vy = DJUMP_V; P.jumps = 2; P.action = null;
+      P.vy = DJUMP_V; P.jumps = 2; P.action = null; P.stretch = 0.8;
       G.vfx.ringShockwave({ x: P.x, y: P.y, z: P.z }, 0xbfe3d2, 1.6);
       G.vfx.burst({ x: P.x, y: P.y + 0.5, z: P.z }, { count: 10, color: 0xbfe3d2, speed: 3, size: 0.26, life: 0.35, gravity: -1, spread: 1, tex: "glow" });
       play("doubleJump", { fade: 0.05, once: true }, "jump"); sfx("jump", { rate: 1.12 }); return true;
@@ -18261,13 +18577,33 @@
     P.facing = G.util.angleLerp(P.facing, face, 1 - Math.exp(-(P.grounded ? 18 : 10) * dt));
     P.root.position.set(P.x, P.y, P.z); P.root.rotation.y = P.facing;
 
-    /* body lean into motion */
+    /* body lean into motion, bank into turns, squash on landing, stretch on take-off */
     const body = P.rig && P.rig.body;
     if (body) {
       const sp = Math.hypot(P.vx, P.vz);
       const want = P.grounded ? clamp(sp * 0.018, 0, 0.2) * (P.sprinting ? 1.4 : 1) : (P.gliding ? 0.9 : clamp(sp * 0.012, 0, 0.18));
       body.rotation.x = damp(body.rotation.x, want, 10, dt);
+      let dF = P.facing - P._lastFacing; while (dF > Math.PI) dF -= TAU; while (dF < -Math.PI) dF += TAU;
+      P._lastFacing = P.facing;
+      const bankWant = clamp(-(dF / Math.max(dt, 1e-3)) * sp * 0.012, -0.28, 0.28) * (P.grounded ? 1 : 0.5);
+      P.bank = damp(P.bank, bankWant, 8, dt); body.rotation.z = P.bank;
+      P.squash = Math.max(0, P.squash - dt * 5); P.stretch = Math.max(0, P.stretch - dt * 4);
+      const sq = Math.sin(Math.min(1, P.squash) * Math.PI * 0.5) * 0.16 - P.stretch * 0.1;
+      body.scale.set(1 + sq * 0.5, 1 - sq, 1 + sq * 0.5);
     }
+    /* look target */
+    let lookY = 0, lookP = 0;
+    if (P.lockTarget && isFoe(P.lockTarget)) {
+      const ep = entPos(P.lockTarget), dx = ep.x - P.x, dz = ep.z - P.z;
+      let a = Math.atan2(dx, dz) - P.facing; while (a > Math.PI) a -= TAU; while (a < -Math.PI) a += TAU;
+      lookY = clamp(a, -1.1, 1.1);
+      const th = num(P.lockTarget.height, 1.8) * 0.6;
+      lookP = clamp(-Math.atan2(ep.y + th - (P.y + 1.3), Math.hypot(dx, dz)) * 0.8, -0.5, 0.35);
+    } else if (!P.hasInput && P.grounded && !P.action) {
+      let a = P.cam.yaw - P.facing; while (a > Math.PI) a -= TAU; while (a < -Math.PI) a += TAU;
+      lookY = clamp(a, -0.7, 0.7) * 0.6;                    /* idle: glances the way the camera looks */
+    }
+    P.lookYaw = damp(P.lookYaw, lookY, 7, dt); P.lookPitch = damp(P.lookPitch, lookP, 7, dt);
     if (P.anim) P.anim.update(dt, { speed: Math.hypot(P.vx, P.vz) });
 
     if (!P.action) {
@@ -18462,6 +18798,16 @@
     else this.root.position.set(START.x, groundAt(START.x, START.z), START.z);
     sceneRef.add(this.root);
     if (this.anim && this.anim.has("idle")) { this.anim.setBase("idle"); this.anim.play("idle", { fade: 0 }); }
+    /* head tracks Mira (layered over every clip; eased off during big moves) */
+    this.lookYaw = 0; this.lookPitch = 0;
+    if (this.anim && this.anim.layer && !this.anim._lookLayer) {
+      const self = this; this.anim._lookLayer = true;
+      this.anim.layer(function (clock, dt, an) {
+        const h = an.off("head"), n = an.off("neck");
+        if (h) { h.ry += self.lookYaw * 0.6; h.rx += self.lookPitch * 0.6; }
+        if (n) n.ry += self.lookYaw * 0.3;
+      });
+    }
     this.form = form;
     /* hit-flash glow, parented to the model so it follows every animation */
     this.flashSpr = G.assets.glowSprite(0xffd2a8, d.h * 0.85, 0); this.flashSpr.position.set(0, d.h * 0.55, 0); this.flashSpr.material.depthTest = false; this.flashSpr.renderOrder = 9; this.root.add(this.flashSpr);
@@ -19108,6 +19454,14 @@
       this.rage = true; G.ui && G.ui.banner("THE BEAST ENRAGES", "the poppies bleed light", 2); sfx("roar3", { vol: 1 }); G.vfx.shake(0.8); G.vfx.flash(0xff3a2a, 0.3);
     }
     const p = this.pos();
+    {
+      const P = G.player, dx = P.x - p.x, dz = P.z - p.z;
+      let a = Math.atan2(dx, dz) - this.root.rotation.y; while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2;
+      const busy = this.state === "attack" || this.state === "charge" || this.state === "stagger";
+      const wantY = busy ? 0 : Math.max(-1, Math.min(1, a)), h = this.ent.height * 0.85;
+      const wantP = busy ? 0 : Math.max(-0.5, Math.min(0.4, Math.atan2(h - (P.y - p.y + 1.3), Math.hypot(dx, dz)) * (this.form === 3 ? 0.7 : 0.5)));
+      this.lookYaw = U.damp(this.lookYaw, wantY, 6, dt); this.lookPitch = U.damp(this.lookPitch, wantP, 6, dt);
+    }
     /* knockback drift */
     if (Math.abs(this.knockX) + Math.abs(this.knockZ) > 0.01) { this.move(this.knockX * Math.min(1, dt * 12), this.knockZ * Math.min(1, dt * 12), dt); this.knockX *= Math.exp(-dt * 10); this.knockZ *= Math.exp(-dt * 10); }
 
@@ -21066,7 +21420,8 @@
       models.forEach(function (m, i) { m.root.position.set(i * 12, 0, 0); holder.add(m.root); });
       scene.add(holder); holder.updateMatrixWorld(true);
       G.cloth.updateAll(0);                         // attaches the garment meshes so they compile too
-      renderer.compile(scene, camera);
+      if (G.world.glowStash) G.world.glowStash(true);
+      try { renderer.compile(scene, camera); } finally { if (G.world.glowStash) G.world.glowStash(false); }
       scene.remove(holder);
       models.forEach(function (m) { holder.remove(m.root); m.root.position.set(0, 0, 0); });
       G.cloth.updateAll(0);                         // detaches them again (their characters left the scene)
@@ -21131,11 +21486,11 @@
     G.sfx.music("hub");
     G.ui.show("hud");
     G.ui.banner("MOREL HOLLOW", "the witch, the veil & the poppy beast", 3.2);
-    after(1.2, function () { G.ui.hint("MOVE", "Left thumb runs. Drag the right side to look. JUMP twice, hold to glide.", 5.5); });
-    after(7.4, function () { G.ui.hint("FIGHT", "STRIKE chains four hits — hold it to charge a slam. SPELL fires a bolt; hold it for a Nova.", 5.5); });
-    after(13.6, function () { G.ui.hint("MOVEMENT TECH", "DASH has i-frames (and works in the air). JUMP off walls. WARP zips to targets and spore-pods. Bounce-caps launch you.", 6.5); });
-    after(20.5, function () { G.ui.hint("ALLIES", "Tap the portraits mid-chain for link strikes. Call both within 3s for TRIPLE BLOOM.", 5.5); });
-    after(3.8, function () { G.ui.prompt("Smash things, climb the caps — then head for the light in the town square", 4.5); });
+    after(1.2, function () { if (state !== "hub") return; G.ui.hint("MOVE", "Left thumb runs. Drag the right side to look. JUMP twice, hold to glide.", 5.5); });
+    after(7.4, function () { if (state !== "hub") return; G.ui.hint("FIGHT", "STRIKE chains four hits — hold it to charge a slam. SPELL fires a bolt; hold it for a Nova.", 5.5); });
+    after(13.6, function () { if (state !== "hub") return; G.ui.hint("MOVEMENT TECH", "DASH has i-frames (and works in the air). JUMP off walls. WARP zips to targets and spore-pods. Bounce-caps launch you.", 6.5); });
+    after(20.5, function () { if (state !== "hub") return; G.ui.hint("ALLIES", "Tap the portraits mid-chain for link strikes. Call both within 3s for TRIPLE BLOOM.", 5.5); });
+    after(3.8, function () { if (state !== "hub") return; G.ui.prompt("Smash things, climb the caps — then head for the light in the town square", 4.5); });
     spawnVillageImps();
   }
 
@@ -21156,6 +21511,7 @@
 
   function triggerBoss() {
     state = "bossIntro";
+    G.ui.hintHide(); G.ui.clearPrompts();
     despawnVillains();
     if (G.world.setBeacon) G.world.setBeacon(false);
     G.input.setEnabled(false);
@@ -21315,6 +21671,7 @@
       if (timers[i].t <= 0) { const fn = timers[i].fn; timers.splice(i, 1); try { fn(); } catch (e) { console.error("[game] timer", e); } }
     }
 
+    const tSim0 = performance.now();
     if (dt > 0) {
       G.world.update(dt, tSec);
       G.debris.update(dt);
@@ -21332,7 +21689,10 @@
     updateLockUI();
     if (dt > 0) G.input.postUpdate();
 
+    const tSim1 = performance.now();
     G.render.frame(dtRaw);
+    G.stats.simMs = G.stats.simMs * 0.9 + (tSim1 - tSim0) * 0.1;
+    G.stats.renderMs = G.stats.renderMs * 0.9 + (performance.now() - tSim1) * 0.1;
 
     fpsAcc += dtRaw; fpsN++;
     if (fpsAcc >= 0.5) { G.stats.fps = Math.round(fpsN / fpsAcc); G.stats.ms = +(dtRaw * 1000).toFixed(1); fpsAcc = 0; fpsN = 0; }

@@ -1359,7 +1359,9 @@
   function makeChar(form) {
     const B = build(form), rig = B.rig;
     const anim = K.anim(rig);
-    anim.addClip("idle", [{ t: 0, bone: "chest", rot: [0, 0, 0] }, { t: 2.6, bone: "chest", rot: [0, 0, 0] }], { loop: true });
+    /* the full move set lives in char_veil_anim.js (pose-to-pose clips with baked leg IK + blade aiming) */
+    if (G.veilAnim) G.veilAnim(anim, rig, form);
+    else anim.addClip("idle", [{ t: 0, bone: "chest", rot: [0, 0, 0] }, { t: 2.6, bone: "chest", rot: [0, 0, 0] }], { loop: true });
     for (const e of B.eyes) if (!e.parent) rig.attach("head", e);
     anim.setBase("idle"); anim.play("idle", { fade: 0 }); anim.update(0);
     const parts = rig.parts;

@@ -1352,7 +1352,7 @@
       rig.bones.propL.quaternion.copy(sq);
       rig.bones.propL.rotation.setFromQuaternion(sq, "XYZ");
     }
-    return { rig: rig, eyes: eyes };
+    return { rig: rig, eyes: eyes, MT: MT };
   }
 
   /* ======================================================================== */
@@ -1363,11 +1363,12 @@
     if (G.veilAnim) G.veilAnim(anim, rig, form);
     else anim.addClip("idle", [{ t: 0, bone: "chest", rot: [0, 0, 0] }, { t: 2.6, bone: "chest", rot: [0, 0, 0] }], { loop: true });
     for (const e of B.eyes) if (!e.parent) rig.attach("head", e);
+    const cloth = G.veilCloth && G.cloth ? G.veilCloth(rig, form, B.MT) : null;      /* verlet coat, hair and tapes */
     anim.setBase("idle"); anim.play("idle", { fade: 0 }); anim.update(0);
     const parts = rig.parts;
     parts.root = rig.root; parts.body = rig.body; parts.eyes = B.eyes;
     const meshes = rig.countMeshes();
-    return { id: form === 2 ? "veil2" : "veil", root: rig.root, parts: parts, anim: anim, rig: rig, height: 1.85, radius: 0.42, team: "enemy", meshes: meshes, bladeLength: BLADE_LEN };
+    return { id: form === 2 ? "veil2" : "veil", root: rig.root, parts: parts, anim: anim, rig: rig, height: 1.85, radius: 0.42, team: "enemy", meshes: meshes, bladeLength: BLADE_LEN, cloth: cloth };
   }
   G.chars.define("veil", { height: 1.85, radius: 0.42, team: "enemy" }, () => makeChar(1));
   G.chars.define("veil2", { height: 1.85, radius: 0.42, team: "enemy" }, () => makeChar(2));

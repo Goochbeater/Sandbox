@@ -333,6 +333,7 @@
       G.villains.update(dt, ctx);
       G.boss.update(dt);
       G.vfx.update(dtRaw, camera);
+      G.cloth.updateAll(dt);                 // after every character has moved this frame
       try { flow(); } catch (e) { console.error("[game] flow", e); }
       if (state === "title") titleCam();
     }

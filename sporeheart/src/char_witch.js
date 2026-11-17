@@ -1188,17 +1188,19 @@
         hg.name = "cloakHinge" + idx;
         bn.add(hg);
         put(hg, g, mPoncho, { o: 0.03, recv: false });
+        hg.visible = false;                       /* replaced by the verlet fringe */
         hinges.push(hg);
       });
     }
 
     /* ------------------------------------------------------------ COAT (open periwinkle duster + hinged tails) */
     const COAT = [[0.28, 0.222, 0.180], [0.16, 0.238, 0.192], [-0.02, 0.262, 0.212], [-0.25, 0.300, 0.240]];
-    const COAT_SQ = 2.3, CA0 = 0.5, CA1 = TAU - 0.5;
+    const COAT_SQ = 2.3, CA0 = 0.5, CA1 = TAU - 0.5, COAT_V = 0.283;
     {
       const secs = COAT.map((s) => ({ c: [0, s[0], 0], rx: s[1], rz: s[2] }));
       const fold = (a, t) => 1 + 0.050 * Math.sin(a * 6 + 0.3) * (0.4 + t) + 0.030 * Math.sin(a * 11 + 1.2) * t;
-      const g = loft(secs, 40, { sq: COAT_SQ, a0: CA0, a1: CA1, fn: fold, v0: 0, v1: 0.5, u0: 0, u1: 1 });
+      /* rigid from the chest to the hip line only — everything below is verlet cloth (see the garments at the end) */
+      const g = loft(secs.slice(0, 3), 40, { sq: COAT_SQ, a0: CA0, a1: CA1, fn: fold, v0: 0, v1: COAT_V, u0: 0, u1: 1 });
       put(rig.bones.hips, g, mCoat, { o: 0.035, recv: false });
       const hem = COAT[COAT.length - 1], L = 0.30;
       const edges = [CA0, 1.9, PI, 4.38, CA1];
@@ -1224,6 +1226,7 @@
         hg.name = "cloakHinge" + (4 + idx);
         bn.add(hg);
         put(hg, tg, mCoat, { o: 0.035, recv: false });
+        hg.visible = false;                       /* replaced by the verlet skirt */
         hinges.push(hg);
       }
     }
@@ -1753,13 +1756,47 @@
     K.mergeRig(rig);
     rig.parts.root = rig.root;
     rig.parts.body = rig.body;
-    rig.parts.cloak = hinges;
+    rig.parts.cloak = [];                         /* (glide flare is now an updraft on the cloth sim) */
+
+    /* ------------------------------------------------------------ VERLET GARMENTS: coat skirt + poncho fringe */
+    let cloth = null;
+    if (G.cloth) {
+      cloth = G.cloth.create(rig, { follow: 0.28, damp: 3.8, colliders: G.cloth.bodyColliders(rig, { hips: 0.12, chest: 0.12, head: 0, thigh: 0.09, shin: 0.085, foot: 0.095 }) });
+      const lerpN = (a, b, t) => a + (b - a) * t;
+      const coatFold = (a, t) => 1 + 0.050 * Math.sin(a * 6 + 0.3) * (0.4 + t) + 0.030 * Math.sin(a * 11 + 1.2) * t;
+      /* skirt of the duster: hip line → ankles, open at the front like the rigid upper half it hangs from */
+      cloth.sheet({
+        bone: "hips", cols: 19, rows: 8, mat: mCoat, outline: 0.035, thickness: 0.016,
+        rest(u, v) {
+          const a = CA0 + u * (CA1 - CA0), y = -0.02 - 0.53 * v;
+          const k = v < 0.434 ? lerpN(1, 0.300 / 0.262, v / 0.434) : lerpN(0.300 / 0.262, 0.300 / 0.262 * 1.18, (v - 0.434) / 0.566);
+          const r = ringSq(0.262 * k, 0.212 * k, a, COAT_SQ), f = coatFold(a, 0.6 + 0.4 * v);
+          const hem = v > 0.99 ? -0.035 * (0.1 + 0.9 * Math.abs(Math.sin(a * 6.5))) : 0;
+          return [r[0] * f, y + hem, r[1] * f];
+        },
+        uv: (u, v) => [u, COAT_V + (1 - COAT_V) * v],
+        ks: [0.55, 0.035], maxDist: [0.0, 0.34], gs: 0.9, kH: 0.9, kExp: 0.75, radius: 0.02
+      });
+      /* frayed fringe of the poncho */
+      const hemP = PON[PON.length - 1];
+      cloth.sheet({
+        bone: "chest", cols: 24, rows: 4, loop: true, mat: mPoncho, outline: 0.03, thickness: 0.012,
+        rest(u, v) {
+          const a = -PI + u * TAU, k = 1 + 0.055 * v, L = 0.075 + 0.045 * Math.abs(Math.sin(a * 0.5));
+          const r = ringSq(hemP[1] * k, hemP[2] * k, a, PON_SQ);
+          const fray = v > 0.99 ? -0.05 * (0.15 + 0.85 * Math.abs(Math.sin(a * 17)) * Math.abs(Math.sin(a * 7 + 1.3))) : 0;
+          return [r[0], hemP[0] - L * v + fray, r[1]];
+        },
+        uv: (u, v) => [u, 0.86 + 0.14 * v],
+        ks: [0.6, 0.12], maxDist: [0.0, 0.1], gs: 0.8, radius: 0.02
+      });
+    }
     rig.parts.hatTop = rig.bones.hatTip;
     rig.parts.weapon = rig.bones.staff;
     const meshCount = rig.countMeshes();
     return {
       id: "witch", root: rig.root, parts: rig.parts, anim,
-      height: 1.5, radius: 0.34, team: "player", rig, meshes: meshCount
+      height: 1.5, radius: 0.34, team: "player", rig, meshes: meshCount, cloth
     };
   }
 

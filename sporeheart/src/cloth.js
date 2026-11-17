@@ -42,6 +42,7 @@
     this.group = new (T().Group)(); this.group.name = "cloth:" + (rig.id || "char");
     this.ready = false; this.needSnap = true; this.lastX = 0; this.lastY = 0; this.lastZ = 0; this.wasVisible = false;
     this.ground = o.ground === undefined ? true : o.ground;
+    this.extra = { x: 0, y: 0, z: 0 };       // extra acceleration on every free particle (updraft while gliding, shock gusts…)
     C.sims.push(this);
   }
   Sim.prototype.bone = function (name) {
@@ -103,7 +104,8 @@
     const cTrim = o.trim ? new THREE.Color(o.trim.color) : null, tc = new THREE.Color();
     for (let r = 0; r < rows; r++) for (let c = 0; c < vc; c++) {
       const i = r * vc + c, u = c / (vc - 1), v = rows > 1 ? r / (rows - 1) : 0;
-      uv[i * 2] = u; uv[i * 2 + 1] = 1 - v; uv[(i + n1) * 2] = u; uv[(i + n1) * 2 + 1] = 1 - v;
+      const tuv = o.uv ? o.uv(u, v) : [u, 1 - v];
+      uv[i * 2] = tuv[0]; uv[i * 2 + 1] = tuv[1]; uv[(i + n1) * 2] = tuv[0]; uv[(i + n1) * 2 + 1] = tuv[1];
       tc.copy(cOut);
       if (o.shade) tc.multiplyScalar(o.shade(u, v));
       if (cTrim && r >= rows - (o.trim.rows || 1)) tc.copy(cTrim);
@@ -281,6 +283,7 @@
     const sub = dt > 0.02 ? 2 : 1, h = dt / sub, h2 = h * h, damp = Math.exp(-this.damp * h);
     const W = C.wind, wt = C.time, wk = this.windK * W.gust;
     const groundY = this.ground ? ry + 0.02 * sc : -1e9;
+    const ex = this.extra.x * h2, ey = this.extra.y * h2, ez = this.extra.z * h2;
     const ca = this.ca, cb = this.cb, cr = this.cr, ck = this.ck, m = ca.length, cs = this.cols;
     for (let s = 0; s < sub; s++) {
       for (let i = 0; i < n; i++) {
@@ -289,7 +292,7 @@
         const gust = wk * (0.55 + 0.45 * Math.sin(wt * 1.7 + px[i] * 0.9 + pz[i] * 0.7) + 0.3 * Math.sin(wt * 4.3 + py[i] * 2.1));
         const vx = (px[i] - qx[i]) * damp, vy = (py[i] - qy[i]) * damp, vz = (pz[i] - qz[i]) * damp;
         qx[i] = px[i]; qy[i] = py[i]; qz[i] = pz[i];
-        px[i] += vx + W.x * gust * h2; py[i] += vy - GRAV * p.gs * sc * h2; pz[i] += vz + W.z * gust * h2;
+        px[i] += vx + W.x * gust * h2 + ex; py[i] += vy - GRAV * p.gs * sc * h2 + ey; pz[i] += vz + W.z * gust * h2 + ez;
         const k = 1 - Math.pow(1 - p.ks, h * 60);
         px[i] += (tx[i] - px[i]) * k; py[i] += (ty[i] - py[i]) * k; pz[i] += (tz[i] - pz[i]) * k;
       }
@@ -402,6 +405,7 @@
       const hip = B["leg" + S + ".hip"], knee = B["leg" + S + ".knee"], foot = B["leg" + S + ".foot"];
       if (hip && knee) out.push({ bone: "leg" + S + ".hip", a: [0, 0, 0], b: [knee.position.x, knee.position.y, knee.position.z], r: (k.thigh || 0.07) * H });
       if (knee && foot && k.shin !== 0) out.push({ bone: "leg" + S + ".knee", a: [0, 0, 0], b: [foot.position.x, foot.position.y, foot.position.z], r: (k.shin || 0.055) * H });
+      if (foot && k.foot !== 0) out.push({ bone: "leg" + S + ".foot", a: [0, -0.01 * H, 0], b: [0, -0.05 * H, 0.1 * H], r: (k.foot || 0.062) * H });
     }
     return out;
   };

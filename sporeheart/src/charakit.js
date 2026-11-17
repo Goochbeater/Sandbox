@@ -573,6 +573,90 @@
       const sw = bones[i].userData.sway;
       if (sw) { swayIdx[k] = i; swayAmp[k] = sw; swayPhase[k] = bones[i].userData.phase || 0; k++; }
     }
+    /* ---- verlet follow-through --------------------------------------------------------------
+       Every sway bone is a small verlet pendulum: a particle hangs off the bone's pivot at the length and
+       direction of the bone's own geometry, is pulled toward the animated pose by a spring, feels gravity and
+       its pivot's real motion (run, dash, turn, jump, hit), and the bone is re-aimed at the particle. Chains
+       (cloak → cloakTip, hair → hair2, tail.0…3) whip naturally because each link rides its parent. */
+    const vP = new Float32Array(swayCount * 3), vPP = new Float32Array(swayCount * 3), vO = new Float32Array(swayCount * 3);
+    const vH = new Float32Array(swayCount * 3), vL = new Float32Array(swayCount), vW2 = new Float32Array(swayCount);
+    const vQ = new Float32Array(swayCount * 4), vR0 = new Float32Array(swayCount * 4);
+    for (let k = 0; k < swayCount; k++) { vQ[k * 4 + 3] = 1; vR0[k * 4 + 3] = 1; }
+    let vInit = false, vGain = 1, vHold = 0;
+    const tq = () => new (T().Quaternion)(), tv = () => new (T().Vector3)();
+    let _qa = null, _qb = null, _va = null, _vb = null, _vc = null, _box = null;
+    function verletInit() {
+      const THREE = T();
+      if (!_qa) { _qa = tq(); _qb = tq(); _va = tv(); _vb = tv(); _vc = tv(); _box = new THREE.Box3(); }
+      rig.root.updateWorldMatrix(true, true);
+      const inv = new THREE.Matrix4(), bb = new THREE.Box3(), c = tv();
+      for (let k = 0; k < swayCount; k++) {
+        const b = bones[swayIdx[k]];
+        /* hang direction + length from the bone's own geometry (bone-local) */
+        inv.copy(b.matrixWorld).invert(); _box.makeEmpty();
+        b.traverse((o) => {
+          if (o.isMesh && o.geometry && !o.userData.isOutline) {
+            if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+            bb.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld).applyMatrix4(inv); _box.union(bb);
+          }
+        });
+        if (_box.isEmpty()) c.set(0, -0.15, 0); else _box.getCenter(c);
+        let L = c.length() * 2;
+        if (L < 0.04) { c.set(0, -1, 0); L = 0.12; }
+        c.normalize(); vH[k * 3] = c.x; vH[k * 3 + 1] = c.y; vH[k * 3 + 2] = c.z; vL[k] = L;
+        const loose = U.clamp01(swayAmp[k] / 0.1);
+        vW2[k] = 260 - 190 * loose;                                   // spring ω²: stiff trim … loose ribbons
+      }
+      vInit = true; vHold = 2;
+    }
+    function verletStep(dt) {
+      if (!swayCount || dt <= 0) return;
+      if (!vInit) verletInit();
+      const snap = vHold > 0; if (snap) vHold--;
+      const damp = Math.exp(-5.5 * dt), dt2 = dt * dt;
+      for (let k = 0; k < swayCount; k++) {
+        const b = bones[swayIdx[k]], par = b.parent, k3 = k * 3, k4 = k * 4;
+        const e = b.matrixWorld.elements, m = par.matrixWorld.elements;
+        const ox = e[12], oy = e[13], oz = e[14];
+        const sc = Math.hypot(m[0], m[1], m[2]) || 1, is = 1 / sc, L = vL[k] * sc;
+        /* animated (un-simulated) tip: parentRot · R0 · h */
+        _qa.set(vR0[k4], vR0[k4 + 1], vR0[k4 + 2], vR0[k4 + 3]);
+        _va.set(vH[k3], vH[k3 + 1], vH[k3 + 2]).applyQuaternion(_qa);           // h0 in parent space
+        const hx = _va.x, hy = _va.y, hz = _va.z;
+        const dx = (m[0] * hx + m[4] * hy + m[8] * hz) * is, dy = (m[1] * hx + m[5] * hy + m[9] * hz) * is, dz = (m[2] * hx + m[6] * hy + m[10] * hz) * is;
+        const tx = ox + dx * L, ty = oy + dy * L, tz = oz + dz * L;
+        let px = vP[k3], py = vP[k3 + 1], pz = vP[k3 + 2];
+        const jx = ox - vO[k3], jy = oy - vO[k3 + 1], jz = oz - vO[k3 + 2];
+        vO[k3] = ox; vO[k3 + 1] = oy; vO[k3 + 2] = oz;
+        if (snap || jx * jx + jy * jy + jz * jz > 4) {                           // first frames / teleport: no whip
+          px = tx; py = ty; pz = tz; vPP[k3] = px; vPP[k3 + 1] = py; vPP[k3 + 2] = pz;
+        } else {
+          const f = 0.4;                                                          // the pivot drags the tip part of the way
+          px += jx * f; py += jy * f; pz += jz * f; vPP[k3] += jx * f; vPP[k3 + 1] += jy * f; vPP[k3 + 2] += jz * f;
+          const w2 = vW2[k];
+          const nx = px + (px - vPP[k3]) * damp + (tx - px) * w2 * dt2;
+          const ny = py + (py - vPP[k3 + 1]) * damp + ((ty - py) * w2 - 3.4 * sc) * dt2;
+          const nz = pz + (pz - vPP[k3 + 2]) * damp + (tz - pz) * w2 * dt2;
+          vPP[k3] = px; vPP[k3 + 1] = py; vPP[k3 + 2] = pz; px = nx; py = ny; pz = nz;
+        }
+        /* length + cone limit around the animated direction */
+        let rx = px - ox, ry = py - oy, rz = pz - oz, rl = Math.hypot(rx, ry, rz) || 1;
+        rx /= rl; ry /= rl; rz /= rl;
+        let cs = rx * dx + ry * dy + rz * dz;
+        if (cs < 0.3) {                                                           // > ~72° off the pose: fold back onto the cone
+          let qx = rx - dx * cs, qy = ry - dy * cs, qz = rz - dz * cs; const ql = Math.hypot(qx, qy, qz) || 1;
+          qx /= ql; qy /= ql; qz /= ql; rx = dx * 0.3 + qx * 0.954; ry = dy * 0.3 + qy * 0.954; rz = dz * 0.3 + qz * 0.954;
+        }
+        px = ox + rx * L; py = oy + ry * L; pz = oz + rz * L;
+        vP[k3] = px; vP[k3 + 1] = py; vP[k3 + 2] = pz;
+        /* aim: Q rotates the animated hang direction onto the simulated one (parent space) */
+        _vb.set((m[0] * rx + m[1] * ry + m[2] * rz) * is, (m[4] * rx + m[5] * ry + m[6] * rz) * is, (m[8] * rx + m[9] * ry + m[10] * rz) * is);
+        _va.normalize(); _vb.normalize();
+        _qb.setFromUnitVectors(_va, _vb);
+        if (vGain !== 1) { _qa.set(0, 0, 0, 1); _qb.slerp(_qa, 1 - vGain); }
+        vQ[k4] = _qb.x; vQ[k4 + 1] = _qb.y; vQ[k4 + 2] = _qb.z; vQ[k4 + 3] = _qb.w;
+      }
+    }
     const idHips = indexOf.hips === undefined ? -1 : indexOf.hips;
     const idChest = indexOf.chest === undefined ? -1 : indexOf.chest;
     const idHead = indexOf.head === undefined ? -1 : indexOf.head;
@@ -789,18 +873,26 @@
           rz += Math.sin(clock * 0.83 + 1.4) * 0.020 * idleK;
           rx += Math.sin(clock * 1.7 + 0.8) * 0.012 * idleK;
         }
+        let sw = -1;
         for (let j = 0; j < swayCount; j++) {
           if (swayIdx[j] === i) {
             const ph = swayPhase[j];
-            const amp = swayAmp[j] * idleK;
-            rx += Math.sin(clock * 1.55 + ph) * amp + speedK * amp * 2.6 + Math.sin(clock * 6.2 + ph) * amp * 0.55 * speedK;
+            const amp = swayAmp[j] * idleK * 0.7;                                 // a breath of wind on top of the physics
+            rx += Math.sin(clock * 1.55 + ph) * amp + Math.sin(clock * 6.2 + ph) * amp * 0.3 * speedK;
             rz += Math.cos(clock * 1.2 + ph) * amp * 0.55;
+            sw = j;
             break;
           }
         }
 
         const b = bones[i];
         b.rotation.set(rest[o] + rx, rest[o + 1] + ry, rest[o + 2] + rz);
+        if (sw >= 0 && vInit) {
+          const s4 = sw * 4, q = b.quaternion;
+          vR0[s4] = q.x; vR0[s4 + 1] = q.y; vR0[s4 + 2] = q.z; vR0[s4 + 3] = q.w;
+          _qa.set(vQ[s4], vQ[s4 + 1], vQ[s4 + 2], vQ[s4 + 3]);
+          q.premultiply(_qa);
+        }
         b.position.set(rest[o + 3] + px, rest[o + 4] + py, rest[o + 5] + pz);
         b.scale.set(rest[o + 6] * sx, rest[o + 7] * sy, rest[o + 8] * sz);
       }
@@ -832,6 +924,7 @@
         }
         if (base && base.dur > 0) baseTime = (baseTime + dt) % base.dur;
       }
+      verletStep(dt);
       render(dt);
       if (pendingDone) { const fn = pendingDone; pendingDone = null; fn(st.name); }
     }
@@ -846,6 +939,8 @@
       get paused() { return paused; },
       setSpeed(s) { st.speed = s; },
       setIdle(v) { idleAmp = v; },
+      setFollow(v) { vGain = v; },                  // 0 = rigid, 1 = full verlet follow-through
+      resetFollow() { vHold = 2; },                  // call after a teleport / respawn
       setPaused(v) { paused = !!v; },
       layer(fn) { layers.push(fn); return anim; },
       clipNames() { return Object.keys(clips); },

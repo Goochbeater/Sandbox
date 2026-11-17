@@ -29,15 +29,46 @@
     (function loop(ts) {
       requestAnimationFrame(loop);
       const dt = Math.min(0.05, (ts - last) / 1000); last = ts;
-      if (curObj && curObj.anim && !frozen) curObj.anim.update(dt, { speed: 0 });
+      if (GL.simFn) GL.simFn(dt);
+      else if (curObj && curObj.anim && !frozen) curObj.anim.update(dt, { speed: 0 });
+      if (G.cloth && G.cloth.updateAll) G.cloth.updateAll(frozen && !GL.simFn ? 0 : dt);
       G.render.frame(dt);
     })(last);
     document.getElementById("boot") && document.getElementById("boot").remove();
     GL.ready = true;
   };
+  /* sim(builtObject, {clip, motion, speed, yaw, pitch, dist, lookY, fov}) — live motion test for cloth / follow-through.
+     motion: "circle" (runs a 4 m circle) | "line" (runs ±6 m, stops and turns at each end) | "spin" | "hop" | "still"
+     The camera rides along at a fixed offset; yaw is relative to the character's heading (0 = in front of it). */
+  GL.sim = function (obj, o) {
+    o = o || {};
+    if (cur) stage.remove(cur);
+    cur = obj.root; curObj = obj; stage.add(cur); frozen = false;
+    if (obj.anim && o.clip && obj.anim.has(o.clip)) { obj.anim.play(o.clip, { fade: 0, loop: true }); }
+    let t = 0; const sp = o.speed || 6, mo = o.motion || "circle";
+    const d = o.dist || 6, pit = o.pitch === undefined ? 0.15 : o.pitch, ly = o.lookY === undefined ? 0.9 : o.lookY, cyaw = o.yaw || 0;
+    camera.fov = o.fov || 30; camera.updateProjectionMatrix();
+    GL.simFn = function (dt) {
+      t += dt;
+      let x = 0, y = 0, z = 0, face = 0, v = 0;
+      if (mo === "circle") { const R = 4, a = t * sp / R; x = Math.sin(a) * R; z = Math.cos(a) * R; face = a + Math.PI / 2; v = sp; }
+      else if (mo === "line") {                       /* run 1.6 s, stop 0.7 s, turn, repeat */
+        const per = 2.3, ph = t % (per * 2), fwd = ph < per, u = (fwd ? ph : ph - per);
+        const run = Math.min(u, 1.6), dist = run * sp; z = (fwd ? -4.8 + dist : 4.8 - dist) * (sp / 6); face = fwd ? 0 : Math.PI; v = u < 1.6 ? sp : 0;
+      }
+      else if (mo === "spin") { face = t * (o.rate || 5); }
+      else if (mo === "hop") { y = Math.abs(Math.sin(t * 3.2)) * 1.6; }
+      cur.position.set(x, y, z); cur.rotation.y = face;
+      if (obj.anim) obj.anim.update(dt, { speed: v });
+      const a = (o.fixedCam ? 0 : face) + cyaw;
+      camera.position.set(x + Math.sin(a) * Math.cos(pit) * d, ly + Math.sin(pit) * d, z + Math.cos(a) * Math.cos(pit) * d);
+      camera.lookAt(x, ly + y * 0.5, z);
+    };
+  };
   /* show(builtObject, {yaw, pitch, dist, lookY, fov, clip, t, base, scale}) */
   GL.show = function (obj, o) {
     o = o || {};
+    GL.simFn = null;
     if (cur) stage.remove(cur);
     cur = obj.root; curObj = obj; stage.add(cur);
     cur.position.set(o.x || 0, 0, o.z || 0); cur.rotation.y = o.face || 0;

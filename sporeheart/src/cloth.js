@@ -160,10 +160,10 @@
     const ind = [];
     for (let i = 0; i < n - 1; i++) for (let k = 0; k < R; k++) {
       const a = i * R + k, b = i * R + (k + 1) % R, d = a + R, e = b + R;
-      ind.push(a, d, b, b, d, e);
+      ind.push(a, b, d, b, e, d);                                   // outward-facing (ring runs +side → −side across the front)
     }
-    for (let k = 0; k < R; k++) ind.push((n - 1) * R + k, nv - 1, (n - 1) * R + (k + 1) % R);     // tip cap
-    for (let k = 1; k < R - 1; k++) ind.push(0, k, k + 1);                                          // root cap
+    for (let k = 0; k < R; k++) ind.push((n - 1) * R + k, (n - 1) * R + (k + 1) % R, nv - 1);     // tip cap
+    for (let k = 1; k < R - 1; k++) ind.push(0, k + 1, k);                                          // root cap
     const geo = new THREE.BufferGeometry();
     geo.setAttribute("position", new THREE.BufferAttribute(pos, 3).setUsage(THREE.DynamicDrawUsage));
     geo.setAttribute("normal", new THREE.BufferAttribute(nor, 3).setUsage(THREE.DynamicDrawUsage));

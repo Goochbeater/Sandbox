@@ -122,7 +122,7 @@
       ];
       for (const [bone, p, r, len, w] of tapes) {
         sim.ribbon({
-          bone: bone, pts: chainPts(THREE, p, r, 9, len / 9, 0.03), color: RED, tip: 0xff9a7a, ring: 4, side: [cos(r[1]), 0, -sin(r[1])], w: [w, w * 0.7], t: [0.006, 0.004],
+          bone: bone, pts: chainPts(THREE, p, r, 9, len / 9, 0.03), color: RED, tip: 0xc8423a, ring: 4, side: [cos(r[1]), 0, -sin(r[1])], w: [w, w * 0.7], t: [0.006, 0.004],
           outline: 0.02, outlineColor: 0x5a1512, ks: [0.5, 0.008], maxDist: [0.0, 0.8], gs: 0.3, tipLen: 0.03, emissive: 0x5a1008, emissiveIntensity: 0.7, radius: 0.02
         });
       }

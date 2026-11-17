@@ -953,7 +953,7 @@
     for (let k = 0; k < PN; k++) {
       const hp = hemPanel(k, PN, 0.47, 0.05, k % 2 ? 0.012 : 0.002);
       const b = rig.bone("cloak." + k, "hips", [hp.pivot[0], hp.pivot[1] - 0.86, hp.pivot[2]], [0, hp.th, 0], { sway: 0.03 + (k % 3) * 0.006, phase: k * 1.3 });
-      b.add(K.mk(hp.geo, vcCloak, {}));
+      const hm = K.mk(hp.geo, vcCloak, {}); hm.visible = false; b.add(hm);    /* replaced by the verlet hem below */
       hemBones.push({ th: hp.th });
     }
 
@@ -1136,6 +1136,7 @@
        ====================================================================== */
     /* torn cloth strips draped over the cloak (front sash + back ribbons), each on its own sway bone */
     const SY = 0.15;  // pivot height (chest-local)
+    const drapes = [];
     const drape = (name, x, w, len, u0, u1, zo, side, phase, sway) => {
       const rxp = clRX(1.28 + SY), rzp = clRZ(1.28 + SY);
       const pz = rzp * Math.sqrt(Math.max(0, 1 - (x / rxp) * (x / rxp))) * side;
@@ -1145,7 +1146,10 @@
         return fz - pz + side * (zo + 0.075 * Math.pow(u, 1.2) + 0.012 * Math.sin(y * 9 + phase * 2));
       };
       const b = rig.bone(name, "chest", [x, SY, pz], [0, 0, 0], { sway: sway, phase: phase });
-      b.add(K.mk(stripGeo(w, len, { rows: 14, cols: 4, u0: u0, u1: u1, zf: zf, shear: (phase % 2 - 1) * 0.03 }), sashM, { shadow: false }));
+      const sm = K.mk(stripGeo(w, len, { rows: 14, cols: 4, u0: u0, u1: u1, zf: zf, shear: (phase % 2 - 1) * 0.03 }), sashM, { shadow: false });
+      sm.visible = false; b.add(sm);                                         /* replaced by a verlet ribbon */
+      const pts = []; for (let i = 0; i <= 10; i++) { const y = -len * i / 10; pts.push([x, SY + y, pz + zf(i / 10, 0, y)]); }
+      drapes.push({ pts: pts, w: w, side: side, len: len });
     };
     const sashSpec = [
       [-0.075, 0.21, 0.92, 0.0, 0.5, 0.016], [0.075, 0.18, 1.06, 0.45, 0.95, 0.030], [-0.185, 0.115, 0.66, 0.1, 0.4, 0.010],
@@ -1257,6 +1261,32 @@
     rig.parts.tentacles = tents.map((t) => t.nm);
 
     K.mergeRig(rig);
+
+    /* ---- verlet garments: the cloak's lower skirt (ragged hem) and every red sash / ribbon ---- */
+    let cloth = null;
+    if (G.cloth) {
+      cloth = G.cloth.create(rig, {
+        follow: 0.35, damp: 3.4,
+        colliders: G.cloth.bodyColliders(rig, { hips: 0.2, chest: 0.21, head: 0, thigh: 0.1, shin: 0.085, foot: 0.08 })
+      });
+      const HY = 0.86, Y0 = 0.47, SEEDR = rng(4242), saw = []; for (let i = 0; i < 40; i++) saw.push(SEEDR());
+      const hemAt = (a) => { const f = ((a / TAU) % 1 + 1) % 1 * 40, i = Math.floor(f) % 40, t = f - Math.floor(f); return CL_HEM + 0.012 + lerp(saw[i] * (i % 2 ? 0.35 : 1), saw[(i + 1) % 40] * ((i + 1) % 2 ? 0.35 : 1), t) * 0.085; };
+      const tmp = [0, 0, 0];
+      cloth.sheet({
+        bone: "hips", cols: 28, rows: 7, loop: true, mat: vcCloak, outline: 0.03, outlineColor: 0x05070f, thickness: 0.02,
+        rest(u, v) { const a = u * TAU - PI, y = lerp(Y0, hemAt(a), v); cloakSurf(a, y, tmp); return [tmp[0], y - HY, tmp[2]]; },
+        paint(u, v) { const a = u * TAU - PI, y = lerp(Y0, hemAt(a), v); const f = cloakSurf(a, y, tmp); return cloakCol(a, y, f); },
+        lining: 0x070b1a, ks: [0.55, 0.06], maxDist: [0.0, 0.3], gs: 0.9, kH: 0.9, kExp: 0.7, radius: 0.03
+      });
+      for (const d of drapes) {
+        cloth.ribbon({
+          bone: "chest", pts: d.pts, color: d.side > 0 ? COL.red : COL.redDk, tip: COL.redDk, tipExp: 2.5, emissive: 0xc02a40, emissiveIntensity: 0.3,
+          ring: 4, side: [1, 0, 0], w: [d.w, d.w * 0.82], t: [0.008, 0.006],
+          paint: (v, i, k) => (i % 3 === 2 && k < 2 ? COL.redHot : null),
+          outline: 0, ks: [0.5, 0.05], maxDist: [0.0, 0.3 + d.len * 0.25], gs: 0.85, tipLen: 0.03, radius: 0.03
+        });
+      }
+    }
     const anim = K.anim(rig);
 
     /* ---- clip authoring helpers: tracks of [t, rot, pos, scl, ease] per bone ---- */
@@ -1417,7 +1447,7 @@
     anim.setBase("idle");
     anim.play("idle", { fade: 0 });
     anim.update(0);
-    return { id: "crane", root: rig.root, parts: rig.parts, anim, height: DEF.height, radius: DEF.radius, team: DEF.team, rig, meshes: rig.countMeshes() };
+    return { id: "crane", root: rig.root, parts: rig.parts, anim, height: DEF.height, radius: DEF.radius, team: DEF.team, rig, meshes: rig.countMeshes(), cloth };
   }
 
   G.chars.define("crane", DEF, buildCrane);

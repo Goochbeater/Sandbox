@@ -56,6 +56,7 @@
     G.ui.init(document.body);
     G.render.init(renderer, scene, camera);
 
+    prewarm();
     ctx = { scene: scene, camera: camera, player: G.player, combat: G.combat, bus: G.bus, vfx: G.vfx, sfx: G.sfx, world: G.world, game: G.game };
     bindEvents();
 
@@ -81,6 +82,23 @@
     }
     console.log("[game] boot ok — SPOREHEART " + G.CONF.VERSION);
     return G.game;
+  }
+
+  /* build every character once and compile every material / cloth shader during the boot screen,
+     so the first ally summon and each boss transformation never hitch on the phone */
+  function prewarm() {
+    try {
+      const THREE = G.THREE, holder = new THREE.Group();
+      holder.position.set(0, -400, 0);
+      const models = G.boss.prewarm().concat(G.player.prewarmAllies());
+      models.forEach(function (m, i) { m.root.position.set(i * 12, 0, 0); holder.add(m.root); });
+      scene.add(holder); holder.updateMatrixWorld(true);
+      G.cloth.updateAll(0);                         // attaches the garment meshes so they compile too
+      renderer.compile(scene, camera);
+      scene.remove(holder);
+      models.forEach(function (m) { holder.remove(m.root); m.root.position.set(0, 0, 0); });
+      G.cloth.updateAll(0);                         // detaches them again (their characters left the scene)
+    } catch (e) { console.warn("[game] prewarm skipped", e); }
   }
 
   function onResize() {
@@ -141,11 +159,11 @@
     G.sfx.music("hub");
     G.ui.show("hud");
     G.ui.banner("MOREL HOLLOW", "the witch, the veil & the poppy beast", 3.2);
-    after(1.2, function () { G.ui.hint("MOVE", "Left thumb runs. Drag the right side to look. JUMP twice, hold to glide.", 5.5); });
-    after(7.4, function () { G.ui.hint("FIGHT", "STRIKE chains four hits — hold it to charge a slam. SPELL fires a bolt; hold it for a Nova.", 5.5); });
-    after(13.6, function () { G.ui.hint("MOVEMENT TECH", "DASH has i-frames (and works in the air). JUMP off walls. WARP zips to targets and spore-pods. Bounce-caps launch you.", 6.5); });
-    after(20.5, function () { G.ui.hint("ALLIES", "Tap the portraits mid-chain for link strikes. Call both within 3s for TRIPLE BLOOM.", 5.5); });
-    after(3.8, function () { G.ui.prompt("Smash things, climb the caps — then head for the light in the town square", 4.5); });
+    after(1.2, function () { if (state !== "hub") return; G.ui.hint("MOVE", "Left thumb runs. Drag the right side to look. JUMP twice, hold to glide.", 5.5); });
+    after(7.4, function () { if (state !== "hub") return; G.ui.hint("FIGHT", "STRIKE chains four hits — hold it to charge a slam. SPELL fires a bolt; hold it for a Nova.", 5.5); });
+    after(13.6, function () { if (state !== "hub") return; G.ui.hint("MOVEMENT TECH", "DASH has i-frames (and works in the air). JUMP off walls. WARP zips to targets and spore-pods. Bounce-caps launch you.", 6.5); });
+    after(20.5, function () { if (state !== "hub") return; G.ui.hint("ALLIES", "Tap the portraits mid-chain for link strikes. Call both within 3s for TRIPLE BLOOM.", 5.5); });
+    after(3.8, function () { if (state !== "hub") return; G.ui.prompt("Smash things, climb the caps — then head for the light in the town square", 4.5); });
     spawnVillageImps();
   }
 
@@ -166,6 +184,7 @@
 
   function triggerBoss() {
     state = "bossIntro";
+    G.ui.hintHide(); G.ui.clearPrompts();
     despawnVillains();
     if (G.world.setBeacon) G.world.setBeacon(false);
     G.input.setEnabled(false);

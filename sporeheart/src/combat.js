@@ -647,7 +647,11 @@
       n.vy -= 3.4 * dt;
       n.y += n.vy * dt;
       const pop = k < 0.18 ? 0.7 + 0.3 * (k / 0.18) + 0.25 * Math.sin((k / 0.18) * Math.PI) : 1;
-      const s = (n.crit ? 1.45 : 1.0) * pop;
+      /* keep numbers a sane size on screen: shrink when the camera is close, grow a little when far (beast fight) */
+      const cam = G.game && G.game.camera;
+      let dk = 1;
+      if (cam) { const dx = n.x - cam.position.x, dy = n.y - cam.position.y, dz = n.z - cam.position.z; dk = Math.max(0.3, Math.min(1.7, Math.sqrt(dx * dx + dy * dy + dz * dz) / 7)); }
+      const s = (n.crit ? 1.45 : 1.0) * pop * dk * 0.8;
       n.spr.scale.set(1.15 * s, 0.58 * s, 1);
       n.spr.position.set(n.x, n.y, n.z);
       n.mat.opacity = Math.min(1, n.life * 3.2);

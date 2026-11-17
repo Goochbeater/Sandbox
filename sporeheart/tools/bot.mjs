@@ -7,6 +7,8 @@ const T = synth(page);
 await page.waitForTimeout(1500);
 await begin(page, T);
 await ev(() => { G.player.reset({ x: 0, z: 12, facing: Math.PI }); G.game.debugStartBoss(); });
+const turbo = +((process.argv.find((a) => a.startsWith('--turbo=')) || '--turbo=0').slice(8));
+await ev((t) => { window.__turbo = t; }, turbo);
 await ev(() => {
   window.__seen = {}; window.__phase = {};
   const I = G.input;
@@ -25,6 +27,7 @@ await ev(() => {
     if (n % 41 === 0) { I.press("allyA"); setTimeout(() => I.release("allyA"), 40); }
     if (n % 47 === 0) { I.press("allyB"); setTimeout(() => I.release("allyB"), 40); }
     if (n % 53 === 0) { I.press("hook"); setTimeout(() => I.release("hook"), 40); }
+    if (window.__turbo && n % 30 === 0 && !b.transforming && b.ent.alive) b.onDamage(window.__turbo, { stagger: 0.15 });
     if (b.atkName) window.__seen[b.form + ":" + b.atkName] = (window.__seen[b.form + ":" + b.atkName] || 0) + 1;
     if (b.state === "stagger") window.__seen[b.form + ":STAGGER"] = (window.__seen[b.form + ":STAGGER"] || 0) + 1;
   }, 90);

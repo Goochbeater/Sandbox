@@ -88,8 +88,10 @@
   function clearTeles() { for (const t of telePool) if (t.busy) releaseTele(t); }
 
   /* ---------------------------------------------------------------- model building (with graceful fallbacks) */
+  const PRE = {};                       /* models built + shader-compiled at boot (B.prewarm) */
   function build(form) {
     const id = form === 1 ? "veil" : form === 2 ? "veil2" : "beast";
+    if (PRE[form]) { const pb = PRE[form]; PRE[form] = null; pb.root.visible = true; pb.root.scale.setScalar(1); if (pb.cloth) pb.cloth.reset(); return pb; }
     let b = null;
     try { if (G.chars.has(id)) b = G.chars.build(id); } catch (e) { console.warn("[boss] build failed", id, e); }
     if (!b) {
@@ -178,6 +180,7 @@
     G.bus.emit("boss:hit", { dmg: dmg, hp: e.hp });
     /* interrupt: hitting the overhead wind-up staggers instantly (forms I/II) */
     const st = hit && hit.stagger || 0;
+    if (!this.attack && this.state === "approach" && dmg >= 10 && this.t - (this.flinchT || -9) > 0.9) { this.flinchT = this.t; this.clip("hurt", { fade: 0.04, once: true }); }
     if (this.interruptible && st >= 0.2 && this.form < 3) { this.breakPoise("parry"); }
     else if (!stag && !this.attackNoPoise) {
       this.poise += st * (this.form === 3 && this.attack ? 0.5 : 1); this.poiseDecayT = 2.2;
@@ -376,7 +379,7 @@
     dur: 1.7, range: [4, 99], w: 3,
     start(b) {
       b.faceSnap(); const P = G.player, p = b.pos(); b.dirYaw = ang(P.x - p.x, P.z - p.z);
-      b.clip("slash1", { fade: 0.06, once: true, speed: 0.4 });
+      b.clip("dashWind", { fade: 0.06, once: true });
       tele("line", p.x, p.z, b.dirYaw, 10.5, 1.7, 0.55);
       sfx("telegraph", { vol: 0.5 }); G.vfx.burst(p, { count: 8, color: 0xff3a2a, speed: 2, size: 0.3, life: 0.4, gravity: 0, spread: 1, tex: "glow" });
     },
@@ -390,7 +393,7 @@
         if (!this.hit && b.hitLine(b.sx, b.sz, b.dirYaw, Math.hypot(p.x - b.sx, p.z - b.sz) + 1, 1.6, 15, 6, 1)) this.hit = true;
         if (b.dashT <= 0) { b.faceSnap(); b.clip("slash2", { fade: 0.04, once: true }); this.fin = t; }
       }
-      if (this.fin && t - this.fin > 0.12 && !this.s2) { this.s2 = 1; b.slashTrail({ range: 3.2, arc: 2.6, color: 0xff4a3a }); sfx("swing2"); b.hitSector(3.4, 2.4, 12, 6, 2); }
+      if (this.fin && t - this.fin > 0.17 && !this.s2) { this.s2 = 1; b.slashTrail({ range: 3.2, arc: 2.6, color: 0xff4a3a }); sfx("swing2"); b.hitSector(3.4, 2.4, 12, 6, 2); }
     },
     end(b) { this.a = this.s2 = this.fin = 0; }
   };
@@ -407,7 +410,7 @@
     },
     tick(b, t, dt) {
       if (t < 0.85) b.root.rotation.y = U.angleLerp(b.root.rotation.y, ang(G.player.x - b.pos().x, G.player.z - b.pos().z), 1 - Math.exp(-3 * dt));
-      if (t >= 0.85 && !this.a) {
+      if (t >= 0.87 && !this.a) {
         this.a = 1; b.interruptible = false; const p = b.pos(), y = b.root.rotation.y;
         b.hitSector(4.2, 1.9, 24, 8, 3); b.slashTrail({ range: 4, arc: 1.9, color: 0xff3a2a, lift: 0.8 });
         b.hitLine(p.x, p.z, y, 8, 1.2, 14, 4, 0);
@@ -449,24 +452,27 @@
         this.a = 1; const p = b.pos(); p.x = this.tx; p.z = this.tz; p.y = groundAt(p.x, p.z);
         b.appear(); b.faceSnap(); b.clip("teleportIn", { fade: 0.02, once: true }); petalBurst(p, 20); sfx("portal", { vol: 0.7, rate: 1.9 });
       }
-      if (t >= 0.82 && !this.b) { this.b = 1; b.clip("slash1", { fade: 0.02, once: true }); b.slashTrail({ range: 3.1, arc: 2.5, color: 0xff4a3a }); sfx("swing1"); b.hitSector(3.3, 2.6, 13, 5, 1); }
-      if (t >= 1.12 && !this.c) { this.c = 1; b.faceSnap(); b.clip("slash2", { fade: 0.02, once: true }); b.slashTrail({ range: 3.1, arc: 2.5, flip: true, color: 0xff4a3a }); sfx("swing2"); b.hitSector(3.3, 2.6, 10, 6, 2); }
+      if (t >= 0.8 && !this.b0) { this.b0 = 1; b.faceSnap(); b.clip("slash1", { fade: 0.04, once: true }); }
+      if (t >= 0.98 && !this.b) { this.b = 1; b.slashTrail({ range: 3.1, arc: 2.5, color: 0xff4a3a }); sfx("swing1"); b.hitSector(3.3, 2.6, 13, 5, 1); }
+      if (t >= 1.18 && !this.c0) { this.c0 = 1; b.faceSnap(); b.clip("slash2", { fade: 0.02, once: true }); }
+      if (t >= 1.36 && !this.c) { this.c = 1; b.slashTrail({ range: 3.1, arc: 2.5, flip: true, color: 0xff4a3a }); sfx("swing2"); b.hitSector(3.3, 2.6, 10, 6, 2); }
     },
-    end(b) { this.a = this.b = this.c = 0; b.appear(); }
+    end(b) { this.a = this.b = this.c = this.b0 = this.c0 = 0; b.appear(); }
   };
 
   ATK.spin = {
     dur: 1.5, range: [0, 4], w: 3,
-    start(b) { b.faceSnap(); b.clip("taunt", { fade: 0.06, once: true, speed: 2 }); const p = b.pos(); tele("circle", p.x, p.z, 3.8, 0, 0, 0.65); sfx("telegraph", { vol: 0.6 }); },
+    start(b) { b.faceSnap(); b.clip("spinWind", { fade: 0.06, once: true }); const p = b.pos(); tele("circle", p.x, p.z, 3.8, 0, 0, 0.72); sfx("telegraph", { vol: 0.6 }); },
     tick(b, t, dt) {
-      if (t >= 0.65 && !this.a) {
-        this.a = 1; b.clip("spin", { fade: 0.02, once: true }); const p = b.pos();
+      if (t >= 0.62 && !this.a0) { this.a0 = 1; b.clip("spin", { fade: 0.02, once: true }); }
+      if (t >= 0.72 && !this.a) {
+        this.a = 1; const p = b.pos();
         b.hitCircle(p.x, p.z, 3.8, 16, 9, 2, true); G.vfx.ringShockwave(p, 0xff3a2a, 3.8); sfx("swing3");
         for (let i = 0; i < 3; i++) b.after(i * 0.05, function () { b.slashTrail({ range: 3.5, arc: 6, flip: i % 2 === 1, color: 0xff3a2a }); });
         G.vfx.shake(0.3);
       }
     },
-    end() { this.a = 0; }
+    end() { this.a = this.a0 = 0; }
   };
 
   /* ---- FORM II ---- */
@@ -479,10 +485,13 @@
         b.faceSnap(); b.clip(i % 2 ? "slash2" : "slash1", { fade: 0.02, once: true, speed: 1.4 });
         const p = b.pos(), P = G.player, d = Math.hypot(P.x - p.x, P.z - p.z);
         if (d > 2.2) { const k = Math.min(d - 2, 5), y = b.root.rotation.y; b.move(Math.sin(y) * k, Math.cos(y) * k, dt); }
-        const last = i === 4;
-        b.slashTrail({ range: 3.2, arc: 2.6, flip: i % 2 === 1, color: 0xff4a3a, lift: last ? 0.9 : 0.3 });
-        sfx("swing" + (1 + (i % 3))); b.hitSector(3.4, 2.6, last ? 14 : 7, last ? 8 : 4, last ? 5 : 0.5);
-        if (last) { G.vfx.shake(0.3); G.vfx.ringShockwave(b.pos(), 0xff4a3a, 3); }
+        const last = i === 4, self = this;
+        b.after(0.13, function () {                                  /* land on the strike frame of the slash (0.18 s / 1.4) */
+          if (b.attack !== self) return;
+          b.slashTrail({ range: 3.2, arc: 2.6, flip: i % 2 === 1, color: 0xff4a3a, lift: last ? 0.9 : 0.3 });
+          sfx("swing" + (1 + (i % 3))); b.hitSector(3.4, 2.6, last ? 14 : 7, last ? 8 : 4, last ? 5 : 0.5);
+          if (last) { G.vfx.shake(0.3); G.vfx.ringShockwave(b.pos(), 0xff4a3a, 3); }
+        });
       }
     },
     end() { this.n = 0; }
@@ -517,9 +526,11 @@
 
   ATK.petalStorm = {
     dur: 3.4, range: [0, 99], w: 2,
-    start(b) { b.clip("cast", { fade: 0.08, once: true, speed: 0.6 }); this.n = 0; this.nx = 0.7; this.ang = Math.random() * 6; sfx("novaCharge", { vol: 0.7 }); G.vfx.ringShockwave(b.pos(), 0xff3a4a, 3); b.attackNoPoise = false; },
+    start(b) { b.clip("cast", { fade: 0.08, once: true, speed: 1.2 }); this.n = 0; this.st = 0; this.nx = 0.7; this.ang = Math.random() * 6; sfx("novaCharge", { vol: 0.7 }); G.vfx.ringShockwave(b.pos(), 0xff3a4a, 3); b.attackNoPoise = false; },
     tick(b, t, dt) {
       b.root.rotation.y += dt * 1.2;
+      if (t > 0.55 && !this.st) { this.st = 1; b.loopClip("storm", { fade: 0.15 }); }
+      if (t > 3.0 && this.st === 1) { this.st = 2; b.clip("hurt", { fade: 0.2, once: true, speed: 0.6 }); }
       if (t > 0.7 && t < 3.0 && t >= this.nx) {
         this.nx += 0.075; this.ang += 0.62;
         b.fireProjectile(this.ang, 9.5, 6, 1.1, 0xff3a4a, 3.2); b.fireProjectile(this.ang + Math.PI, 9.5, 6, 1.1, 0xff3a4a, 3.2);
@@ -541,7 +552,7 @@
       if (t < 1.0) { const P = G.player; this.tx += (P.x - this.tx) * Math.min(1, dt * 1.5); this.tz += (P.z - this.tz) * Math.min(1, dt * 1.5); }
       if (t >= 1.05 && !this.a) {
         this.a = 1; const p = b.pos(); p.x = this.tx; p.z = this.tz; p.y = groundAt(p.x, p.z);
-        b.appear(); b.clip("overhead", { fade: 0, once: true, speed: 2.2 });
+        b.appear(); b.clip("plunge", { fade: 0, once: true });
         b.hitCircle(p.x, p.z, 4.4, 22, 8, 5, false); b.ringWave(p.x, p.z, 1, 9, 12, 12, 5, 0xff4a3a);
         petalBurst(p, 50); G.vfx.shake(0.55); sfx("explosion", { vol: 0.8 }); G.combat.hitstop(0.05);
         if (G.world.shatterNear) G.world.shatterNear(p.x, p.z, 4.4, 80);
@@ -557,7 +568,7 @@
       const p = b.pos(), P = G.player;
       if (this.phase === 0 && t >= this.t0) {
         this.phase = 1; b.faceSnap(); this.yaw = b.root.rotation.y; this.sx = p.x; this.sz = p.z; this.hit = false;
-        tele("line", p.x, p.z, this.yaw, 11, 1.8, 0.5); b.clip("thrust", { fade: 0.04, once: true, speed: 0.5 }); sfx("telegraph", { vol: 0.5 });
+        tele("line", p.x, p.z, this.yaw, 11, 1.8, 0.5); b.clip("dashWind", { fade: 0.04, once: true, speed: 1.6 }); sfx("telegraph", { vol: 0.5 });
         this.t1 = t + 0.5;
       } else if (this.phase === 1 && t >= this.t1) {
         this.phase = 2; this.dashT = 0.28; b.clip("dash", { fade: 0.02, once: true }); sfx("dash", { vol: 0.8 });
@@ -575,7 +586,7 @@
   ATK.sweep = {
     dur: 2.4, range: [0, 11], w: 4,
     start(b) {
-      b.faceSnap(); b.clip(Math.random() < 0.5 ? "slash1" : "slash2", { fade: 0.1, once: true });
+      b.faceSnap(); const sl = Math.random() < 0.5; b.clip(sl ? "slash1" : "slash2", { fade: 0.1, once: true, speed: sl ? 0.52 : 0.47 });
       const p = b.pos(); tele("arc", p.x, p.z, b.root.rotation.y, 2.6, 10.5, 1.0); sfx("telegraph", { vol: 0.8, rate: 0.6 }); b.interruptible = false;
     },
     tick(b, t, dt) {
@@ -595,7 +606,7 @@
   ATK.slam = {
     dur: 2.8, range: [0, 14], w: 4,
     start(b) {
-      b.faceSnap(); b.clip("overhead", { fade: 0.1, once: true });
+      b.faceSnap(); b.clip("overhead", { fade: 0.1, once: true, speed: 0.77 });
       const f = b.fwd(), p = b.pos(); const d = Math.min(9, Math.max(5, b.dist() - 0.5));
       this.sx = p.x + f.x * d; this.sz = p.z + f.z * d;
       tele("circle", this.sx, this.sz, 5.5, 0, 0, 1.25); sfx("telegraph", { vol: 0.8, rate: 0.5 });
@@ -654,7 +665,7 @@
 
   ATK.beam = {
     dur: 4.6, range: [0, 99], w: 3,
-    start(b) { b.faceSnap(); b.clip("cast", { fade: 0.1, once: true }); sfx("novaCharge", { vol: 1, rate: 0.6 }); this.yaw = b.root.rotation.y; this.on = false; G.vfx.ringShockwave(b.pos(), 0xff3a2a, 5); },
+    start(b) { b.faceSnap(); b.clip("cast", { fade: 0.1, once: true, speed: 0.6 }); sfx("novaCharge", { vol: 1, rate: 0.6 }); this.yaw = b.root.rotation.y; this.on = false; G.vfx.ringShockwave(b.pos(), 0xff3a2a, 5); },
     tick(b, t, dt) {
       const p = b.pos();
       if (t < 1.6) { const k = t / 1.6; G.vfx.burst({ x: p.x + Math.sin(b.root.rotation.y) * 2, y: p.y + 4, z: p.z + Math.cos(b.root.rotation.y) * 2 }, { count: 2, color: 0xff5a3a, speed: -2, size: 0.5 + k, life: 0.4, gravity: 0, spread: 1.5, tex: "glow" }); b.face(dt, 2); this.yaw = b.root.rotation.y; this.sweep = (Math.random() < 0.5 ? 1 : -1); return; }
@@ -692,7 +703,7 @@
 
   ATK.beastSpin = {
     dur: 2.4, range: [0, 8], w: 2,
-    start(b) { b.faceSnap(); b.clip("spin", { fade: 0.1, once: true }); const p = b.pos(); tele("circle", p.x, p.z, 10.5, 0, 0, 0.95); sfx("telegraph", { vol: 0.8, rate: 0.5 }); },
+    start(b) { b.faceSnap(); b.clip("spin", { fade: 0.1, once: true, speed: 0.74 }); const p = b.pos(); tele("circle", p.x, p.z, 10.5, 0, 0, 0.95); sfx("telegraph", { vol: 0.8, rate: 0.5 }); },
     tick(b, t, dt) {
       if (t >= 0.95 && !this.a) {
         this.a = 1; const p = b.pos(); b.hitCircle(p.x, p.z, 10.5, 26, 13, 5, true); G.vfx.ringShockwave(p, 0xff4a2a, 10.5); G.vfx.shake(0.8); sfx("swing3", { rate: 0.5 });
@@ -801,9 +812,14 @@
         l = Math.hypot(mx, mz);
         this.vx = l > 0.01 ? mx / l * speed * Math.min(1, l) : 0; this.vz = l > 0.01 ? mz / l * speed * Math.min(1, l) : 0;
         this.move(this.vx * dt, this.vz * dt, dt, true);
-        const moving = l > 0.05;
-        const want = moving ? (d > ideal + 3 ? "run" : "walk") : "idle";
+        const moving = l > 0.05, vNow = Math.hypot(this.vx, this.vz);
+        const want = moving ? (vNow > (this.form === 3 ? 5 : 2.4) ? "run" : "walk") : "idle";
         if (want !== this.speedClip) { this.speedClip = want; this.loopClip(this.anim && this.anim.has(want) ? want : "idle"); }
+        /* stride-matched playback: feet stay planted at any approach / strafe speed */
+        if (this.anim && moving) {
+          const nat = this.form === 3 ? (want === "run" ? 7.0 : 3.5) : (want === "run" ? 3.1 : 1.15);
+          this.anim.setSpeed(Math.max(0.7, Math.min(2.4, vNow / nat)));
+        } else if (this.anim && want === "idle") this.anim.setSpeed(1);
         if (this.form === 3 && this.stateT < 0.5) this.cd = Math.max(this.cd, 0.6);
         this.cd -= dt;
         if (this.cd <= 0) this.startAttack(this.chooseAttack());
@@ -840,6 +856,14 @@
 
   /* ================================================================ module API */
   B.init = function (scene) { sceneRef = scene; };
+  /* build all three forms now and return their roots, so the caller can compile every shader up front */
+  B.prewarm = function () {
+    const out = [];
+    for (const f of [1, 2, 3]) { if (!PRE[f]) PRE[f] = build(f); out.push(PRE[f]); }
+    initTele();
+    return out;
+  };
+  /* after a boss fight the pre-built forms are spent; build fresh ones for a rematch (death → checkpoint keeps the live one) */
   B.spawn = function (ctx) {
     if (B.active) B.despawn();
     initTele();

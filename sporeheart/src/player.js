@@ -110,6 +110,17 @@
     m.position.y = h / 2; g.add(m);
     return { root: g, parts: {}, anim: null };
   }
+  /* allies are pooled: built once (prewarm at boot), re-summoned forever — no geometry / cloth-sim leak */
+  const allyPool = Object.create(null);
+  function getAlly(id, color, h) {
+    let c = allyPool[id];
+    if (!c) c = allyPool[id] = buildChar(id, color, h);
+    c.root.scale.setScalar(1); c.root.visible = true;
+    if (c.anim && c.anim.has("idle")) { c.anim.setBase("idle"); c.anim.play("idle", { fade: 0 }); c.anim.setSpeed(1); }
+    if (c.cloth) c.cloth.reset();
+    return c;
+  }
+  P.prewarmAllies = function () { return [getAlly("crane", 0x171a22, 2.1), getAlly("thistle", 0x9fd070, 1.4)]; };
   function buildChar(id, color, h) {
     let b = null;
     try { b = G.chars.build(id); } catch (e) { console.warn("[player] build failed", id, e); }
@@ -888,7 +899,7 @@
     const f = P.facing, side = id === "crane" ? 1 : -1;
     const px = P.x + Math.cos(f) * 2.4 * side - Math.sin(f) * 0.8, pz = P.z - Math.sin(f) * 2.4 * side - Math.cos(f) * 0.8;
     G.vfx.portal({ x: px, y: groundAt(px, pz), z: pz }, id === "crane" ? 0xff7ab8 : 0x8effc0, { face: f + Math.PI, life: 1.2 });
-    const comp = buildChar(id, id === "crane" ? 0x171a22 : 0x9fd070, id === "crane" ? 2.1 : 1.4);
+    const comp = getAlly(id, id === "crane" ? 0x171a22 : 0x9fd070, id === "crane" ? 2.1 : 1.4);
     comp.root.position.set(px, groundAt(px, pz), pz); comp.root.rotation.y = f + Math.PI; P.scene.add(comp.root);
     const tgtE = aimTarget(30, -1) || null;
     const rec = { active: true, t: 0, linked: linked, root: comp.root, anim: comp.anim, parts: comp.parts, x: px, z: pz, tgt: tgtE, shots: 0, shotT: 0.3, potion: false, salute: false };

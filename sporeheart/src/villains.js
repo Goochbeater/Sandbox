@@ -787,6 +787,10 @@
       this.removeMe -= dt;
       if (this.removeMe <= 0 && this.root.parent) {
         this.root.parent.remove(this.root);
+        /* each imp owns its baked skin (geometry + bone texture): free them, the rest is shared */
+        let sk = null;
+        this.root.traverse((o) => { if (o.isSkinnedMesh && o.userData.skinBaked) { o.geometry.dispose(); sk = o.skeleton; } });
+        if (sk) sk.dispose();
         this.removeMe = undefined;
         this.gone = true;
       }

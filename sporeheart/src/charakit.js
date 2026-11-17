@@ -453,14 +453,14 @@
      inverse-binds, attached bind mode). A 90-part character becomes about a dozen draw calls while bones still drive
      every vertex — keyframes, verlet follow-through, squash, look layers are all untouched. Meshes flagged
      userData.keep (blinking eyes, glows, swapped parts), transparent or custom-shader meshes, and anything under a
-     hidden bone are left as they are. */
+     hidden bone or a bone flagged userData.noSkin (shown/hidden at runtime) are left as they are. */
   K.skinBake = function (rig, anim) {
     const THREE = T();
     if (!rig || !rig.bones || rig.skinned) return rig;
     if (anim && anim.prepare) anim.prepare();
     const root = rig.root;
     root.updateWorldMatrix(true, true);
-    const shown = (o) => { for (let p = o; p; p = p.parent) { if (!p.visible) return false; if (p === root) break; } return true; };
+    const shown = (o) => { for (let p = o; p; p = p.parent) { if (!p.visible || p.userData.noSkin) return false; if (p === root) break; } return true; };
     const bones = [], bIdx = new Map(), buckets = new Map();
     for (const path in rig.bones) {
       const bone = rig.bones[path];

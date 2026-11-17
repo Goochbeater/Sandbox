@@ -1455,14 +1455,14 @@
      inverse-binds, attached bind mode). A 90-part character becomes about a dozen draw calls while bones still drive
      every vertex — keyframes, verlet follow-through, squash, look layers are all untouched. Meshes flagged
      userData.keep (blinking eyes, glows, swapped parts), transparent or custom-shader meshes, and anything under a
-     hidden bone are left as they are. */
+     hidden bone or a bone flagged userData.noSkin (shown/hidden at runtime) are left as they are. */
   K.skinBake = function (rig, anim) {
     const THREE = T();
     if (!rig || !rig.bones || rig.skinned) return rig;
     if (anim && anim.prepare) anim.prepare();
     const root = rig.root;
     root.updateWorldMatrix(true, true);
-    const shown = (o) => { for (let p = o; p; p = p.parent) { if (!p.visible) return false; if (p === root) break; } return true; };
+    const shown = (o) => { for (let p = o; p; p = p.parent) { if (!p.visible || p.userData.noSkin) return false; if (p === root) break; } return true; };
     const bones = [], bIdx = new Map(), buckets = new Map();
     for (const path in rig.bones) {
       const bone = rig.bones[path];
@@ -8270,6 +8270,7 @@
       /* vial hangs upright in the fist: shift so the jar centre sits in the palm, tiny scale */
       for (const o of [vj.cap, vj.jar, vj.core, vj.glow]) { o.position.y += 0.20; }
       rig.bones["vial"].scale.setScalar(0.85);
+      rig.bones["vial"].userData.noSkin = true;            /* toggled per frame (only shown while throwing) */
       rig.parts.vialGlow = vj.glow;
     }
 
@@ -13351,6 +13352,10 @@
       this.removeMe -= dt;
       if (this.removeMe <= 0 && this.root.parent) {
         this.root.parent.remove(this.root);
+        /* each imp owns its baked skin (geometry + bone texture): free them, the rest is shared */
+        let sk = null;
+        this.root.traverse((o) => { if (o.isSkinnedMesh && o.userData.skinBaked) { o.geometry.dispose(); sk = o.skeleton; } });
+        if (sk) sk.dispose();
         this.removeMe = undefined;
         this.gone = true;
       }
@@ -15532,16 +15537,32 @@
       mesh.castShadow = false; mesh.receiveShadow = false; mesh.matrixAutoUpdate = false; mesh.userData.isOutline = true; mesh.raycast = () => {};
       S.root.add(mesh); merged++;
     });
-    /* breakables remember which batched vertex ranges are theirs */
-    for (const b of W.breakables) {
-      const list = [];
-      b.mesh.traverse((o) => { if (keep.has(o)) { const rs = ranges.get(o); if (rs) for (const r of rs) if (r.geo) list.push(r); } });
-      if (list.length) b.batched = list;
+    /* live (non-batched) children of a batched mesh move up a level — children first, so nesting unwinds cleanly */
+    const moved = new Map();
+    for (let i = victims.length - 1; i >= 0; i--) {
+      const m = victims[i]; if (!m.parent) continue;
+      const mv = [];
+      for (const c of m.children.slice()) if (!(c.isMesh && c.userData.isOutline) && !keep.has(c)) { m.parent.attach(c); mv.push(c); }
+      if (mv.length) moved.set(m, mv);
     }
-    for (const m of victims) {
-      if (!m.parent) continue;
-      for (const c of m.children.slice()) if (!(c.isMesh && c.userData.isOutline) && !keep.has(c)) m.parent.attach(c);   /* keep live children */
-      m.parent.remove(m);
+    /* breakables: remember their welded vertex ranges; their original meshes stay in the scene, hidden, so the first
+       hit can swap the prop back to real meshes (hit wobble, jitter) while untouched props stay batched */
+    const parked = new Set();
+    for (const b of W.breakables) {
+      const list = [], hid = [], orph = [];
+      b.mesh.traverse((o) => {
+        if (!keep.has(o)) return;
+        const rs = ranges.get(o); if (rs) for (const r of rs) if (r.geo) list.push(r);
+        hid.push(o); const mv = moved.get(o); if (mv) for (const c of mv) orph.push(c);
+      });
+      if (!list.length) continue;
+      b.batched = list; b.hidden = hid; b.orphans = orph;
+      for (const o of hid) parked.add(o);
+    }
+    for (let i = victims.length - 1; i >= 0; i--) {
+      const m = victims[i];
+      if (parked.has(m)) { m.visible = false; continue; }
+      if (m.parent) m.parent.remove(m);
     }
     S.batchInfo = { before: before, after: merged };
     if (G.CONF.debug) console.log("[world] static batch", before, "meshes ->", merged);
@@ -15593,16 +15614,27 @@
     if (G.vfx) { try { G.vfx.shake(b.debris === "stall" ? 0.22 : 0.12); G.vfx.hitSpark && G.vfx.hitSpark({ x: b.x, y: y, z: b.z }); } catch (e2) { /* ignore */ } }
     if (G.input) G.input.haptic(b.debris === "stall" ? 30 : 12);
     if (b.mesh) { b.mesh.visible = false; }
-    if (b.batched) {                                   /* collapse its welded vertices out of sight */
-      for (const r of b.batched) {
-        const a = r.geo.attributes.position, arr = a.array;
-        for (let i = r.start; i < r.start + r.count; i++) { arr[i * 3] = 0; arr[i * 3 + 1] = -500; arr[i * 3 + 2] = 0; }
-        a.addUpdateRange(r.start * 3, r.count * 3); a.needsUpdate = true;
-      }
-      b.batched = null;
-    }
+    collapseRanges(b);                                  /* collapse its welded vertices out of sight */
+    if (b.orphans) { for (const o of b.orphans) o.visible = false; b.orphans = null; }
     S.shatterCount = (S.shatterCount || 0) + 1;
     if (b.onBreak) b.onBreak(b);
+  }
+
+  function collapseRanges(b) {
+    if (!b.batched) return;
+    for (const r of b.batched) {
+      const a = r.geo.attributes.position, arr = a.array;
+      for (let i = r.start; i < r.start + r.count; i++) { arr[i * 3] = 0; arr[i * 3 + 1] = -500; arr[i * 3 + 2] = 0; }
+      a.addUpdateRange(r.start * 3, r.count * 3); a.needsUpdate = true;
+    }
+    b.batched = null;
+  }
+  /* first hit on a batched prop: pull it out of the batch and show its own meshes again */
+  function unbatchBreakable(b) {
+    if (!b.batched) return;
+    collapseRanges(b);
+    if (b.hidden) for (const o of b.hidden) o.visible = true;
+    b.hidden = null;
   }
 
   W.hitBreakables = function (pos, r, dmg, team) {
@@ -15619,6 +15651,7 @@
       if (dx * dx + dz * dz > rr * rr) continue;
       if (py > (b.collider ? b.collider.y1 : 2) + 1.4) continue;
       b.hp -= d0;
+      unbatchBreakable(b);
       b.flash = 1;
       hits++;
       if (b.onHit) b.onHit(b, d0);
@@ -15671,7 +15704,6 @@
      ===================================================================== */
   W.update = function (dt, t) {
     if (!S.built) return;
-    updateGlowBatch();
     dt = (typeof dt === "number" && dt > 0) ? Math.min(dt, 0.05) : 0.016;
     S.time += dt;
     const time = (typeof t === "number" && isFinite(t)) ? t : S.time;
@@ -15826,6 +15858,7 @@
       const hot = G.player && G.player.hookReady ? 1 : 0;
       h.glow.material.opacity = 0.55 + 0.25 * Math.sin(time * 4 + i) + hot * 0.15;
     }
+    updateGlowBatch();                                  /* after everything above has moved / faded the proxies */
   };
 
 })();
@@ -18810,7 +18843,7 @@
     }
     this.form = form;
     /* hit-flash glow, parented to the model so it follows every animation */
-    this.flashSpr = G.assets.glowSprite(0xffd2a8, d.h * 0.85, 0); this.flashSpr.position.set(0, d.h * 0.55, 0); this.flashSpr.material.depthTest = false; this.flashSpr.renderOrder = 9; this.root.add(this.flashSpr);
+    this.flashSpr = G.assets.glowSprite(0xffd2a8, d.h * 0.85, 0); this.flashSpr.position.set(0, d.h * 0.55, 0); this.flashSpr.material.depthTest = false; this.flashSpr.renderOrder = 9; this.flashSpr.visible = false; this.root.add(this.flashSpr);
     if (this.ent) { this.ent.object3D = this.root; this.ent.radius = d.r; this.ent.height = d.h; }
     this.flash = null;
   };
@@ -19442,7 +19475,7 @@
     if (this.dead) return;
     const e = this.ent;
     if (e.flashT > 0) e.flashT = Math.max(0, e.flashT - dt * 5);
-    if (this.flashSpr) this.flashSpr.material.opacity = (e.flashT || 0) * 0.5;
+    if (this.flashSpr) { this.flashSpr.material.opacity = (e.flashT || 0) * 0.5; this.flashSpr.visible = (e.flashT || 0) > 0.01; }
     /* glow flicker via root userData for the renderer */
     if (this.transforming) {
       if (this.form === 3 && this.rise !== undefined) { this.rise = Math.min(1, this.rise + dt / 3); const k = this.rise; this.root.scale.setScalar(0.35 + 0.65 * (1 - Math.pow(1 - k, 3))); G.vfx.shake(0.3 * (1 - k)); }

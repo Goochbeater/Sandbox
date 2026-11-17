@@ -1228,6 +1228,7 @@
       /* vial hangs upright in the fist: shift so the jar centre sits in the palm, tiny scale */
       for (const o of [vj.cap, vj.jar, vj.core, vj.glow]) { o.position.y += 0.20; }
       rig.bones["vial"].scale.setScalar(0.85);
+      rig.bones["vial"].userData.noSkin = true;            /* toggled per frame (only shown while throwing) */
       rig.parts.vialGlow = vj.glow;
     }
 

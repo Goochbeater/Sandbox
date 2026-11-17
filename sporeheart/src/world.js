@@ -2080,16 +2080,32 @@
       mesh.castShadow = false; mesh.receiveShadow = false; mesh.matrixAutoUpdate = false; mesh.userData.isOutline = true; mesh.raycast = () => {};
       S.root.add(mesh); merged++;
     });
-    /* breakables remember which batched vertex ranges are theirs */
-    for (const b of W.breakables) {
-      const list = [];
-      b.mesh.traverse((o) => { if (keep.has(o)) { const rs = ranges.get(o); if (rs) for (const r of rs) if (r.geo) list.push(r); } });
-      if (list.length) b.batched = list;
+    /* live (non-batched) children of a batched mesh move up a level — children first, so nesting unwinds cleanly */
+    const moved = new Map();
+    for (let i = victims.length - 1; i >= 0; i--) {
+      const m = victims[i]; if (!m.parent) continue;
+      const mv = [];
+      for (const c of m.children.slice()) if (!(c.isMesh && c.userData.isOutline) && !keep.has(c)) { m.parent.attach(c); mv.push(c); }
+      if (mv.length) moved.set(m, mv);
     }
-    for (const m of victims) {
-      if (!m.parent) continue;
-      for (const c of m.children.slice()) if (!(c.isMesh && c.userData.isOutline) && !keep.has(c)) m.parent.attach(c);   /* keep live children */
-      m.parent.remove(m);
+    /* breakables: remember their welded vertex ranges; their original meshes stay in the scene, hidden, so the first
+       hit can swap the prop back to real meshes (hit wobble, jitter) while untouched props stay batched */
+    const parked = new Set();
+    for (const b of W.breakables) {
+      const list = [], hid = [], orph = [];
+      b.mesh.traverse((o) => {
+        if (!keep.has(o)) return;
+        const rs = ranges.get(o); if (rs) for (const r of rs) if (r.geo) list.push(r);
+        hid.push(o); const mv = moved.get(o); if (mv) for (const c of mv) orph.push(c);
+      });
+      if (!list.length) continue;
+      b.batched = list; b.hidden = hid; b.orphans = orph;
+      for (const o of hid) parked.add(o);
+    }
+    for (let i = victims.length - 1; i >= 0; i--) {
+      const m = victims[i];
+      if (parked.has(m)) { m.visible = false; continue; }
+      if (m.parent) m.parent.remove(m);
     }
     S.batchInfo = { before: before, after: merged };
     if (G.CONF.debug) console.log("[world] static batch", before, "meshes ->", merged);
@@ -2141,16 +2157,27 @@
     if (G.vfx) { try { G.vfx.shake(b.debris === "stall" ? 0.22 : 0.12); G.vfx.hitSpark && G.vfx.hitSpark({ x: b.x, y: y, z: b.z }); } catch (e2) { /* ignore */ } }
     if (G.input) G.input.haptic(b.debris === "stall" ? 30 : 12);
     if (b.mesh) { b.mesh.visible = false; }
-    if (b.batched) {                                   /* collapse its welded vertices out of sight */
-      for (const r of b.batched) {
-        const a = r.geo.attributes.position, arr = a.array;
-        for (let i = r.start; i < r.start + r.count; i++) { arr[i * 3] = 0; arr[i * 3 + 1] = -500; arr[i * 3 + 2] = 0; }
-        a.addUpdateRange(r.start * 3, r.count * 3); a.needsUpdate = true;
-      }
-      b.batched = null;
-    }
+    collapseRanges(b);                                  /* collapse its welded vertices out of sight */
+    if (b.orphans) { for (const o of b.orphans) o.visible = false; b.orphans = null; }
     S.shatterCount = (S.shatterCount || 0) + 1;
     if (b.onBreak) b.onBreak(b);
+  }
+
+  function collapseRanges(b) {
+    if (!b.batched) return;
+    for (const r of b.batched) {
+      const a = r.geo.attributes.position, arr = a.array;
+      for (let i = r.start; i < r.start + r.count; i++) { arr[i * 3] = 0; arr[i * 3 + 1] = -500; arr[i * 3 + 2] = 0; }
+      a.addUpdateRange(r.start * 3, r.count * 3); a.needsUpdate = true;
+    }
+    b.batched = null;
+  }
+  /* first hit on a batched prop: pull it out of the batch and show its own meshes again */
+  function unbatchBreakable(b) {
+    if (!b.batched) return;
+    collapseRanges(b);
+    if (b.hidden) for (const o of b.hidden) o.visible = true;
+    b.hidden = null;
   }
 
   W.hitBreakables = function (pos, r, dmg, team) {
@@ -2167,6 +2194,7 @@
       if (dx * dx + dz * dz > rr * rr) continue;
       if (py > (b.collider ? b.collider.y1 : 2) + 1.4) continue;
       b.hp -= d0;
+      unbatchBreakable(b);
       b.flash = 1;
       hits++;
       if (b.onHit) b.onHit(b, d0);
@@ -2219,7 +2247,6 @@
      ===================================================================== */
   W.update = function (dt, t) {
     if (!S.built) return;
-    updateGlowBatch();
     dt = (typeof dt === "number" && dt > 0) ? Math.min(dt, 0.05) : 0.016;
     S.time += dt;
     const time = (typeof t === "number" && isFinite(t)) ? t : S.time;
@@ -2374,6 +2401,7 @@
       const hot = G.player && G.player.hookReady ? 1 : 0;
       h.glow.material.opacity = 0.55 + 0.25 * Math.sin(time * 4 + i) + hot * 0.15;
     }
+    updateGlowBatch();                                  /* after everything above has moved / faded the proxies */
   };
 
 })();

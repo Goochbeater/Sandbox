@@ -142,7 +142,7 @@
     }
     this.form = form;
     /* hit-flash glow, parented to the model so it follows every animation */
-    this.flashSpr = G.assets.glowSprite(0xffd2a8, d.h * 0.85, 0); this.flashSpr.position.set(0, d.h * 0.55, 0); this.flashSpr.material.depthTest = false; this.flashSpr.renderOrder = 9; this.root.add(this.flashSpr);
+    this.flashSpr = G.assets.glowSprite(0xffd2a8, d.h * 0.85, 0); this.flashSpr.position.set(0, d.h * 0.55, 0); this.flashSpr.material.depthTest = false; this.flashSpr.renderOrder = 9; this.flashSpr.visible = false; this.root.add(this.flashSpr);
     if (this.ent) { this.ent.object3D = this.root; this.ent.radius = d.r; this.ent.height = d.h; }
     this.flash = null;
   };
@@ -774,7 +774,7 @@
     if (this.dead) return;
     const e = this.ent;
     if (e.flashT > 0) e.flashT = Math.max(0, e.flashT - dt * 5);
-    if (this.flashSpr) this.flashSpr.material.opacity = (e.flashT || 0) * 0.5;
+    if (this.flashSpr) { this.flashSpr.material.opacity = (e.flashT || 0) * 0.5; this.flashSpr.visible = (e.flashT || 0) > 0.01; }
     /* glow flicker via root userData for the renderer */
     if (this.transforming) {
       if (this.form === 3 && this.rise !== undefined) { this.rise = Math.min(1, this.rise + dt / 3); const k = this.rise; this.root.scale.setScalar(0.35 + 0.65 * (1 - Math.pow(1 - k, 3))); G.vfx.shake(0.3 * (1 - k)); }

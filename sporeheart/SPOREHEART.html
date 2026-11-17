@@ -12509,7 +12509,7 @@
     /* ------------------------------------------------------------ VERLET GARMENTS: coat skirt + poncho fringe */
     let cloth = null;
     if (G.cloth) {
-      cloth = G.cloth.create(rig, { follow: 0.28, damp: 3.8, colliders: G.cloth.bodyColliders(rig, { hips: 0.12, chest: 0.12, head: 0, thigh: 0.09, shin: 0.085, foot: 0.095 }) });
+      cloth = G.cloth.create(rig, { follow: 0.28, damp: 3.8, colliders: G.cloth.bodyColliders(rig, { hips: 0.12, chest: 0.12, head: 0, thigh: 0.115, shin: 0.105, foot: 0.115 }) });
       const lerpN = (a, b, t) => a + (b - a) * t;
       const coatFold = (a, t) => 1 + 0.050 * Math.sin(a * 6 + 0.3) * (0.4 + t) + 0.030 * Math.sin(a * 11 + 1.2) * t;
       /* skirt of the duster: hip line → ankles, open at the front like the rigid upper half it hangs from */
